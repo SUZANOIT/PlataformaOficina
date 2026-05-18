@@ -17,6 +17,8 @@ model User {
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([email])
 }
 
 model Company {
@@ -29,6 +31,8 @@ model Company {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   quotes           Quote[]
+
+  @@index([cnpj])
 }
 
 model Client {
@@ -53,6 +57,9 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   quotes    Quote[]
+
+  @@index([email])
+  @@index([cnpj])
 }
 
 model Quote {
@@ -81,6 +88,9 @@ model Quote {
   
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
+
+  @@index([companyId])
+  @@index([clientId])
 }
 
 model QuoteItem {
@@ -95,6 +105,8 @@ model QuoteItem {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([quoteId])
 }
 
 model EmailConfig {
