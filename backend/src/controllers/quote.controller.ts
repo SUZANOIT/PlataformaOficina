@@ -1,0 +1,247 @@
+import { Request, Response } from 'express';
+import { prisma } from '../lib/prisma';
+import { z } from 'zod';
+
+const createQuoteSchema = z.object({
+  companyId: z.string(),
+  client: z.object({
+    nome: z.string(),
+    empresa: z.string().nullish(),
+    cnpj: z.string().nullish(),
+    telefone: z.string().nullish(),
+    email: z.string().nullish(),
+    cidade: z.string().nullish(),
+    estado: z.string().nullish(),
+    logradouro: z.string().nullish(),
+    numero: z.string().nullish(),
+    complemento: z.string().nullish(),
+    bairro: z.string().nullish(),
+    cep: z.string().nullish(),
+    dataSituacao: z.string().nullish(),
+    atividadePrincipal: z.string().nullish(),
+  }),
+  condicaoPagamento: z.string(),
+  parcelas: z.number().nullish(),
+  valorParcela: z.number().nullish(),
+  validade: z.string(),
+  garantia: z.string().nullish(),
+  prazoExecucao: z.string().nullish(),
+  observacao: z.string().nullish(),
+  items: z.array(z.object({
+    descricao: z.string(),
+    quantidade: z.number(),
+    valorUnitario: z.number(),
+    valorTotal: z.number(),
+  })),
+  subtotal: z.number(),
+  total: z.number(),
+});
+
+export const QuoteController = {
+  async list(req: Request, res: Response) {
+    try {
+      const quotes = await prisma.quote.findMany({
+        include: {
+          client: true,
+          company: true,
+          items: true,
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      return res.json(quotes);
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async getDashboardStats(req: Request, res: Response) {
+    try {
+      const quotesCount = await prisma.quote.count();
+      const quotes = await prisma.quote.findMany({
+        select: { total: true }
+      });
+      const totalSold = quotes.reduce((acc, q) => acc + q.total, 0);
+
+      const recentQuotes = await prisma.quote.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { 
+          client: true,
+          company: true
+        }
+      });
+
+      // Calculate breakdown by company
+      const companies = await prisma.company.findMany();
+      const companyBreakdown = await Promise.all(
+        companies.map(async (company) => {
+          const companyQuotes = await prisma.quote.findMany({
+            where: { companyId: company.id },
+            select: { total: true }
+          });
+          
+          const count = companyQuotes.length;
+          const total = companyQuotes.reduce((acc, q) => acc + q.total, 0);
+          
+          return {
+            companyId: company.id,
+            companyName: company.razaoSocial || company.nomeFantasia,
+            quotesCount: count,
+            totalSold: total
+          };
+        })
+      );
+
+      return res.json({
+        quotesCount,
+        totalSold,
+        recentQuotes,
+        companyBreakdown
+      });
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async create(req: Request, res: Response) {
+    try {
+      const data = createQuoteSchema.parse(req.body);
+
+      // Create client first
+      const client = await prisma.client.create({
+        data: data.client,
+      });
+
+      // Create quote
+      const quote = await prisma.quote.create({
+        data: {
+          companyId: data.companyId,
+          clientId: client.id,
+          condicaoPagamento: data.condicaoPagamento,
+          parcelas: data.parcelas,
+          valorParcela: data.valorParcela,
+          validade: data.validade,
+          garantia: data.garantia,
+          prazoExecucao: data.prazoExecucao,
+          observacao: data.observacao,
+          subtotal: data.subtotal,
+          total: data.total,
+          items: {
+            create: data.items,
+          },
+        },
+        include: {
+          items: true,
+          client: true,
+          company: true
+        }
+      });
+
+      return res.status(201).json(quote);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async show(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const quote = await prisma.quote.findUnique({
+        where: { id },
+        include: {
+          items: true,
+          client: true,
+          company: true
+        }
+      });
+
+      if (!quote) {
+        return res.status(404).json({ error: 'Quote not found' });
+      }
+
+      return res.json(quote);
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async update(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const data = createQuoteSchema.parse(req.body);
+
+      const existingQuote = await prisma.quote.findUnique({
+        where: { id },
+        include: { client: true }
+      });
+
+      if (!existingQuote) {
+        return res.status(404).json({ error: 'Quote not found' });
+      }
+
+      // Update client
+      await prisma.client.update({
+        where: { id: existingQuote.clientId },
+        data: data.client,
+      });
+
+      // Update quote & items (delete old, create new)
+      const quote = await prisma.quote.update({
+        where: { id },
+        data: {
+          companyId: data.companyId,
+          condicaoPagamento: data.condicaoPagamento,
+          parcelas: data.parcelas,
+          valorParcela: data.valorParcela,
+          validade: data.validade,
+          garantia: data.garantia,
+          prazoExecucao: data.prazoExecucao,
+          observacao: data.observacao,
+          subtotal: data.subtotal,
+          total: data.total,
+          items: {
+            deleteMany: {},
+            create: data.items,
+          }
+        },
+        include: {
+          items: true,
+          client: true,
+          company: true
+        }
+      });
+
+      return res.json(quote);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      
+      const existingQuote = await prisma.quote.findUnique({
+        where: { id }
+      });
+
+      if (!existingQuote) {
+        return res.status(404).json({ error: 'Quote not found' });
+      }
+
+      await prisma.quote.delete({
+        where: { id }
+      });
+
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+};

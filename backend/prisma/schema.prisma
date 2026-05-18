@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id               String   @id @default(uuid())
+  razaoSocial      String
+  nomeFantasia     String?
+  cnpj             String   @unique
+  cnpjSemMascara   String   @unique
+  inscricaoEstadual String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  quotes           Quote[]
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  nome      String
+  empresa   String?
+  cnpj      String?
+  telefone  String?
+  email     String?
+  cidade    String?
+  estado    String?
+  
+  // Novos campos (ReceitaWS)
+  logradouro         String?
+  numero             String?
+  complemento        String?
+  bairro             String?
+  cep                String?
+  dataSituacao       String?
+  atividadePrincipal String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  quotes    Quote[]
+}
+
+model Quote {
+  id                  String      @id @default(uuid())
+  numeroOrcamento     Int         @unique @default(autoincrement())
+  
+  companyId           String
+  company             Company     @relation(fields: [companyId], references: [id])
+  
+  clientId            String
+  client              Client      @relation(fields: [clientId], references: [id])
+  
+  condicaoPagamento   String
+  parcelas            Int?        // Se for parcelado
+  valorParcela        Float?      // Se for parcelado
+  
+  validade            String      // Ex: "Proposta válida por 7 dias"
+  garantia            String?     // Ex: "Garantia de 90 dias"
+  prazoExecucao       String?     // Ex: "5 dias úteis"
+  observacao          String?     // Campo de observações gerais
+  
+  subtotal            Float
+  total               Float
+  
+  items               QuoteItem[]
+  
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model QuoteItem {
+  id            String   @id @default(uuid())
+  quoteId       String
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  descricao     String
+  quantidade    Int
+  valorUnitario Float
+  valorTotal    Float
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EmailConfig {
+  id        String   @id @default(uuid())
+  host      String
+  port      Int
+  user      String
+  password  String
+  fromName  String?
+  fromEmail String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
