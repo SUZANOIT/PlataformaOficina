@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "build": {
+    "buildCommand": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "deploy": {
+    "startCommand": "bash run.sh"
+  }
+}
