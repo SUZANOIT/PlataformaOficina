@@ -1,0 +1,8 @@
+[providers]
+node = true
+
+[build]
+cmd = "cd backend && npm install && cd ../frontend && npm install"
+
+[deploy]
+cmd = "bash start.sh"
