@@ -5,5 +5,9 @@ node = true
 cmd = "cd backend && npm install && cd ../frontend && npm install"
 
 [deploy]
+
 cmd = "bash start.sh"
 preDeploy = "cd backend && npx prisma migrate deploy"
+
+cmd = "bash run.sh"
+
