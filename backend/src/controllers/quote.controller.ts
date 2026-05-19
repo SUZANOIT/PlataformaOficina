@@ -28,6 +28,10 @@ const createQuoteSchema = z.object({
   garantia: z.string().nullish(),
   prazoExecucao: z.string().nullish(),
   observacao: z.string().nullish(),
+  veiculoMarca: z.string().nullish(),
+  veiculoModelo: z.string().nullish(),
+  veiculoAno: z.string().nullish(),
+  veiculoPlaca: z.string().nullish(),
   items: z.array(z.object({
     descricao: z.string(),
     quantidade: z.number(),
@@ -145,6 +149,10 @@ export const QuoteController = {
           garantia: data.garantia,
           prazoExecucao: data.prazoExecucao,
           observacao: data.observacao,
+          veiculoMarca: data.veiculoMarca,
+          veiculoModelo: data.veiculoModelo,
+          veiculoAno: data.veiculoAno,
+          veiculoPlaca: data.veiculoPlaca,
           subtotal: data.subtotal,
           total: data.total,
           items: {
@@ -245,6 +253,10 @@ export const QuoteController = {
           garantia: data.garantia,
           prazoExecucao: data.prazoExecucao,
           observacao: data.observacao,
+          veiculoMarca: data.veiculoMarca,
+          veiculoModelo: data.veiculoModelo,
+          veiculoAno: data.veiculoAno,
+          veiculoPlaca: data.veiculoPlaca,
           subtotal: data.subtotal,
           total: data.total,
           items: {

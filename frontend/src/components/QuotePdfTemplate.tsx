@@ -34,6 +34,26 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
     return 'Assinatura do Responsável';
   };
 
+  const hasClientData = data.client && (
+    data.client.nome || 
+    data.client.empresa || 
+    data.client.cnpj || 
+    data.client.email || 
+    data.client.telefone || 
+    data.client.logradouro || 
+    data.client.cidade || 
+    data.client.estado ||
+    data.client.bairro ||
+    data.client.cep
+  );
+
+  const hasVehicleData = !!(
+    data.veiculoMarca || 
+    data.veiculoModelo || 
+    data.veiculoAno || 
+    data.veiculoPlaca
+  );
+
   return (
     <div
       ref={ref}
@@ -84,57 +104,126 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
           </div>
         </div>
 
-        {/* Dados do Cliente */}
-        <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-lg mb-8">
-          <h3 className="text-xs font-bold text-slate-500 border-b border-slate-200/80 pb-2 mb-3.5 uppercase tracking-wider">
-            Dados do Cliente
-          </h3>
-          <div className="grid grid-cols-2 gap-y-3.5 gap-x-8 text-sm">
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">Cliente / Razão Social</span>
-              <p className="font-medium text-slate-900 mt-0.5">{data.client?.nome || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">Nome Fantasia</span>
-              <p className="font-medium text-slate-900 mt-0.5">{data.client?.empresa || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">CNPJ / CPF</span>
-              <p className="font-medium text-slate-900 mt-0.5">{data.client?.cnpj || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">E-mail</span>
-              <p className="font-medium text-slate-900 mt-0.5">{data.client?.email || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">Telefone</span>
-              <p className="font-medium text-slate-900 mt-0.5">{data.client?.telefone || 'N/A'}</p>
-            </div>
-            <div>
-              <span className="font-semibold text-slate-500 text-xs uppercase tracking-wide">Endereço</span>
-              <p className="font-medium text-slate-955 leading-relaxed mt-0.5">
-                {data.client?.logradouro ? `${data.client.logradouro}, ${data.client.numero || 'S/N'}` : 'N/A'}
-                {data.client?.complemento ? ` - ${data.client.complemento}` : ''}<br />
-                {data.client?.bairro ? `${data.client.bairro} • ` : ''}
-                {data.client?.cidade || 'N/A'} - {data.client?.estado || 'N/A'}
-                {data.client?.cep ? ` • CEP: ${data.client.cep}` : ''}
-              </p>
-            </div>
+        {/* Seção de Dados (Cliente & Veículo) */}
+        {(hasClientData || hasVehicleData) && (
+          <div 
+            className="mb-8 avoid-page-break"
+            style={{ display: 'flex', gap: '20px', width: '100%' }}
+          >
+            {/* Dados do Cliente */}
+            {hasClientData && (
+              <div 
+                className="bg-slate-50 border border-slate-200/80 p-4 rounded-lg"
+                style={{ flex: 1, width: hasVehicleData ? '48%' : '100%' }}
+              >
+                <div>
+                  <h3 className="text-[11px] font-bold text-slate-500 border-b border-slate-200/80 pb-2 mb-3 uppercase tracking-wider">
+                    Dados do Cliente
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 15px' }} className="text-[12px]">
+                    {data.client?.nome && (
+                      <div style={{ width: '100%' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Cliente / Razão Social</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.client.nome}</p>
+                      </div>
+                    )}
+                    {data.client?.empresa && (
+                      <div style={{ width: hasVehicleData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Nome Fantasia</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.client.empresa}</p>
+                      </div>
+                    )}
+                    {data.client?.cnpj && (
+                      <div style={{ width: hasVehicleData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">CNPJ / CPF</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.client.cnpj}</p>
+                      </div>
+                    )}
+                    {data.client?.email && (
+                      <div style={{ width: '100%' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">E-mail</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.client.email}</p>
+                      </div>
+                    )}
+                    {data.client?.telefone && (
+                      <div style={{ width: '100%' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Telefone</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.client.telefone}</p>
+                      </div>
+                    )}
+                    {(data.client?.logradouro || data.client?.cidade || data.client?.estado || data.client?.cep) && (
+                      <div style={{ width: '100%' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Endereço</span>
+                        <p className="font-medium text-slate-955 leading-normal mt-0.5">
+                          {data.client?.logradouro ? `${data.client.logradouro}, ${data.client.numero || 'S/N'}` : ''}
+                          {data.client?.complemento ? ` - ${data.client.complemento}` : ''}
+                          <br />
+                          {data.client?.bairro ? `${data.client.bairro} • ` : ''}
+                          {data.client?.cidade || ''}
+                          {data.client?.cidade && data.client?.estado ? ` - ${data.client.estado}` : (data.client?.estado || '')}
+                          {data.client?.cep ? ` • CEP: ${data.client.cep}` : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dados do Veículo */}
+            {hasVehicleData && (
+              <div 
+                className="bg-slate-50 border border-slate-200/80 p-4 rounded-lg"
+                style={{ flex: 1, width: hasClientData ? '48%' : '100%' }}
+              >
+                <div>
+                  <h3 className="text-[11px] font-bold text-slate-500 border-b border-slate-200/80 pb-2 mb-3 uppercase tracking-wider">
+                    Dados do Veículo
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 15px' }} className="text-[12px]">
+                    {data.veiculoMarca && (
+                      <div style={{ width: hasClientData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Marca</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.veiculoMarca}</p>
+                      </div>
+                    )}
+                    {data.veiculoModelo && (
+                      <div style={{ width: hasClientData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Modelo</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.veiculoModelo}</p>
+                      </div>
+                    )}
+                    {data.veiculoAno && (
+                      <div style={{ width: hasClientData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Ano</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.veiculoAno}</p>
+                      </div>
+                    )}
+                    {data.veiculoPlaca && (
+                      <div style={{ width: hasClientData ? '100%' : '45%', minWidth: '120px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Placa</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.veiculoPlaca}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Itens do Orçamento */}
         <div className="mb-8">
-          <h3 className="text-xs font-bold text-slate-800 border-b border-slate-900 pb-2 mb-3 uppercase tracking-wider">
+          <h3 className="text-[11px] font-bold text-slate-800 border-b border-slate-900 pb-2 mb-3 uppercase tracking-wider">
             Itens do Orçamento
           </h3>
           
           {/* Header da Tabela em Flexbox (Dark Slate Accent) */}
-          <div className="flex bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-t-md">
-            <div className="p-3 text-left" style={{ width: '50%' }}>Descrição do Serviço / Produto</div>
-            <div className="p-3 text-center" style={{ width: '10%' }}>Qtd</div>
-            <div className="p-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
-            <div className="p-3 text-right" style={{ width: '20%' }}>Total</div>
+          <div className="flex bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider rounded-t-md">
+            <div className="py-1.5 px-3 text-left" style={{ width: '50%' }}>Descrição do Serviço / Produto</div>
+            <div className="py-1.5 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
+            <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
+            <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Total</div>
           </div>
 
           {/* Corpo da Tabela em Flexbox */}
@@ -145,19 +234,19 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                return (
                  <div 
                    key={index} 
-                   className="flex border-b border-slate-100 text-sm last:border-b-0 odd:bg-slate-50/50 even:bg-white avoid-page-break" 
+                   className="flex border-b border-slate-100 text-[12px] last:border-b-0 odd:bg-slate-50/50 even:bg-white avoid-page-break" 
                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
                  >
-                   <div className="p-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
+                   <div className="py-1.5 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
                      {item.descricao}
                    </div>
-                   <div className="p-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
+                   <div className="py-1.5 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
                      {q}
                    </div>
-                   <div className="p-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
+                   <div className="py-1.5 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
                      {formatCurrency(vu)}
                    </div>
-                   <div className="p-3 text-right text-slate-900 font-semibold" style={{ width: '20%' }}>
+                   <div className="py-1.5 px-3 text-right text-slate-900 font-semibold" style={{ width: '20%' }}>
                      {formatCurrency(q * vu)}
                    </div>
                  </div>
@@ -168,12 +257,12 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
         {/* Totais */}
         <div className="flex justify-end mb-8 avoid-page-break">
-          <div className="w-[320px] bg-slate-50 border border-slate-200 p-5 rounded-lg">
-            <div className="flex justify-between items-center mb-2.5 text-sm text-slate-500 font-medium">
+          <div className="w-[320px] bg-slate-50 border border-slate-200 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-2 text-[12px] text-slate-500 font-medium">
               <span>Subtotal:</span>
-              <span className="text-slate-800">{formatCurrency(subtotal)}</span>
+              <span className="text-slate-800 font-semibold">{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between items-center text-lg font-black text-slate-900 border-t border-slate-200/80 pt-2.5 mt-2.5">
+            <div className="flex justify-between items-center text-[14px] font-black text-slate-900 border-t border-slate-200/80 pt-2 mt-2">
               <span>TOTAL GERAL:</span>
               <span className="text-slate-900 underline decoration-double decoration-slate-900 underline-offset-4">
                 {formatCurrency(total)}
@@ -184,10 +273,10 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
         {/* Condições e Observações */}
         <div className="mb-8 avoid-page-break">
-          <h3 className="text-xs font-bold text-slate-850 border-b border-slate-200 pb-2 mb-3.5 uppercase tracking-wider">
+          <h3 className="text-[11px] font-bold text-slate-850 border-b border-slate-200 pb-2 mb-3.5 uppercase tracking-wider">
             Condições Comerciais
           </h3>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm text-slate-600">
+          <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-[12px] text-slate-600">
             <div>
               <span className="font-semibold text-slate-800">Forma de Pagamento:</span>{' '}
               <span className="font-medium text-slate-900">

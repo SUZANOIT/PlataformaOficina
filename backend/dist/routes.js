@@ -42,18 +42,20 @@ routes.get('/api/cnpj/:cnpj', async (req, res) => {
         return res.status(500).json({ error: 'Erro ao consultar CNPJ' });
     }
 });
-// Rotas protegidas
-routes.use(authMiddleware);
 // Usuários
+routes.use('/users', authMiddleware);
 routes.get('/users', auth_controller_1.AuthController.listUsers);
 routes.put('/users/:id', auth_controller_1.AuthController.updateUser);
 routes.delete('/users/:id', auth_controller_1.AuthController.deleteUser);
 // Empresas
+routes.use('/companies', authMiddleware);
 routes.get('/companies', company_controller_1.CompanyController.list);
 routes.post('/companies', company_controller_1.CompanyController.create);
 // Dashboard
+routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);
 // Orçamentos
+routes.use('/quotes', authMiddleware);
 routes.get('/quotes', quote_controller_1.QuoteController.list);
 routes.post('/quotes', quote_controller_1.QuoteController.create);
 routes.get('/quotes/:id', quote_controller_1.QuoteController.show);
@@ -61,5 +63,6 @@ routes.put('/quotes/:id', quote_controller_1.QuoteController.update);
 routes.delete('/quotes/:id', quote_controller_1.QuoteController.delete);
 routes.post('/quotes/:id/send-email', email_controller_1.EmailController.sendQuote);
 // Configurações
+routes.use('/settings', authMiddleware);
 routes.get('/settings/email', email_controller_1.EmailController.getConfig);
 routes.post('/settings/email', email_controller_1.EmailController.saveConfig);

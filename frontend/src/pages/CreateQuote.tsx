@@ -37,6 +37,10 @@ type QuoteFormValues = {
     valorUnitario: number;
   }[];
   observacao?: string;
+  veiculoMarca?: string;
+  veiculoModelo?: string;
+  veiculoAno?: string;
+  veiculoPlaca?: string;
 };
 
 const condicoesPagamento = [
@@ -45,6 +49,7 @@ const condicoesPagamento = [
 
 export function CreateQuote() {
   const [companies, setCompanies] = useState<any[]>([]);
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
@@ -78,7 +83,11 @@ export function CreateQuote() {
       validade: 'Proposta válida por 7 dias',
       garantia: 'Garantia de 90 dias',
       prazoExecucao: '5 dias úteis',
-      observacao: ''
+      observacao: '',
+      veiculoMarca: '',
+      veiculoModelo: '',
+      veiculoAno: '',
+      veiculoPlaca: ''
     }
   });
 
@@ -101,6 +110,10 @@ export function CreateQuote() {
           garantia: data.garantia,
           prazoExecucao: data.prazoExecucao,
           observacao: data.observacao || '',
+          veiculoMarca: data.veiculoMarca || '',
+          veiculoModelo: data.veiculoModelo || '',
+          veiculoAno: data.veiculoAno || '',
+          veiculoPlaca: data.veiculoPlaca || '',
           items: data.items.map((i: any) => ({
             descricao: i.descricao,
             quantidade: i.quantidade,
@@ -280,10 +293,19 @@ export function CreateQuote() {
 
         {/* Section 2: Cliente */}
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">2</span>
-            Dados do Cliente
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-0">
+              <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">2</span>
+              Dados do Cliente
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsVehicleModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition-colors"
+            >
+              🚗 {watch('veiculoPlaca') ? `Veículo: ${watch('veiculoPlaca')}` : 'Adicionar Veículo'}
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2 lg:col-span-3">
               <label className="text-sm font-medium">Buscar por CNPJ</label>
@@ -413,6 +435,48 @@ export function CreateQuote() {
               </select>
             </div>
           </div>
+
+          {/* Resumo do Veículo */}
+          {(watch('veiculoMarca') || watch('veiculoModelo') || watch('veiculoAno') || watch('veiculoPlaca')) && (
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg flex items-center justify-between text-sm border border-border/80 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">🚗</span>
+                <div>
+                  <p className="font-semibold text-foreground">Veículo Vinculado</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {[
+                      watch('veiculoMarca'),
+                      watch('veiculoModelo'),
+                      watch('veiculoAno') ? `Ano ${watch('veiculoAno')}` : null,
+                      watch('veiculoPlaca') ? `Placa ${watch('veiculoPlaca')}` : null
+                    ].filter(Boolean).join(' • ')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsVehicleModalOpen(true)}
+                  className="text-xs text-primary hover:underline font-semibold"
+                >
+                  Editar
+                </button>
+                <span className="text-muted-foreground/30 text-xs">|</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue('veiculoMarca', '');
+                    setValue('veiculoModelo', '');
+                    setValue('veiculoAno', '');
+                    setValue('veiculoPlaca', '');
+                  }}
+                  className="text-xs text-destructive hover:underline font-semibold"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Section 3: Itens */}
@@ -588,6 +652,82 @@ export function CreateQuote() {
           company={companies.find(c => c.id === watch('companyId'))} 
         />
       </div>
+
+      {/* Modal Veículo */}
+      {isVehicleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div 
+            className="w-full max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/10">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🚗</span>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Dados do Veículo</h3>
+                  <p className="text-xs text-muted-foreground">Preencha as informações do veículo para o orçamento</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marca</label>
+                  <input 
+                    {...register('veiculoMarca')}
+                    placeholder="Ex: Chevrolet"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modelo</label>
+                  <input 
+                    {...register('veiculoModelo')}
+                    placeholder="Ex: Onix"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ano</label>
+                  <input 
+                    {...register('veiculoAno')}
+                    placeholder="Ex: 2022"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Placa</label>
+                  <input 
+                    {...register('veiculoPlaca')}
+                    onChange={(e) => {
+                      e.target.value = e.target.value.toUpperCase();
+                      register('veiculoPlaca').onChange(e);
+                    }}
+                    placeholder="Ex: ABC-1234"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    maxLength={8}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
+              <button
+                type="button"
+                onClick={() => setIsVehicleModalOpen(false)}
+                className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition shadow-sm text-sm"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

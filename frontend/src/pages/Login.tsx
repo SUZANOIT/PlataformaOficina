@@ -33,10 +33,10 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">SysOrçamento</h1>
+          <h1 className="text-3xl font-bold text-primary mb-2">Gestão de Orçamentos</h1>
           <p className="text-muted-foreground">Acesse sua conta para continuar</p>
         </div>
 
@@ -85,6 +85,9 @@ export function Login() {
           </Link>
         </div>
       </div>
+      <footer className="mt-8 text-center text-[11px] text-muted-foreground/50 tracking-wider">
+        Desenvolvido por <span className="font-semibold text-primary/70">Suzano IT</span>
+      </footer>
     </div>
   );
 }

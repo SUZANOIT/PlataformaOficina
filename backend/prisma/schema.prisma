@@ -81,6 +81,12 @@ model Quote {
   prazoExecucao       String?     // Ex: "5 dias úteis"
   observacao          String?     // Campo de observações gerais
   
+  // Dados do Veículo (Opcional)
+  veiculoMarca        String?
+  veiculoModelo       String?
+  veiculoAno          String?
+  veiculoPlaca        String?
+  
   subtotal            Float
   total               Float
   

@@ -29,7 +29,7 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card border border-border p-8 rounded-2xl shadow-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-foreground">Novo Cadastro</h1>
@@ -87,6 +87,9 @@ export function Register() {
           </Link>
         </div>
       </div>
+      <footer className="mt-8 text-center text-[11px] text-muted-foreground/50 tracking-wider">
+        Desenvolvido por <span className="font-semibold text-primary/70">Suzano IT</span>
+      </footer>
     </div>
   );
 }

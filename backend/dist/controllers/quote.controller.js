@@ -29,6 +29,10 @@ const createQuoteSchema = zod_1.z.object({
     garantia: zod_1.z.string().nullish(),
     prazoExecucao: zod_1.z.string().nullish(),
     observacao: zod_1.z.string().nullish(),
+    veiculoMarca: zod_1.z.string().nullish(),
+    veiculoModelo: zod_1.z.string().nullish(),
+    veiculoAno: zod_1.z.string().nullish(),
+    veiculoPlaca: zod_1.z.string().nullish(),
     items: zod_1.z.array(zod_1.z.object({
         descricao: zod_1.z.string(),
         quantidade: zod_1.z.number(),
@@ -135,6 +139,10 @@ exports.QuoteController = {
                     garantia: data.garantia,
                     prazoExecucao: data.prazoExecucao,
                     observacao: data.observacao,
+                    veiculoMarca: data.veiculoMarca,
+                    veiculoModelo: data.veiculoModelo,
+                    veiculoAno: data.veiculoAno,
+                    veiculoPlaca: data.veiculoPlaca,
                     subtotal: data.subtotal,
                     total: data.total,
                     items: {
@@ -227,6 +235,10 @@ exports.QuoteController = {
                     garantia: data.garantia,
                     prazoExecucao: data.prazoExecucao,
                     observacao: data.observacao,
+                    veiculoMarca: data.veiculoMarca,
+                    veiculoModelo: data.veiculoModelo,
+                    veiculoAno: data.veiculoAno,
+                    veiculoPlaca: data.veiculoPlaca,
                     subtotal: data.subtotal,
                     total: data.total,
                     items: {
