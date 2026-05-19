@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
@@ -18,7 +19,15 @@ export const EmailController = {
       const config = await prisma.emailConfig.findFirst();
       return res.json(config || {});
     } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error('Prisma error in email.getConfig:', error.code, error.message);
+        return res.status(500).json({ error: 'Database error', code: error.code });
+      }
+      console.error('Error in email.getConfig:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+      });
     }
   },
 
@@ -32,16 +41,26 @@ export const EmailController = {
           where: { id: config.id },
           data,
         });
+        console.log(`Email config updated (id=${updated.id})`);
         return res.json(updated);
       } else {
         const created = await prisma.emailConfig.create({ data });
+        console.log(`Email config created (id=${created.id})`);
         return res.status(201).json(created);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-      return res.status(500).json({ error: 'Internal server error' });
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error('Prisma error in email.saveConfig:', error.code, error.message);
+        return res.status(500).json({ error: 'Database error', code: error.code });
+      }
+      console.error('Error in email.saveConfig:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+      });
     }
   },
 
@@ -92,9 +111,18 @@ export const EmailController = {
         html: `<p>Olá <strong>${quote.client.nome}</strong>,</p><p>O seu orçamento <strong>#${quote.numeroOrcamento}</strong> no valor de R$ ${quote.total.toFixed(2)} foi gerado.</p><p>Atenciosamente,<br/>${quote.company.razaoSocial}</p>`
       });
 
+      console.log(`Quote email sent: quote #${quote.numeroOrcamento} to ${quote.client.email}`);
       return res.json({ success: true, message: 'E-mail enviado com sucesso' });
-    } catch (error: any) {
-      return res.status(500).json({ error: 'Erro ao enviar e-mail: ' + error.message });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error('Prisma error in email.sendQuote:', error.code, error.message);
+        return res.status(500).json({ error: 'Database error', code: error.code });
+      }
+      console.error('Error in email.sendQuote:', error);
+      return res.status(500).json({
+        error: 'Erro ao enviar e-mail',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 };
