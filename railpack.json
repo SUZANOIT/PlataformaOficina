@@ -2,10 +2,10 @@
   "$schema": "https://schema.railpack.com",
   "provider": "node",
   "build": {
-    "buildCommand": "cd backend && npm install && cd ../frontend && npm install"
+    "buildCommand": "npm install && npm run --prefix frontend build && npm run --prefix backend build"
   },
   "deploy": {
-    "preDeployCommand": "cd backend && npx prisma migrate deploy",
-    "startCommand": "bash run.sh"
+    "preDeployCommand": "npx prisma migrate deploy --schema=backend/prisma/schema.prisma",
+    "startCommand": "npm start"
   }
 }
