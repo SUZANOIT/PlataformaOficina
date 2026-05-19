@@ -130,7 +130,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
       <div className="mt-24 text-center">
         <div className="w-64 mx-auto border-t border-gray-800 pt-2">
           <p className="font-bold text-gray-800">{company?.razaoSocial || 'Empresa Emissora'}</p>
-          <p className="text-xs text-gray-500">Assinatura do Responsável</p>
+          <p className="text-xs text-gray-500">Eng. Rafael Suzano Cruz</p>
         </div>
       </div>
     </div>
