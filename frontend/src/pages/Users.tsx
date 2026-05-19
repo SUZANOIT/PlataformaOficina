@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users as UsersIcon, Plus, Edit, Trash2, X, Shield, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Shield, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
