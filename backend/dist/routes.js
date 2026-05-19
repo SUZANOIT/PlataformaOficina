@@ -30,6 +30,18 @@ const authMiddleware = (req, res, next) => {
 // Auth
 routes.post('/auth/register', auth_controller_1.AuthController.register);
 routes.post('/auth/login', auth_controller_1.AuthController.login);
+// Proxy ReceitaWS (Bypass CORS)
+routes.get('/api/cnpj/:cnpj', async (req, res) => {
+    try {
+        const { cnpj } = req.params;
+        const response = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cnpj}`);
+        const data = await response.json();
+        return res.json(data);
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Erro ao consultar CNPJ' });
+    }
+});
 // Rotas protegidas
 routes.use(authMiddleware);
 // Usuários
@@ -51,15 +63,3 @@ routes.post('/quotes/:id/send-email', email_controller_1.EmailController.sendQuo
 // Configurações
 routes.get('/settings/email', email_controller_1.EmailController.getConfig);
 routes.post('/settings/email', email_controller_1.EmailController.saveConfig);
-// Proxy ReceitaWS (Bypass CORS)
-routes.get('/api/cnpj/:cnpj', async (req, res) => {
-    try {
-        const { cnpj } = req.params;
-        const response = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cnpj}`);
-        const data = await response.json();
-        return res.json(data);
-    }
-    catch (error) {
-        return res.status(500).json({ error: 'Erro ao consultar CNPJ' });
-    }
-});

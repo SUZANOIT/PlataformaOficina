@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const registerSchema = zod_1.z.object({
@@ -38,13 +39,25 @@ exports.AuthController = {
                     password: hashedPassword,
                 },
             });
+            console.log(`User registered: ${user.email} (id=${user.id})`);
             return res.status(201).json({ id: user.id, name: user.name, email: user.email });
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
                 return res.status(400).json({ error: error.errors });
             }
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    return res.status(400).json({ error: 'User already exists' });
+                }
+                console.error('Prisma error in register:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in register:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async login(req, res) {
@@ -61,6 +74,7 @@ exports.AuthController = {
             const token = jsonwebtoken_1.default.sign({ id: user.id }, process.env.JWT_SECRET || 'secret', {
                 expiresIn: '1d',
             });
+            console.log(`User logged in: ${user.email} (id=${user.id})`);
             return res.json({
                 user: { id: user.id, name: user.name, email: user.email },
                 token,
@@ -70,7 +84,15 @@ exports.AuthController = {
             if (error instanceof zod_1.z.ZodError) {
                 return res.status(400).json({ error: error.errors });
             }
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                console.error('Prisma error in login:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in login:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async listUsers(req, res) {
@@ -82,12 +104,20 @@ exports.AuthController = {
             return res.json(users);
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                console.error('Prisma error in listUsers:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in listUsers:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async updateUser(req, res) {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
             const { name, email, password } = updateUserSchema.parse(req.body);
             const user = await prisma_1.prisma.user.findUnique({ where: { id } });
             if (!user) {
@@ -108,27 +138,54 @@ exports.AuthController = {
                 data: updateData,
                 select: { id: true, name: true, email: true, createdAt: true }
             });
+            console.log(`User updated: ${updatedUser.email} (id=${updatedUser.id})`);
             return res.json(updatedUser);
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
                 return res.status(400).json({ error: error.errors });
             }
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    return res.status(400).json({ error: 'E-mail already in use' });
+                }
+                if (error.code === 'P2025') {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+                console.error('Prisma error in updateUser:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in updateUser:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async deleteUser(req, res) {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
             const user = await prisma_1.prisma.user.findUnique({ where: { id } });
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });
             }
             await prisma_1.prisma.user.delete({ where: { id } });
+            console.log(`User deleted: ${user.email} (id=${user.id})`);
             return res.status(204).send();
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2025') {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+                console.error('Prisma error in deleteUser:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in deleteUser:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     }
 };

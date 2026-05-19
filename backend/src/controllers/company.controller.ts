@@ -37,7 +37,7 @@ export const CompanyController = {
       return res.status(201).json(company);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {

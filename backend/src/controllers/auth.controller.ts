@@ -46,7 +46,7 @@ export const AuthController = {
       return res.status(201).json({ id: user.id, name: user.name, email: user.email });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -88,7 +88,7 @@ export const AuthController = {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         console.error('Prisma error in login:', error.code, error.message);
@@ -124,7 +124,7 @@ export const AuthController = {
 
   async updateUser(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { name, email, password } = updateUserSchema.parse(req.body);
 
       const user = await prisma.user.findUnique({ where: { id } });
@@ -154,7 +154,7 @@ export const AuthController = {
       return res.json(updatedUser);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -176,7 +176,7 @@ export const AuthController = {
 
   async deleteUser(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
 
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) {

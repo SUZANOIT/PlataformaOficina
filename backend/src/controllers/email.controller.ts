@@ -50,7 +50,7 @@ export const EmailController = {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         console.error('Prisma error in email.saveConfig:', error.code, error.message);
@@ -66,20 +66,20 @@ export const EmailController = {
 
   async sendQuote(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       
       const config = await prisma.emailConfig.findFirst();
       if (!config) {
         return res.status(400).json({ error: 'Configuração de e-mail não encontrada. Configure o SMTP primeiro.' });
       }
 
-      const quote = await prisma.quote.findUnique({
+      const quote = (await prisma.quote.findUnique({
         where: { id },
         include: {
           client: true,
           company: true,
         }
-      });
+      })) as any;
 
       if (!quote) {
         return res.status(404).json({ error: 'Orçamento não encontrado' });

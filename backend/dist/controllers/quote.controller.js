@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuoteController = void 0;
+const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const createQuoteSchema = zod_1.z.object({
@@ -51,7 +52,15 @@ exports.QuoteController = {
             return res.json(quotes);
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                console.error('Prisma error in quote.list:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.list:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async getDashboardStats(req, res) {
@@ -93,12 +102,23 @@ exports.QuoteController = {
             });
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                console.error('Prisma error in quote.getDashboardStats:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.getDashboardStats:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async create(req, res) {
         try {
             const data = createQuoteSchema.parse(req.body);
+            if (!data.items || data.items.length === 0) {
+                return res.status(400).json({ error: 'Quote must contain at least one item' });
+            }
             // Create client first
             const client = await prisma_1.prisma.client.create({
                 data: data.client,
@@ -127,18 +147,30 @@ exports.QuoteController = {
                     company: true
                 }
             });
+            console.log(`Quote created: #${quote.numeroOrcamento} for client ${client.nome} (id=${quote.id})`);
             return res.status(201).json(quote);
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
                 return res.status(400).json({ error: error.errors });
             }
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2003') {
+                    return res.status(400).json({ error: 'Invalid companyId: company not found' });
+                }
+                console.error('Prisma error in quote.create:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.create:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async show(req, res) {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
             const quote = await prisma_1.prisma.quote.findUnique({
                 where: { id },
                 include: {
@@ -153,13 +185,24 @@ exports.QuoteController = {
             return res.json(quote);
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                console.error('Prisma error in quote.show:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.show:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async update(req, res) {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
             const data = createQuoteSchema.parse(req.body);
+            if (!data.items || data.items.length === 0) {
+                return res.status(400).json({ error: 'Quote must contain at least one item' });
+            }
             const existingQuote = await prisma_1.prisma.quote.findUnique({
                 where: { id },
                 include: { client: true }
@@ -197,18 +240,33 @@ exports.QuoteController = {
                     company: true
                 }
             });
+            console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
             return res.json(quote);
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
                 return res.status(400).json({ error: error.errors });
             }
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2025') {
+                    return res.status(404).json({ error: 'Quote not found' });
+                }
+                if (error.code === 'P2003') {
+                    return res.status(400).json({ error: 'Invalid companyId: company not found' });
+                }
+                console.error('Prisma error in quote.update:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.update:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     },
     async delete(req, res) {
         try {
-            const { id } = req.params;
+            const id = req.params.id;
             const existingQuote = await prisma_1.prisma.quote.findUnique({
                 where: { id }
             });
@@ -218,10 +276,22 @@ exports.QuoteController = {
             await prisma_1.prisma.quote.delete({
                 where: { id }
             });
+            console.log(`Quote deleted: #${existingQuote.numeroOrcamento} (id=${existingQuote.id})`);
             return res.status(204).send();
         }
         catch (error) {
-            return res.status(500).json({ error: 'Internal server error' });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2025') {
+                    return res.status(404).json({ error: 'Quote not found' });
+                }
+                console.error('Prisma error in quote.delete:', error.code, error.message);
+                return res.status(500).json({ error: 'Database error', code: error.code });
+            }
+            console.error('Error in quote.delete:', error);
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
+            });
         }
     }
 };

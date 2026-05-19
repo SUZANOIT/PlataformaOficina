@@ -4,6 +4,8 @@
   "private": true,
   "description": "Orcamentos monorepo",
   "scripts": {
+    "start": "npm run --prefix backend start",
+    "build": "npm run --prefix backend build",
     "db:migrate": "npm run --prefix backend db:migrate",
     "db:deploy": "npm run --prefix backend db:deploy",
     "db:generate": "npm run --prefix backend db:generate",

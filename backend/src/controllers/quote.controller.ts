@@ -162,7 +162,7 @@ export const QuoteController = {
       return res.status(201).json(quote);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2003') {
@@ -181,7 +181,7 @@ export const QuoteController = {
 
   async show(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const quote = await prisma.quote.findUnique({
         where: { id },
         include: {
@@ -211,7 +211,7 @@ export const QuoteController = {
 
   async update(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const data = createQuoteSchema.parse(req.body);
 
       if (!data.items || data.items.length === 0) {
@@ -263,7 +263,7 @@ export const QuoteController = {
       return res.json(quote);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -285,7 +285,7 @@ export const QuoteController = {
 
   async delete(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       
       const existingQuote = await prisma.quote.findUnique({
         where: { id }
