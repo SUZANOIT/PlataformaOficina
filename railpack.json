@@ -5,6 +5,7 @@
     "buildCommand": "cd backend && npm install && cd ../frontend && npm install"
   },
   "deploy": {
+    "preDeployCommand": "cd backend && npx prisma migrate deploy",
     "startCommand": "bash run.sh"
   }
 }
