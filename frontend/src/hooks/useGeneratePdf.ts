@@ -38,7 +38,7 @@ export function useGeneratePdf() {
           scrollY: 0,
           scrollX: 0
         },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
         pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.avoid-page-break'] }
       };
 
