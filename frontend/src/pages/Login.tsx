@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function Login() {
   const navigate = useNavigate();
@@ -36,8 +36,7 @@ export function Login() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Gestão de Orçamentos</h1>
-          <p className="text-muted-foreground">Acesse sua conta para continuar</p>
+          <h1 className="text-3xl font-bold text-primary">Gestão de Orçamentos</h1>
         </div>
 
         {error && (
@@ -78,12 +77,7 @@ export function Login() {
             Entrar
           </button>
         </form>
-        
-        <div className="mt-6 text-center text-sm">
-          <Link to="/register" className="text-primary hover:underline">
-            Não possui uma conta? Cadastre-se
-          </Link>
-        </div>
+
       </div>
       <footer className="mt-8 text-center text-[11px] text-muted-foreground/50 tracking-wider">
         Desenvolvido por <span className="font-semibold text-primary/70">Suzano IT</span>
