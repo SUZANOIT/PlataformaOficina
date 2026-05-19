@@ -40,22 +40,23 @@ routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
   }
 });
 
-// Rotas protegidas
-routes.use(authMiddleware);
-
 // Usuários
+routes.use('/users', authMiddleware);
 routes.get('/users', AuthController.listUsers);
 routes.put('/users/:id', AuthController.updateUser);
 routes.delete('/users/:id', AuthController.deleteUser);
 
 // Empresas
+routes.use('/companies', authMiddleware);
 routes.get('/companies', CompanyController.list);
 routes.post('/companies', CompanyController.create);
 
 // Dashboard
+routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', QuoteController.getDashboardStats);
 
 // Orçamentos
+routes.use('/quotes', authMiddleware);
 routes.get('/quotes', QuoteController.list);
 routes.post('/quotes', QuoteController.create);
 routes.get('/quotes/:id', QuoteController.show);
@@ -64,6 +65,7 @@ routes.delete('/quotes/:id', QuoteController.delete);
 routes.post('/quotes/:id/send-email', EmailController.sendQuote);
 
 // Configurações
+routes.use('/settings', authMiddleware);
 routes.get('/settings/email', EmailController.getConfig);
 routes.post('/settings/email', EmailController.saveConfig);
 
