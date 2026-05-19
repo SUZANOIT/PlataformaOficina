@@ -66,7 +66,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               <img 
                 src={mcaLogoBase64} 
                 alt="MCA Logo" 
-                className="w-24 h-24 object-contain"
+                className="w-24 h-24 object-contain rounded-full overflow-hidden"
               />
             )}
             <div className="text-right">
