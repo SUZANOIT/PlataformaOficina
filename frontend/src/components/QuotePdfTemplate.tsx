@@ -15,6 +15,8 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
   const subtotal = (data.items || []).reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
   const total = subtotal;
   const dataAtual = new Date().toLocaleDateString('pt-BR');
+  
+  const isMca = company?.cnpj?.replace(/\D/g, '') === '30021766000113' || company?.razaoSocial?.toLowerCase().includes('mca');
 
   const getSignatureName = (razaoSocial?: string) => {
     if (!razaoSocial) return 'Assinatura do Responsável';
@@ -55,16 +57,25 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             </h1>
             <p className="text-sm text-slate-500 mt-1.5 font-medium">Data de Emissão: {dataAtual}</p>
           </div>
-          <div className="text-right">
-            <h2 className="text-lg font-bold text-slate-900 leading-tight">
-              {company?.nomeFantasia || company?.razaoSocial || 'Empresa Emissora'}
-            </h2>
-            {company?.nomeFantasia && company?.razaoSocial && (
-              <p className="text-xs text-slate-500 font-medium mt-0.5">{company.razaoSocial}</p>
+          <div className="flex gap-4 items-center">
+            {isMca && (
+              <img 
+                src="/mca-logo.png" 
+                alt="MCA Logo" 
+                className="w-16 h-16 object-contain rounded-full border border-slate-100"
+              />
             )}
-            <div className="text-xs text-slate-500 mt-2 space-y-0.5 font-medium">
-              {company?.cnpj && <p>CNPJ: {company.cnpj}</p>}
-              {company?.inscricaoEstadual && <p>I.E.: {company.inscricaoEstadual}</p>}
+            <div className="text-right">
+              <h2 className="text-lg font-bold text-slate-900 leading-tight">
+                {company?.nomeFantasia || company?.razaoSocial || 'Empresa Emissora'}
+              </h2>
+              {company?.nomeFantasia && company?.razaoSocial && (
+                <p className="text-xs text-slate-500 font-medium mt-0.5">{company.razaoSocial}</p>
+              )}
+              <div className="text-xs text-slate-500 mt-2 space-y-0.5 font-medium">
+                {company?.cnpj && <p>CNPJ: {company.cnpj}</p>}
+                {company?.inscricaoEstadual && <p>I.E.: {company.inscricaoEstadual}</p>}
+              </div>
             </div>
           </div>
         </div>
