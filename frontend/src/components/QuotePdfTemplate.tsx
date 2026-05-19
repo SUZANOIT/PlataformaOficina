@@ -16,6 +16,18 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
   const total = subtotal;
   const dataAtual = new Date().toLocaleDateString('pt-BR');
 
+  const getSignatureName = (razaoSocial?: string) => {
+    if (!razaoSocial) return 'Assinatura do Responsável';
+    const cleanName = razaoSocial.toLowerCase();
+    if (cleanName.includes('mca')) {
+      return 'Eng. Rafael Suzano Cruz';
+    }
+    if (cleanName.includes('curio') || cleanName.includes('curió')) {
+      return 'Robson Cruz';
+    }
+    return 'Assinatura do Responsável';
+  };
+
   return (
     <div
       ref={ref}
@@ -130,7 +142,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
       <div className="mt-24 text-center">
         <div className="w-64 mx-auto border-t border-gray-800 pt-2">
           <p className="font-bold text-gray-800">{company?.razaoSocial || 'Empresa Emissora'}</p>
-          <p className="text-xs text-gray-500">Eng. Rafael Suzano Cruz</p>
+          <p className="text-xs text-gray-500">{getSignatureName(company?.razaoSocial)}</p>
         </div>
       </div>
     </div>
