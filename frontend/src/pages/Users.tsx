@@ -16,7 +16,7 @@ export function Users() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3333/users', {
+      const response = await fetch('/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -58,7 +58,7 @@ export function Users() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3333/users/${selectedUser.id}`, {
+      const response = await fetch(`/users/${selectedUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export function Users() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3333/users/${id}`, {
+      const response = await fetch(`/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

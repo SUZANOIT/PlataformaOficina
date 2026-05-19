@@ -13,7 +13,7 @@ export function EmailConfig() {
     const fetchConfig = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3333/settings/email', {
+        const res = await fetch('/settings/email', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -38,7 +38,7 @@ export function EmailConfig() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3333/settings/email', {
+      const response = await fetch('/settings/email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

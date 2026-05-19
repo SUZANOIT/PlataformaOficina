@@ -53,7 +53,7 @@ export function CreateQuote() {
     const fetchCompanies = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3333/companies', {
+        const response = await fetch('/companies', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -141,7 +141,7 @@ export function CreateQuote() {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3333/api/cnpj/${cnpj}`, {
+      const response = await fetch(`/api/cnpj/${cnpj}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

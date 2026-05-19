@@ -11,7 +11,7 @@ export function Dashboard() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3333/dashboard', {
+      const response = await fetch('/dashboard', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -34,7 +34,7 @@ export function Dashboard() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3333/quotes/${id}`, {
+      const response = await fetch(`/quotes/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
