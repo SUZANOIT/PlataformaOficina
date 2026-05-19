@@ -1,49 +1,25 @@
 #!/bin/bash
 
-# Exit on error for initial commands
+# Exit on error
 set -e
 
 echo "Starting the application..."
 
-# Start backend
-echo "Starting backend server..."
-cd backend
-if [ ! -d "node_modules" ]; then
-  echo "Installing backend dependencies..."
-  npm install
-fi
-npm run dev &
-BACKEND_PID=$!
-cd ..
-
-# Start frontend
-echo "Starting frontend application..."
+# Build frontend
+echo "Building frontend..."
 cd frontend
 if [ ! -d "node_modules" ]; then
   echo "Installing frontend dependencies..."
   npm install
 fi
-npm run dev &
-FRONTEND_PID=$!
+npm run build
 cd ..
 
-echo ""
-echo "========================================="
-echo "Application is starting up!"
-echo "Backend:  http://localhost:3333 (default)"
-echo "Frontend: http://localhost:5173 (default)"
-echo "========================================="
-echo "Press Ctrl+C to stop all services."
-
-# Function to handle script termination
-cleanup() {
-    echo "Stopping services..."
-    kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
-    exit 0
-}
-
-# Trap Ctrl+C (SIGINT) and other termination signals
-trap cleanup SIGINT SIGTERM EXIT
-
-# Wait for all background processes
-wait $BACKEND_PID $FRONTEND_PID
+# Start backend (serves both API and frontend static files on port 8080)
+echo "Starting backend server on port 8080..."
+cd backend
+if [ ! -d "node_modules" ]; then
+  echo "Installing backend dependencies..."
+  npm install
+fi
+PORT=8080 npm run dev
