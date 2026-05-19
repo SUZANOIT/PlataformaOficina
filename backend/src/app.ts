@@ -15,7 +15,7 @@ app.use(express.static(frontendDist));
 app.use(routes);
 
 // SPA fallback: serve index.html for any unmatched route
-app.get('*', (_req, res) => {
+app.use((_req, res) => {
   res.sendFile(path.join(frontendDist, 'index.html'));
 });
 
