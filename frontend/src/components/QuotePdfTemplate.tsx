@@ -18,15 +18,17 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
   const total = subtotal;
   const dataAtual = new Date().toLocaleDateString('pt-BR');
   
-  const isMca = company?.cnpj?.replace(/\D/g, '') === '30021766000113' || company?.razaoSocial?.toLowerCase().includes('mca');
+  const isMca = company?.cnpj?.replace(/\D/g, '') === '30021766000113' || 
+                company?.razaoSocial?.toLowerCase().includes('mca') || 
+                company?.nomeFantasia?.toLowerCase().includes('mca') ||
+                company?.inscricaoEstadual?.replace(/\D/g, '') === '119214099114';
 
-  const getSignatureName = (razaoSocial?: string) => {
-    if (!razaoSocial) return 'Assinatura do Responsável';
-    const cleanName = razaoSocial.toLowerCase();
-    if (cleanName.includes('mca')) {
+  const getSignatureName = () => {
+    if (isMca) {
       return 'Eng. Rafael Suzano Cruz';
     }
-    if (cleanName.includes('curio') || cleanName.includes('curió')) {
+    const cleanName = company?.razaoSocial?.toLowerCase() || '';
+    if (cleanName.includes('curio') || cleanName.includes('curió') || company?.nomeFantasia?.toLowerCase().includes('curio')) {
       return 'Robson Cruz';
     }
     return 'Assinatura do Responsável';
@@ -223,7 +225,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
           <p className="font-bold text-slate-900 text-sm">
             {company?.razaoSocial || company?.nomeFantasia || 'Empresa Emissora'}
           </p>
-          <p className="text-xs text-slate-500 mt-1 font-medium">{getSignatureName(company?.razaoSocial)}</p>
+          <p className="text-xs text-slate-500 mt-1 font-medium">{getSignatureName()}</p>
         </div>
       </div>
     </div>
