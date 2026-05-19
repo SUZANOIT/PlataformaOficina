@@ -1,4 +1,6 @@
 import { forwardRef } from 'react';
+import { mcaLogoBase64 } from '../assets/mcaLogoBase64';
+
 
 type QuotePdfTemplateProps = {
   data: any; // Using any for simplicity here, but should match form data
@@ -60,9 +62,9 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
           <div className="flex gap-4 items-center">
             {isMca && (
               <img 
-                src="/mca-logo.png" 
+                src={mcaLogoBase64} 
                 alt="MCA Logo" 
-                className="w-16 h-16 object-contain rounded-full border border-slate-100"
+                className="w-24 h-24 object-contain"
               />
             )}
             <div className="text-right">
