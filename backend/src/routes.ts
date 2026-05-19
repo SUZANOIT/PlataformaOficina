@@ -24,11 +24,11 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-// Auth
+// Auth (rotas públicas)
 routes.post('/auth/register', AuthController.register);
 routes.post('/auth/login', AuthController.login);
 
-// Proxy ReceitaWS (Bypass CORS)
+// Proxy ReceitaWS (Bypass CORS) - rota pública
 routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
   try {
     const { cnpj } = req.params;
@@ -40,8 +40,12 @@ routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
   }
 });
 
-// Rotas protegidas
-routes.use(authMiddleware);
+// Rotas protegidas - aplicar middleware apenas aqui
+routes.use('/users', authMiddleware);
+routes.use('/companies', authMiddleware);
+routes.use('/dashboard', authMiddleware);
+routes.use('/quotes', authMiddleware);
+routes.use('/settings', authMiddleware);
 
 // Usuários
 routes.get('/users', AuthController.listUsers);
