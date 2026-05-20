@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npm install --prefix frontend && npm run --prefix frontend build && npm install --prefix backend && npm run --prefix backend build"
   },
   "deploy": {
-    "preDeployCommand": "npx prisma migrate deploy --schema=backend/prisma/schema.prisma",
+    "preDeployCommand": "npx prisma migrate deploy && npm run db:seed",
     "startCommand": "npm start"
   }
 }
