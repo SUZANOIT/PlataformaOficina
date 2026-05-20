@@ -10,7 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "db:seed": "ts-node reset.ts",
+    "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset"
   },
@@ -40,6 +40,6 @@
     "typescript": "^6.0.3"
   },
   "prisma": {
-    "seed": "ts-node reset.ts"
+    "seed": "ts-node prisma/seed.ts"
   }
 }
