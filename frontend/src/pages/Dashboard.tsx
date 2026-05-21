@@ -162,6 +162,8 @@ export function Dashboard() {
   // Monthly calculations for approved quotes in current year
   const currentYear = new Date().getFullYear();
   const monthlyApprovedTotals = Array(12).fill(0);
+  const monthlyPecasTotals = Array(12).fill(0);
+  const monthlyMaoDeObraTotals = Array(12).fill(0);
   
   const approvedQuotesThisYear = quotes.filter((q: any) => {
     const isApproved = q.status === 'Aprovado';
@@ -174,9 +176,20 @@ export function Dashboard() {
     const date = new Date(q.createdAt);
     const month = date.getMonth(); // 0-11
     monthlyApprovedTotals[month] += Number(q.total) || 0;
+    
+    (q.items || []).forEach((item: any) => {
+      const tipo = item.tipo || 'Peça';
+      const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
+      if (tipo === 'Peça') {
+        monthlyPecasTotals[month] += itemVal;
+      } else {
+        monthlyMaoDeObraTotals[month] += itemVal;
+      }
+    });
   });
 
   const maxMonthVal = Math.max(...monthlyApprovedTotals, 1);
+  const maxPartsLaborVal = Math.max(...monthlyPecasTotals, ...monthlyMaoDeObraTotals, 1);
 
   const monthNames = [
     'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
@@ -341,6 +354,83 @@ export function Dashboard() {
               })}
             </div>
           </div>
+
+          {/* Gráfico 3: Peças vs Mão de Obra (Jan a Dez) */}
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="text-blue-500" size={20} />
+                <h2 className="text-lg font-semibold">Faturamento por Tipo: Peças vs Mão de Obra ({currentYear})</h2>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">Comparativo Mensal (Orçamentos Aprovados)</span>
+            </div>
+
+            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
+              {monthNames.map((monthName, index) => {
+                const partsVal = monthlyPecasTotals[index];
+                const laborVal = monthlyMaoDeObraTotals[index];
+                const partsPct = (partsVal / maxPartsLaborVal) * 100;
+                const laborPct = (laborVal / maxPartsLaborVal) * 100;
+                
+                return (
+                  <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-start gap-1">
+                      <span className="font-bold text-foreground border-b border-border w-full pb-0.5 mb-0.5">{monthName} de {currentYear}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Peças: <strong className="text-blue-600">{formatCurrency(partsVal)}</strong>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        Mão de Obra: <strong className="text-indigo-600">{formatCurrency(laborVal)}</strong>
+                      </span>
+                    </div>
+
+                    {/* Dual Bars Container */}
+                    <div className="w-full flex justify-center items-end h-full gap-1">
+                      {/* Parts Bar (Blue) */}
+                      <div className="flex-1 flex items-end h-full justify-center">
+                        <div 
+                          style={{ height: `${Math.max(partsPct, 4)}%` }} 
+                          className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
+                            partsVal > 0 ? 'bg-gradient-to-t from-blue-600 to-blue-400' : 'bg-slate-200 dark:bg-slate-800/40'
+                          } shadow-sm group-hover:scale-y-105 origin-bottom`}
+                        />
+                      </div>
+
+                      {/* Labor Bar (Indigo) */}
+                      <div className="flex-1 flex items-end h-full justify-center">
+                        <div 
+                          style={{ height: `${Math.max(laborPct, 4)}%` }} 
+                          className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
+                            laborVal > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-slate-200 dark:bg-slate-800/40'
+                          } shadow-sm group-hover:scale-y-105 origin-bottom`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* X Label */}
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
+                      {monthName}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legenda */}
+            <div className="flex justify-center gap-6 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-gradient-to-t from-blue-600 to-blue-400"></span>
+                <span className="font-semibold text-foreground">Peças (Total: {formatCurrency(monthlyPecasTotals.reduce((a, b) => a + b, 0))})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-gradient-to-t from-indigo-600 to-indigo-400"></span>
+                <span className="font-semibold text-foreground">Mão de Obra (Total: {formatCurrency(monthlyMaoDeObraTotals.reduce((a, b) => a + b, 0))})</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Coluna da Direita: Desempenho por Empresa */}
@@ -457,44 +547,62 @@ export function Dashboard() {
             </thead>
             <tbody>
               {paginatedQuotes.map((quote: any) => (
-                <tr key={quote.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="p-4">#{String(quote.numeroOrcamento).padStart(5, '0')}</td>
+                <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
+                  <td className="p-4 font-semibold text-primary">
+                    #{String(quote.numeroOrcamento).padStart(5, '0')}
+                  </td>
                   <td className="p-4 font-medium text-muted-foreground truncate max-w-[200px]" title={quote.company?.razaoSocial}>
                     {quote.company?.razaoSocial || 'N/A'}
                   </td>
-                  <td className="p-4 font-medium">{quote.client?.nome}</td>
-                  <td className="p-4 text-muted-foreground">{new Date(quote.createdAt).toLocaleDateString('pt-BR')}</td>
+                  <td className="p-4">
+                    <div className="font-semibold text-foreground">{quote.client?.nome}</div>
+                    {(quote.veiculoModelo || quote.veiculoPlaca) && (
+                      <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                        {quote.veiculoPlaca && (
+                          <span className="bg-muted px-1.5 py-0.5 rounded font-mono text-[9px] uppercase border border-border">
+                            {quote.veiculoPlaca}
+                          </span>
+                        )}
+                        {quote.veiculoModelo && <span>{quote.veiculoModelo}</span>}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-4 text-muted-foreground text-sm">
+                    {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
                   <td className="p-4 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
-                      quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-                      quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border border-teal-500/20' :
-                      quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' :
-                      quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' :
-                      'bg-slate-500/10 text-slate-600 border border-slate-500/20'
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                      (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
+                      quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                      quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
+                      quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
+                      quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                      'bg-slate-500/10 text-slate-600 border-slate-500/20'
                     }`}>
                       {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
                   </td>
-                  <td className="p-4 font-medium text-emerald-600">{formatCurrency(quote.total)}</td>
+                  <td className="p-4 font-bold text-emerald-600 text-sm">
+                    {formatCurrency(quote.total)}
+                  </td>
                   <td className="p-4 flex gap-2">
                     <button 
                       onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                      className="p-2 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
+                      className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                       title="Editar"
                     >
                       <Edit size={16} />
                     </button>
                     <button 
                       onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
-                      className="p-2 bg-amber-500/10 text-amber-600 rounded hover:bg-amber-500/20 transition"
+                      className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                       title="Clonar"
                     >
                       <Copy size={16} />
                     </button>
                     <button 
                       onClick={() => handleDelete(quote.id)}
-                      className="p-2 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
+                      className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                       title="Excluir"
                     >
                       <Trash2 size={16} />
