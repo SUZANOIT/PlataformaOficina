@@ -42,7 +42,7 @@ const createQuoteSchema = zod_1.z.object({
     })),
     subtotal: zod_1.z.number(),
     total: zod_1.z.number(),
-    status: zod_1.z.string().optional().default("Orçamento"),
+    status: zod_1.z.string().optional().default("Aguardando Aprovação"),
 });
 exports.QuoteController = {
     async list(req, res) {

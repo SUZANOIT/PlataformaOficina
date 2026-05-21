@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+declare const process: any;
+
 // Obter a URL do Railway por argumento ou variável de ambiente
 const railwayUrl = process.argv[2] || process.env.RAILWAY_DATABASE_URL;
 
@@ -43,6 +45,13 @@ async function run() {
   const users = await localPrisma.user.findMany();
   let userCount = 0;
   for (const user of users) {
+    // Buscar se já existe por e-mail no Railway
+    const existing = await railwayPrisma.user.findUnique({ where: { email: user.email } });
+    if (existing && existing.id !== user.id) {
+      console.log(`⚠️ Usuário com e-mail ${user.email} já existe no Railway com ID diferente. Atualizando ID...`);
+      await railwayPrisma.user.delete({ where: { id: existing.id } });
+    }
+
     await railwayPrisma.user.upsert({
       where: { id: user.id },
       update: {
@@ -69,6 +78,13 @@ async function run() {
   const companies = await localPrisma.company.findMany();
   let companyCount = 0;
   for (const company of companies) {
+    // Buscar se já existe por CNPJ no Railway
+    const existing = await railwayPrisma.company.findUnique({ where: { cnpjSemMascara: company.cnpjSemMascara } });
+    if (existing && existing.id !== company.id) {
+      console.log(`⚠️ Empresa com CNPJ ${company.cnpjSemMascara} já existe no Railway com ID diferente. Sincronizando referências...`);
+      await railwayPrisma.company.delete({ where: { id: existing.id } });
+    }
+
     await railwayPrisma.company.upsert({
       where: { id: company.id },
       update: {

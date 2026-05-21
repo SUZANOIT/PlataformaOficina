@@ -1,0 +1,9 @@
+
+> orcamentos@1.0.0 start
+> npm run --prefix backend start
+
+
+> backend@1.0.0 start
+> node dist/server.js
+
+Server is running on port 3333
