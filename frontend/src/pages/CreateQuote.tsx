@@ -105,7 +105,9 @@ export function CreateQuote() {
           client: data.client,
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
-          valorParcela: data.valorParcela,
+          valorParcela: !isEditing && cloneId && data.valorParcela
+            ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
+            : data.valorParcela,
           validade: data.validade,
           garantia: data.garantia,
           prazoExecucao: data.prazoExecucao,
@@ -117,7 +119,9 @@ export function CreateQuote() {
           items: data.items.map((i: any) => ({
             descricao: i.descricao,
             quantidade: i.quantidade,
-            valorUnitario: i.valorUnitario,
+            valorUnitario: !isEditing && cloneId
+              ? Math.round(Number(i.valorUnitario) * 1.1985 * 100) / 100
+              : Number(i.valorUnitario),
           }))
         };
         
