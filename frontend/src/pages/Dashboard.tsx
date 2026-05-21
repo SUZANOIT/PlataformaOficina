@@ -158,6 +158,7 @@ export function Dashboard() {
                 <th className="p-4 font-medium">Empresa Emitente</th>
                 <th className="p-4 font-medium">Cliente</th>
                 <th className="p-4 font-medium">Data</th>
+                <th className="p-4 font-medium">Status</th>
                 <th className="p-4 font-medium">Valor Total</th>
                 <th className="p-4 font-medium">Ações</th>
               </tr>
@@ -171,6 +172,20 @@ export function Dashboard() {
                   </td>
                   <td className="p-4 font-medium">{quote.client?.nome}</td>
                   <td className="p-4 text-muted-foreground">{new Date(quote.createdAt).toLocaleDateString('pt-BR')}</td>
+                  <td className="p-4 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      quote.status === 'Orçamento' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
+                      quote.status === 'Em Andamento' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                      quote.status === 'Aguardando Aprovação' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
+                      quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
+                      quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border border-teal-500/20' :
+                      quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' :
+                      quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' :
+                      'bg-slate-500/10 text-slate-600 border border-slate-500/20'
+                    }`}>
+                      {quote.status || 'Orçamento'}
+                    </span>
+                  </td>
                   <td className="p-4 font-medium text-emerald-600">{formatCurrency(quote.total)}</td>
                   <td className="p-4 flex gap-2">
                     <button 
@@ -199,7 +214,7 @@ export function Dashboard() {
               ))}
               {filteredQuotes.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     Nenhum orçamento encontrado para os critérios selecionados.
                   </td>
                 </tr>

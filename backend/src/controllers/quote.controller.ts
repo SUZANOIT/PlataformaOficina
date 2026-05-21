@@ -40,6 +40,7 @@ const createQuoteSchema = z.object({
   })),
   subtotal: z.number(),
   total: z.number(),
+  status: z.string().optional().default("Orçamento"),
 });
 
 export const QuoteController = {
@@ -155,6 +156,7 @@ export const QuoteController = {
           veiculoPlaca: data.veiculoPlaca,
           subtotal: data.subtotal,
           total: data.total,
+          status: data.status,
           items: {
             create: data.items,
           },
@@ -259,6 +261,7 @@ export const QuoteController = {
           veiculoPlaca: data.veiculoPlaca,
           subtotal: data.subtotal,
           total: data.total,
+          status: data.status,
           items: {
             deleteMany: {},
             create: data.items,

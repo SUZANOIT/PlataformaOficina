@@ -26,6 +26,7 @@ type QuoteFormValues = {
     atividadePrincipal?: string;
   };
   condicaoPagamento: string;
+  status?: string;
   parcelas?: number;
   valorParcela?: number;
   validade: string;
@@ -45,6 +46,16 @@ type QuoteFormValues = {
 
 const condicoesPagamento = [
   'À vista', '7 dias', '14 dias', '21 dias', '28 dias', '30 dias', '45 dias', '60 dias', 'Parcelado'
+];
+
+const statusOptions = [
+  'Orçamento',
+  'Em Andamento',
+  'Aguardando Aprovação',
+  'Aprovado',
+  'Emitir Nota Fiscal',
+  'Cobertura',
+  'Cancelado'
 ];
 
 export function CreateQuote() {
@@ -87,7 +98,8 @@ export function CreateQuote() {
       veiculoMarca: '',
       veiculoModelo: '',
       veiculoAno: '',
-      veiculoPlaca: ''
+      veiculoPlaca: '',
+      status: 'Orçamento'
     }
   });
 
@@ -104,6 +116,7 @@ export function CreateQuote() {
           companyId: isEditing ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
           client: data.client,
           condicaoPagamento: data.condicaoPagamento,
+          status: data.status || 'Orçamento',
           parcelas: data.parcelas,
           valorParcela: !isEditing && cloneId && data.valorParcela
             ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
@@ -585,6 +598,18 @@ export function CreateQuote() {
                 <option value="">Selecione...</option>
                 {condicoesPagamento.map(cp => (
                   <option key={cp} value={cp}>{cp}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status do Orçamento</label>
+              <select 
+                {...register('status')}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+              >
+                {statusOptions.map(st => (
+                  <option key={st} value={st}>{st}</option>
                 ))}
               </select>
             </div>

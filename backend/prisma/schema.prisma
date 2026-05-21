@@ -89,6 +89,7 @@ model Quote {
   
   subtotal            Float
   total               Float
+  status              String      @default("Orçamento")
   
   items               QuoteItem[]
   
