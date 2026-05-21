@@ -262,21 +262,21 @@ export function CreateQuote() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 print:max-w-none print:p-0">
       
-      <div className="flex justify-between items-center print:hidden">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             {isEditing ? 'Editar Orçamento' : cloneId ? 'Clonar Orçamento' : 'Novo Orçamento'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 w-full md:w-auto">
           <button 
             type="button"
             onClick={handleSubmit(onSubmit)}
             disabled={isGeneratingPdf}
-            className="px-4 py-2 border border-border bg-card rounded-lg hover:bg-muted font-medium transition disabled:opacity-50"
+            className="flex-1 md:flex-none text-center px-4 py-2 border border-border bg-card rounded-lg hover:bg-muted font-medium transition disabled:opacity-50"
           >
             {isEditing ? 'Atualizar' : 'Salvar'}
           </button>
@@ -284,10 +284,10 @@ export function CreateQuote() {
             type="button"
             onClick={handleGeneratePDF}
             disabled={isGeneratingPdf}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition shadow-sm disabled:opacity-50"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition shadow-sm disabled:opacity-50"
           >
             {isGeneratingPdf ? <Loader2 size={20} className="animate-spin" /> : <FileDown size={20} />}
-            Gerar PDF
+            <span>Gerar PDF</span>
           </button>
         </div>
       </div>
@@ -318,7 +318,7 @@ export function CreateQuote() {
 
         {/* Section 2: Cliente */}
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-0">
               <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">2</span>
               Dados do Cliente
@@ -326,7 +326,7 @@ export function CreateQuote() {
             <button
               type="button"
               onClick={() => setIsVehicleModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition-colors"
             >
               🚗 {watch('veiculoPlaca') ? `Veículo: ${watch('veiculoPlaca')}` : 'Adicionar Veículo'}
             </button>
@@ -348,7 +348,7 @@ export function CreateQuote() {
                     e.target.value = v;
                     register('client.cnpj').onChange(e);
                   }}
-                  className="w-full md:w-1/3 px-4 py-2 bg-input/50 border border-border rounded-lg"
+                  className="flex-1 md:w-1/3 px-4 py-2 bg-input/50 border border-border rounded-lg"
                   placeholder="00.000.000/0000-00"
                   maxLength={18}
                 />
@@ -513,7 +513,8 @@ export function CreateQuote() {
             </h2>
           </div>
           
-          <div className="overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
+          {/* Visualização em Tabela para Desktop e Tablet */}
+          <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
                 <tr className="border-b border-border text-muted-foreground text-sm">
@@ -584,17 +585,89 @@ export function CreateQuote() {
             </table>
           </div>
 
-          <div className="mt-4 flex justify-between items-center border-t border-border pt-4">
+          {/* Visualização em Cartões (Cards) para Smartphone */}
+          <div className="block md:hidden space-y-4">
+            {fields.map((field, index) => {
+              const qty = Number(watchItems[index]?.quantidade || 0);
+              const price = Number(watchItems[index]?.valorUnitario || 0);
+              const lineTotal = qty * price;
+
+              return (
+                <div key={field.id} className="bg-muted/5 border border-border p-4 rounded-xl space-y-3 relative">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => remove(index)}
+                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                      title="Excluir Item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Tipo</label>
+                      <select
+                        {...register(`items.${index}.tipo`)}
+                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                      >
+                        <option value="Peça">Peça</option>
+                        <option value="Mão de Obra">Mão de Obra</option>
+                      </select>
+                    </div>
+                    
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
+                      <input 
+                        {...register(`items.${index}.descricao`)}
+                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                        placeholder="Descrição do serviço/produto"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Qtd</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        {...register(`items.${index}.quantidade`)}
+                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-muted-foreground">Val. Unit. (R$)</label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        {...register(`items.${index}.valorUnitario`)}
+                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-border/50 text-sm">
+                    <span className="text-muted-foreground font-medium">Total do Item</span>
+                    <span className="font-bold text-foreground">{formatCurrency(lineTotal)}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-border pt-4">
             <button 
               type="button"
               onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' })}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors border border-primary/10 md:border-transparent"
             >
               <Plus size={16} /> Adicionar Item
             </button>
 
-            <div className="text-right space-y-1">
-              <div className="flex justify-end gap-6 text-sm text-muted-foreground mb-1">
+            <div className="text-center md:text-right space-y-2 w-full md:w-auto">
+              <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-6 text-sm text-muted-foreground mb-1">
                 <p>Subtotal Peças: <strong className="text-foreground">{formatCurrency(subtotalPecas)}</strong></p>
                 <p>Subtotal Mão de Obra: <strong className="text-foreground">{formatCurrency(subtotalMaoDeObra)}</strong></p>
               </div>

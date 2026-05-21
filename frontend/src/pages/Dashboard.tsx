@@ -198,11 +198,11 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <Link 
           to="/quotes/new" 
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition"
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition text-center"
         >
           Novo Orçamento
         </Link>
@@ -246,8 +246,8 @@ export function Dashboard() {
         {/* Coluna da Esquerda: Gráficos (col-span-2) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Gráfico 1: Volume Financeiro por Status */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="text-primary" size={20} />
                 <h2 className="text-lg font-semibold">Volume Financeiro por Status</h2>
@@ -255,40 +255,42 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Valores Totais em R$</span>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
-              {Object.entries(statusTotals).map(([status, totalValue]) => {
-                const pct = (totalValue / maxVal) * 100;
-                const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
-                
-                return (
-                  <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
-                      <span>{status}</span>
-                      <span className={`text-sm ${config.textClass}`}>{formatCurrency(totalValue)}</span>
-                    </div>
-
-                    {/* Bar */}
-                    <div className="w-full flex justify-center items-end h-full">
-                      <div 
-                        style={{ height: `${Math.max(pct, 4)}%` }} 
-                        className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${config.colorClass} shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
-                      >
-                        {pct > 15 && (
-                          <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
-                            {Math.round(pct)}%
-                          </div>
-                        )}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+              <div className="h-64 flex items-end justify-between gap-3 pt-6 px-2 min-w-[500px] sm:min-w-0">
+                {Object.entries(statusTotals).map(([status, totalValue]) => {
+                  const pct = (totalValue / maxVal) * 100;
+                  const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
+                  
+                  return (
+                    <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
+                        <span>{status}</span>
+                        <span className={`text-sm ${config.textClass}`}>{formatCurrency(totalValue)}</span>
                       </div>
-                    </div>
 
-                    {/* X Label */}
-                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-medium" title={status}>
-                      {status.split(' ')[0]}
-                    </span>
-                  </div>
-                );
-              })}
+                      {/* Bar */}
+                      <div className="w-full flex justify-center items-end h-full">
+                        <div 
+                          style={{ height: `${Math.max(pct, 4)}%` }} 
+                          className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${config.colorClass} shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
+                        >
+                          {pct > 15 && (
+                            <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
+                              {Math.round(pct)}%
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* X Label */}
+                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-medium" title={status}>
+                        {status.split(' ')[0]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Legenda compacta e bonita */}
@@ -307,8 +309,8 @@ export function Dashboard() {
           </div>
 
           {/* Gráfico 2: Faturamento Mensal (Jan a Dez) */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="text-emerald-500" size={20} />
                 <h2 className="text-lg font-semibold">Faturamento Mensal de Aprovados ({currentYear})</h2>
@@ -316,48 +318,50 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Valores de Orçamentos Aprovados por Mês</span>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
-              {monthlyApprovedTotals.map((totalValue, index) => {
-                const monthName = monthNames[index];
-                const pct = (totalValue / maxMonthVal) * 100;
-                
-                return (
-                  <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
-                      <span>{monthName} de {currentYear}</span>
-                      <span className="text-sm text-emerald-600 font-bold">{formatCurrency(totalValue)}</span>
-                    </div>
-
-                    {/* Bar */}
-                    <div className="w-full flex justify-center items-end h-full">
-                      <div 
-                        style={{ height: `${Math.max(pct, 4)}%` }} 
-                        className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${
-                          totalValue > 0 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-200 dark:bg-slate-800/50'
-                        } shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
-                      >
-                        {pct > 15 && (
-                          <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
-                            {Math.round(pct)}%
-                          </div>
-                        )}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+              <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2 min-w-[650px] sm:min-w-0">
+                {monthlyApprovedTotals.map((totalValue, index) => {
+                  const monthName = monthNames[index];
+                  const pct = (totalValue / maxMonthVal) * 100;
+                  
+                  return (
+                    <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
+                        <span>{monthName} de {currentYear}</span>
+                        <span className="text-sm text-emerald-600 font-bold">{formatCurrency(totalValue)}</span>
                       </div>
-                    </div>
 
-                    {/* X Label */}
-                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
-                      {monthName}
-                    </span>
-                  </div>
-                );
-              })}
+                      {/* Bar */}
+                      <div className="w-full flex justify-center items-end h-full">
+                        <div 
+                          style={{ height: `${Math.max(pct, 4)}%` }} 
+                          className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${
+                            totalValue > 0 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-200 dark:bg-slate-800/50'
+                          } shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
+                        >
+                          {pct > 15 && (
+                            <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
+                              {Math.round(pct)}%
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* X Label */}
+                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
+                        {monthName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Gráfico 3: Peças vs Mão de Obra (Jan a Dez) */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="text-blue-500" size={20} />
                 <h2 className="text-lg font-semibold">Faturamento por Tipo: Peças vs Mão de Obra ({currentYear})</h2>
@@ -365,62 +369,64 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Comparativo Mensal (Orçamentos Aprovados)</span>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
-              {monthNames.map((monthName, index) => {
-                const partsVal = monthlyPecasTotals[index];
-                const laborVal = monthlyMaoDeObraTotals[index];
-                const partsPct = (partsVal / maxPartsLaborVal) * 100;
-                const laborPct = (laborVal / maxPartsLaborVal) * 100;
-                
-                return (
-                  <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-start gap-1">
-                      <span className="font-bold text-foreground border-b border-border w-full pb-0.5 mb-0.5">{monthName} de {currentYear}</span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Peças: <strong className="text-blue-600">{formatCurrency(partsVal)}</strong>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        Mão de Obra: <strong className="text-indigo-600">{formatCurrency(laborVal)}</strong>
-                      </span>
-                    </div>
-
-                    {/* Dual Bars Container */}
-                    <div className="w-full flex justify-center items-end h-full gap-1">
-                      {/* Parts Bar (Blue) */}
-                      <div className="flex-1 flex items-end h-full justify-center">
-                        <div 
-                          style={{ height: `${Math.max(partsPct, 4)}%` }} 
-                          className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
-                            partsVal > 0 ? 'bg-gradient-to-t from-blue-600 to-blue-400' : 'bg-slate-200 dark:bg-slate-800/40'
-                          } shadow-sm group-hover:scale-y-105 origin-bottom`}
-                        />
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+              <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2 min-w-[650px] sm:min-w-0">
+                {monthNames.map((monthName, index) => {
+                  const partsVal = monthlyPecasTotals[index];
+                  const laborVal = monthlyMaoDeObraTotals[index];
+                  const partsPct = (partsVal / maxPartsLaborVal) * 100;
+                  const laborPct = (laborVal / maxPartsLaborVal) * 100;
+                  
+                  return (
+                    <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-start gap-1">
+                        <span className="font-bold text-foreground border-b border-border w-full pb-0.5 mb-0.5">{monthName} de {currentYear}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          Peças: <strong className="text-blue-600">{formatCurrency(partsVal)}</strong>
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                          Mão de Obra: <strong className="text-indigo-600">{formatCurrency(laborVal)}</strong>
+                        </span>
                       </div>
 
-                      {/* Labor Bar (Indigo) */}
-                      <div className="flex-1 flex items-end h-full justify-center">
-                        <div 
-                          style={{ height: `${Math.max(laborPct, 4)}%` }} 
-                          className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
-                            laborVal > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-slate-200 dark:bg-slate-800/40'
-                          } shadow-sm group-hover:scale-y-105 origin-bottom`}
-                        />
-                      </div>
-                    </div>
+                      {/* Dual Bars Container */}
+                      <div className="w-full flex justify-center items-end h-full gap-1">
+                        {/* Parts Bar (Blue) */}
+                        <div className="flex-1 flex items-end h-full justify-center">
+                          <div 
+                            style={{ height: `${Math.max(partsPct, 4)}%` }} 
+                            className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
+                              partsVal > 0 ? 'bg-gradient-to-t from-blue-600 to-blue-400' : 'bg-slate-200 dark:bg-slate-800/40'
+                            } shadow-sm group-hover:scale-y-105 origin-bottom`}
+                          />
+                        </div>
 
-                    {/* X Label */}
-                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
-                      {monthName}
-                    </span>
-                  </div>
-                );
-              })}
+                        {/* Labor Bar (Indigo) */}
+                        <div className="flex-1 flex items-end h-full justify-center">
+                          <div 
+                            style={{ height: `${Math.max(laborPct, 4)}%` }} 
+                            className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
+                              laborVal > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-slate-200 dark:bg-slate-800/40'
+                            } shadow-sm group-hover:scale-y-105 origin-bottom`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* X Label */}
+                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
+                        {monthName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Legenda */}
-            <div className="flex justify-center gap-6 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded bg-gradient-to-t from-blue-600 to-blue-400"></span>
                 <span className="font-semibold text-foreground">Peças (Total: {formatCurrency(monthlyPecasTotals.reduce((a, b) => a + b, 0))})</span>
@@ -624,13 +630,13 @@ export function Dashboard() {
         {/* Paginação */}
         {totalPages > 1 && (
           <div className="p-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/20">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground text-center sm:text-left">
               Mostrando <strong className="text-foreground">{Math.min(totalItems, (currentPage - 1) * itemsPerPage + 1)}</strong> a{' '}
               <strong className="text-foreground">{Math.min(totalItems, currentPage * itemsPerPage)}</strong> de{' '}
               <strong className="text-foreground">{totalItems}</strong> orçamentos
             </span>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-center">
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}

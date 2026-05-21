@@ -111,21 +111,22 @@ export function Users() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground">Gerencie quem tem acesso ao sistema de orçamentos.</p>
+          <p className="text-muted-foreground text-sm">Gerencie quem tem acesso ao sistema de orçamentos.</p>
         </div>
         <Link 
           to="/register" 
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition"
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition w-full sm:w-auto"
         >
           <Plus size={20} />
-          Novo Usuário
+          <span>Novo Usuário</span>
         </Link>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Visualização em Tabela para Desktop e Tablet */}
+      <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -175,6 +176,48 @@ export function Users() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Visualização em Cartões (Cards) para Smartphone */}
+      <div className="block md:hidden space-y-4">
+        {users.map((user: any) => (
+          <div key={user.id} className="bg-card border border-border p-4 rounded-xl space-y-3 shadow-sm hover:border-primary/30 transition">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg text-center flex-shrink-0">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-foreground truncate">{user.name}</h4>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center pt-3 border-t border-border/50 text-xs">
+              <span className="text-muted-foreground">Cadastrado: {new Date(user.createdAt).toLocaleDateString('pt-BR')}</span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleOpenEditModal(user)}
+                  className="p-2 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
+                  title="Editar Usuário"
+                >
+                  <Edit size={14} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteUser(user.id, user.name)}
+                  className="p-2 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
+                  title="Excluir Usuário"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {users.length === 0 && (
+          <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-xl shadow-sm animate-in fade-in duration-200">
+            Nenhum usuário encontrado.
+          </div>
+        )}
       </div>
 
       {/* Modal de Edição */}

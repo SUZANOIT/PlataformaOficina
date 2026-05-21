@@ -64,7 +64,7 @@ export function EmailConfig() {
           <Mail className="text-primary" />
           Configurações de E-mail
         </h1>
-        <p className="text-muted-foreground">Configure os dados do servidor SMTP para envio de orçamentos.</p>
+        <p className="text-muted-foreground text-sm">Configure os dados do servidor SMTP para envio de orçamentos.</p>
       </div>
 
       <form onSubmit={handleSave} className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-6">
@@ -142,7 +142,7 @@ export function EmailConfig() {
         <div className="flex justify-end pt-4">
           <button
             type="submit"
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition"
+            className="w-full sm:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition text-center"
           >
             Salvar Configurações
           </button>
