@@ -36,6 +36,7 @@ type QuoteFormValues = {
     descricao: string;
     quantidade: number;
     valorUnitario: number;
+    tipo: 'Peça' | 'Mão de Obra';
   }[];
   observacao?: string;
   veiculoMarca?: string;
@@ -90,7 +91,7 @@ export function CreateQuote() {
 
   const { register, control, watch, handleSubmit, setValue, reset } = useForm<QuoteFormValues>({
     defaultValues: {
-      items: [{ descricao: '', quantidade: 1, valorUnitario: 0 }],
+      items: [{ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' }],
       validade: 'Proposta válida por 7 dias',
       garantia: 'Garantia de 90 dias',
       prazoExecucao: '5 dias úteis',
@@ -135,6 +136,7 @@ export function CreateQuote() {
             valorUnitario: !isEditing && cloneId
               ? Math.round(Number(i.valorUnitario) * 1.1985 * 100) / 100
               : Number(i.valorUnitario),
+            tipo: i.tipo || 'Peça'
           }))
         };
         
@@ -158,6 +160,14 @@ export function CreateQuote() {
 
   const subtotal = watchItems.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
   const total = subtotal; // no future adding discounts or taxes yet
+
+  const subtotalPecas = watchItems.reduce((acc, item) => {
+    return item.tipo === 'Peça' ? acc + (Number(item.quantidade) * Number(item.valorUnitario)) : acc;
+  }, 0);
+
+  const subtotalMaoDeObra = watchItems.reduce((acc, item) => {
+    return item.tipo === 'Mão de Obra' ? acc + (Number(item.quantidade) * Number(item.valorUnitario)) : acc;
+  }, 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -509,9 +519,10 @@ export function CreateQuote() {
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
                 <tr className="border-b border-border text-muted-foreground text-sm">
-                  <th className="p-3 font-medium w-[45%]">Descrição do Item</th>
-                  <th className="p-3 font-medium w-[15%]">Qtd</th>
-                  <th className="p-3 font-medium w-[20%]">Valor Unit. (R$)</th>
+                  <th className="p-3 font-medium w-[15%]">Tipo</th>
+                  <th className="p-3 font-medium w-[35%]">Descrição do Item</th>
+                  <th className="p-3 font-medium w-[12%]">Qtd</th>
+                  <th className="p-3 font-medium w-[18%]">Valor Unit. (R$)</th>
                   <th className="p-3 font-medium w-[15%]">Total</th>
                   <th className="p-3 font-medium w-[5%]"></th>
                 </tr>
@@ -524,6 +535,15 @@ export function CreateQuote() {
 
                   return (
                     <tr key={field.id} className="border-b border-border hover:bg-muted/10 transition-colors">
+                      <td className="p-2">
+                        <select
+                          {...register(`items.${index}.tipo`)}
+                          className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                        >
+                          <option value="Peça">Peça</option>
+                          <option value="Mão de Obra">Mão de Obra</option>
+                        </select>
+                      </td>
                       <td className="p-2">
                         <input 
                           {...register(`items.${index}.descricao`)}
@@ -569,14 +589,18 @@ export function CreateQuote() {
           <div className="mt-4 flex justify-between items-center border-t border-border pt-4">
             <button 
               type="button"
-              onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0 })}
+              onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' })}
               className="flex items-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors"
             >
               <Plus size={16} /> Adicionar Item
             </button>
 
-            <div className="text-right">
-              <p className="text-muted-foreground">Total Geral</p>
+            <div className="text-right space-y-1">
+              <div className="flex justify-end gap-6 text-sm text-muted-foreground mb-1">
+                <p>Subtotal Peças: <strong className="text-foreground">{formatCurrency(subtotalPecas)}</strong></p>
+                <p>Subtotal Mão de Obra: <strong className="text-foreground">{formatCurrency(subtotalMaoDeObra)}</strong></p>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">Total Geral</p>
               <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
             </div>
           </div>

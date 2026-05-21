@@ -16,6 +16,13 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
   const subtotal = (data.items || []).reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
   const total = subtotal;
+
+  const pecas = (data.items || []).filter((item: any) => (item.tipo || 'Peça') === 'Peça');
+  const maoDeObra = (data.items || []).filter((item: any) => item.tipo === 'Mão de Obra');
+
+  const subtotalPecas = pecas.reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
+  const subtotalMaoDeObra = maoDeObra.reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
+
   const dataAtual = new Date().toLocaleDateString('pt-BR');
   
   const isMca = company?.cnpj?.replace(/\D/g, '') === '30021766000113' || 
@@ -224,56 +231,111 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
           </div>
         )}
 
-        {/* Itens do Orçamento */}
-        <div className="mb-8">
-          <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-3' : 'text-slate-800 border-b border-slate-900 pb-2 mb-3'}`}>
-            Itens do Orçamento
-          </h3>
-          
-          {/* Header da Tabela em Flexbox (Dynamic styling based on company) */}
-          <div className={`flex ${isCurio ? 'bg-indigo-50/50 text-indigo-950 border-y border-indigo-200' : 'bg-slate-900 text-white'} text-[10px] font-bold uppercase tracking-wider rounded-t-md`}>
-            <div className="py-2 px-3 text-left" style={{ width: '50%' }}>Descrição do Serviço / Produto</div>
-            <div className="py-2 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
-            <div className="py-2 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
-            <div className="py-2 px-3 text-right" style={{ width: '20%' }}>Total</div>
-          </div>
+        {/* Seção de Peças */}
+        {pecas.length > 0 && (
+          <div className="mb-6 avoid-page-break">
+            <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-2' : 'text-slate-800 border-b border-slate-900 pb-1.5 mb-2'}`}>
+              Peças
+            </h3>
+            
+            <div className={`flex ${isCurio ? 'bg-indigo-50/50 text-indigo-950 border-y border-indigo-200' : 'bg-slate-900 text-white'} text-[9px] font-bold uppercase tracking-wider rounded-t-md`}>
+              <div className="py-1.5 px-3 text-left" style={{ width: '50%' }}>Descrição do Produto</div>
+              <div className="py-1.5 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Total</div>
+            </div>
 
-          {/* Corpo da Tabela em Flexbox */}
-          <div className={`border-x border-b ${isCurio ? 'border-indigo-100' : 'border-slate-200'} rounded-b-md overflow-hidden shadow-sm`}>
-            {data.items?.map((item: any, index: number) => {
-               const q = Number(item.quantidade) || 0;
-               const vu = Number(item.valorUnitario) || 0;
-               return (
-                 <div 
-                   key={index} 
-                   className={`flex border-b border-slate-100 text-[12px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
-                   style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                 >
-                   <div className="py-1.5 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
-                     {item.descricao}
+            <div className={`border-x border-b ${isCurio ? 'border-indigo-100' : 'border-slate-200'} rounded-b-md overflow-hidden shadow-sm`}>
+              {pecas.map((item: any, index: number) => {
+                 const q = Number(item.quantidade) || 0;
+                 const vu = Number(item.valorUnitario) || 0;
+                 return (
+                   <div 
+                     key={index} 
+                     className={`flex border-b border-slate-100 text-[11px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
+                   >
+                     <div className="py-1 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
+                       {item.descricao}
+                     </div>
+                     <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
+                       {q}
+                     </div>
+                     <div className="py-1 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
+                       {formatCurrency(vu)}
+                     </div>
+                     <div className={`py-1 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '20%' }}>
+                       {formatCurrency(q * vu)}
+                     </div>
                    </div>
-                   <div className="py-1.5 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
-                     {q}
-                   </div>
-                   <div className="py-1.5 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
-                     {formatCurrency(vu)}
-                   </div>
-                   <div className={`py-1.5 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '20%' }}>
-                     {formatCurrency(q * vu)}
-                   </div>
-                 </div>
-               );
-            })}
+                 );
+              })}
+            </div>
+            <div className="flex justify-end mt-1 text-[11px] font-semibold text-slate-500 mr-2">
+              Subtotal Peças: <span className="ml-1 text-slate-800">{formatCurrency(subtotalPecas)}</span>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Seção de Mão de Obra / Serviços */}
+        {maoDeObra.length > 0 && (
+          <div className="mb-6 avoid-page-break">
+            <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-2' : 'text-slate-800 border-b border-slate-900 pb-1.5 mb-2'}`}>
+              Mão de Obra / Serviços
+            </h3>
+            
+            <div className={`flex ${isCurio ? 'bg-indigo-50/50 text-indigo-950 border-y border-indigo-200' : 'bg-slate-900 text-white'} text-[9px] font-bold uppercase tracking-wider rounded-t-md`}>
+              <div className="py-1.5 px-3 text-left" style={{ width: '50%' }}>Descrição do Serviço</div>
+              <div className="py-1.5 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Total</div>
+            </div>
+
+            <div className={`border-x border-b ${isCurio ? 'border-indigo-100' : 'border-slate-200'} rounded-b-md overflow-hidden shadow-sm`}>
+              {maoDeObra.map((item: any, index: number) => {
+                 const q = Number(item.quantidade) || 0;
+                 const vu = Number(item.valorUnitario) || 0;
+                 return (
+                   <div 
+                     key={index} 
+                     className={`flex border-b border-slate-100 text-[11px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
+                   >
+                     <div className="py-1 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
+                       {item.descricao}
+                     </div>
+                     <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
+                       {q}
+                     </div>
+                     <div className="py-1 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
+                       {formatCurrency(vu)}
+                     </div>
+                     <div className={`py-1 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '20%' }}>
+                       {formatCurrency(q * vu)}
+                     </div>
+                   </div>
+                 );
+              })}
+            </div>
+            <div className="flex justify-end mt-1 text-[11px] font-semibold text-slate-500 mr-2">
+              Subtotal Mão de Obra: <span className="ml-1 text-slate-800">{formatCurrency(subtotalMaoDeObra)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Totais */}
         <div className="flex justify-end mb-8 avoid-page-break">
           <div className={`w-[320px] ${isCurio ? 'bg-indigo-50/20 border border-indigo-100' : 'bg-slate-50 border border-slate-200'} p-4 rounded-lg`}>
-            <div className="flex justify-between items-center mb-2 text-[12px] text-slate-500 font-medium">
-              <span>Subtotal:</span>
-              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>{formatCurrency(subtotal)}</span>
-            </div>
+            {subtotalPecas > 0 && (
+              <div className="flex justify-between items-center mb-1 text-[12px] text-slate-500 font-medium">
+                <span>Subtotal Peças:</span>
+                <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>{formatCurrency(subtotalPecas)}</span>
+              </div>
+            )}
+            {subtotalMaoDeObra > 0 && (
+              <div className="flex justify-between items-center mb-1 text-[12px] text-slate-500 font-medium">
+                <span>Subtotal Mão de Obra:</span>
+                <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>{formatCurrency(subtotalMaoDeObra)}</span>
+              </div>
+            )}
             <div className={`flex justify-between items-center text-[14px] font-black border-t ${isCurio ? 'text-indigo-950 border-indigo-100' : 'text-slate-900 border-slate-200/80'} pt-2 mt-2`}>
               <span>TOTAL GERAL:</span>
               <span className={`underline decoration-double ${isCurio ? 'text-indigo-950 decoration-indigo-950' : 'text-slate-900 decoration-slate-900'} underline-offset-4`}>

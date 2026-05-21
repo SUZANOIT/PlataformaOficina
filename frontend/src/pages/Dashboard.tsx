@@ -156,6 +156,30 @@ export function Dashboard() {
     'Cancelado': { colorClass: 'bg-rose-500', textClass: 'text-rose-600' },
   };
 
+  // Monthly calculations for approved quotes in current year
+  const currentYear = new Date().getFullYear();
+  const monthlyApprovedTotals = Array(12).fill(0);
+  
+  const approvedQuotesThisYear = quotes.filter((q: any) => {
+    const isApproved = q.status === 'Aprovado';
+    const date = new Date(q.createdAt);
+    const isCurrentYear = date.getFullYear() === currentYear;
+    return isApproved && isCurrentYear;
+  });
+
+  approvedQuotesThisYear.forEach((q: any) => {
+    const date = new Date(q.createdAt);
+    const month = date.getMonth(); // 0-11
+    monthlyApprovedTotals[month] += Number(q.total) || 0;
+  });
+
+  const maxMonthVal = Math.max(...monthlyApprovedTotals, 1);
+
+  const monthNames = [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -201,70 +225,122 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Gráfico de Status e Desempenho por Empresa */}
+      {/* Gráficos e Desempenho por Empresa */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de Orçamentos por Status */}
-        <div className="bg-card border border-border rounded-xl shadow-sm p-6 lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="text-primary" size={20} />
-              <h2 className="text-lg font-semibold">Volume Financeiro por Status</h2>
+        {/* Coluna da Esquerda: Gráficos (col-span-2) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Gráfico 1: Volume Financeiro por Status */}
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="text-primary" size={20} />
+                <h2 className="text-lg font-semibold">Volume Financeiro por Status</h2>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">Valores Totais em R$</span>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">Valores Totais em R$</span>
-          </div>
 
-          <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
-            {Object.entries(statusTotals).map(([status, totalValue]) => {
-              const pct = (totalValue / maxVal) * 100;
-              const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
-              
-              return (
-                <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
-                    <span>{status}</span>
-                    <span className={`text-sm ${config.textClass}`}>{formatCurrency(totalValue)}</span>
-                  </div>
-
-                  {/* Bar */}
-                  <div className="w-full flex justify-center items-end h-full">
-                    <div 
-                      style={{ height: `${Math.max(pct, 4)}%` }} 
-                      className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${config.colorClass} shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
-                    >
-                      {pct > 15 && (
-                        <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
-                          {Math.round(pct)}%
-                        </div>
-                      )}
+            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
+              {Object.entries(statusTotals).map(([status, totalValue]) => {
+                const pct = (totalValue / maxVal) * 100;
+                const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
+                
+                return (
+                  <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
+                      <span>{status}</span>
+                      <span className={`text-sm ${config.textClass}`}>{formatCurrency(totalValue)}</span>
                     </div>
-                  </div>
 
-                  {/* X Label */}
-                  <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-medium" title={status}>
-                    {status.split(' ')[0]}
-                  </span>
-                </div>
-              );
-            })}
+                    {/* Bar */}
+                    <div className="w-full flex justify-center items-end h-full">
+                      <div 
+                        style={{ height: `${Math.max(pct, 4)}%` }} 
+                        className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${config.colorClass} shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
+                      >
+                        {pct > 15 && (
+                          <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
+                            {Math.round(pct)}%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* X Label */}
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-medium" title={status}>
+                      {status.split(' ')[0]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legenda compacta e bonita */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
+              {Object.entries(statusTotals).map(([status, totalValue]) => {
+                const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
+                return (
+                  <div key={status} className="flex items-center gap-1.5">
+                    <span className={`w-2.5 h-2.5 rounded-full ${config.colorClass}`}></span>
+                    <span className="font-semibold text-foreground">{status}:</span>
+                    <span>{formatCurrency(totalValue)}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Legenda compacta e bonita */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
-            {Object.entries(statusTotals).map(([status, totalValue]) => {
-              const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
-              return (
-                <div key={status} className="flex items-center gap-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${config.colorClass}`}></span>
-                  <span className="font-semibold text-foreground">{status}:</span>
-                  <span>{formatCurrency(totalValue)}</span>
-                </div>
-              );
-            })}
+          {/* Gráfico 2: Faturamento Mensal (Jan a Dez) */}
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-border pb-3 justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="text-emerald-500" size={20} />
+                <h2 className="text-lg font-semibold">Faturamento Mensal de Aprovados ({currentYear})</h2>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">Valores de Orçamentos Aprovados por Mês</span>
+            </div>
+
+            <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2">
+              {monthlyApprovedTotals.map((totalValue, index) => {
+                const monthName = monthNames[index];
+                const pct = (totalValue / maxMonthVal) * 100;
+                
+                return (
+                  <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
+                      <span>{monthName} de {currentYear}</span>
+                      <span className="text-sm text-emerald-600 font-bold">{formatCurrency(totalValue)}</span>
+                    </div>
+
+                    {/* Bar */}
+                    <div className="w-full flex justify-center items-end h-full">
+                      <div 
+                        style={{ height: `${Math.max(pct, 4)}%` }} 
+                        className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${
+                          totalValue > 0 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-200 dark:bg-slate-800/50'
+                        } shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
+                      >
+                        {pct > 15 && (
+                          <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
+                            {Math.round(pct)}%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* X Label */}
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
+                      {monthName}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Desempenho por Empresa ("Quebra por Empresa") */}
+        {/* Coluna da Direita: Desempenho por Empresa */}
         {stats?.companyBreakdown && stats.companyBreakdown.length > 0 && (
           <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 flex flex-col justify-between">
             <div className="w-full">

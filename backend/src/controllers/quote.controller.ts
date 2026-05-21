@@ -37,6 +37,7 @@ const createQuoteSchema = z.object({
     quantidade: z.number(),
     valorUnitario: z.number(),
     valorTotal: z.number(),
+    tipo: z.string().optional().default("Peça"),
   })),
   subtotal: z.number(),
   total: z.number(),

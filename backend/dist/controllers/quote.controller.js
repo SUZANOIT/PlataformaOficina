@@ -38,9 +38,11 @@ const createQuoteSchema = zod_1.z.object({
         quantidade: zod_1.z.number(),
         valorUnitario: zod_1.z.number(),
         valorTotal: zod_1.z.number(),
+        tipo: zod_1.z.string().optional().default("Peça"),
     })),
     subtotal: zod_1.z.number(),
     total: zod_1.z.number(),
+    status: zod_1.z.string().optional().default("Orçamento"),
 });
 exports.QuoteController = {
     async list(req, res) {
@@ -145,6 +147,7 @@ exports.QuoteController = {
                     veiculoPlaca: data.veiculoPlaca,
                     subtotal: data.subtotal,
                     total: data.total,
+                    status: data.status,
                     items: {
                         create: data.items,
                     },
@@ -241,6 +244,7 @@ exports.QuoteController = {
                     veiculoPlaca: data.veiculoPlaca,
                     subtotal: data.subtotal,
                     total: data.total,
+                    status: data.status,
                     items: {
                         deleteMany: {},
                         create: data.items,

@@ -109,6 +109,7 @@ model QuoteItem {
   quantidade    Int
   valorUnitario Float
   valorTotal    Float
+  tipo          String   @default("Peça")
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
