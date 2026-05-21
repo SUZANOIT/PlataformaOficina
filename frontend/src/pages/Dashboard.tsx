@@ -571,7 +571,7 @@ export function Dashboard() {
                     {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="p-4 text-sm">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold border ${
                       (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
