@@ -41,7 +41,7 @@ const createQuoteSchema = z.object({
   })),
   subtotal: z.number(),
   total: z.number(),
-  status: z.string().optional().default("Orçamento"),
+  status: z.string().optional().default("Aguardando Aprovação"),
 });
 
 export const QuoteController = {

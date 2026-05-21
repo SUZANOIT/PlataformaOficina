@@ -88,7 +88,11 @@ export function Dashboard() {
       return false;
     }
     
-    if (statusFilter !== 'all' && quote.status !== statusFilter) {
+    const normalizedStatus = (quote.status === 'Orçamento' || quote.status === 'Em Andamento') 
+      ? 'Aguardando Aprovação' 
+      : (quote.status || 'Aguardando Aprovação');
+
+    if (statusFilter !== 'all' && normalizedStatus !== statusFilter) {
       return false;
     }
     
@@ -124,8 +128,6 @@ export function Dashboard() {
 
   // Status Chart calculations
   const statusTotals: Record<string, number> = {
-    'Orçamento': 0,
-    'Em Andamento': 0,
     'Aguardando Aprovação': 0,
     'Aprovado': 0,
     'Emitir Nota Fiscal': 0,
@@ -138,7 +140,10 @@ export function Dashboard() {
     : quotes.filter((q: any) => q.company?.id === selectedCompanyId);
 
   quotesForChart.forEach((q: any) => {
-    const status = q.status || 'Orçamento';
+    let status = q.status || 'Aguardando Aprovação';
+    if (status === 'Orçamento' || status === 'Em Andamento') {
+      status = 'Aguardando Aprovação';
+    }
     if (statusTotals.hasOwnProperty(status)) {
       statusTotals[status] += Number(q.total) || 0;
     }
@@ -147,8 +152,6 @@ export function Dashboard() {
   const maxVal = Math.max(...Object.values(statusTotals), 1);
 
   const statusConfig: Record<string, { colorClass: string; textClass: string }> = {
-    'Orçamento': { colorClass: 'bg-blue-500', textClass: 'text-blue-600' },
-    'Em Andamento': { colorClass: 'bg-amber-500', textClass: 'text-amber-600' },
     'Aguardando Aprovação': { colorClass: 'bg-purple-500', textClass: 'text-purple-600' },
     'Aprovado': { colorClass: 'bg-emerald-500', textClass: 'text-emerald-600' },
     'Emitir Nota Fiscal': { colorClass: 'bg-teal-500', textClass: 'text-teal-600' },
@@ -409,8 +412,6 @@ export function Dashboard() {
                 className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
               >
                 <option value="all">Todos os Status</option>
-                <option value="Orçamento">Orçamento</option>
-                <option value="Em Andamento">Em Andamento</option>
                 <option value="Aguardando Aprovação">Aguardando Aprovação</option>
                 <option value="Aprovado">Aprovado</option>
                 <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
@@ -465,16 +466,14 @@ export function Dashboard() {
                   <td className="p-4 text-muted-foreground">{new Date(quote.createdAt).toLocaleDateString('pt-BR')}</td>
                   <td className="p-4 text-sm">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      quote.status === 'Orçamento' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
-                      quote.status === 'Em Andamento' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
-                      quote.status === 'Aguardando Aprovação' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
+                      (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' :
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border border-teal-500/20' :
                       quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' :
                       quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' :
                       'bg-slate-500/10 text-slate-600 border border-slate-500/20'
                     }`}>
-                      {quote.status || 'Orçamento'}
+                      {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
                   </td>
                   <td className="p-4 font-medium text-emerald-600">{formatCurrency(quote.total)}</td>

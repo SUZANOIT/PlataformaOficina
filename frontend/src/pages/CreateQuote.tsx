@@ -50,8 +50,6 @@ const condicoesPagamento = [
 ];
 
 const statusOptions = [
-  'Orçamento',
-  'Em Andamento',
   'Aguardando Aprovação',
   'Aprovado',
   'Emitir Nota Fiscal',
@@ -100,7 +98,7 @@ export function CreateQuote() {
       veiculoModelo: '',
       veiculoAno: '',
       veiculoPlaca: '',
-      status: 'Orçamento'
+      status: 'Aguardando Aprovação'
     }
   });
 
@@ -117,7 +115,7 @@ export function CreateQuote() {
           companyId: isEditing ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
           client: data.client,
           condicaoPagamento: data.condicaoPagamento,
-          status: data.status || 'Orçamento',
+          status: data.status || 'Aguardando Aprovação',
           parcelas: data.parcelas,
           valorParcela: !isEditing && cloneId && data.valorParcela
             ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
