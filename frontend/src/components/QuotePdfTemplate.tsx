@@ -23,6 +23,13 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                 company?.nomeFantasia?.toLowerCase().includes('mca') ||
                 company?.inscricaoEstadual?.replace(/\D/g, '') === '119214099114';
 
+  const isCurio = !!(
+    company?.razaoSocial?.toLowerCase().includes('curio') || 
+    company?.razaoSocial?.toLowerCase().includes('curió') || 
+    company?.nomeFantasia?.toLowerCase().includes('curio') ||
+    company?.nomeFantasia?.toLowerCase().includes('curió')
+  );
+
   const getSignatureName = () => {
     if (isMca) {
       return 'Eng. Rafael Suzano Cruz';
@@ -74,9 +81,9 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
       
       <div>
         {/* Cabeçalho Premium */}
-        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+        <div className={`flex justify-between items-start border-b-2 ${isCurio ? 'border-indigo-900' : 'border-slate-900'} pb-6 mb-8`}>
           <div>
-            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight uppercase">
+            <h1 className={`text-4xl font-extrabold ${isCurio ? 'text-indigo-950' : 'text-slate-900'} tracking-tight uppercase`}>
               ORÇAMENTO {data.numeroOrcamento ? `#${data.numeroOrcamento}` : ''}
             </h1>
             <p className="text-sm text-slate-500 mt-1.5 font-medium">Data de Emissão: {dataAtual}</p>
@@ -90,7 +97,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               />
             )}
             <div className="text-right">
-              <h2 className="text-lg font-bold text-slate-900 leading-tight">
+              <h2 className={`text-lg font-bold ${isCurio ? 'text-indigo-950' : 'text-slate-900'} leading-tight`}>
                 {company?.nomeFantasia || company?.razaoSocial || 'Empresa Emissora'}
               </h2>
               {company?.nomeFantasia && company?.razaoSocial && (
@@ -113,11 +120,11 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             {/* Dados do Cliente */}
             {hasClientData && (
               <div 
-                className="bg-slate-50 border border-slate-200/80 p-4 rounded-lg"
+                className={`${isCurio ? 'bg-indigo-50/20 border border-indigo-100' : 'bg-slate-50 border border-slate-200/80'} p-4 rounded-lg`}
                 style={{ flex: 1, width: hasVehicleData ? '48%' : '100%' }}
               >
                 <div>
-                  <h3 className="text-[11px] font-bold text-slate-500 border-b border-slate-200/80 pb-2 mb-3 uppercase tracking-wider">
+                  <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-3' : 'text-slate-500 border-b border-slate-200/80 pb-2 mb-3'}`}>
                     Dados do Cliente
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 15px' }} className="text-[12px]">
@@ -173,11 +180,11 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             {/* Dados do Veículo */}
             {hasVehicleData && (
               <div 
-                className="bg-slate-50 border border-slate-200/80 p-4 rounded-lg"
+                className={`${isCurio ? 'bg-indigo-50/20 border border-indigo-100' : 'bg-slate-50 border border-slate-200/80'} p-4 rounded-lg`}
                 style={{ flex: 1, width: hasClientData ? '48%' : '100%' }}
               >
                 <div>
-                  <h3 className="text-[11px] font-bold text-slate-500 border-b border-slate-200/80 pb-2 mb-3 uppercase tracking-wider">
+                  <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-3' : 'text-slate-500 border-b border-slate-200/80 pb-2 mb-3'}`}>
                     Dados do Veículo
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 15px' }} className="text-[12px]">
@@ -214,12 +221,12 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
         {/* Itens do Orçamento */}
         <div className="mb-8">
-          <h3 className="text-[11px] font-bold text-slate-800 border-b border-slate-900 pb-2 mb-3 uppercase tracking-wider">
+          <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-3' : 'text-slate-800 border-b border-slate-900 pb-2 mb-3'}`}>
             Itens do Orçamento
           </h3>
           
           {/* Header da Tabela em Flexbox (Dark Slate Accent) */}
-          <div className="flex bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider rounded-t-md">
+          <div className={`flex ${isCurio ? 'bg-indigo-950' : 'bg-slate-900'} text-white text-[10px] font-bold uppercase tracking-wider rounded-t-md`}>
             <div className="py-1.5 px-3 text-left" style={{ width: '50%' }}>Descrição do Serviço / Produto</div>
             <div className="py-1.5 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
             <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
@@ -234,7 +241,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                return (
                  <div 
                    key={index} 
-                   className="flex border-b border-slate-100 text-[12px] last:border-b-0 odd:bg-slate-50/50 even:bg-white avoid-page-break" 
+                   className={`flex border-b border-slate-100 text-[12px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
                  >
                    <div className="py-1.5 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
@@ -246,7 +253,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                    <div className="py-1.5 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
                      {formatCurrency(vu)}
                    </div>
-                   <div className="py-1.5 px-3 text-right text-slate-900 font-semibold" style={{ width: '20%' }}>
+                   <div className={`py-1.5 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '20%' }}>
                      {formatCurrency(q * vu)}
                    </div>
                  </div>
@@ -257,14 +264,14 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
         {/* Totais */}
         <div className="flex justify-end mb-8 avoid-page-break">
-          <div className="w-[320px] bg-slate-50 border border-slate-200 p-4 rounded-lg">
+          <div className={`w-[320px] ${isCurio ? 'bg-indigo-50/20 border border-indigo-100' : 'bg-slate-50 border border-slate-200'} p-4 rounded-lg`}>
             <div className="flex justify-between items-center mb-2 text-[12px] text-slate-500 font-medium">
               <span>Subtotal:</span>
-              <span className="text-slate-800 font-semibold">{formatCurrency(subtotal)}</span>
+              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between items-center text-[14px] font-black text-slate-900 border-t border-slate-200/80 pt-2 mt-2">
+            <div className={`flex justify-between items-center text-[14px] font-black border-t ${isCurio ? 'text-indigo-950 border-indigo-100' : 'text-slate-900 border-slate-200/80'} pt-2 mt-2`}>
               <span>TOTAL GERAL:</span>
-              <span className="text-slate-900 underline decoration-double decoration-slate-900 underline-offset-4">
+              <span className={`underline decoration-double ${isCurio ? 'text-indigo-950 decoration-indigo-950' : 'text-slate-900 decoration-slate-900'} underline-offset-4`}>
                 {formatCurrency(total)}
               </span>
             </div>
@@ -273,12 +280,12 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
         {/* Condições e Observações */}
         <div className="mb-8 avoid-page-break">
-          <h3 className="text-[11px] font-bold text-slate-850 border-b border-slate-200 pb-2 mb-3.5 uppercase tracking-wider">
+          <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCurio ? 'text-indigo-900 bg-indigo-900/5 px-2.5 py-1.5 rounded-md mb-3.5' : 'text-slate-850 border-b border-slate-200 pb-2 mb-3.5'}`}>
             Condições Comerciais
           </h3>
           <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-[12px] text-slate-600">
             <div>
-              <span className="font-semibold text-slate-800">Forma de Pagamento:</span>{' '}
+              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>Forma de Pagamento:</span>{' '}
               <span className="font-medium text-slate-900">
                 {data.condicaoPagamento === 'Parcelado' && data.parcelas
                   ? `Parcelado em ${data.parcelas}x ${data.valorParcela ? `de ${formatCurrency(data.valorParcela)}` : ''}`
@@ -286,22 +293,22 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               </span>
             </div>
             <div>
-              <span className="font-semibold text-slate-800">Validade da Proposta:</span>{' '}
+              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>Validade da Proposta:</span>{' '}
               <span className="font-medium text-slate-900">{data.validade || 'N/A'}</span>
             </div>
             <div>
-              <span className="font-semibold text-slate-800">Prazo de Execução:</span>{' '}
+              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>Prazo de Execução:</span>{' '}
               <span className="font-medium text-slate-900">{data.prazoExecucao || 'A combinar'}</span>
             </div>
             <div>
-              <span className="font-semibold text-slate-800">Garantia Oferecida:</span>{' '}
+              <span className={`font-semibold ${isCurio ? 'text-indigo-950' : 'text-slate-800'}`}>Garantia Oferecida:</span>{' '}
               <span className="font-medium text-slate-900">{data.garantia || 'Sem garantia especificada'}</span>
             </div>
           </div>
           
           {data.observacao && (
-            <div className="text-xs text-slate-600 mt-5 p-4 bg-slate-50/80 rounded-lg whitespace-pre-wrap border-l-4 border-slate-900 shadow-sm leading-relaxed">
-              <span className="font-bold text-slate-900 block mb-1.5 uppercase tracking-wide">Observações Gerais:</span>
+            <div className={`text-xs text-slate-600 mt-5 p-4 ${isCurio ? 'bg-indigo-50/20 border-l-4 border-indigo-900' : 'bg-slate-50/80 border-l-4 border-slate-900'} rounded-lg whitespace-pre-wrap shadow-sm leading-relaxed`}>
+              <span className={`font-bold ${isCurio ? 'text-indigo-950' : 'text-slate-900'} block mb-1.5 uppercase tracking-wide`}>Observações Gerais:</span>
               {data.observacao}
             </div>
           )}
@@ -310,8 +317,8 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
 
       {/* Assinatura no Rodapé */}
       <div className="mt-16 text-center avoid-page-break">
-        <div className="w-[320px] mx-auto border-t border-slate-900 pt-2.5">
-          <p className="font-bold text-slate-900 text-sm">
+        <div className={`w-[320px] mx-auto border-t ${isCurio ? 'border-indigo-900' : 'border-slate-900'} pt-2.5`}>
+          <p className={`font-bold ${isCurio ? 'text-indigo-950' : 'text-slate-900'} text-sm`}>
             {company?.razaoSocial || company?.nomeFantasia || 'Empresa Emissora'}
           </p>
           <p className="text-xs text-slate-500 mt-1 font-medium">{getSignatureName()}</p>
