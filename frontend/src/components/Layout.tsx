@@ -1,10 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, LogOut, Mail, Users, Menu, X } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  LogOut, 
+  Mail, 
+  Users, 
+  Menu, 
+  X, 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  CheckSquare, 
+  BarChart3,
+  Wrench,
+  Settings,
+  Building,
+  Truck,
+  Calendar
+} from 'lucide-react';
 
 export function Layout() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOficinaOpen, setIsOficinaOpen] = useState(true);
+  const [isFinancialOpen, setIsFinancialOpen] = useState(true);
+  const [isFleetOpen, setIsFleetOpen] = useState(true);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch('/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        } else if (response.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário logado', error);
+      }
+    };
+    
+    fetchMe();
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -28,7 +76,7 @@ export function Layout() {
         }`}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary">Gestão de Orçamentos</h1>
+          <h1 className="text-xl font-bold text-primary">Gestão da Oficina</h1>
           <button 
             onClick={() => setIsMobileMenuOpen(false)}
             className="p-1 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -37,39 +85,202 @@ export function Layout() {
           </button>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <Link 
-            to="/" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-          >
-            <LayoutDashboard size={20} className="text-muted-foreground" />
-            <span>Dashboard</span>
-          </Link>
-          <Link 
-            to="/quotes/new" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-          >
-            <FileText size={20} className="text-muted-foreground" />
-            <span>Novo Orçamento</span>
-          </Link>
-          <Link 
-            to="/users" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-          >
-            <Users size={20} className="text-muted-foreground" />
-            <span>Usuários</span>
-          </Link>
-          <Link 
-            to="/settings/email" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-          >
-            <Mail size={20} className="text-muted-foreground" />
-            <span>Config. E-mail</span>
-          </Link>
+        <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+          {/* Categoria 1: Gestão da Oficina */}
+          <div>
+            <button 
+              onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Wrench size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão da Oficina</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isOficinaOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/quotes/new" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <FileText size={16} className="text-muted-foreground" />
+                  <span>Novo Orçamento</span>
+                </Link>
+                <Link 
+                  to="/clients" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Users size={16} className="text-muted-foreground" />
+                  <span>Clientes</span>
+                </Link>
+                <Link 
+                  to="/suppliers" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Fornecedores</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 2: Gestão Financeira */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsFinancialOpen(!isFinancialOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <DollarSign size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isFinancialOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/financial/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/financial/payables" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <TrendingDown size={16} className="text-red-500" />
+                  <span>Contas a Pagar</span>
+                </Link>
+                <Link 
+                  to="/financial/receivables" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <TrendingUp size={16} className="text-emerald-500" />
+                  <span>Contas a Receber</span>
+                </Link>
+                <Link 
+                  to="/financial/approvals" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <CheckSquare size={16} className="text-amber-500" />
+                  <span>Aprovações</span>
+                </Link>
+                <Link 
+                  to="/financial/reports" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <BarChart3 size={16} className="text-blue-500" />
+                  <span>Relatórios</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 3: Gestão de Frotas */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsFleetOpen(!isFleetOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Truck size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isFleetOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/fleet/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/fleet/vehicles" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Truck size={16} className="text-muted-foreground" />
+                  <span>Veículos</span>
+                </Link>
+                <Link 
+                  to="/fleet/preventive" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <span>Preventiva</span>
+                </Link>
+                <Link 
+                  to="/fleet/workshops" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Wrench size={16} className="text-muted-foreground" />
+                  <span>Oficinas</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 3: Configurações & Administração */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsAdminOpen(!isAdminOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Settings size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Configurações</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isAdminOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isAdminOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/users" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Users size={16} className="text-muted-foreground" />
+                  <span>Usuários</span>
+                </Link>
+                <Link 
+                  to="/settings/email" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Mail size={16} className="text-muted-foreground" />
+                  <span>Config. E-mail</span>
+                </Link>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
@@ -93,26 +304,190 @@ export function Layout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border shadow-sm flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border">
-          <h1 className="text-xl font-bold text-primary">Gestão de Orçamentos</h1>
+          <h1 className="text-xl font-bold text-primary">Gestão da Oficina</h1>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
-          <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors">
-            <LayoutDashboard size={20} className="text-muted-foreground" />
-            <span>Dashboard</span>
-          </Link>
-          <Link to="/quotes/new" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors">
-            <FileText size={20} className="text-muted-foreground" />
-            <span>Novo Orçamento</span>
-          </Link>
-          <Link to="/users" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors">
-            <Users size={20} className="text-muted-foreground" />
-            <span>Usuários</span>
-          </Link>
-          <Link to="/settings/email" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary transition-colors">
-            <Mail size={20} className="text-muted-foreground" />
-            <span>Config. E-mail</span>
-          </Link>
+        <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+          {/* Categoria 1: Gestão da Oficina */}
+          <div>
+            <button 
+              onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Wrench size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão da Oficina</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isOficinaOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/quotes/new" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <FileText size={16} className="text-muted-foreground" />
+                  <span>Novo Orçamento</span>
+                </Link>
+                <Link 
+                  to="/clients" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Users size={16} className="text-muted-foreground" />
+                  <span>Clientes</span>
+                </Link>
+                <Link 
+                  to="/suppliers" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Fornecedores</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 2: Gestão Financeira */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsFinancialOpen(!isFinancialOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <DollarSign size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isFinancialOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/financial/dashboard" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/financial/payables" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <TrendingDown size={16} className="text-red-500" />
+                  <span>Contas a Pagar</span>
+                </Link>
+                <Link 
+                  to="/financial/receivables" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <TrendingUp size={16} className="text-emerald-500" />
+                  <span>Contas a Receber</span>
+                </Link>
+                <Link 
+                  to="/financial/approvals" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <CheckSquare size={16} className="text-amber-500" />
+                  <span>Aprovações</span>
+                </Link>
+                <Link 
+                  to="/financial/reports" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <BarChart3 size={16} className="text-blue-500" />
+                  <span>Relatórios</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 3: Gestão de Frotas */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsFleetOpen(!isFleetOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Truck size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isFleetOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/fleet/dashboard" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <LayoutDashboard size={16} className="text-muted-foreground" />
+                  <span>Painel Geral</span>
+                </Link>
+                <Link 
+                  to="/fleet/vehicles" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Truck size={16} className="text-muted-foreground" />
+                  <span>Veículos</span>
+                </Link>
+                <Link 
+                  to="/fleet/preventive" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <span>Preventiva</span>
+                </Link>
+                <Link 
+                  to="/fleet/workshops" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Wrench size={16} className="text-muted-foreground" />
+                  <span>Oficinas</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Categoria 3: Configurações & Administração */}
+          <div className="pt-2 border-t border-border/40">
+            <button 
+              onClick={() => setIsAdminOpen(!isAdminOpen)}
+              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Settings size={20} className="text-primary" />
+                <span className="font-semibold text-foreground text-sm">Configurações</span>
+              </div>
+              <span className="text-[10px] transition-transform duration-200" style={{ transform: isAdminOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+            </button>
+            
+            {isAdminOpen && (
+              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                <Link 
+                  to="/users" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Users size={16} className="text-muted-foreground" />
+                  <span>Usuários</span>
+                </Link>
+                <Link 
+                  to="/settings/email" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Mail size={16} className="text-muted-foreground" />
+                  <span>Config. E-mail</span>
+                </Link>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
@@ -143,9 +518,18 @@ export function Layout() {
             </button>
             <h2 className="text-base sm:text-lg font-medium">Painel de Controle</h2>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-              U
+          <div className="flex items-center gap-3">
+            {user && (
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-sm font-semibold text-foreground leading-none mb-0.5">{user.name}</span>
+                <span className="text-[10px] text-muted-foreground">{user.email}</span>
+              </div>
+            )}
+            <div 
+              className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm cursor-pointer hover:bg-primary/30 transition duration-150"
+              title={user ? `${user.name} (${user.email})` : 'Usuário'}
+            >
+              {user ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
           </div>
         </header>
@@ -157,4 +541,3 @@ export function Layout() {
     </div>
   );
 }
-

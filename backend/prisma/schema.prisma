@@ -15,6 +15,8 @@ model User {
   name      String
   email     String   @unique
   password  String
+  role      String   @default("ADMIN") // ADMIN, MANAGER, WORKSHOP, CLIENT
+  status    String   @default("ATIVO") // ATIVO, INATIVO
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -31,6 +33,8 @@ model Company {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   quotes           Quote[]
+  financialPayables    FinancialPayable[]
+  financialReceivables FinancialReceivable[]
 
   @@index([cnpj])
 }
@@ -53,6 +57,11 @@ model Client {
   cep                String?
   dataSituacao       String?
   atividadePrincipal String?
+
+  // Frotas
+  whatsapp           String?
+  status             String   @default("ATIVO") // ATIVO, INATIVO
+  veiculos           Vehicle[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,6 +101,7 @@ model Quote {
   status              String      @default("Orçamento")
   
   items               QuoteItem[]
+  financialReceivables FinancialReceivable[]
   
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -128,4 +138,255 @@ model EmailConfig {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model FinancialPayable {
+  id                    String                 @id @default(uuid())
+  numeroLancamento      Int                    @unique @default(autoincrement())
+  companyId             String
+  company               Company                @relation(fields: [companyId], references: [id])
+  fornecedor            String
+  categoria             String
+  centroCusto           String
+  descricao             String
+  valor                 Float
+  dataEmissao           DateTime
+  vencimento            DateTime
+  dataPagamento         DateTime?
+  formaPagamento        String
+  responsavel           String
+  observacoes           String?
+  status                String                 @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, PAGA, CANCELADA, VENCIDA
+  
+  recorrente            Boolean                @default(false)
+  tipoRecorrencia       String?                // DIARIA, SEMANAL, QUINZENAL, MENSAL, BIMESTRAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  quantidadeParcelas    Int?
+  parcelaAtual          Int?                   @default(1)
+  dataFinalRecorrencia  DateTime?
+  pagamentoAutomatico   Boolean                @default(false)
+  parentRecurrenceId    String?                // Identificador para agrupar parcelas da mesma recorrência
+  
+  attachments           FinancialAttachment[]
+  audits                FinancialAudit[]
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([companyId])
+}
+
+model FinancialReceivable {
+  id                    String                 @id @default(uuid())
+  numeroRecebimento     Int                    @unique @default(autoincrement())
+  companyId             String
+  company               Company                @relation(fields: [companyId], references: [id])
+  cliente               String
+  categoria             String
+  descricao             String
+  valor                 Float
+  dataEmissao           DateTime
+  vencimento            DateTime
+  dataRecebimento       DateTime?
+  formaRecebimento      String
+  responsavel           String
+  observacoes           String?
+  status                String                 @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, RECEBIDA, CANCELADA, VENCIDA
+
+  quoteId               String?
+  quote                 Quote?                 @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  attachments           FinancialAttachment[]
+  audits                FinancialAudit[]
+  
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([companyId])
+  @@index([quoteId])
+}
+
+model FinancialAttachment {
+  id                    String                 @id @default(uuid())
+  payableId             String?
+  payable               FinancialPayable?      @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  receivableId          String?
+  receivable            FinancialReceivable?   @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  
+  fileName              String
+  fileType              String                 // PDF, JPG, JPEG, PNG
+  fileUrl               String                 // Base64 ou URL de visualização
+  createdAt             DateTime               @default(now())
+
+  @@index([payableId])
+  @@index([receivableId])
+}
+
+model FinancialAudit {
+  id                    String                 @id @default(uuid())
+  payableId             String?
+  payable               FinancialPayable?      @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  receivableId          String?
+  receivable            FinancialReceivable?   @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  
+  action                String                 // CREATE, UPDATE, DELETE, STATUS_CHANGE, APPROVAL, REJECTION
+  previousStatus        String?
+  newStatus             String?
+  user                  String                 // E-mail/Nome do executor
+  changes               String?                // Descrição detalhada das mudanças
+  comments              String?                // Comentários de aprovação/reprovação
+  createdAt             DateTime               @default(now())
+
+  @@index([payableId])
+  @@index([receivableId])
+}
+
+model Supplier {
+  id                 String   @id @default(uuid())
+  razaoSocial        String
+  nomeFantasia       String?
+  cnpj               String?  @unique
+  cnpjSemMascara     String?  @unique
+  telefone           String?
+  email              String?
+  logradouro         String?
+  numero             String?
+  complemento        String?
+  bairro             String?
+  cep                String?
+  cidade             String?
+  estado             String?
+  dataSituacao       String?
+  atividadePrincipal String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([cnpj])
+}
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  clienteId          String
+  client             Client   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  placa              String   @unique
+  renavam            String?
+  chassi             String?
+  vin                String?
+  codigoFipe         String?
+  codigoInterno      String?
+  frota              String?
+  subfrota           String?
+  
+  marca              String
+  modelo             String
+  versao             String?
+  anoFabricacao      Int
+  anoModelo          Int
+  cor                String?
+  combustivel        String?
+  categoria          String?
+  tipoVeiculo        String?
+  municipio          String?
+  uf                 String?
+  kmAtual            Int      @default(0)
+  mediaConsumo       Float?
+  status             String   @default("ATIVO") // ATIVO, EM_MANUTENCAO, INATIVO, VENDIDO
+  observacoes        String?
+  
+  trocasOleoMotor    TrocaOleoMotor[]
+  trocasOleoCambio   TrocaOleoCambio[]
+  events             VehicleEvent[]
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([placa])
+}
+
+model ConsultaPlaca {
+  id           String   @id @default(uuid())
+  placa        String   @unique
+  retornoApi   String   // JSON stringified
+  dataConsulta DateTime @default(now())
+  status       String   @default("SUCESSO")
+}
+
+model Oficina {
+  id                 String   @id @default(uuid())
+  nome               String
+  cnpj               String   @unique
+  responsavel        String?
+  telefone           String?
+  whatsapp           String?
+  email              String?
+  endereco           String?
+  servicosRealizados String?
+  observacoes        String?
+  
+  trocasOleoMotor    TrocaOleoMotor[]
+  trocasOleoCambio   TrocaOleoCambio[]
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model TrocaOleoMotor {
+  id               String   @id @default(uuid())
+  veiculoId        String
+  veiculo          Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  dataTroca        DateTime
+  kmTroca          Int
+  tipoOleo         String?
+  quantidade       Float?
+  proximaTrocaKm   Int
+  proximaTrocaData DateTime
+  oficinaId        String
+  oficina          Oficina  @relation(fields: [oficinaId], references: [id])
+  valor            Float
+  observacoes      String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([veiculoId])
+  @@index([oficinaId])
+}
+
+model TrocaOleoCambio {
+  id               String   @id @default(uuid())
+  veiculoId        String
+  veiculo          Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  tipoCambio       String   // MANUAL, AUTOMATICO, CVT
+  dataTroca        DateTime
+  kmTroca          Int
+  oleoUtilizado    String?
+  quantidade       Float?
+  proximaTrocaKm   Int
+  proximaTrocaData DateTime
+  oficinaId        String
+  oficina          Oficina  @relation(fields: [oficinaId], references: [id])
+  valor            Float
+  observacoes      String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([veiculoId])
+  @@index([oficinaId])
+}
+
+model VehicleEvent {
+  id          String   @id @default(uuid())
+  veiculoId   String
+  veiculo     Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  tipo        String   // TROCA_OLEO_MOTOR, TROCA_OLEO_CAMBIO, REVISAO, MANUTENCAO, KM, ABASTECIMENTO, MULTA, SINISTRO, ALTERACAO
+  data        DateTime
+  km          Int?
+  descricao   String
+  valor       Float?
+  oficinaId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([veiculoId])
 }

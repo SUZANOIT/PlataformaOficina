@@ -36,7 +36,7 @@ export function Login() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">Gestão de Orçamentos</h1>
+          <h1 className="text-3xl font-bold text-primary">Gestão da Oficina</h1>
         </div>
 
         {error && (

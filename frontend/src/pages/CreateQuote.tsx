@@ -60,6 +60,7 @@ const statusOptions = [
 export function CreateQuote() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [numeroOrcamento, setNumeroOrcamento] = useState<number | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
@@ -110,6 +111,9 @@ export function CreateQuote() {
 
       try {
         const data = await quoteService.getQuote(quoteId);
+        if (isEditing) {
+          setNumeroOrcamento(data.numeroOrcamento);
+        }
         
         const formData: any = {
           companyId: isEditing ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
@@ -231,15 +235,28 @@ export function CreateQuote() {
         toast.success('Orçamento atualizado com sucesso!', { id: 'save-quote' });
       } else {
         savedData = await quoteService.saveQuote(payload);
+        setNumeroOrcamento(savedData.numeroOrcamento);
         toast.success('Orçamento salvo com sucesso!', { id: 'save-quote' });
-        // Se foi um clone, podemos redirecionar pro Edit ou manter na tela
         if (cloneId) {
           navigate(`/quotes/edit/${savedData.id}`, { replace: true });
         }
       }
+
+      const company = companies.find(c => c.id === payload.companyId);
+      const companyName = company?.razaoSocial || company?.nomeFantasia || '';
+      const companySlug = companyName.toLowerCase().includes('curio') ? 'curio' : 'mca';
+      
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const formattedDate = `${day}_${month}_${year}`;
+      
+      const quoteNum = savedData?.numeroOrcamento || numeroOrcamento || 'novo';
+      const pdfFilename = `${quoteNum}_orcamento_${companySlug}_${formattedDate}.pdf`;
       
       toast.loading('Gerando PDF...', { id: 'pdf-toast' });
-      await generatePdf(pdfRef.current, `orcamento-${data.client.nome || 'novo'}.pdf`);
+      await generatePdf(pdfRef.current, pdfFilename);
       toast.success('PDF gerado com sucesso!', { id: 'pdf-toast' });
 
     } catch (error: any) {
@@ -250,9 +267,23 @@ export function CreateQuote() {
 
   const handleGeneratePDF = async () => {
     const data = watch();
+    
+    const company = companies.find(c => c.id === data.companyId);
+    const companyName = company?.razaoSocial || company?.nomeFantasia || '';
+    const companySlug = companyName.toLowerCase().includes('curio') ? 'curio' : 'mca';
+    
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const formattedDate = `${day}_${month}_${year}`;
+    
+    const quoteNum = numeroOrcamento || 'novo';
+    const pdfFilename = `${quoteNum}_orcamento_${companySlug}_${formattedDate}.pdf`;
+
     toast.loading('Gerando PDF...', { id: 'pdf-toast' });
     try {
-      await generatePdf(pdfRef.current, `orcamento-${data.client.nome || 'novo'}.pdf`);
+      await generatePdf(pdfRef.current, pdfFilename);
       toast.success('PDF gerado com sucesso!', { id: 'pdf-toast' });
     } catch (error) {
       toast.error('Houve um erro ao gerar o PDF.', { id: 'pdf-toast' });

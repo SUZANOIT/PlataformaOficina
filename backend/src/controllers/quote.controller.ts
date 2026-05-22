@@ -134,10 +134,57 @@ export const QuoteController = {
         return res.status(400).json({ error: 'Quote must contain at least one item' });
       }
 
-      // Create client first
-      const client = await prisma.client.create({
-        data: data.client,
-      });
+      // Prevenir duplicação de cliente: busca por CNPJ, E-mail ou Nome antes de criar
+      let client;
+      
+      const normalizedCnpj = data.client.cnpj ? data.client.cnpj.trim().replace(/\D/g, '') : '';
+      const normalizedEmail = data.client.email ? data.client.email.trim().toLowerCase() : '';
+      const normalizedNome = data.client.nome.trim();
+
+      if (normalizedCnpj && normalizedCnpj.length === 14) {
+        client = await prisma.client.findFirst({
+          where: {
+            cnpj: {
+              contains: normalizedCnpj
+            }
+          }
+        });
+      }
+
+      if (!client && normalizedEmail) {
+        client = await prisma.client.findFirst({
+          where: {
+            email: {
+              equals: normalizedEmail,
+              mode: 'insensitive'
+            }
+          }
+        });
+      }
+
+      if (!client) {
+        client = await prisma.client.findFirst({
+          where: {
+            nome: {
+              equals: normalizedNome,
+              mode: 'insensitive'
+            }
+          }
+        });
+      }
+
+      if (client) {
+        // Atualiza os dados do cliente existente para mantê-lo atualizado
+        client = await prisma.client.update({
+          where: { id: client.id },
+          data: data.client,
+        });
+      } else {
+        // Cria um novo cliente apenas se realmente não existir na base
+        client = await prisma.client.create({
+          data: data.client,
+        });
+      }
 
       // Create quote
       const quote = await prisma.quote.create({

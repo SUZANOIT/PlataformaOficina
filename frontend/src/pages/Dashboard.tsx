@@ -1,4 +1,4 @@
-import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Building } from 'lucide-react';
+import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Building, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ export function Dashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchStats = async () => {
@@ -196,6 +197,37 @@ export function Dashboard() {
     'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
   ];
 
+  // Sold Modal calculations
+  const activeQuotes = selectedCompanyId === 'all' 
+    ? quotes 
+    : quotes.filter((q: any) => q.company?.id === selectedCompanyId);
+
+  // Geral
+  const totalSoldVal = activeQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
+  let totalPecasVal = 0;
+  let totalMaoDeObraVal = 0;
+
+  // Aprovados
+  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado');
+  const totalApprovedVal = approvedQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
+  let totalPecasApprovedVal = 0;
+  let totalMaoDeObraApprovedVal = 0;
+
+  activeQuotes.forEach((q: any) => {
+    const isApproved = q.status === 'Aprovado';
+    (q.items || []).forEach((item: any) => {
+      const tipo = item.tipo || 'Peça';
+      const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
+      if (tipo === 'Peça') {
+        totalPecasVal += itemVal;
+        if (isApproved) totalPecasApprovedVal += itemVal;
+      } else {
+        totalMaoDeObraVal += itemVal;
+        if (isApproved) totalMaoDeObraApprovedVal += itemVal;
+      }
+    });
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -220,13 +252,18 @@ export function Dashboard() {
           </div>
         </div>
         
-        <div className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">
+        <div 
+          onClick={() => setIsSoldModalOpen(true)}
+          className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:border-emerald-500/40 hover:shadow-md transition duration-200 group active:scale-[0.98]"
+          title="Ver detalhamento de vendas"
+        >
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center group-hover:scale-110 transition duration-200">
             <TrendingUp size={24} />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Valor Total Vendido</p>
+            <p className="text-sm text-muted-foreground group-hover:text-emerald-500 transition duration-200">Valor Total Vendido</p>
             <h3 className="text-2xl font-bold">{formatCurrency(stats?.totalSold || 0)}</h3>
+            <span className="text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition duration-200">Clique para ver mais detalhes</span>
           </div>
         </div>
 
@@ -256,7 +293,7 @@ export function Dashboard() {
             </div>
 
             <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
-              <div className="h-64 flex items-end justify-between gap-3 pt-6 px-2 min-w-[500px] sm:min-w-0">
+              <div className="h-64 flex items-end justify-between gap-3 pt-16 px-2 min-w-[500px] sm:min-w-0">
                 {Object.entries(statusTotals).map(([status, totalValue]) => {
                   const pct = (totalValue / maxVal) * 100;
                   const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
@@ -319,7 +356,7 @@ export function Dashboard() {
             </div>
 
             <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
-              <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2 min-w-[650px] sm:min-w-0">
+              <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
                 {monthlyApprovedTotals.map((totalValue, index) => {
                   const monthName = monthNames[index];
                   const pct = (totalValue / maxMonthVal) * 100;
@@ -370,7 +407,7 @@ export function Dashboard() {
             </div>
 
             <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
-              <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2 min-w-[650px] sm:min-w-0">
+              <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
                 {monthNames.map((monthName, index) => {
                   const partsVal = monthlyPecasTotals[index];
                   const laborVal = monthlyMaoDeObraTotals[index];
@@ -670,6 +707,88 @@ export function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Modal Detalhamento Valor Total Vendido */}
+      {isSoldModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-border flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="text-emerald-500" size={20} />
+                <h3 className="text-lg font-bold text-foreground">Detalhamento de Vendas</h3>
+              </div>
+              <button 
+                onClick={() => setIsSoldModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/50 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {selectedCompanyId !== 'all' && (
+                <div className="bg-muted/20 border border-border/40 px-3 py-2 rounded-lg text-xs text-muted-foreground">
+                  Filtro ativo por empresa: <strong className="text-foreground">{stats?.companyBreakdown?.find((c: any) => c.companyId === selectedCompanyId)?.companyName}</strong>
+                </div>
+              )}
+
+              {/* Bloco 1: Aprovados */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-emerald-500 uppercase tracking-wider">Orçamentos Aprovados</h4>
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Efetivado</span>
+                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalApprovedVal)}</span>
+                  </div>
+                  <div className="border-t border-border/40 pt-2 space-y-1.5 text-sm">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Total de Peças</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(totalPecasApprovedVal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Total de Mão de Obra</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(totalMaoDeObraApprovedVal)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco 2: Geral */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-primary uppercase tracking-wider">Todos os Orçamentos (Geral)</h4>
+                <div className="bg-muted/25 border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Bruto</span>
+                    <span className="text-lg font-bold text-foreground">{formatCurrency(totalSoldVal)}</span>
+                  </div>
+                  <div className="border-t border-border/40 pt-2 space-y-1.5 text-sm">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Total de Peças</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(totalPecasVal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Total de Mão de Obra</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(totalMaoDeObraVal)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-muted/20 border-t border-border flex justify-end">
+              <button
+                onClick={() => setIsSoldModalOpen(false)}
+                className="w-full sm:w-auto px-4 py-2 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

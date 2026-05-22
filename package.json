@@ -12,6 +12,5 @@
     "db:seed": "npm run --prefix backend db:seed",
     "db:studio": "npm run --prefix backend db:studio",
     "db:reset": "npm run --prefix backend db:reset"
-    // "db:migrate:railway": "npm run --prefix backend db:migrate:railway"
   }
 }
