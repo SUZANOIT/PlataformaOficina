@@ -273,7 +273,7 @@ export function Dashboard() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Clientes Ativos</p>
-            <h3 className="text-2xl font-bold">{stats?.quotesCount || 0}</h3>
+            <h3 className="text-2xl font-bold">{stats?.activeClientsCount || 0}</h3>
           </div>
         </div>
       </div>

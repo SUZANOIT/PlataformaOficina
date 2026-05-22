@@ -100,11 +100,28 @@ exports.QuoteController = {
                     totalSold: total
                 };
             }));
+            const activeClientsCount = await prisma_1.prisma.client.count({
+                where: { status: 'ATIVO' }
+            });
+            const activeClientsList = await prisma_1.prisma.client.findMany({
+                where: { status: 'ATIVO' },
+                select: {
+                    id: true,
+                    nome: true,
+                    empresa: true,
+                    cnpj: true,
+                    email: true,
+                    telefone: true
+                },
+                orderBy: { nome: 'asc' }
+            });
             return res.json({
                 quotesCount,
                 totalSold,
                 recentQuotes,
-                companyBreakdown
+                companyBreakdown,
+                activeClientsCount,
+                activeClientsList
             });
         }
         catch (error) {
