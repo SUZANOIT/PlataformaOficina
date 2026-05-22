@@ -106,6 +106,7 @@ export function FinancialPayables() {
   const [quantidadeParcelas, setQuantidadeParcelas] = useState('12');
   const [pagamentoAutomatico, setPagamentoAutomatico] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [collaborators, setCollaborators] = useState<any[]>([]);
   
   // Sequence update / delete
   const [editMode, setEditMode] = useState<'CURRENT' | 'SEQUENCE'>('CURRENT');
@@ -141,6 +142,27 @@ export function FinancialPayables() {
     }
   };
 
+  const fetchCollaborators = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/registry/collaborators', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCollaborators(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+    fetchSuppliers();
+    fetchCollaborators();
+  }, []);
+
   const fetchPayables = async () => {
     try {
       setLoading(true);
@@ -172,10 +194,6 @@ export function FinancialPayables() {
     }
   };
 
-  useEffect(() => {
-    fetchCompanies();
-    fetchSuppliers();
-  }, []);
 
   useEffect(() => {
     fetchPayables();
@@ -960,14 +978,19 @@ export function FinancialPayables() {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento *</label>
-                  <input 
-                    type="text" 
+                  <select 
                     value={responsavel}
                     onChange={(e) => setResponsavel(e.target.value)}
-                    placeholder="Nome do colaborador"
                     className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                     required
-                  />
+                  >
+                    <option value="">Selecione um colaborador...</option>
+                    {collaborators.map((c: any) => (
+                      <option key={c.id} value={c.nome}>
+                        {c.nome} {c.cargo ? `- ${c.cargo}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {status === 'PAGA' && (

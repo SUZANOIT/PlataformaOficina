@@ -426,9 +426,15 @@ export function FinancialDashboard() {
               <span>Sem registros de fluxo para o período selecionado</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="relative h-64 w-full flex items-end justify-around border-b border-border/80 pb-2">
-                
+            <div className="space-y-6">
+              <div className="relative h-64 w-full flex items-end justify-around border-b border-border/80 pb-3 pt-6 px-2">
+                {/* Grid Lines */}
+                <div className="absolute inset-x-0 top-6 bottom-12 flex flex-col justify-between pointer-events-none">
+                  <div className="border-b border-border/20 w-full"></div>
+                  <div className="border-b border-border/20 w-full"></div>
+                  <div className="border-b border-border/20 w-full"></div>
+                </div>
+
                 {/* Obter valor máximo para escala */}
                 {(() => {
                   const values = Object.values(graficos.fluxoMensal);
@@ -439,36 +445,36 @@ export function FinancialDashboard() {
                     const desPercent = (val.despesas / maxVal) * 100;
 
                     return (
-                      <div key={mesAno} className="flex flex-col items-center gap-2 w-16 group relative">
-                        <div className="flex items-end gap-1.5 h-48 w-full justify-center">
+                      <div key={mesAno} className="flex flex-col items-center gap-2 w-20 group relative z-10">
+                        <div className="flex items-end gap-2 h-40 w-full justify-center">
                           {/* Barra de Receitas */}
                           <div 
-                            style={{ height: `${recPercent}%` }} 
-                            className="w-4.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all duration-300 relative group"
+                            style={{ height: `${Math.max(recPercent, 4)}%` }} 
+                            className="w-5 sm:w-6 bg-gradient-to-t from-emerald-500/80 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 rounded-t-md shadow-xs transition-all duration-300 relative group cursor-pointer"
                           >
                             {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2 py-1 rounded text-[10px] text-foreground font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-10">
-                              Receitas: {formatCurrency(val.receitas)}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2.5 py-1.5 rounded-lg text-[10px] text-foreground font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-20 pointer-events-none">
+                              <span className="text-emerald-500">Receitas</span>: {formatCurrency(val.receitas)}
                             </div>
                           </div>
                           
                           {/* Barra de Despesas */}
                           <div 
-                            style={{ height: `${desPercent}%` }} 
-                            className="w-4.5 bg-red-500/80 hover:bg-red-500 rounded-t-sm transition-all duration-300 relative group"
+                            style={{ height: `${Math.max(desPercent, 4)}%` }} 
+                            className="w-5 sm:w-6 bg-gradient-to-t from-red-500/80 to-red-400 hover:from-red-500 hover:to-red-300 rounded-t-md shadow-xs transition-all duration-300 relative group cursor-pointer"
                           >
                             {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2 py-1 rounded text-[10px] text-foreground font-bold shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-10">
-                              Despesas: {formatCurrency(val.despesas)}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2.5 py-1.5 rounded-lg text-[10px] text-foreground font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-20 pointer-events-none">
+                              <span className="text-red-500">Despesas</span>: {formatCurrency(val.despesas)}
                             </div>
                           </div>
                         </div>
 
                         {/* Label de Mes */}
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{mesAno}</span>
+                        <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mt-1">{mesAno}</span>
 
                         {/* Saldo Indicator */}
-                        <div className={`text-[9px] font-extrabold px-1 py-0.5 rounded-sm ${val.saldo >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        <div className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-2xs ${val.saldo >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                           {val.saldo >= 0 ? '+' : ''}{formatCurrency(val.saldo)}
                         </div>
                       </div>
