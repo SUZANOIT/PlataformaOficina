@@ -68,6 +68,12 @@ routes.post('/registry/suppliers', RegistryController.createSupplier);
 routes.put('/registry/suppliers/:id', RegistryController.updateSupplier);
 routes.delete('/registry/suppliers/:id', RegistryController.deleteSupplier);
 
+routes.get('/registry/collaborators', RegistryController.listCollaborators);
+routes.post('/registry/collaborators', RegistryController.createCollaborator);
+routes.put('/registry/collaborators/:id', RegistryController.updateCollaborator);
+routes.delete('/registry/collaborators/:id', RegistryController.deleteCollaborator);
+
+
 // Dashboard
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', QuoteController.getDashboardStats);

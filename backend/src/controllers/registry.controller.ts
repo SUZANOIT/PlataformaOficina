@@ -37,6 +37,20 @@ const supplierSchema = z.object({
   atividadePrincipal: z.string().optional().nullable(),
 });
 
+const collaboratorSchema = z.object({
+  nome: z.string(),
+  cpf: z.string().optional().nullable(),
+  telefone: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  cargo: z.string().optional().nullable(),
+  departamento: z.string().optional().nullable(),
+  dataAdmissao: z.string().optional().nullable(),
+  salario: z.number().optional().nullable(),
+  status: z.string().default('ATIVO'),
+  observacoes: z.string().optional().nullable(),
+});
+
 export const RegistryController = {
   // CLIENTS CRUD
   async listClients(req: Request, res: Response) {
@@ -195,6 +209,92 @@ export const RegistryController = {
     } catch (error) {
       console.error('Error deleting supplier:', error);
       return res.status(500).json({ error: 'Erro ao excluir fornecedor' });
+    }
+  },
+
+  // COLLABORATORS CRUD
+  async listCollaborators(req: Request, res: Response) {
+    try {
+      const { search } = req.query;
+      const whereClause: any = {};
+
+      if (search) {
+        whereClause.OR = [
+          { nome: { contains: search as string, mode: 'insensitive' } },
+          { cpf: { contains: search as string, mode: 'insensitive' } },
+          { email: { contains: search as string, mode: 'insensitive' } },
+          { cargo: { contains: search as string, mode: 'insensitive' } },
+          { departamento: { contains: search as string, mode: 'insensitive' } },
+        ];
+      }
+
+      const collaborators = await prisma.collaborator.findMany({
+        where: whereClause,
+        orderBy: { nome: 'asc' },
+      });
+      return res.json(collaborators);
+    } catch (error) {
+      console.error('Error listing collaborators:', error);
+      return res.status(500).json({ error: 'Erro ao listar colaboradores' });
+    }
+  },
+
+  async createCollaborator(req: Request, res: Response) {
+    try {
+      const data = collaboratorSchema.parse(req.body);
+      let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+      
+      const collaborator = await prisma.collaborator.create({
+        data: {
+          ...data,
+          cpfSemMascara,
+          dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+        },
+      });
+      return res.status(201).json(collaborator);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues });
+      }
+      console.error('Error creating collaborator:', error);
+      return res.status(500).json({ error: 'Erro ao criar colaborador' });
+    }
+  },
+
+  async updateCollaborator(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const data = collaboratorSchema.parse(req.body);
+      let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+
+      const collaborator = await prisma.collaborator.update({
+        where: { id },
+        data: {
+          ...data,
+          cpfSemMascara,
+          dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+        },
+      });
+      return res.json(collaborator);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues });
+      }
+      console.error('Error updating collaborator:', error);
+      return res.status(500).json({ error: 'Erro ao atualizar colaborador' });
+    }
+  },
+
+  async deleteCollaborator(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      await prisma.collaborator.delete({
+        where: { id },
+      });
+      return res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting collaborator:', error);
+      return res.status(500).json({ error: 'Erro ao excluir colaborador' });
     }
   },
 };

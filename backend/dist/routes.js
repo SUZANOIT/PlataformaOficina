@@ -66,6 +66,10 @@ routes.get('/registry/suppliers', registry_controller_1.RegistryController.listS
 routes.post('/registry/suppliers', registry_controller_1.RegistryController.createSupplier);
 routes.put('/registry/suppliers/:id', registry_controller_1.RegistryController.updateSupplier);
 routes.delete('/registry/suppliers/:id', registry_controller_1.RegistryController.deleteSupplier);
+routes.get('/registry/collaborators', registry_controller_1.RegistryController.listCollaborators);
+routes.post('/registry/collaborators', registry_controller_1.RegistryController.createCollaborator);
+routes.put('/registry/collaborators/:id', registry_controller_1.RegistryController.updateCollaborator);
+routes.delete('/registry/collaborators/:id', registry_controller_1.RegistryController.deleteCollaborator);
 // Dashboard
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);

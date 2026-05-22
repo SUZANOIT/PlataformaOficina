@@ -7,6 +7,7 @@ import { Register } from './pages/Register';
 import { EmailConfig } from './pages/EmailConfig';
 import { Clients } from './pages/Clients';
 import { Suppliers } from './pages/Suppliers';
+import { Collaborators } from './pages/Collaborators';
 import { Users } from './pages/Users';
 import { FinancialDashboard } from './pages/financial/FinancialDashboard';
 import { FinancialPayables } from './pages/financial/FinancialPayables';
@@ -40,6 +41,7 @@ function App() {
           <Route path="settings/email" element={<EmailConfig />} />
           <Route path="clients" element={<Clients />} />
           <Route path="suppliers" element={<Suppliers />} />
+          <Route path="collaborators" element={<Collaborators />} />
           
           {/* Rotas de Gestão Financeira */}
           <Route path="financial/dashboard" element={<FinancialDashboard />} />

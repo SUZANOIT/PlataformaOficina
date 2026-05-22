@@ -17,7 +17,8 @@ import {
   Settings,
   Building,
   Truck,
-  Calendar
+  Calendar,
+  UserCheck
 } from 'lucide-react';
 
 export function Layout() {
@@ -132,6 +133,14 @@ export function Layout() {
                 >
                   <Building size={16} className="text-muted-foreground" />
                   <span>Fornecedores</span>
+                </Link>
+                <Link 
+                  to="/collaborators" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <UserCheck size={16} className="text-muted-foreground" />
+                  <span>Colaboradores</span>
                 </Link>
               </div>
             )}
@@ -350,6 +359,13 @@ export function Layout() {
                 >
                   <Building size={16} className="text-muted-foreground" />
                   <span>Fornecedores</span>
+                </Link>
+                <Link 
+                  to="/collaborators" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <UserCheck size={16} className="text-muted-foreground" />
+                  <span>Colaboradores</span>
                 </Link>
               </div>
             )}
