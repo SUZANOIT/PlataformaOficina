@@ -98,6 +98,11 @@ export function FinancialPayables() {
   const [status, setStatus] = useState('PENDENTE');
   const [recorrente, setRecorrente] = useState(false);
   const [tipoRecorrencia, setTipoRecorrencia] = useState('MENSAL');
+  
+  // Suppliers selection
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [quantidadeParcelas, setQuantidadeParcelas] = useState('12');
   const [pagamentoAutomatico, setPagamentoAutomatico] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -115,6 +120,21 @@ export function FinancialPayables() {
       if (res.ok) {
         const data = await res.json();
         setCompanies(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/registry/suppliers', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuppliers(data);
       }
     } catch (err) {
       console.error(err);
@@ -154,6 +174,7 @@ export function FinancialPayables() {
 
   useEffect(() => {
     fetchCompanies();
+    fetchSuppliers();
   }, []);
 
   useEffect(() => {
@@ -195,6 +216,8 @@ export function FinancialPayables() {
     setSelectedPayable(null);
     setCompanyId(companies[0]?.id || '');
     setFornecedor('');
+    setSupplierSearch('');
+    setShowSupplierDropdown(false);
     setCategoria('');
     setCentroCusto('');
     setDescricao('');
@@ -223,6 +246,8 @@ export function FinancialPayables() {
     setSelectedPayable(payable);
     setCompanyId(payable.companyId);
     setFornecedor(payable.fornecedor);
+    setSupplierSearch(payable.fornecedor);
+    setShowSupplierDropdown(false);
     setCategoria(payable.categoria);
     setCentroCusto(payable.centroCusto);
     setDescricao(payable.descricao.replace(/\s\(\d+\/\d+\)$/, '')); // strip installment label
@@ -732,16 +757,88 @@ export function FinancialPayables() {
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 relative">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Fornecedor *</label>
-                  <input 
-                    type="text" 
-                    value={fornecedor}
-                    onChange={(e) => setFornecedor(e.target.value)}
-                    placeholder="E.g. Auto Peças Distribuidora"
-                    className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                    required
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={supplierSearch}
+                      onChange={(e) => {
+                        setSupplierSearch(e.target.value);
+                        setFornecedor(e.target.value);
+                        setShowSupplierDropdown(true);
+                      }}
+                      onFocus={() => setShowSupplierDropdown(true)}
+                      placeholder="Busque ou digite o nome do fornecedor..."
+                      className="w-full bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                      required
+                    />
+                    {supplierSearch && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSupplierSearch('');
+                          setFornecedor('');
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-md hover:bg-secondary"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {showSupplierDropdown && (
+                    <>
+                      {/* Overlay to close when clicking outside */}
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowSupplierDropdown(false)} 
+                      />
+                      
+                      <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-lg z-20 divide-y divide-border/60">
+                        {suppliers.filter(s => {
+                          const term = supplierSearch.toLowerCase();
+                          return (
+                            (s.razaoSocial || '').toLowerCase().includes(term) ||
+                            (s.nomeFantasia || '').toLowerCase().includes(term) ||
+                            (s.cnpj || '').replace(/\D/g, '').includes(term)
+                          );
+                        }).length === 0 ? (
+                          <div className="p-3 text-xs text-muted-foreground italic">
+                            Nenhum fornecedor cadastrado com esse nome. Pressione Tab ou clique fora para usar o nome digitado.
+                          </div>
+                        ) : (
+                          suppliers.filter(s => {
+                            const term = supplierSearch.toLowerCase();
+                            return (
+                              (s.razaoSocial || '').toLowerCase().includes(term) ||
+                              (s.nomeFantasia || '').toLowerCase().includes(term) ||
+                              (s.cnpj || '').replace(/\D/g, '').includes(term)
+                            );
+                          }).map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setFornecedor(s.razaoSocial);
+                                setSupplierSearch(s.razaoSocial);
+                                setShowSupplierDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/5 hover:text-primary transition-colors flex flex-col gap-0.5"
+                            >
+                              <span className="font-bold">{s.razaoSocial}</span>
+                              {s.nomeFantasia && (
+                                <span className="text-[10px] text-muted-foreground">Fantasia: {s.nomeFantasia}</span>
+                              )}
+                              {s.cnpj && (
+                                <span className="text-[9px] font-mono text-muted-foreground font-black">CNPJ: {s.cnpj}</span>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1">
