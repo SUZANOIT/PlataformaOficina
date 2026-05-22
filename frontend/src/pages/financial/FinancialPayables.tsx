@@ -57,6 +57,7 @@ interface Payable {
   pagamentoAutomatico: boolean;
   parentRecurrenceId?: string | null;
   attachments: Attachment[];
+  linkedQuotes?: any[];
 }
 
 export function FinancialPayables() {
@@ -110,6 +111,20 @@ export function FinancialPayables() {
   
   // Sequence update / delete
   const [editMode, setEditMode] = useState<'CURRENT' | 'SEQUENCE'>('CURRENT');
+  const [approvedQuotes, setApprovedQuotes] = useState<any[]>([]);
+  const [linkedQuotes, setLinkedQuotes] = useState<{ quoteId: string, valorVinculado: number }[]>([]);
+
+  const handleAddLink = (quoteId: string) => {
+    if (!quoteId) return;
+    const q = approvedQuotes.find(item => item.id === quoteId);
+    if (!q) return;
+
+    // Calcular valor inicial padrão seguro
+    const payableVal = Number(valor) || 0;
+    const initialVal = payableVal;
+
+    setLinkedQuotes(prev => [...prev, { quoteId, valorVinculado: initialVal }]);
+  };
 
   // Fetch Companies & Payables
   const fetchCompanies = async () => {
@@ -157,11 +172,40 @@ export function FinancialPayables() {
     }
   };
 
+  const fetchApprovedQuotes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/financial/approved-quotes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setApprovedQuotes(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchCompanies();
     fetchSuppliers();
     fetchCollaborators();
+    fetchApprovedQuotes();
   }, []);
+
+  // Sincronizar valor alocado de forma automática com o valor do lançamento se houver apenas 1 orçamento vinculado
+  useEffect(() => {
+    const numericValor = Number(valor) || 0;
+    if (linkedQuotes.length === 1) {
+      setLinkedQuotes(prev => {
+        if (prev[0].valorVinculado !== numericValor) {
+          return [{ ...prev[0], valorVinculado: numericValor }];
+        }
+        return prev;
+      });
+    }
+  }, [valor, linkedQuotes.length]);
 
   const fetchPayables = async () => {
     try {
@@ -240,6 +284,8 @@ export function FinancialPayables() {
     setCentroCusto('');
     setDescricao('');
     setValor('');
+    setLinkedQuotes([]);
+    fetchApprovedQuotes();
     
     // Default dates (today)
     const todayStr = new Date().toISOString().substring(0, 10);
@@ -282,6 +328,17 @@ export function FinancialPayables() {
     setQuantidadeParcelas(String(payable.quantidadeParcelas || 1));
     setPagamentoAutomatico(payable.pagamentoAutomatico);
     setAttachments(payable.attachments || []);
+    
+    if ((payable as any).linkedQuotes) {
+      setLinkedQuotes((payable as any).linkedQuotes.map((l: any) => ({
+        quoteId: l.quoteId,
+        valorVinculado: l.valorVinculado
+      })));
+    } else {
+      setLinkedQuotes([]);
+    }
+    fetchApprovedQuotes();
+
     setEditMode('CURRENT');
     setIsFormOpen(true);
   };
@@ -307,6 +364,23 @@ export function FinancialPayables() {
       console.error(err);
     }
 
+    // Validar se o total alocado excede os saldos dos orçamentos
+    for (const link of linkedQuotes) {
+      const q = approvedQuotes.find(item => item.id === link.quoteId);
+      if (q) {
+        const previousLinkedVal = selectedPayable && (selectedPayable as any).linkedQuotes
+          ? (selectedPayable as any).linkedQuotes.find((l: any) => l.quoteId === link.quoteId)?.valorVinculado || 0
+          : 0;
+
+        const realAvailable = q.saldoDisponivel + previousLinkedVal;
+
+        if (link.valorVinculado > realAvailable) {
+          toast.error(`O valor alocado para o orçamento #${q.numeroOrcamento} (R$ ${link.valorVinculado.toFixed(2)}) ultrapassa o saldo disponível (R$ ${realAvailable.toFixed(2)}).`);
+          return;
+        }
+      }
+    }
+
     const payload = {
       companyId,
       fornecedor,
@@ -326,7 +400,8 @@ export function FinancialPayables() {
       quantidadeParcelas: recorrente ? Number(quantidadeParcelas) : null,
       pagamentoAutomatico,
       attachments,
-      editMode
+      editMode,
+      linkedQuotes
     };
 
     try {
@@ -1006,6 +1081,132 @@ export function FinancialPayables() {
                 )}
               </div>
 
+              {/* Seção de Vínculo de Orçamentos Aprovados */}
+              <div className="p-4 bg-secondary/20 border border-border rounded-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                      📋 Vincular Orçamentos Aprovados
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Carregue e vincule orçamentos aprovados de clientes a este lançamento financeiro.
+                    </p>
+                  </div>
+                  
+                  {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).length > 0 && (
+                    <select
+                      onChange={(e) => {
+                        handleAddLink(e.target.value);
+                        e.target.value = ''; // Reset select
+                      }}
+                      className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[200px]"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>+ Adicionar Orçamento...</option>
+                      {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
+                        <option key={q.id} value={q.id}>
+                          #{q.numeroOrcamento} - {q.client} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {linkedQuotes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">
+                    Nenhum orçamento vinculado a este lançamento.
+                  </p>
+                ) : (
+                  <div className="space-y-3 divide-y divide-border/40">
+                    {linkedQuotes.map((link, idx) => {
+                      const q = approvedQuotes.find(item => item.id === link.quoteId);
+                      const previousLinkedVal = selectedPayable && (selectedPayable as any).linkedQuotes
+                        ? (selectedPayable as any).linkedQuotes.find((l: any) => l.quoteId === link.quoteId)?.valorVinculado || 0
+                        : 0;
+                      const realAvailable = (q?.saldoDisponivel || 0) + previousLinkedVal;
+                      const hasError = link.valorVinculado > realAvailable;
+
+                      return (
+                        <div key={link.quoteId} className={`flex flex-col gap-2 pt-3 ${idx === 0 ? 'pt-0' : ''}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-foreground">Orçamento #{q?.numeroOrcamento}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                  realAvailable === 0
+                                    ? 'bg-red-500/10 text-red-500'
+                                    : (q?.totalUtilizado || 0) > 0
+                                      ? 'bg-amber-500/10 text-amber-500'
+                                      : 'bg-emerald-500/10 text-emerald-500'
+                                }`}>
+                                  {realAvailable === 0
+                                    ? 'Consumido'
+                                    : (q?.totalUtilizado || 0) > 0
+                                      ? 'Parcialmente Consumido'
+                                      : 'Disponível'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                Cliente: <span className="font-bold text-foreground/80">{q?.client}</span>
+                              </p>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLinkedQuotes(prev => prev.filter(item => item.quoteId !== link.quoteId));
+                              }}
+                              className="text-red-500 hover:text-red-600 hover:bg-red-500/5 p-1 rounded-lg transition-colors"
+                              title="Remover vínculo"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-background/50 border border-border/40 rounded-lg p-2.5 text-[10px]">
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Aprovado</span>
+                              <span className="font-bold text-foreground">R$ {q?.total.toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Já Utilizado</span>
+                              <span className="font-bold text-foreground">R$ {((q?.totalUtilizado || 0) - previousLinkedVal).toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Saldo Restante</span>
+                              <span className={`font-bold ${realAvailable <= 0 ? 'text-red-500' : 'text-foreground'}`}>
+                                R$ {realAvailable.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Valor Alocado (R$) *</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={link.valorVinculado || ''}
+                                onChange={(e) => {
+                                  const newVal = Number(e.target.value);
+                                  setLinkedQuotes(prev => prev.map(item => item.quoteId === link.quoteId ? { ...item, valorVinculado: newVal } : item));
+                                }}
+                                className={`bg-background border ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary'} rounded-md text-[11px] px-1.5 py-0.5 text-foreground focus:outline-none w-full disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-muted/30`}
+                                required
+                                disabled={linkedQuotes.length === 1}
+                              />
+                            </div>
+                          </div>
+
+                          {hasError && (
+                            <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 animate-pulse">
+                              ⚠️ O valor alocado ultrapassa o saldo disponível do orçamento!
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Recorrência e Pagamento Automático (Apenas na Criação) */}
               {!selectedPayable && (
                 <div className="p-4 bg-muted/30 border border-border rounded-xl space-y-3">
@@ -1221,6 +1422,29 @@ export function FinancialPayables() {
                 <div className="p-3 bg-muted/40 border border-border rounded-xl">
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Observações Internas</span>
                   <p className="text-xs text-foreground leading-relaxed">{selectedPayable.observacoes}</p>
+                </div>
+              )}
+
+              {/* Orçamentos Vinculados */}
+              {(selectedPayable as any).linkedQuotes && (selectedPayable as any).linkedQuotes.length > 0 && (
+                <div className="p-4 bg-secondary/30 border border-border rounded-xl space-y-3">
+                  <h4 className="font-bold text-xs uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
+                    📋 Orçamentos Aprovados Vinculados
+                  </h4>
+                  <div className="space-y-2">
+                    {(selectedPayable as any).linkedQuotes.map((link: any) => (
+                      <div key={link.id} className="flex items-center justify-between p-3 bg-background border border-border rounded-xl">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-bold text-foreground">Orçamento #{link.quote?.numeroOrcamento}</span>
+                          <span className="text-[10px] text-muted-foreground">Cliente: {link.quote?.client?.nome}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Valor Alocado</span>
+                          <span className="text-xs font-black text-foreground">{formatCurrency(link.valorVinculado)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

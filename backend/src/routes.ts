@@ -95,6 +95,7 @@ routes.post('/settings/email', EmailController.saveConfig);
 // Módulo de Gestão Financeira
 routes.use('/financial', authMiddleware);
 routes.get('/financial/dashboard', FinancialController.getDashboardStats);
+routes.get('/financial/approved-quotes', FinancialController.getApprovedQuotes);
 
 routes.get('/financial/payables', FinancialController.listPayables);
 routes.post('/financial/payables', FinancialController.createPayable);

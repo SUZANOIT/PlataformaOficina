@@ -29,6 +29,10 @@ const createPayableSchema = z.object({
   quantidadeParcelas: z.number().optional().nullable(),
   pagamentoAutomatico: z.boolean().default(false),
   attachments: z.array(attachmentSchema).optional(),
+  linkedQuotes: z.array(z.object({
+    quoteId: z.string(),
+    valorVinculado: z.number().positive()
+  })).optional(),
 });
 
 const createReceivableSchema = z.object({
@@ -227,6 +231,47 @@ export const FinancialController = {
     }
   },
 
+  async getApprovedQuotes(req: Request, res: Response) {
+    try {
+      const approvedQuotes = await prisma.quote.findMany({
+        where: { status: 'Aprovado' },
+        include: {
+          client: true,
+          linkedPayables: {
+            include: {
+              payable: true
+            }
+          }
+        }
+      });
+
+      const result = approvedQuotes.map(quote => {
+        // Calcular o total já utilizado (desconsiderando CANCELADA ou REPROVADA)
+        const totalUtilizado = quote.linkedPayables
+          .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
+          .reduce((sum, link) => sum + link.valorVinculado, 0);
+
+        const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+
+        return {
+          id: quote.id,
+          numeroOrcamento: quote.numeroOrcamento,
+          client: quote.client.nome,
+          empresa: quote.client.empresa || '',
+          total: quote.total,
+          totalUtilizado,
+          saldoDisponivel,
+          statusFinanceiro: saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível')
+        };
+      });
+
+      return res.json(result);
+    } catch (error) {
+      console.error('Error fetching approved quotes:', error);
+      return res.status(500).json({ error: 'Erro ao buscar orçamentos aprovados' });
+    }
+  },
+
   // 2. Contas a Pagar
   async listPayables(req: Request, res: Response) {
     try {
@@ -238,6 +283,13 @@ export const FinancialController = {
       if (status) whereClause.status = status as string;
       if (category) whereClause.categoria = category as string;
       if (costCenter) whereClause.centroCusto = costCenter as string;
+      if (req.query.quoteId) {
+        whereClause.linkedQuotes = {
+          some: {
+            quoteId: req.query.quoteId as string
+          }
+        };
+      }
       if (search) {
         whereClause.OR = [
           { fornecedor: { contains: search as string, mode: 'insensitive' } },
@@ -251,7 +303,19 @@ export const FinancialController = {
       const [payables, totalCount] = await prisma.$transaction([
         prisma.financialPayable.findMany({
           where: whereClause,
-          include: { company: true, attachments: true },
+          include: { 
+            company: true, 
+            attachments: true,
+            linkedQuotes: {
+              include: {
+                quote: {
+                  include: {
+                    client: true
+                  }
+                }
+              }
+            }
+          },
           orderBy: { vencimento: 'asc' },
           skip,
           take: Number(limit)
@@ -269,6 +333,38 @@ export const FinancialController = {
   async createPayable(req: Request, res: Response) {
     try {
       const body = createPayableSchema.parse(req.body);
+
+      // Validar saldos dos orçamentos se houver vinculação
+      if (body.linkedQuotes && body.linkedQuotes.length > 0) {
+        for (const link of body.linkedQuotes) {
+          const quote = await prisma.quote.findUnique({
+            where: { id: link.quoteId },
+            include: {
+              linkedPayables: {
+                include: { payable: true }
+              }
+            }
+          });
+
+          if (!quote) {
+            return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+          }
+
+          // Calcular o total já utilizado (desconsiderando CANCELADA ou REPROVADA)
+          const totalUtilizado = quote.linkedPayables
+            .filter(l => l.payable.status !== 'CANCELADA' && l.payable.status !== 'REPROVADA')
+            .reduce((sum, l) => sum + l.valorVinculado, 0);
+
+          const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+
+          if (link.valorVinculado > saldoDisponivel) {
+            return res.status(400).json({ 
+              error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+            });
+          }
+        }
+      }
+
       const createdPayables = [];
 
       const installments = body.recorrente && body.quantidadeParcelas ? body.quantidadeParcelas : 1;
@@ -318,6 +414,12 @@ export const FinancialController = {
                 fileUrl: att.fileUrl,
               })) || [],
             },
+            linkedQuotes: body.linkedQuotes && body.linkedQuotes.length > 0 ? {
+              create: body.linkedQuotes.map(l => ({
+                quoteId: l.quoteId,
+                valorVinculado: l.valorVinculado
+              }))
+            } : undefined,
           },
         });
 
@@ -367,6 +469,54 @@ export const FinancialController = {
 
       if (!original) {
         return res.status(404).json({ error: 'Lançamento não encontrado' });
+      }
+
+      // Validar saldos dos orçamentos se houver vinculação no update
+      if (updateFields.linkedQuotes !== undefined) {
+        if (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0) {
+          for (const link of updateFields.linkedQuotes) {
+            const quote = await prisma.quote.findUnique({
+              where: { id: link.quoteId },
+              include: {
+                linkedPayables: {
+                  include: { payable: true }
+                }
+              }
+            });
+
+            if (!quote) {
+              return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+            }
+
+            // Calcular o saldo desconsiderando este payable
+            const totalUtilizado = quote.linkedPayables
+              .filter(l => l.payable.status !== 'CANCELADA' && l.payable.status !== 'REPROVADA' && l.payableId !== id)
+              .reduce((sum, l) => sum + l.valorVinculado, 0);
+
+            const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+
+            if (link.valorVinculado > saldoDisponivel) {
+              return res.status(400).json({ 
+                error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+              });
+            }
+          }
+        }
+
+        // Se a validação passou, limpar os links antigos e criar os novos
+        await prisma.payableQuoteLink.deleteMany({
+          where: { payableId: id }
+        });
+
+        if (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0) {
+          await prisma.payableQuoteLink.createMany({
+            data: updateFields.linkedQuotes.map((l: any) => ({
+              payableId: id,
+              quoteId: l.quoteId,
+              valorVinculado: Number(l.valorVinculado)
+            }))
+          });
+        }
       }
 
       const updateData: any = {
@@ -431,7 +581,19 @@ export const FinancialController = {
       const updated = await prisma.financialPayable.update({
         where: { id },
         data: updateData,
-        include: { company: true, attachments: true }
+        include: { 
+          company: true, 
+          attachments: true,
+          linkedQuotes: {
+            include: {
+              quote: {
+                include: {
+                  client: true
+                }
+              }
+            }
+          }
+        }
       });
 
       await prisma.financialAudit.create({

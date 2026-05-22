@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CreateQuote } from './pages/CreateQuote';
+import { QuotesList } from './pages/QuotesList';
 import { Register } from './pages/Register';
 import { EmailConfig } from './pages/EmailConfig';
 import { Clients } from './pages/Clients';
@@ -37,6 +38,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="quotes/new" element={<CreateQuote />} />
           <Route path="quotes/edit/:id" element={<CreateQuote />} />
+          <Route path="quotes" element={<QuotesList />} />
           <Route path="users" element={<Users />} />
           <Route path="settings/email" element={<EmailConfig />} />
           <Route path="clients" element={<Clients />} />

@@ -119,6 +119,14 @@ export function Layout() {
                   <span>Novo Orçamento</span>
                 </Link>
                 <Link 
+                  to="/quotes" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <FileText size={16} className="text-muted-foreground" />
+                  <span>Orçamentos</span>
+                </Link>
+                <Link 
                   to="/clients" 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -345,6 +353,13 @@ export function Layout() {
                 >
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Novo Orçamento</span>
+                </Link>
+                <Link 
+                  to="/quotes" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <FileText size={16} className="text-muted-foreground" />
+                  <span>Orçamentos</span>
                 </Link>
                 <Link 
                   to="/clients" 

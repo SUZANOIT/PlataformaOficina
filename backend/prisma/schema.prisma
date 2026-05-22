@@ -102,6 +102,7 @@ model Quote {
   
   items               QuoteItem[]
   financialReceivables FinancialReceivable[]
+  linkedPayables      PayableQuoteLink[]
   
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -168,6 +169,7 @@ model FinancialPayable {
   
   attachments           FinancialAttachment[]
   audits                FinancialAudit[]
+  linkedQuotes          PayableQuoteLink[]
   
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -410,5 +412,21 @@ model Collaborator {
 
   @@index([cpf])
   @@index([email])
+}
+
+model PayableQuoteLink {
+  id             String           @id @default(uuid())
+  payableId      String
+  payable        FinancialPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  quoteId        String
+  quote          Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  valorVinculado Float            // O valor alocado deste lançamento para este orçamento
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([payableId])
+  @@index([quoteId])
+  @@unique([payableId, quoteId])
 }
 

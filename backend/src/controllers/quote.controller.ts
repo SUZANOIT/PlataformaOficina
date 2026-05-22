@@ -73,6 +73,11 @@ export const QuoteController = {
     try {
       const quotesCount = await prisma.quote.count();
       const quotes = await prisma.quote.findMany({
+        where: {
+          status: {
+            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+          }
+        },
         select: { total: true }
       });
       const totalSold = quotes.reduce((acc, q) => acc + q.total, 0);
@@ -91,7 +96,12 @@ export const QuoteController = {
       const companyBreakdown = await Promise.all(
         companies.map(async (company) => {
           const companyQuotes = await prisma.quote.findMany({
-            where: { companyId: company.id },
+            where: { 
+              companyId: company.id,
+              status: {
+                in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+              }
+            },
             select: { total: true }
           });
           
