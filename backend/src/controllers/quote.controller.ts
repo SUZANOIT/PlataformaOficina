@@ -47,7 +47,9 @@ const createQuoteSchema = z.object({
 export const QuoteController = {
   async list(req: Request, res: Response) {
     try {
+      const companyId = (req as any).companyId;
       const quotes = await prisma.quote.findMany({
+        where: { companyId },
         include: {
           client: true,
           company: true,
@@ -71,9 +73,13 @@ export const QuoteController = {
 
   async getDashboardStats(req: Request, res: Response) {
     try {
-      const quotesCount = await prisma.quote.count();
+      const companyId = (req as any).companyId;
+      const quotesCount = await prisma.quote.count({
+        where: { companyId }
+      });
       const quotes = await prisma.quote.findMany({
         where: {
+          companyId,
           status: {
             in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
           }
@@ -83,6 +89,7 @@ export const QuoteController = {
       const totalSold = quotes.reduce((acc, q) => acc + q.total, 0);
 
       const recentQuotes = await prisma.quote.findMany({
+        where: { companyId },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: { 
@@ -91,38 +98,23 @@ export const QuoteController = {
         }
       });
 
-      // Calculate breakdown by company
-      const companies = await prisma.company.findMany();
-      const companyBreakdown = await Promise.all(
-        companies.map(async (company) => {
-          const companyQuotes = await prisma.quote.findMany({
-            where: { 
-              companyId: company.id,
-              status: {
-                in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
-              }
-            },
-            select: { total: true }
-          });
-          
-          const count = companyQuotes.length;
-          const total = companyQuotes.reduce((acc, q) => acc + q.total, 0);
-          
-          return {
-            companyId: company.id,
-            companyName: company.razaoSocial || company.nomeFantasia,
-            quotesCount: count,
-            totalSold: total
-          };
-        })
-      );
+      // Calculate breakdown by company (Only for the requesting user's company!)
+      const company = await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+      const companyBreakdown = company ? [{
+        companyId: company.id,
+        companyName: company.razaoSocial || company.nomeFantasia,
+        quotesCount,
+        totalSold
+      }] : [];
 
       const activeClientsCount = await prisma.client.count({
-        where: { status: 'ATIVO' }
+        where: { companyId, status: 'ATIVO' }
       });
 
       const activeClientsList = await prisma.client.findMany({
-        where: { status: 'ATIVO' },
+        where: { companyId, status: 'ATIVO' },
         select: {
           id: true,
           nome: true,
@@ -157,13 +149,15 @@ export const QuoteController = {
 
   async create(req: Request, res: Response) {
     try {
+      const companyId = (req as any).companyId;
       const data = createQuoteSchema.parse(req.body);
 
       if (!data.items || data.items.length === 0) {
         return res.status(400).json({ error: 'Quote must contain at least one item' });
       }
 
-      // Prevenir duplicação de cliente: busca por CNPJ, E-mail ou Nome antes de criar
+      // Prevenir duplicação de cliente: busca por CNPJ, E-mail ou Nome antes de criar dentro da própria empresa
+      const targetCompanyId = companyId || data.companyId;
       let client;
       
       const normalizedCnpj = data.client.cnpj ? data.client.cnpj.trim().replace(/\D/g, '') : '';
@@ -173,6 +167,7 @@ export const QuoteController = {
       if (normalizedCnpj && normalizedCnpj.length === 14) {
         client = await prisma.client.findFirst({
           where: {
+            companyId: targetCompanyId,
             cnpj: {
               contains: normalizedCnpj
             }
@@ -183,6 +178,7 @@ export const QuoteController = {
       if (!client && normalizedEmail) {
         client = await prisma.client.findFirst({
           where: {
+            companyId: targetCompanyId,
             email: {
               equals: normalizedEmail,
               mode: 'insensitive'
@@ -194,6 +190,7 @@ export const QuoteController = {
       if (!client) {
         client = await prisma.client.findFirst({
           where: {
+            companyId: targetCompanyId,
             nome: {
               equals: normalizedNome,
               mode: 'insensitive'
@@ -209,16 +206,19 @@ export const QuoteController = {
           data: data.client,
         });
       } else {
-        // Cria um novo cliente apenas se realmente não existir na base
+        // Cria um novo cliente associado a essa empresa
         client = await prisma.client.create({
-          data: data.client,
+          data: {
+            ...data.client,
+            companyId: targetCompanyId,
+          },
         });
       }
 
-      // Create quote
+      // Create quote linked to the company
       const quote = await prisma.quote.create({
         data: {
-          companyId: data.companyId,
+          companyId: targetCompanyId,
           clientId: client.id,
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
@@ -269,8 +269,10 @@ export const QuoteController = {
   async show(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
-      const quote = await prisma.quote.findUnique({
-        where: { id },
+      const companyId = (req as any).companyId;
+      
+      const quote = await prisma.quote.findFirst({
+        where: { id, companyId },
         include: {
           items: true,
           client: true,
@@ -279,7 +281,7 @@ export const QuoteController = {
       });
 
       if (!quote) {
-        return res.status(404).json({ error: 'Quote not found' });
+        return res.status(404).json({ error: 'Quote not found or access unauthorized' });
       }
 
       return res.json(quote);
@@ -299,19 +301,20 @@ export const QuoteController = {
   async update(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
+      const companyId = (req as any).companyId;
       const data = createQuoteSchema.parse(req.body);
 
       if (!data.items || data.items.length === 0) {
         return res.status(400).json({ error: 'Quote must contain at least one item' });
       }
 
-      const existingQuote = await prisma.quote.findUnique({
-        where: { id },
+      const existingQuote = await prisma.quote.findFirst({
+        where: { id, companyId },
         include: { client: true }
       });
 
       if (!existingQuote) {
-        return res.status(404).json({ error: 'Quote not found' });
+        return res.status(404).json({ error: 'Quote not found or access unauthorized' });
       }
 
       // Update client
@@ -324,7 +327,7 @@ export const QuoteController = {
       const quote = await prisma.quote.update({
         where: { id },
         data: {
-          companyId: data.companyId,
+          companyId: companyId || data.companyId,
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
           valorParcela: data.valorParcela,
@@ -378,13 +381,14 @@ export const QuoteController = {
   async delete(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
+      const companyId = (req as any).companyId;
       
-      const existingQuote = await prisma.quote.findUnique({
-        where: { id }
+      const existingQuote = await prisma.quote.findFirst({
+        where: { id, companyId }
       });
 
       if (!existingQuote) {
-        return res.status(404).json({ error: 'Quote not found' });
+        return res.status(404).json({ error: 'Quote not found or access unauthorized' });
       }
 
       await prisma.quote.delete({

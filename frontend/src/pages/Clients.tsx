@@ -442,6 +442,18 @@ export function Clients() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               
+              {/* Resumo do Cliente (Orçamentos) se for edição */}
+              {selectedClient && (
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between text-sm animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-foreground font-semibold">
+                    <span>Total de Orçamentos cadastrados para este cliente:</span>
+                  </div>
+                  <span className="bg-primary text-primary-foreground font-mono font-bold px-3 py-1 rounded-full text-xs shadow-sm">
+                    {selectedClient._count?.quotes || 0} {selectedClient._count?.quotes === 1 ? 'Orçamento' : 'Orçamentos'}
+                  </span>
+                </div>
+              )}
+              
               {/* Seletor Tipo de Pessoa */}
               <div className="flex justify-center gap-6 pb-4 border-b border-border">
                 <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-foreground">

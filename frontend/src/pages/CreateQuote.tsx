@@ -65,6 +65,27 @@ export function CreateQuote() {
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
   const [isMobile, setIsMobile] = useState(false);
+  const [suggestedClients, setSuggestedClients] = useState<any[]>([]);
+  const [showClientsDropdown, setShowClientsDropdown] = useState(false);
+
+  const handleSelectClient = (client: any) => {
+    setValue('client.nome', client.nome || '');
+    setValue('client.empresa', client.empresa || '');
+    setValue('client.cnpj', client.cnpj || '');
+    setValue('client.telefone', client.telefone || '');
+    setValue('client.email', client.email || '');
+    setValue('client.cep', client.cep || '');
+    setValue('client.logradouro', client.logradouro || '');
+    setValue('client.numero', client.numero || '');
+    setValue('client.complemento', client.complemento || '');
+    setValue('client.bairro', client.bairro || '');
+    setValue('client.cidade', client.cidade || '');
+    setValue('client.estado', client.estado || '');
+    
+    setShowClientsDropdown(false);
+    setSuggestedClients([]);
+  };
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -405,13 +426,72 @@ export function CreateQuote() {
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-sm font-medium">Nome do Cliente/Razão Social</label>
               <input 
                 {...register('client.nome')}
-                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  register('client.nome').onChange(e);
+                  
+                  if (val.trim().length >= 3) {
+                    try {
+                      const token = localStorage.getItem('token');
+                      const response = await fetch(`/registry/clients?search=${encodeURIComponent(val)}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      if (response.ok) {
+                        const data = await response.json();
+                        setSuggestedClients(data);
+                        setShowClientsDropdown(true);
+                      }
+                    } catch (error) {
+                      console.error('Error searching clients:', error);
+                    }
+                  } else {
+                    setSuggestedClients([]);
+                    setShowClientsDropdown(false);
+                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowClientsDropdown(false);
+                  }, 200);
+                }}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Ex: João da Silva"
+                autoComplete="off"
               />
+
+              {showClientsDropdown && suggestedClients.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  {suggestedClients.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => handleSelectClient(client)}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-muted/70 transition-colors flex flex-col gap-1"
+                    >
+                      <span className="font-semibold text-foreground">{client.nome}</span>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        {client.empresa && <span>{client.empresa}</span>}
+                        {client.cnpj && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span>CNPJ: {client.cnpj}</span>
+                          </>
+                        )}
+                        {client.cidade && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span>{client.cidade} - {client.estado}</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome Fantasia (Opcional)</label>

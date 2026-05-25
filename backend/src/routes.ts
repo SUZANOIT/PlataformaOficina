@@ -22,6 +22,8 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
     (req as any).userId = decoded.id;
+    (req as any).companyId = decoded.companyId;
+    (req as any).role = decoded.role;
     return next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -53,6 +55,12 @@ routes.delete('/users/:id', AuthController.deleteUser);
 
 // Empresas
 routes.use('/companies', authMiddleware);
+routes.get('/companies/my', CompanyController.getMyCompany);
+routes.put('/companies/my', CompanyController.updateMyCompany);
+routes.get('/companies/budget', CompanyController.listBudgetCompanies);
+routes.post('/companies/budget', CompanyController.createBudgetCompany);
+routes.put('/companies/budget/:id', CompanyController.updateBudgetCompany);
+routes.delete('/companies/budget/:id', CompanyController.deleteBudgetCompany);
 routes.get('/companies', CompanyController.list);
 routes.post('/companies', CompanyController.create);
 

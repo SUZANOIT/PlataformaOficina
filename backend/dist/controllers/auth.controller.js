@@ -13,6 +13,8 @@ const registerSchema = zod_1.z.object({
     name: zod_1.z.string().min(3),
     email: zod_1.z.string().email(),
     password: zod_1.z.string().min(6),
+    companyName: zod_1.z.string().min(3),
+    companyCnpj: zod_1.z.string().min(14),
 });
 const loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
@@ -26,21 +28,46 @@ const updateUserSchema = zod_1.z.object({
 exports.AuthController = {
     async register(req, res) {
         try {
-            const { name, email, password } = registerSchema.parse(req.body);
+            const { name, email, password, companyName, companyCnpj } = registerSchema.parse(req.body);
             const userExists = await prisma_1.prisma.user.findUnique({ where: { email } });
             if (userExists) {
                 return res.status(400).json({ error: 'User already exists' });
             }
+            const cnpjSemMascara = companyCnpj.replace(/\D/g, '');
+            const companyExists = await prisma_1.prisma.company.findUnique({ where: { cnpjSemMascara } });
+            if (companyExists) {
+                return res.status(400).json({ error: 'Company with this CNPJ already exists' });
+            }
             const hashedPassword = await bcrypt_1.default.hash(password, 10);
-            const user = await prisma_1.prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                },
+            const result = await prisma_1.prisma.$transaction(async (tx) => {
+                const company = await tx.company.create({
+                    data: {
+                        razaoSocial: companyName,
+                        nomeFantasia: companyName,
+                        cnpj: companyCnpj,
+                        cnpjSemMascara,
+                        email,
+                    }
+                });
+                const user = await tx.user.create({
+                    data: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        role: 'ADMIN',
+                        companyId: company.id,
+                    }
+                });
+                return { user, company };
             });
-            console.log(`User registered: ${user.email} (id=${user.id})`);
-            return res.status(201).json({ id: user.id, name: user.name, email: user.email });
+            console.log(`User registered: ${result.user.email} (id=${result.user.id}) linked to company: ${result.company.razaoSocial} (id=${result.company.id})`);
+            return res.status(201).json({
+                id: result.user.id,
+                name: result.user.name,
+                email: result.user.email,
+                companyId: result.company.id,
+                role: result.user.role
+            });
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
@@ -48,7 +75,7 @@ exports.AuthController = {
             }
             if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
-                    return res.status(400).json({ error: 'User already exists' });
+                    return res.status(400).json({ error: 'User or Company already exists' });
                 }
                 console.error('Prisma error in register:', error.code, error.message);
                 return res.status(500).json({ error: 'Database error', code: error.code });
@@ -71,12 +98,16 @@ exports.AuthController = {
             if (!validPassword) {
                 return res.status(400).json({ error: 'Invalid credentials' });
             }
-            const token = jsonwebtoken_1.default.sign({ id: user.id }, process.env.JWT_SECRET || 'secret', {
+            const token = jsonwebtoken_1.default.sign({
+                id: user.id,
+                companyId: user.companyId,
+                role: user.role
+            }, process.env.JWT_SECRET || 'secret', {
                 expiresIn: '1d',
             });
             console.log(`User logged in: ${user.email} (id=${user.id})`);
             return res.json({
-                user: { id: user.id, name: user.name, email: user.email },
+                user: { id: user.id, name: user.name, email: user.email, companyId: user.companyId, role: user.role },
                 token,
             });
         }
@@ -193,7 +224,7 @@ exports.AuthController = {
             const id = req.userId;
             const user = await prisma_1.prisma.user.findUnique({
                 where: { id },
-                select: { id: true, name: true, email: true, createdAt: true }
+                select: { id: true, name: true, email: true, role: true, companyId: true, createdAt: true }
             });
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });

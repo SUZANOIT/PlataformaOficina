@@ -9,6 +9,8 @@ const registerSchema = z.object({
   name: z.string().min(3),
   email: z.string().email(),
   password: z.string().min(6),
+  companyName: z.string().min(3),
+  companyCnpj: z.string().min(14),
 });
 
 const loginSchema = z.object({
@@ -25,32 +27,60 @@ const updateUserSchema = z.object({
 export const AuthController = {
   async register(req: Request, res: Response) {
     try {
-      const { name, email, password } = registerSchema.parse(req.body);
+      const { name, email, password, companyName, companyCnpj } = registerSchema.parse(req.body);
 
       const userExists = await prisma.user.findUnique({ where: { email } });
       if (userExists) {
         return res.status(400).json({ error: 'User already exists' });
       }
 
+      const cnpjSemMascara = companyCnpj.replace(/\D/g, '');
+      const companyExists = await prisma.company.findUnique({ where: { cnpjSemMascara } });
+      if (companyExists) {
+        return res.status(400).json({ error: 'Company with this CNPJ already exists' });
+      }
+
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        const company = await tx.company.create({
+          data: {
+            razaoSocial: companyName,
+            nomeFantasia: companyName,
+            cnpj: companyCnpj,
+            cnpjSemMascara,
+            email,
+          }
+        });
+
+        const user = await tx.user.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: 'ADMIN',
+            companyId: company.id,
+          }
+        });
+
+        return { user, company };
       });
 
-      console.log(`User registered: ${user.email} (id=${user.id})`);
-      return res.status(201).json({ id: user.id, name: user.name, email: user.email });
+      console.log(`User registered: ${result.user.email} (id=${result.user.id}) linked to company: ${result.company.razaoSocial} (id=${result.company.id})`);
+      return res.status(201).json({ 
+        id: result.user.id, 
+        name: result.user.name, 
+        email: result.user.email,
+        companyId: result.company.id,
+        role: result.user.role
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: (error as any).errors });
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          return res.status(400).json({ error: 'User already exists' });
+          return res.status(400).json({ error: 'User or Company already exists' });
         }
         console.error('Prisma error in register:', error.code, error.message);
         return res.status(500).json({ error: 'Database error', code: error.code });
@@ -77,13 +107,17 @@ export const AuthController = {
         return res.status(400).json({ error: 'Invalid credentials' });
       }
 
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'secret', {
+      const token = jwt.sign({ 
+        id: user.id,
+        companyId: user.companyId,
+        role: user.role
+      }, process.env.JWT_SECRET || 'secret', {
         expiresIn: '1d',
       });
 
       console.log(`User logged in: ${user.email} (id=${user.id})`);
       return res.json({
-        user: { id: user.id, name: user.name, email: user.email },
+        user: { id: user.id, name: user.name, email: user.email, companyId: user.companyId, role: user.role },
         token,
       });
     } catch (error) {
@@ -208,7 +242,7 @@ export const AuthController = {
       const id = (req as any).userId;
       const user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, email: true, createdAt: true }
+        select: { id: true, name: true, email: true, role: true, companyId: true, createdAt: true }
       });
       
       if (!user) {

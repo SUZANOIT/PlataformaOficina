@@ -25,6 +25,8 @@ const authMiddleware = (req, res, next) => {
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
         req.userId = decoded.id;
+        req.companyId = decoded.companyId;
+        req.role = decoded.role;
         return next();
     }
     catch (error) {
@@ -54,6 +56,12 @@ routes.put('/users/:id', auth_controller_1.AuthController.updateUser);
 routes.delete('/users/:id', auth_controller_1.AuthController.deleteUser);
 // Empresas
 routes.use('/companies', authMiddleware);
+routes.get('/companies/my', company_controller_1.CompanyController.getMyCompany);
+routes.put('/companies/my', company_controller_1.CompanyController.updateMyCompany);
+routes.get('/companies/budget', company_controller_1.CompanyController.listBudgetCompanies);
+routes.post('/companies/budget', company_controller_1.CompanyController.createBudgetCompany);
+routes.put('/companies/budget/:id', company_controller_1.CompanyController.updateBudgetCompany);
+routes.delete('/companies/budget/:id', company_controller_1.CompanyController.deleteBudgetCompany);
 routes.get('/companies', company_controller_1.CompanyController.list);
 routes.post('/companies', company_controller_1.CompanyController.create);
 // Cadastros de Clientes e Fornecedores

@@ -83,27 +83,13 @@ exports.FinancialController = {
     // 1. Dashboard Financeiro
     async getDashboardStats(req, res) {
         try {
-            const { companyId, startDate, endDate } = req.query;
-            const filterPayable = {};
-            const filterReceivable = {};
-            if (companyId) {
-                filterPayable.companyId = companyId;
-                filterReceivable.companyId = companyId;
+            const companyId = req.companyId;
+            const { startDate, endDate } = req.query;
+            if (!companyId) {
+                return res.status(400).json({ error: 'User is not associated with any company' });
             }
-            else {
-                filterPayable.company = {
-                    NOT: [
-                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                    ]
-                };
-                filterReceivable.company = {
-                    NOT: [
-                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                    ]
-                };
-            }
+            const filterPayable = { companyId };
+            const filterReceivable = { companyId };
             if (startDate || endDate) {
                 filterPayable.vencimento = {};
                 filterReceivable.vencimento = {};
@@ -177,28 +163,12 @@ exports.FinancialController = {
             receivables.forEach(r => fillMonthBucket(r.vencimento, r.valor, 'receita'));
             // E) Contas por empresa
             const contasPorEmpresa = {};
-            const companies = await prisma_1.prisma.company.findMany({
-                where: {
-                    NOT: [
-                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                    ]
-                },
+            const company = await prisma_1.prisma.company.findUnique({
+                where: { id: companyId },
                 select: { id: true, nomeFantasia: true, razaoSocial: true }
             });
-            const companyMap = new Map(companies.map(c => [c.id, c.nomeFantasia || c.razaoSocial]));
-            payables.forEach(p => {
-                const name = companyMap.get(p.companyId) || 'Outra';
-                if (!contasPorEmpresa[name])
-                    contasPorEmpresa[name] = { pagar: 0, receber: 0 };
-                contasPorEmpresa[name].pagar += p.valor;
-            });
-            receivables.forEach(r => {
-                const name = companyMap.get(r.companyId) || 'Outra';
-                if (!contasPorEmpresa[name])
-                    contasPorEmpresa[name] = { pagar: 0, receber: 0 };
-                contasPorEmpresa[name].receber += r.valor;
-            });
+            const name = company ? (company.nomeFantasia || company.razaoSocial) : 'Minha Oficina';
+            contasPorEmpresa[name] = { pagar: totalContasPagar, receber: totalContasReceber };
             // F) Contas por centro de custo
             const contasPorCentroCusto = {};
             payables.forEach(p => {
@@ -235,15 +205,11 @@ exports.FinancialController = {
     },
     async getApprovedQuotes(req, res) {
         try {
+            const companyId = req.companyId;
             const approvedQuotes = await prisma_1.prisma.quote.findMany({
                 where: {
+                    companyId,
                     status: 'Aprovado',
-                    company: {
-                        NOT: [
-                            { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                            { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                        ]
-                    }
                 },
                 include: {
                     client: true,
@@ -281,19 +247,9 @@ exports.FinancialController = {
     // 2. Contas a Pagar
     async listPayables(req, res) {
         try {
-            const { companyId, status, category, costCenter, search, page = 1, limit = 10 } = req.query;
-            const whereClause = {};
-            if (companyId) {
-                whereClause.companyId = companyId;
-            }
-            else {
-                whereClause.company = {
-                    NOT: [
-                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                    ]
-                };
-            }
+            const companyId = req.companyId;
+            const { status, category, costCenter, search, page = 1, limit = 10 } = req.query;
+            const whereClause = { companyId };
             if (status)
                 whereClause.status = status;
             if (category)
@@ -308,10 +264,14 @@ exports.FinancialController = {
                 };
             }
             if (search) {
-                whereClause.OR = [
-                    { fornecedor: { contains: search, mode: 'insensitive' } },
-                    { descricao: { contains: search, mode: 'insensitive' } },
-                    { responsavel: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    {
+                        OR: [
+                            { fornecedor: { contains: search, mode: 'insensitive' } },
+                            { descricao: { contains: search, mode: 'insensitive' } },
+                            { responsavel: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const skip = (Number(page) - 1) * Number(limit);
@@ -346,12 +306,14 @@ exports.FinancialController = {
     },
     async createPayable(req, res) {
         try {
+            const companyId = req.companyId;
             const body = createPayableSchema.parse(req.body);
+            const targetCompanyId = companyId || body.companyId;
             // Validar saldos dos orçamentos se houver vinculação
             if (body.linkedQuotes && body.linkedQuotes.length > 0) {
                 for (const link of body.linkedQuotes) {
-                    const quote = await prisma_1.prisma.quote.findUnique({
-                        where: { id: link.quoteId },
+                    const quote = await prisma_1.prisma.quote.findFirst({
+                        where: { id: link.quoteId, companyId: targetCompanyId },
                         include: {
                             linkedPayables: {
                                 include: { payable: true }
@@ -359,7 +321,7 @@ exports.FinancialController = {
                         }
                     });
                     if (!quote) {
-                        return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+                        return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado ou acesso não autorizado.` });
                     }
                     // Calcular o total já utilizado (desconsiderando CANCELADA ou REPROVADA)
                     const totalUtilizado = quote.linkedPayables
@@ -375,13 +337,11 @@ exports.FinancialController = {
             }
             const createdPayables = [];
             const installments = body.recorrente && body.quantidadeParcelas ? body.quantidadeParcelas : 1;
-            // Obter nome de usuário logado
             const executor = req.headers['x-user-email'] || 'Usuário';
             let actualParentId = '';
             for (let i = 0; i < installments; i++) {
                 const dueDate = calculateDueDate(body.vencimento, body.tipoRecorrencia || 'MENSAL', i);
                 const issueDate = calculateDueDate(body.dataEmissao, body.tipoRecorrencia || 'MENSAL', i);
-                // Se pagamento automático está ativo e a conta deve ser salva como paga
                 let finalStatus = body.status;
                 let payDate = body.dataPagamento;
                 if (body.pagamentoAutomatico && body.status === 'APROVADA') {
@@ -390,7 +350,7 @@ exports.FinancialController = {
                 }
                 const payable = await prisma_1.prisma.financialPayable.create({
                     data: {
-                        companyId: body.companyId,
+                        companyId: targetCompanyId,
                         fornecedor: body.fornecedor,
                         categoria: body.categoria,
                         centroCusto: body.centroCusto,
@@ -426,7 +386,6 @@ exports.FinancialController = {
                 });
                 if (i === 0 && body.recorrente) {
                     actualParentId = payable.id;
-                    // Atualiza a primeira para guardar o ID agrupador
                     await prisma_1.prisma.financialPayable.update({
                         where: { id: payable.id },
                         data: { parentRecurrenceId: actualParentId }
@@ -457,20 +416,21 @@ exports.FinancialController = {
     async updatePayable(req, res) {
         try {
             const id = req.params.id;
-            const { editMode, ...updateFields } = req.body; // editMode: 'CURRENT' ou 'SEQUENCE'
+            const companyId = req.companyId;
+            const { editMode, ...updateFields } = req.body;
             const executor = req.headers['x-user-email'] || 'Usuário';
-            const original = await prisma_1.prisma.financialPayable.findUnique({
-                where: { id },
+            const original = await prisma_1.prisma.financialPayable.findFirst({
+                where: { id, companyId },
             });
             if (!original) {
-                return res.status(404).json({ error: 'Lançamento não encontrado' });
+                return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
             }
             // Validar saldos dos orçamentos se houver vinculação no update
             if (updateFields.linkedQuotes !== undefined) {
                 if (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0) {
                     for (const link of updateFields.linkedQuotes) {
-                        const quote = await prisma_1.prisma.quote.findUnique({
-                            where: { id: link.quoteId },
+                        const quote = await prisma_1.prisma.quote.findFirst({
+                            where: { id: link.quoteId, companyId },
                             include: {
                                 linkedPayables: {
                                     include: { payable: true }
@@ -478,7 +438,7 @@ exports.FinancialController = {
                             }
                         });
                         if (!quote) {
-                            return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+                            return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado ou acesso não autorizado.` });
                         }
                         // Calcular o saldo desconsiderando este payable
                         const totalUtilizado = quote.linkedPayables
@@ -492,7 +452,6 @@ exports.FinancialController = {
                         }
                     }
                 }
-                // Se a validação passou, limpar os links antigos e criar os novos
                 await prisma_1.prisma.payableQuoteLink.deleteMany({
                     where: { payableId: id }
                 });
@@ -531,9 +490,9 @@ exports.FinancialController = {
                 };
             }
             if (editMode === 'SEQUENCE' && original.parentRecurrenceId) {
-                // Atualizar toda a sequência das pendentes futuras
                 const related = await prisma_1.prisma.financialPayable.findMany({
                     where: {
+                        companyId,
                         parentRecurrenceId: original.parentRecurrenceId,
                         status: { in: ['PENDENTE', 'EM ANÁLISE'] },
                     }
@@ -543,7 +502,6 @@ exports.FinancialController = {
                         where: { id: item.id },
                         data: {
                             ...updateData,
-                            // Mantém as datas calculadas
                             dataEmissao: undefined,
                             vencimento: undefined,
                         }
@@ -597,14 +555,18 @@ exports.FinancialController = {
     async deletePayable(req, res) {
         try {
             const id = req.params.id;
-            const { deleteMode } = req.query; // 'CURRENT' ou 'SEQUENCE'
-            const original = await prisma_1.prisma.financialPayable.findUnique({ where: { id } });
+            const companyId = req.companyId;
+            const { deleteMode } = req.query;
+            const original = await prisma_1.prisma.financialPayable.findFirst({
+                where: { id, companyId }
+            });
             if (!original) {
-                return res.status(404).json({ error: 'Lançamento não encontrado' });
+                return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
             }
             if (deleteMode === 'SEQUENCE' && original.parentRecurrenceId) {
                 await prisma_1.prisma.financialPayable.deleteMany({
                     where: {
+                        companyId,
                         parentRecurrenceId: original.parentRecurrenceId,
                     }
                 });
@@ -622,28 +584,22 @@ exports.FinancialController = {
     // 3. Contas a Receber
     async listReceivables(req, res) {
         try {
-            const { companyId, status, category, search, page = 1, limit = 10 } = req.query;
-            const whereClause = {};
-            if (companyId) {
-                whereClause.companyId = companyId;
-            }
-            else {
-                whereClause.company = {
-                    NOT: [
-                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
-                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
-                    ]
-                };
-            }
+            const companyId = req.companyId;
+            const { status, category, search, page = 1, limit = 10 } = req.query;
+            const whereClause = { companyId };
             if (status)
                 whereClause.status = status;
             if (category)
                 whereClause.categoria = category;
             if (search) {
-                whereClause.OR = [
-                    { cliente: { contains: search, mode: 'insensitive' } },
-                    { descricao: { contains: search, mode: 'insensitive' } },
-                    { responsavel: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    {
+                        OR: [
+                            { cliente: { contains: search, mode: 'insensitive' } },
+                            { descricao: { contains: search, mode: 'insensitive' } },
+                            { responsavel: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const skip = (Number(page) - 1) * Number(limit);
@@ -666,11 +622,13 @@ exports.FinancialController = {
     },
     async createReceivable(req, res) {
         try {
+            const companyId = req.companyId;
             const body = createReceivableSchema.parse(req.body);
+            const targetCompanyId = companyId || body.companyId;
             const executor = req.headers['x-user-email'] || 'Usuário';
             const receivable = await prisma_1.prisma.financialReceivable.create({
                 data: {
-                    companyId: body.companyId,
+                    companyId: targetCompanyId,
                     cliente: body.cliente,
                     categoria: body.categoria,
                     descricao: body.descricao,
@@ -715,11 +673,14 @@ exports.FinancialController = {
     async updateReceivable(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
             const updateFields = req.body;
             const executor = req.headers['x-user-email'] || 'Usuário';
-            const original = await prisma_1.prisma.financialReceivable.findUnique({ where: { id } });
+            const original = await prisma_1.prisma.financialReceivable.findFirst({
+                where: { id, companyId }
+            });
             if (!original) {
-                return res.status(404).json({ error: 'Lançamento não encontrado' });
+                return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
             }
             const updateData = {
                 cliente: updateFields.cliente,
@@ -770,9 +731,12 @@ exports.FinancialController = {
     async deleteReceivable(req, res) {
         try {
             const id = req.params.id;
-            const original = await prisma_1.prisma.financialReceivable.findUnique({ where: { id } });
+            const companyId = req.companyId;
+            const original = await prisma_1.prisma.financialReceivable.findFirst({
+                where: { id, companyId }
+            });
             if (!original) {
-                return res.status(404).json({ error: 'Lançamento não encontrado' });
+                return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
             }
             await prisma_1.prisma.financialReceivable.delete({ where: { id } });
             return res.status(204).send();
@@ -786,14 +750,16 @@ exports.FinancialController = {
     async approveTransaction(req, res) {
         try {
             const id = req.params.id;
-            const { type, action, comments } = req.body; // type: 'PAGAR' | 'RECEBER', action: 'APPROVE' | 'REJECT'
+            const companyId = req.companyId;
+            const { type, action, comments } = req.body;
             const executor = req.headers['x-user-email'] || 'Usuário';
             let newStatus = action === 'APPROVE' ? 'APROVADA' : 'REPROVADA';
             if (type === 'PAGAR') {
-                const original = await prisma_1.prisma.financialPayable.findUnique({ where: { id } });
+                const original = await prisma_1.prisma.financialPayable.findFirst({
+                    where: { id, companyId }
+                });
                 if (!original)
-                    return res.status(404).json({ error: 'Lançamento não encontrado' });
-                // Se foi aprovado e tem pagamento automático
+                    return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
                 if (original.pagamentoAutomatico && newStatus === 'APROVADA') {
                     newStatus = 'PAGA';
                 }
@@ -819,9 +785,11 @@ exports.FinancialController = {
                 return res.json(updated);
             }
             else {
-                const original = await prisma_1.prisma.financialReceivable.findUnique({ where: { id } });
+                const original = await prisma_1.prisma.financialReceivable.findFirst({
+                    where: { id, companyId }
+                });
                 if (!original)
-                    return res.status(404).json({ error: 'Lançamento não encontrado' });
+                    return res.status(404).json({ error: 'Lançamento não encontrado ou acesso não autorizado' });
                 const updated = await prisma_1.prisma.financialReceivable.update({
                     where: { id },
                     data: { status: newStatus },
@@ -849,12 +817,21 @@ exports.FinancialController = {
     // 5. Histórico de Auditoria & Recorrência
     async getAuditHistory(req, res) {
         try {
+            const companyId = req.companyId;
             const { payableId, receivableId } = req.query;
             const whereClause = {};
-            if (payableId)
+            if (payableId) {
+                const p = await prisma_1.prisma.financialPayable.findFirst({ where: { id: payableId, companyId } });
+                if (!p)
+                    return res.status(403).json({ error: 'Acesso não autorizado' });
                 whereClause.payableId = payableId;
-            if (receivableId)
+            }
+            if (receivableId) {
+                const r = await prisma_1.prisma.financialReceivable.findFirst({ where: { id: receivableId, companyId } });
+                if (!r)
+                    return res.status(403).json({ error: 'Acesso não autorizado' });
                 whereClause.receivableId = receivableId;
+            }
             const audits = await prisma_1.prisma.financialAudit.findMany({
                 where: whereClause,
                 orderBy: { createdAt: 'desc' }
@@ -868,12 +845,13 @@ exports.FinancialController = {
     },
     async getRecurrentHistory(req, res) {
         try {
+            const companyId = req.companyId;
             const { parentRecurrenceId } = req.query;
             if (!parentRecurrenceId) {
                 return res.status(400).json({ error: 'parentRecurrenceId é obrigatório' });
             }
             const installments = await prisma_1.prisma.financialPayable.findMany({
-                where: { parentRecurrenceId: parentRecurrenceId },
+                where: { parentRecurrenceId: parentRecurrenceId, companyId },
                 orderBy: { parcelaAtual: 'asc' },
                 include: { company: true }
             });
@@ -887,7 +865,9 @@ exports.FinancialController = {
     // 6. CRUD de Impostos
     async listTaxes(req, res) {
         try {
+            const companyId = req.companyId;
             const taxes = await prisma_1.prisma.taxSetting.findMany({
+                where: { companyId },
                 orderBy: { nome: 'asc' }
             });
             return res.json(taxes);
@@ -899,6 +879,7 @@ exports.FinancialController = {
     },
     async createTax(req, res) {
         try {
+            const companyId = req.companyId;
             const { nome, aliquota, tipo, status } = req.body;
             if (!nome || aliquota === undefined) {
                 return res.status(400).json({ error: 'Nome e alíquota são obrigatórios' });
@@ -908,7 +889,8 @@ exports.FinancialController = {
                     nome,
                     aliquota: Number(aliquota),
                     tipo: tipo || 'FATURAMENTO',
-                    status: status || 'ATIVO'
+                    status: status || 'ATIVO',
+                    companyId
                 }
             });
             return res.json(tax);
@@ -921,7 +903,12 @@ exports.FinancialController = {
     async updateTax(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
             const { nome, aliquota, tipo, status } = req.body;
+            // Validate ownership
+            await prisma_1.prisma.taxSetting.findFirstOrThrow({
+                where: { id, companyId }
+            });
             const tax = await prisma_1.prisma.taxSetting.update({
                 where: { id },
                 data: {
@@ -941,6 +928,11 @@ exports.FinancialController = {
     async deleteTax(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
+            // Validate ownership
+            await prisma_1.prisma.taxSetting.findFirstOrThrow({
+                where: { id, companyId }
+            });
             await prisma_1.prisma.taxSetting.delete({
                 where: { id }
             });

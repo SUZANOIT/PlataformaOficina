@@ -53,18 +53,28 @@ exports.RegistryController = {
     // CLIENTS CRUD
     async listClients(req, res) {
         try {
+            const companyId = req.companyId;
             const { search } = req.query;
-            const whereClause = {};
+            const whereClause = { companyId };
             if (search) {
-                whereClause.OR = [
-                    { nome: { contains: search, mode: 'insensitive' } },
-                    { empresa: { contains: search, mode: 'insensitive' } },
-                    { cnpj: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    {
+                        OR: [
+                            { nome: { contains: search, mode: 'insensitive' } },
+                            { empresa: { contains: search, mode: 'insensitive' } },
+                            { cnpj: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const clients = await prisma_1.prisma.client.findMany({
                 where: whereClause,
+                include: {
+                    _count: {
+                        select: { quotes: true }
+                    }
+                },
                 orderBy: { nome: 'asc' },
             });
             return res.json(clients);
@@ -76,9 +86,13 @@ exports.RegistryController = {
     },
     async createClient(req, res) {
         try {
+            const companyId = req.companyId;
             const data = clientSchema.parse(req.body);
             const client = await prisma_1.prisma.client.create({
-                data,
+                data: {
+                    ...data,
+                    companyId,
+                },
             });
             return res.status(201).json(client);
         }
@@ -93,7 +107,12 @@ exports.RegistryController = {
     async updateClient(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
             const data = clientSchema.parse(req.body);
+            // Validate ownership
+            await prisma_1.prisma.client.findFirstOrThrow({
+                where: { id, companyId }
+            });
             const client = await prisma_1.prisma.client.update({
                 where: { id },
                 data,
@@ -105,12 +124,17 @@ exports.RegistryController = {
                 return res.status(400).json({ error: error.issues });
             }
             console.error('Error updating client:', error);
-            return res.status(500).json({ error: 'Erro ao atualizar cliente' });
+            return res.status(500).json({ error: 'Erro ao atualizar cliente ou acesso não autorizado' });
         }
     },
     async deleteClient(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
+            // Validate ownership
+            await prisma_1.prisma.client.findFirstOrThrow({
+                where: { id, companyId }
+            });
             await prisma_1.prisma.client.delete({
                 where: { id },
             });
@@ -118,20 +142,25 @@ exports.RegistryController = {
         }
         catch (error) {
             console.error('Error deleting client:', error);
-            return res.status(500).json({ error: 'Erro ao excluir cliente' });
+            return res.status(500).json({ error: 'Erro ao excluir cliente ou acesso não autorizado' });
         }
     },
     // SUPPLIERS CRUD
     async listSuppliers(req, res) {
         try {
+            const companyId = req.companyId;
             const { search } = req.query;
-            const whereClause = {};
+            const whereClause = { companyId };
             if (search) {
-                whereClause.OR = [
-                    { razaoSocial: { contains: search, mode: 'insensitive' } },
-                    { nomeFantasia: { contains: search, mode: 'insensitive' } },
-                    { cnpj: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    {
+                        OR: [
+                            { razaoSocial: { contains: search, mode: 'insensitive' } },
+                            { nomeFantasia: { contains: search, mode: 'insensitive' } },
+                            { cnpj: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const suppliers = await prisma_1.prisma.supplier.findMany({
@@ -147,6 +176,7 @@ exports.RegistryController = {
     },
     async createSupplier(req, res) {
         try {
+            const companyId = req.companyId;
             const data = supplierSchema.parse(req.body);
             // Sanitizar CNPJ sem mascara para indice único se fornecido
             let cnpjSemMascara = data.cnpj ? data.cnpj.replace(/\D/g, '') : null;
@@ -154,6 +184,7 @@ exports.RegistryController = {
                 data: {
                     ...data,
                     cnpjSemMascara,
+                    companyId,
                 },
             });
             return res.status(201).json(supplier);
@@ -169,8 +200,13 @@ exports.RegistryController = {
     async updateSupplier(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
             const data = supplierSchema.parse(req.body);
             let cnpjSemMascara = data.cnpj ? data.cnpj.replace(/\D/g, '') : null;
+            // Validate ownership
+            await prisma_1.prisma.supplier.findFirstOrThrow({
+                where: { id, companyId }
+            });
             const supplier = await prisma_1.prisma.supplier.update({
                 where: { id },
                 data: {
@@ -185,12 +221,17 @@ exports.RegistryController = {
                 return res.status(400).json({ error: error.issues });
             }
             console.error('Error updating supplier:', error);
-            return res.status(500).json({ error: 'Erro ao atualizar fornecedor' });
+            return res.status(500).json({ error: 'Erro ao atualizar fornecedor ou acesso não autorizado' });
         }
     },
     async deleteSupplier(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
+            // Validate ownership
+            await prisma_1.prisma.supplier.findFirstOrThrow({
+                where: { id, companyId }
+            });
             await prisma_1.prisma.supplier.delete({
                 where: { id },
             });
@@ -198,21 +239,26 @@ exports.RegistryController = {
         }
         catch (error) {
             console.error('Error deleting supplier:', error);
-            return res.status(500).json({ error: 'Erro ao excluir fornecedor' });
+            return res.status(500).json({ error: 'Erro ao excluir fornecedor ou acesso não autorizado' });
         }
     },
     // COLLABORATORS CRUD
     async listCollaborators(req, res) {
         try {
+            const companyId = req.companyId;
             const { search } = req.query;
-            const whereClause = {};
+            const whereClause = { companyId };
             if (search) {
-                whereClause.OR = [
-                    { nome: { contains: search, mode: 'insensitive' } },
-                    { cpf: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
-                    { cargo: { contains: search, mode: 'insensitive' } },
-                    { departamento: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    {
+                        OR: [
+                            { nome: { contains: search, mode: 'insensitive' } },
+                            { cpf: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                            { cargo: { contains: search, mode: 'insensitive' } },
+                            { departamento: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const collaborators = await prisma_1.prisma.collaborator.findMany({
@@ -228,6 +274,7 @@ exports.RegistryController = {
     },
     async createCollaborator(req, res) {
         try {
+            const companyId = req.companyId;
             const data = collaboratorSchema.parse(req.body);
             let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
             const collaborator = await prisma_1.prisma.collaborator.create({
@@ -235,6 +282,7 @@ exports.RegistryController = {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+                    companyId,
                 },
             });
             return res.status(201).json(collaborator);
@@ -250,8 +298,13 @@ exports.RegistryController = {
     async updateCollaborator(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
             const data = collaboratorSchema.parse(req.body);
             let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+            // Validate ownership
+            await prisma_1.prisma.collaborator.findFirstOrThrow({
+                where: { id, companyId }
+            });
             const collaborator = await prisma_1.prisma.collaborator.update({
                 where: { id },
                 data: {
@@ -267,12 +320,17 @@ exports.RegistryController = {
                 return res.status(400).json({ error: error.issues });
             }
             console.error('Error updating collaborator:', error);
-            return res.status(500).json({ error: 'Erro ao atualizar colaborador' });
+            return res.status(500).json({ error: 'Erro ao atualizar colaborador ou acesso não autorizado' });
         }
     },
     async deleteCollaborator(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId;
+            // Validate ownership
+            await prisma_1.prisma.collaborator.findFirstOrThrow({
+                where: { id, companyId }
+            });
             await prisma_1.prisma.collaborator.delete({
                 where: { id },
             });
@@ -280,7 +338,7 @@ exports.RegistryController = {
         }
         catch (error) {
             console.error('Error deleting collaborator:', error);
-            return res.status(500).json({ error: 'Erro ao excluir colaborador' });
+            return res.status(500).json({ error: 'Erro ao excluir colaborador ou acesso não autorizado' });
         }
     },
 };

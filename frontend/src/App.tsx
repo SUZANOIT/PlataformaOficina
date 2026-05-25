@@ -6,6 +6,8 @@ import { CreateQuote } from './pages/CreateQuote';
 import { QuotesList } from './pages/QuotesList';
 import { Register } from './pages/Register';
 import { EmailConfig } from './pages/EmailConfig';
+import { CompanyConfig } from './pages/CompanyConfig';
+import { BudgetCompanies } from './pages/BudgetCompanies';
 import { Clients } from './pages/Clients';
 import { Suppliers } from './pages/Suppliers';
 import { Collaborators } from './pages/Collaborators';
@@ -42,6 +44,8 @@ function App() {
           <Route path="quotes" element={<QuotesList />} />
           <Route path="users" element={<Users />} />
           <Route path="settings/email" element={<EmailConfig />} />
+          <Route path="settings/oficina" element={<CompanyConfig />} />
+          <Route path="settings/emissoras" element={<BudgetCompanies />} />
           <Route path="clients" element={<Clients />} />
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="collaborators" element={<Collaborators />} />

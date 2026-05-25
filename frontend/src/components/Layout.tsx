@@ -297,6 +297,22 @@ export function Layout() {
                   <span>Usuários</span>
                 </Link>
                 <Link 
+                  to="/settings/oficina" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Dados da Oficina</span>
+                </Link>
+                <Link 
+                  to="/settings/emissoras" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Empresas Emissoras</span>
+                </Link>
+                <Link 
                   to="/settings/email" 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -524,6 +540,20 @@ export function Layout() {
                 >
                   <Users size={16} className="text-muted-foreground" />
                   <span>Usuários</span>
+                </Link>
+                <Link 
+                  to="/settings/oficina" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Dados da Oficina</span>
+                </Link>
+                <Link 
+                  to="/settings/emissoras" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Empresas Emissoras</span>
                 </Link>
                 <Link 
                   to="/settings/email" 
