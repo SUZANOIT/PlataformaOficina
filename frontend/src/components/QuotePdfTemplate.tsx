@@ -254,7 +254,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                      key={index} 
                      className={`flex border-b border-slate-100 text-[11px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
                    >
-                     <div className="py-1 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
+                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap font-medium text-slate-800" style={{ width: '50%' }}>
                        {item.descricao}
                      </div>
                      <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
@@ -299,7 +299,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                      key={index} 
                      className={`flex border-b border-slate-100 text-[11px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
                    >
-                     <div className="py-1 px-3 text-left break-words font-medium text-slate-800" style={{ width: '50%' }}>
+                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap font-medium text-slate-800" style={{ width: '50%' }}>
                        {item.descricao}
                      </div>
                      <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>

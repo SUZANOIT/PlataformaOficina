@@ -592,10 +592,12 @@ export function CreateQuote() {
                       
                       <div className="col-span-2 space-y-1">
                         <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
-                        <input 
+                        <textarea 
                           {...register(`items.${index}.descricao`)}
-                          className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                          className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
                           placeholder="Descrição do serviço/produto"
+                          maxLength={3000}
+                          rows={2}
                         />
                       </div>
                       
@@ -660,10 +662,12 @@ export function CreateQuote() {
                           </select>
                         </td>
                         <td className="p-2">
-                          <input 
+                          <textarea 
                             {...register(`items.${index}.descricao`)}
-                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm resize-y min-h-[38px] h-[38px] focus:outline-none focus:ring-2 focus:ring-primary/50"
                             placeholder="Descrição do serviço/produto"
+                            maxLength={3000}
+                            rows={1}
                           />
                         </td>
                         <td className="p-2">
