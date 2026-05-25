@@ -252,16 +252,23 @@ export const FinancialController = {
           .reduce((sum, link) => sum + link.valorVinculado, 0);
 
         const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+        const statusFinanceiro = saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível');
 
         return {
           id: quote.id,
           numeroOrcamento: quote.numeroOrcamento,
-          client: quote.client.nome,
+          client: {
+            id: quote.client.id,
+            nome: quote.client.nome,
+            empresa: quote.client.empresa || ''
+          },
+          clientName: quote.client.nome,
           empresa: quote.client.empresa || '',
           total: quote.total,
           totalUtilizado,
           saldoDisponivel,
-          statusFinanceiro: saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível')
+          statusFinanceiro,
+          status: statusFinanceiro
         };
       });
 

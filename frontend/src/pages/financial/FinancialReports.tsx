@@ -258,7 +258,7 @@ export function FinancialReports() {
 
     let csvContent = '\uFEFF';
     csvContent += `Relatório do Orçamento #${selectedQuoteDetail.numeroOrcamento}\r\n`;
-    csvContent += `Cliente;${selectedQuoteDetail.client?.nome || 'Cliente'}\r\n`;
+    csvContent += `Cliente;${selectedQuoteDetail.client?.nome || selectedQuoteDetail.client || 'Cliente'}\r\n`;
     csvContent += `Valor Total Aprovado;R$ ${selectedQuoteDetail.total.toFixed(2)}\r\n`;
     csvContent += `Total Utilizado em Contas a Pagar;R$ ${selectedQuoteDetail.totalUtilizado.toFixed(2)}\r\n`;
     csvContent += `Saldo Disponível;R$ ${selectedQuoteDetail.saldoDisponivel.toFixed(2)}\r\n\r\n`;
@@ -442,7 +442,7 @@ export function FinancialReports() {
               <option value="">Selecione um orçamento...</option>
               {approvedQuotes.map(q => (
                 <option key={q.id} value={q.id}>
-                  Orçamento #{q.numeroOrcamento} - Cliente: {q.client?.nome || 'Sem Cliente'} (Saldo: {formatCurrency(q.saldoDisponivel)})
+                  Orçamento #{q.numeroOrcamento} - Cliente: {q.client?.nome || q.client || 'Sem Cliente'} (Saldo: {formatCurrency(q.saldoDisponivel)})
                 </option>
               ))}
             </select>
@@ -599,12 +599,16 @@ export function FinancialReports() {
                       Orçamento: <span className="font-bold text-foreground">#{selectedQuoteDetail.numeroOrcamento}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Cliente: <span className="font-bold text-foreground">{selectedQuoteDetail.client?.nome || 'N/A'}</span>
+                      Cliente: <span className="font-bold text-foreground">{selectedQuoteDetail.client?.nome || selectedQuoteDetail.client || 'N/A'}</span>
                     </p>
                   </div>
                   <div className="text-right text-xs text-muted-foreground/80">
                     <p>Gerado em: <span className="font-bold text-foreground">{new Date().toLocaleString('pt-BR')}</span></p>
-                    <p>Status: <span className="font-bold text-emerald-500 uppercase">{selectedQuoteDetail.status}</span></p>
+                    <p>Status: <span className={`font-bold uppercase ${
+                      selectedQuoteDetail.status === 'Consumido' ? 'text-red-500' :
+                      selectedQuoteDetail.status === 'Parcialmente Consumido' ? 'text-amber-500' :
+                      'text-emerald-500'
+                    }`}>{selectedQuoteDetail.status || selectedQuoteDetail.statusFinanceiro || 'N/A'}</span></p>
                   </div>
                 </div>
 
