@@ -18,7 +18,8 @@ import {
   Building,
   Truck,
   Calendar,
-  UserCheck
+  UserCheck,
+  Calculator
 } from 'lucide-react';
 
 export function Layout() {
@@ -208,6 +209,14 @@ export function Layout() {
                 >
                   <BarChart3 size={16} className="text-blue-500" />
                   <span>Relatórios</span>
+                </Link>
+                <Link 
+                  to="/financial/accountant" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Calculator size={16} className="text-violet-500" />
+                  <span>Visão do Contador</span>
                 </Link>
               </div>
             )}
@@ -435,6 +444,13 @@ export function Layout() {
                 >
                   <BarChart3 size={16} className="text-blue-500" />
                   <span>Relatórios</span>
+                </Link>
+                <Link 
+                  to="/financial/accountant" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Calculator size={16} className="text-violet-500" />
+                  <span>Visão do Contador</span>
                 </Link>
               </div>
             )}

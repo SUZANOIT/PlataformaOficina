@@ -15,6 +15,7 @@ import { FinancialPayables } from './pages/financial/FinancialPayables';
 import { FinancialReceivables } from './pages/financial/FinancialReceivables';
 import { FinancialApprovals } from './pages/financial/FinancialApprovals';
 import { FinancialReports } from './pages/financial/FinancialReports';
+import { FinancialAccountant } from './pages/financial/FinancialAccountant';
 import FleetDashboard from './pages/fleet/FleetDashboard';
 import FleetVehicles from './pages/fleet/FleetVehicles';
 import VehicleDetails from './pages/fleet/VehicleDetails';
@@ -51,6 +52,7 @@ function App() {
           <Route path="financial/receivables" element={<FinancialReceivables />} />
           <Route path="financial/approvals" element={<FinancialApprovals />} />
           <Route path="financial/reports" element={<FinancialReports />} />
+          <Route path="financial/accountant" element={<FinancialAccountant />} />
 
           {/* Rotas de Gestão de Frotas */}
           <Route path="fleet/dashboard" element={<FleetDashboard />} />

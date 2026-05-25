@@ -90,6 +90,20 @@ exports.FinancialController = {
                 filterPayable.companyId = companyId;
                 filterReceivable.companyId = companyId;
             }
+            else {
+                filterPayable.company = {
+                    NOT: [
+                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                    ]
+                };
+                filterReceivable.company = {
+                    NOT: [
+                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                    ]
+                };
+            }
             if (startDate || endDate) {
                 filterPayable.vencimento = {};
                 filterReceivable.vencimento = {};
@@ -163,7 +177,15 @@ exports.FinancialController = {
             receivables.forEach(r => fillMonthBucket(r.vencimento, r.valor, 'receita'));
             // E) Contas por empresa
             const contasPorEmpresa = {};
-            const companies = await prisma_1.prisma.company.findMany({ select: { id: true, nomeFantasia: true, razaoSocial: true } });
+            const companies = await prisma_1.prisma.company.findMany({
+                where: {
+                    NOT: [
+                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                    ]
+                },
+                select: { id: true, nomeFantasia: true, razaoSocial: true }
+            });
             const companyMap = new Map(companies.map(c => [c.id, c.nomeFantasia || c.razaoSocial]));
             payables.forEach(p => {
                 const name = companyMap.get(p.companyId) || 'Outra';
@@ -214,7 +236,15 @@ exports.FinancialController = {
     async getApprovedQuotes(req, res) {
         try {
             const approvedQuotes = await prisma_1.prisma.quote.findMany({
-                where: { status: 'Aprovado' },
+                where: {
+                    status: 'Aprovado',
+                    company: {
+                        NOT: [
+                            { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                            { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                        ]
+                    }
+                },
                 include: {
                     client: true,
                     linkedPayables: {
@@ -253,8 +283,17 @@ exports.FinancialController = {
         try {
             const { companyId, status, category, costCenter, search, page = 1, limit = 10 } = req.query;
             const whereClause = {};
-            if (companyId)
+            if (companyId) {
                 whereClause.companyId = companyId;
+            }
+            else {
+                whereClause.company = {
+                    NOT: [
+                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                    ]
+                };
+            }
             if (status)
                 whereClause.status = status;
             if (category)
@@ -585,8 +624,17 @@ exports.FinancialController = {
         try {
             const { companyId, status, category, search, page = 1, limit = 10 } = req.query;
             const whereClause = {};
-            if (companyId)
+            if (companyId) {
                 whereClause.companyId = companyId;
+            }
+            else {
+                whereClause.company = {
+                    NOT: [
+                        { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'curio', mode: 'insensitive' } }
+                    ]
+                };
+            }
             if (status)
                 whereClause.status = status;
             if (category)
@@ -834,6 +882,73 @@ exports.FinancialController = {
         catch (error) {
             console.error('Error listing recurrences:', error);
             return res.status(500).json({ error: 'Erro ao carregar histórico de recorrência' });
+        }
+    },
+    // 6. CRUD de Impostos
+    async listTaxes(req, res) {
+        try {
+            const taxes = await prisma_1.prisma.taxSetting.findMany({
+                orderBy: { nome: 'asc' }
+            });
+            return res.json(taxes);
+        }
+        catch (error) {
+            console.error('Error listing taxes:', error);
+            return res.status(500).json({ error: 'Erro ao listar impostos' });
+        }
+    },
+    async createTax(req, res) {
+        try {
+            const { nome, aliquota, tipo, status } = req.body;
+            if (!nome || aliquota === undefined) {
+                return res.status(400).json({ error: 'Nome e alíquota são obrigatórios' });
+            }
+            const tax = await prisma_1.prisma.taxSetting.create({
+                data: {
+                    nome,
+                    aliquota: Number(aliquota),
+                    tipo: tipo || 'FATURAMENTO',
+                    status: status || 'ATIVO'
+                }
+            });
+            return res.json(tax);
+        }
+        catch (error) {
+            console.error('Error creating tax:', error);
+            return res.status(500).json({ error: 'Erro ao cadastrar imposto' });
+        }
+    },
+    async updateTax(req, res) {
+        try {
+            const id = req.params.id;
+            const { nome, aliquota, tipo, status } = req.body;
+            const tax = await prisma_1.prisma.taxSetting.update({
+                where: { id },
+                data: {
+                    nome,
+                    aliquota: aliquota !== undefined ? Number(aliquota) : undefined,
+                    tipo,
+                    status
+                }
+            });
+            return res.json(tax);
+        }
+        catch (error) {
+            console.error('Error updating tax:', error);
+            return res.status(500).json({ error: 'Erro ao atualizar imposto' });
+        }
+    },
+    async deleteTax(req, res) {
+        try {
+            const id = req.params.id;
+            await prisma_1.prisma.taxSetting.delete({
+                where: { id }
+            });
+            return res.json({ success: true });
+        }
+        catch (error) {
+            console.error('Error deleting tax:', error);
+            return res.status(500).json({ error: 'Erro ao deletar imposto' });
         }
     }
 };

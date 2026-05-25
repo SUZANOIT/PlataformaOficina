@@ -111,6 +111,12 @@ routes.post('/financial/approve/:id', FinancialController.approveTransaction);
 routes.get('/financial/audits', FinancialController.getAuditHistory);
 routes.get('/financial/recurrences', FinancialController.getRecurrentHistory);
 
+// Configuração de Impostos
+routes.get('/financial/taxes', FinancialController.listTaxes);
+routes.post('/financial/taxes', FinancialController.createTax);
+routes.put('/financial/taxes/:id', FinancialController.updateTax);
+routes.delete('/financial/taxes/:id', FinancialController.deleteTax);
+
 // Gestão de Frotas (Suporta tanto /fleet quanto /api/fleet para compatibilidade com cache de navegadores)
 const registerFleetRoutes = (prefix: string) => {
   routes.use(prefix, authMiddleware);

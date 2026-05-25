@@ -430,3 +430,13 @@ model PayableQuoteLink {
   @@unique([payableId, quoteId])
 }
 
+model TaxSetting {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  aliquota  Float
+  tipo      String   @default("FATURAMENTO") // FATURAMENTO, RETENCAO, OUTRO
+  status    String   @default("ATIVO") // ATIVO, INATIVO
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

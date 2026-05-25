@@ -14,8 +14,20 @@ const createCompanySchema = z.object({
 export const CompanyController = {
   async list(req: Request, res: Response) {
     try {
+      const { scope } = req.query;
       const companies = await prisma.company.findMany();
-      return res.json(companies);
+      
+      if (scope === 'orcamento') {
+        return res.json(companies);
+      }
+      
+      const filteredCompanies = companies.filter(c => {
+        const razao = c.razaoSocial.toLowerCase();
+        const fantasia = c.nomeFantasia?.toLowerCase() || '';
+        return !razao.includes('curio') && !fantasia.includes('curio');
+      });
+      
+      return res.json(filteredCompanies);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         console.error('Prisma error in company.list:', error.code, error.message);
