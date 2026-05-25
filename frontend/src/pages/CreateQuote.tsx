@@ -64,12 +64,24 @@ export function CreateQuote() {
   const pdfRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+
   // Load companies
   useState(() => {
     const fetchCompanies = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('/companies', {
+        const response = await fetch('/companies?scope=orcamento', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -544,28 +556,31 @@ export function CreateQuote() {
             </h2>
           </div>
           
-          {/* Visualização em Tabela para Desktop e Tablet */}
-          <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
-                <tr className="border-b border-border text-muted-foreground text-sm">
-                  <th className="p-3 font-medium w-[15%]">Tipo</th>
-                  <th className="p-3 font-medium w-[35%]">Descrição do Item</th>
-                  <th className="p-3 font-medium w-[12%]">Qtd</th>
-                  <th className="p-3 font-medium w-[18%]">Valor Unit. (R$)</th>
-                  <th className="p-3 font-medium w-[15%]">Total</th>
-                  <th className="p-3 font-medium w-[5%]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => {
-                  const qty = Number(watchItems[index]?.quantidade || 0);
-                  const price = Number(watchItems[index]?.valorUnitario || 0);
-                  const lineTotal = qty * price;
+          {isMobile ? (
+            /* Visualização em Cartões (Cards) para Smartphone */
+            <div className="space-y-4">
+              {fields.map((field, index) => {
+                const qty = Number(watchItems[index]?.quantidade || 0);
+                const price = Number(watchItems[index]?.valorUnitario || 0);
+                const lineTotal = qty * price;
 
-                  return (
-                    <tr key={field.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                      <td className="p-2">
+                return (
+                  <div key={field.id} className="bg-muted/5 border border-border p-4 rounded-xl space-y-3 relative">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => remove(index)}
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                        title="Excluir Item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Tipo</label>
                         <select
                           {...register(`items.${index}.tipo`)}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
@@ -573,120 +588,119 @@ export function CreateQuote() {
                           <option value="Peça">Peça</option>
                           <option value="Mão de Obra">Mão de Obra</option>
                         </select>
-                      </td>
-                      <td className="p-2">
+                      </div>
+                      
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
                         <input 
                           {...register(`items.${index}.descricao`)}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
                           placeholder="Descrição do serviço/produto"
                         />
-                      </td>
-                      <td className="p-2">
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Qtd</label>
                         <input 
                           type="number"
                           min="1"
                           {...register(`items.${index}.quantidade`)}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
                         />
-                      </td>
-                      <td className="p-2">
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-muted-foreground">Val. Unit. (R$)</label>
                         <input 
                           type="number"
                           step="0.01"
                           {...register(`items.${index}.valorUnitario`)}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
                         />
-                      </td>
-                      <td className="p-2 text-right font-medium">
-                        {formatCurrency(lineTotal)}
-                      </td>
-                      <td className="p-2 text-center">
-                        <button 
-                          type="button" 
-                          onClick={() => remove(index)}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t border-border/50 text-sm">
+                      <span className="text-muted-foreground font-medium">Total do Item</span>
+                      <span className="font-bold text-foreground">{formatCurrency(lineTotal)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* Visualização em Tabela para Desktop e Tablet */
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
+                  <tr className="border-b border-border text-muted-foreground text-sm">
+                    <th className="p-3 font-medium w-[15%]">Tipo</th>
+                    <th className="p-3 font-medium w-[35%]">Descrição do Item</th>
+                    <th className="p-3 font-medium w-[12%]">Qtd</th>
+                    <th className="p-3 font-medium w-[18%]">Valor Unit. (R$)</th>
+                    <th className="p-3 font-medium w-[15%]">Total</th>
+                    <th className="p-3 font-medium w-[5%]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fields.map((field, index) => {
+                    const qty = Number(watchItems[index]?.quantidade || 0);
+                    const price = Number(watchItems[index]?.valorUnitario || 0);
+                    const lineTotal = qty * price;
 
-          {/* Visualização em Cartões (Cards) para Smartphone */}
-          <div className="block md:hidden space-y-4">
-            {fields.map((field, index) => {
-              const qty = Number(watchItems[index]?.quantidade || 0);
-              const price = Number(watchItems[index]?.valorUnitario || 0);
-              const lineTotal = qty * price;
-
-              return (
-                <div key={field.id} className="bg-muted/5 border border-border p-4 rounded-xl space-y-3 relative">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
-                    <button 
-                      type="button" 
-                      onClick={() => remove(index)}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                      title="Excluir Item"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Tipo</label>
-                      <select
-                        {...register(`items.${index}.tipo`)}
-                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
-                      >
-                        <option value="Peça">Peça</option>
-                        <option value="Mão de Obra">Mão de Obra</option>
-                      </select>
-                    </div>
-                    
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
-                      <input 
-                        {...register(`items.${index}.descricao`)}
-                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
-                        placeholder="Descrição do serviço/produto"
-                      />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Qtd</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        {...register(`items.${index}.quantidade`)}
-                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
-                      />
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Val. Unit. (R$)</label>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        {...register(`items.${index}.valorUnitario`)}
-                        className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pt-2 border-t border-border/50 text-sm">
-                    <span className="text-muted-foreground font-medium">Total do Item</span>
-                    <span className="font-bold text-foreground">{formatCurrency(lineTotal)}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                    return (
+                      <tr key={field.id} className="border-b border-border hover:bg-muted/10 transition-colors">
+                        <td className="p-2">
+                          <select
+                            {...register(`items.${index}.tipo`)}
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                          >
+                            <option value="Peça">Peça</option>
+                            <option value="Mão de Obra">Mão de Obra</option>
+                          </select>
+                        </td>
+                        <td className="p-2">
+                          <input 
+                            {...register(`items.${index}.descricao`)}
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                            placeholder="Descrição do serviço/produto"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input 
+                            type="number"
+                            min="1"
+                            {...register(`items.${index}.quantidade`)}
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input 
+                            type="number"
+                            step="0.01"
+                            {...register(`items.${index}.valorUnitario`)}
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
+                          />
+                        </td>
+                        <td className="p-2 text-right font-medium">
+                          {formatCurrency(lineTotal)}
+                        </td>
+                        <td className="p-2 text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => remove(index)}
+                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-border pt-4">
             <button 
