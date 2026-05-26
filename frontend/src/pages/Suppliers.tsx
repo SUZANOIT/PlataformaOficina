@@ -380,20 +380,21 @@ export function Suppliers() {
       {/* Modal Cadastro/Edição */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8 relative">
+            <button 
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition z-50 animate-in fade-in duration-300"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mr-8">
                 <Building className="text-primary" size={22} />
                 <h3 className="text-lg font-bold text-foreground">
                   {selectedSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
                 </h3>
               </div>
-              <button 
-                onClick={handleCloseModal}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/50 transition"
-              >
-                <X size={20} />
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">

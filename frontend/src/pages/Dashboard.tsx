@@ -742,22 +742,23 @@ export function Dashboard() {
       {isSoldModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <SoldModalBreadcrumb />
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 relative">
+            <button 
+              onClick={() => setIsSoldModalOpen(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition z-50 animate-in fade-in duration-300"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
             {/* Header */}
             <div className="p-6 border-b border-border flex justify-between items-center">
-              <div className="flex flex-col gap-2 w-full mr-4">
+              <div className="flex flex-col gap-2 w-full mr-8">
                 <GlobalBreadcrumbs />
                 <div className="flex items-center gap-2">
                   <TrendingUp className="text-emerald-500" size={20} />
                   <h3 className="text-lg font-bold text-foreground">Detalhamento de Vendas</h3>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsSoldModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/50 transition self-start mt-1"
-              >
-                <X size={20} />
-              </button>
             </div>
 
             {/* Content */}

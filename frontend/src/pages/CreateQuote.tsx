@@ -249,27 +249,8 @@ export function CreateQuote() {
         savedData = await quoteService.saveQuote(payload);
         setNumeroOrcamento(savedData.numeroOrcamento);
         toast.success('Orçamento salvo com sucesso!', { id: 'save-quote' });
-        if (cloneId) {
-          navigate(`/quotes/edit/${savedData.id}`, { replace: true });
-        }
+        navigate(`/quotes/edit/${savedData.id}`, { replace: true });
       }
-
-      const company = companies.find(c => c.id === payload.companyId);
-      const companyName = company?.razaoSocial || company?.nomeFantasia || '';
-      const companySlug = companyName.toLowerCase().includes('curio') ? 'curio' : 'mca';
-      
-      const today = new Date();
-      const day = String(today.getDate()).padStart(2, '0');
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const year = today.getFullYear();
-      const formattedDate = `${day}_${month}_${year}`;
-      
-      const quoteNum = savedData?.numeroOrcamento || numeroOrcamento || 'novo';
-      const pdfFilename = `${quoteNum}_orcamento_${companySlug}_${formattedDate}.pdf`;
-      
-      toast.loading('Gerando PDF...', { id: 'pdf-toast' });
-      await generatePdf(pdfRef.current, pdfFilename);
-      toast.success('PDF gerado com sucesso!', { id: 'pdf-toast' });
 
     } catch (error: any) {
       toast.error(error.message || 'Erro ao salvar o orçamento', { id: 'save-quote' });
