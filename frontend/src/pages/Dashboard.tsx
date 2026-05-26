@@ -209,9 +209,20 @@ export function Dashboard() {
   ];
 
   // Sold Modal calculations
-  const activeQuotes = selectedCompanyId === 'all' 
+  const activeQuotes = (selectedCompanyId === 'all' 
     ? quotes 
-    : quotes.filter((q: any) => q.company?.id === selectedCompanyId);
+    : quotes.filter((q: any) => q.company?.id === selectedCompanyId)
+  ).filter((q: any) => {
+    const company = q.company;
+    if (!company) return false;
+    const cnpjClean = company.cnpj ? company.cnpj.replace(/\D/g, '') : '';
+    const ieClean = company.inscricaoEstadual ? company.inscricaoEstadual.replace(/\D/g, '') : '';
+    const matchesCnpj = cnpjClean === '30021766000113' || cnpjClean === '98765432000110';
+    const matchesIe = ieClean === '119214099114' || ieClean === '987654321000';
+    const matchesName = company.razaoSocial?.toLowerCase().includes('mca') || 
+                        company.nomeFantasia?.toLowerCase().includes('mca');
+    return matchesCnpj || matchesIe || matchesName;
+  });
 
   // Geral
   const totalSoldVal = activeQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
