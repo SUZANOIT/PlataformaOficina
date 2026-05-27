@@ -31,6 +31,7 @@ interface DashboardData {
     contasPorEmpresa: Record<string, { pagar: number; receber: number }>;
     contasPorCentroCusto: Record<string, number>;
     fluxoMensal: Record<string, { receitas: number; despesas: number; saldo: number }>;
+    receitaPorPlataforma: Record<string, number>;
   };
 }
 
@@ -130,7 +131,8 @@ export function FinancialDashboard() {
     contasPorStatus: {},
     contasPorEmpresa: {},
     contasPorCentroCusto: {},
-    fluxoMensal: {}
+    fluxoMensal: {},
+    receitaPorPlataforma: {}
   };
 
   const formatCurrency = (val: number) => {
@@ -596,6 +598,26 @@ export function FinancialDashboard() {
               })
             )}
           </div>
+        </div>
+
+        {/* Gráfico 6: Receita por Plataforma de Gestão */}
+        <div className="bg-card border border-border rounded-xl p-6 shadow-xs flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-bold text-sm text-foreground uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1 h-4 rounded bg-primary inline-block"></span>
+              Receita por Plataforma de Gestão
+            </h4>
+            <span className="text-[10px] text-muted-foreground/60 font-semibold uppercase tracking-wider">Detalhamento</span>
+          </div>
+          {renderDonutChart(graficos.receitaPorPlataforma, [
+            '#6366f1', // Indigo
+            '#a855f7', // Purple
+            '#ec4899', // Pink
+            '#14b8a6', // Teal
+            '#f59e0b', // Amber
+            '#3b82f6', // Blue
+            '#6b7280', // Gray
+          ])}
         </div>
 
       </div>
