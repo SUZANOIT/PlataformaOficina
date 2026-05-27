@@ -38,8 +38,15 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
     (req as any).companyId = companyId;
     return next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
+    }
+    console.error('Database error in authMiddleware:', error);
+    return res.status(500).json({ error: 'Internal database error during authentication' });
   }
 };
 

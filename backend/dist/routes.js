@@ -11,12 +11,12 @@ const quote_controller_1 = require("./controllers/quote.controller");
 const email_controller_1 = require("./controllers/email.controller");
 const financial_controller_1 = require("./controllers/financial.controller");
 const registry_controller_1 = require("./controllers/registry.controller");
+const platform_controller_1 = require("./controllers/platform.controller");
 const fleet_controller_1 = require("./controllers/fleet.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const routes = (0, express_1.Router)();
 exports.routes = routes;
-// Middleware de autenticação
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         return res.status(401).json({ error: 'Token not provided' });
@@ -25,12 +25,43 @@ const authMiddleware = (req, res, next) => {
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
         req.userId = decoded.id;
+        req.role = decoded.role;
+        let companyId = decoded.companyId;
+        if (!companyId && decoded.id) {
+            const { prisma } = require('./lib/prisma');
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.id },
+                select: { companyId: true }
+            });
+            if (user) {
+                companyId = user.companyId;
+            }
+        }
+        req.companyId = companyId;
         return next();
     }
     catch (error) {
-        return res.status(401).json({ error: 'Invalid token' });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+        }
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
+        }
+        console.error('Database error in authMiddleware:', error);
+        return res.status(500).json({ error: 'Internal database error during authentication' });
     }
 };
+// Route to run prisma db push in production environment
+routes.get('/debug/run-migrate', async (req, res) => {
+    const { exec } = require('child_process');
+    exec('npx prisma db push', (err, stdout, stderr) => {
+        return res.json({
+            error: err?.message || null,
+            stdout: stdout || '',
+            stderr: stderr || ''
+        });
+    });
+});
 // Auth
 routes.post('/auth/register', auth_controller_1.AuthController.register);
 routes.post('/auth/login', auth_controller_1.AuthController.login);
@@ -70,6 +101,10 @@ routes.get('/registry/collaborators', registry_controller_1.RegistryController.l
 routes.post('/registry/collaborators', registry_controller_1.RegistryController.createCollaborator);
 routes.put('/registry/collaborators/:id', registry_controller_1.RegistryController.updateCollaborator);
 routes.delete('/registry/collaborators/:id', registry_controller_1.RegistryController.deleteCollaborator);
+routes.get('/registry/platforms', platform_controller_1.PlatformController.list);
+routes.post('/registry/platforms', platform_controller_1.PlatformController.create);
+routes.put('/registry/platforms/:id', platform_controller_1.PlatformController.update);
+routes.delete('/registry/platforms/:id', platform_controller_1.PlatformController.delete);
 // Dashboard
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);

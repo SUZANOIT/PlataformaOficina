@@ -33,6 +33,8 @@ const createQuoteSchema = zod_1.z.object({
     veiculoModelo: zod_1.z.string().nullish(),
     veiculoAno: zod_1.z.string().nullish(),
     veiculoPlaca: zod_1.z.string().nullish(),
+    plataformaGestaoId: zod_1.z.string().nullish(),
+    osExterna: zod_1.z.string().max(100).nullish(),
     items: zod_1.z.array(zod_1.z.object({
         descricao: zod_1.z.string(),
         quantidade: zod_1.z.number(),
@@ -52,6 +54,7 @@ exports.QuoteController = {
                     client: true,
                     company: true,
                     items: true,
+                    plataformaGestao: true
                 },
                 orderBy: { createdAt: 'desc' }
             });
@@ -215,6 +218,8 @@ exports.QuoteController = {
                     veiculoModelo: data.veiculoModelo,
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
+                    plataformaGestaoId: data.plataformaGestaoId,
+                    osExterna: data.osExterna,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -225,7 +230,8 @@ exports.QuoteController = {
                 include: {
                     items: true,
                     client: true,
-                    company: true
+                    company: true,
+                    plataformaGestao: true
                 }
             });
             console.log(`Quote created: #${quote.numeroOrcamento} for client ${client.nome} (id=${quote.id})`);
@@ -257,7 +263,8 @@ exports.QuoteController = {
                 include: {
                     items: true,
                     client: true,
-                    company: true
+                    company: true,
+                    plataformaGestao: true
                 }
             });
             if (!quote) {
@@ -312,6 +319,8 @@ exports.QuoteController = {
                     veiculoModelo: data.veiculoModelo,
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
+                    plataformaGestaoId: data.plataformaGestaoId,
+                    osExterna: data.osExterna,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -323,7 +332,8 @@ exports.QuoteController = {
                 include: {
                     items: true,
                     client: true,
-                    company: true
+                    company: true,
+                    plataformaGestao: true
                 }
             });
             console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
