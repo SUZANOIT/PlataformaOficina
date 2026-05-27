@@ -24,19 +24,17 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     (req as any).userId = decoded.id;
     (req as any).role = decoded.role;
 
-    let companyId = decoded.companyId;
-    if (!companyId && decoded.id) {
-      const { prisma } = require('./lib/prisma');
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-        select: { companyId: true }
-      });
-      if (user) {
-        companyId = user.companyId;
-      }
+    const { prisma } = require('./lib/prisma');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { companyId: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
-    (req as any).companyId = companyId;
+    (req as any).companyId = user.companyId;
     return next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {

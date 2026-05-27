@@ -26,18 +26,15 @@ const authMiddleware = async (req, res, next) => {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
         req.userId = decoded.id;
         req.role = decoded.role;
-        let companyId = decoded.companyId;
-        if (!companyId && decoded.id) {
-            const { prisma } = require('./lib/prisma');
-            const user = await prisma.user.findUnique({
-                where: { id: decoded.id },
-                select: { companyId: true }
-            });
-            if (user) {
-                companyId = user.companyId;
-            }
+        const { prisma } = require('./lib/prisma');
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { companyId: true }
+        });
+        if (!user) {
+            return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
         }
-        req.companyId = companyId;
+        req.companyId = user.companyId;
         return next();
     }
     catch (error) {

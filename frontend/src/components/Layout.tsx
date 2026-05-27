@@ -44,7 +44,7 @@ export function Layout() {
         if (response.ok) {
           const data = await response.json();
           setUser(data);
-        } else if (response.status === 401) {
+        } else if (response.status === 401 || response.status === 403 || response.status === 404) {
           localStorage.removeItem('token');
           navigate('/login');
         }
