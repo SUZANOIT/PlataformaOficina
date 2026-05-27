@@ -142,6 +142,12 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
                 <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Registrado por</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{advance.responsavel || 'Sistema'}</p>
               </div>
+              {advance.oficina && (
+                <div className="col-span-2">
+                  <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Oficina Vinculada</span>
+                  <p className="font-bold text-slate-900 mt-0.5">{advance.oficina.nome}</p>
+                </div>
+              )}
             </div>
             {advance.observacoes && (
               <div className="text-[11px] text-slate-600 mt-4 p-3 bg-slate-50 border border-slate-100 rounded-lg whitespace-pre-wrap leading-relaxed">
