@@ -11,8 +11,7 @@ import jwt from 'jsonwebtoken';
 
 const routes = Router();
 
-// Middleware de autenticação
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({ error: 'Token not provided' });
@@ -23,11 +22,38 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
     (req as any).userId = decoded.id;
+    (req as any).role = decoded.role;
+
+    let companyId = decoded.companyId;
+    if (!companyId && decoded.id) {
+      const { prisma } = require('./lib/prisma');
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: { companyId: true }
+      });
+      if (user) {
+        companyId = user.companyId;
+      }
+    }
+
+    (req as any).companyId = companyId;
     return next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
+
+// Route to run prisma db push in production environment
+routes.get('/debug/run-migrate', async (req: Request, res: Response) => {
+  const { exec } = require('child_process');
+  exec('npx prisma db push', (err: any, stdout: any, stderr: any) => {
+    return res.json({
+      error: err?.message || null,
+      stdout: stdout || '',
+      stderr: stderr || ''
+    });
+  });
+});
 
 // Auth
 routes.post('/auth/register', AuthController.register);
