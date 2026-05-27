@@ -46,6 +46,7 @@ export function Collaborators() {
   const [salario, setSalario] = useState('');
   const [status, setStatus] = useState('ATIVO');
   const [observacoes, setObservacoes] = useState('');
+  const [oficinaId, setOficinaId] = useState('');
 
   const fetchCollaborators = async () => {
     try {
@@ -293,6 +294,7 @@ export function Collaborators() {
     setEmail('');
     setCargo('');
     setDepartamento('');
+    setOficinaId('');
     
     // Default to today
     const todayStr = new Date().toISOString().substring(0, 10);
@@ -316,6 +318,7 @@ export function Collaborators() {
     setSalario(collab.salario !== null && collab.salario !== undefined ? String(collab.salario) : '');
     setStatus(collab.status || 'ATIVO');
     setObservacoes(collab.observacoes || '');
+    setOficinaId(collab.oficinaId || '');
     setIsModalOpen(true);
   };
 
@@ -343,7 +346,8 @@ export function Collaborators() {
       dataAdmissao: dataAdmissao ? new Date(dataAdmissao).toISOString() : null,
       salario: salario ? parseFloat(salario) : null,
       status,
-      observacoes: observacoes || null
+      observacoes: observacoes || null,
+      oficinaId: oficinaId || null
     };
 
     try {
@@ -468,6 +472,11 @@ export function Collaborators() {
                       <div>
                         <div className="font-semibold text-foreground">{collab.nome}</div>
                         {collab.cargo && <div className="text-xs text-muted-foreground flex items-center gap-1"><Award size={12} /> {collab.cargo} {collab.departamento ? `- ${collab.departamento}` : ''}</div>}
+                        {collab.oficina && (
+                          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
+                            🏢 Oficina: {collab.oficina.nome}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -543,6 +552,11 @@ export function Collaborators() {
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-foreground truncate">{collab.nome}</h4>
                 {collab.cargo && <p className="text-xs text-muted-foreground truncate flex items-center gap-1"><Award size={10} /> {collab.cargo}</p>}
+                {collab.oficina && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5 truncate">
+                    🏢 Oficina: {collab.oficina.nome}
+                  </p>
+                )}
               </div>
               <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
                 collab.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'
@@ -727,6 +741,23 @@ export function Collaborators() {
                       <option value="INATIVO">Inativo</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-1 mt-3">
+                  <label className="text-xs font-semibold text-foreground">Oficina Vinculada *</label>
+                  <select
+                    required
+                    value={oficinaId}
+                    onChange={(e) => setOficinaId(e.target.value)}
+                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm text-foreground"
+                  >
+                    <option value="">Selecione a oficina vinculada...</option>
+                    {workshops.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

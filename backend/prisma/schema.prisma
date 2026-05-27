@@ -381,6 +381,7 @@ model Oficina {
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
   salaryAdvances     SalaryAdvance[]
+  collaborators      Collaborator[]
   
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -464,6 +465,8 @@ model Collaborator {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
   advances  SalaryAdvance[]
+  oficinaId String?
+  oficina   Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -471,6 +474,7 @@ model Collaborator {
   @@index([cpf])
   @@index([email])
   @@index([companyId])
+  @@index([oficinaId])
 }
 
 model PayableQuoteLink {

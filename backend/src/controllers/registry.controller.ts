@@ -49,6 +49,7 @@ const collaboratorSchema = z.object({
   salario: z.number().optional().nullable(),
   status: z.string().default('ATIVO'),
   observacoes: z.string().optional().nullable(),
+  oficinaId: z.string().optional().nullable(),
 });
 
 export const RegistryController = {
@@ -230,6 +231,9 @@ export const RegistryController = {
 
       const collaborators = await prisma.collaborator.findMany({
         where: whereClause,
+        include: {
+          oficina: true
+        },
         orderBy: { nome: 'asc' },
       });
       return res.json(collaborators);
@@ -249,7 +253,11 @@ export const RegistryController = {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+          oficinaId: data.oficinaId || null
         },
+        include: {
+          oficina: true
+        }
       });
       return res.status(201).json(collaborator);
     } catch (error) {
@@ -273,7 +281,11 @@ export const RegistryController = {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+          oficinaId: data.oficinaId || null
         },
+        include: {
+          oficina: true
+        }
       });
       return res.json(collaborator);
     } catch (error) {
