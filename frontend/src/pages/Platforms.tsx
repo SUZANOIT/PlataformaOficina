@@ -175,7 +175,7 @@ export function Platforms() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!razaoSocial || !nomeFantasia || !cnpj || !telefone || !email || !responsavel) {
+    if (!razaoSocial || !nomeFantasia || !cnpj || !telefone || !email) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -360,7 +360,7 @@ export function Platforms() {
                     <td className="px-6 py-4.5">
                       <div className="flex items-center gap-1.5 font-medium text-foreground">
                         <User className="h-3.5 w-3.5 text-muted-foreground/60" />
-                        {platform.responsavel}
+                        {platform.responsavel || <span className="text-muted-foreground italic text-xs font-normal">Não informado</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4.5 space-y-1">
@@ -530,14 +530,13 @@ export function Platforms() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Responsável na Empresa *</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Responsável na Empresa</label>
                   <input
                     type="text"
                     placeholder="Ex: João da Silva"
                     value={responsavel}
                     onChange={(e) => setResponsavel(e.target.value)}
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
-                    required
                   />
                 </div>
                 <div>

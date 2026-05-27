@@ -510,7 +510,7 @@ model PlataformaGestao {
   cnpjSemMascara String
   telefone       String
   email          String
-  responsavel    String
+  responsavel    String?
   status         String   @default("ATIVO") // ATIVO, INATIVO
   observacoes    String?
   
