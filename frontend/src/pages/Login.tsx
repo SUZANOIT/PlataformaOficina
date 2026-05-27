@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 export function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -25,7 +27,16 @@ export function Login() {
         throw new Error(data.error || 'Erro ao fazer login');
       }
 
-      localStorage.setItem('token', data.token);
+      const mappedUser = {
+        id: data.user.id,
+        nome: data.user.name || data.user.nome || '',
+        email: data.user.email,
+        role: data.user.role || 'ADMIN'
+      };
+
+      login(data.token, mappedUser);
+      
+      // Navigate safely
       navigate('/');
     } catch (err: any) {
       setError(err.message);
