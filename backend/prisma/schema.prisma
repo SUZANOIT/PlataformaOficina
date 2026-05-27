@@ -15,12 +15,17 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      String   @default("ADMIN") // ADMIN, MANAGER, WORKSHOP, CLIENT
+  role      String   @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
   status    String   @default("ATIVO") // ATIVO, INATIVO
+  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([email])
+  @@index([companyId])
 }
 
 model Company {
@@ -30,14 +35,36 @@ model Company {
   cnpj             String   @unique
   cnpjSemMascara   String   @unique
   inscricaoEstadual String?
+  
+  // Cadastro da Oficina
+  endereco          String?
+  telefone          String?
+  whatsapp          String?
+  email             String?
+  logo              String?  // Base64 ou URL da logo personalizada
+  regimeTributario  String?  // Regime tributário da oficina
+  
+  parentCompanyId  String?
+  parentCompany    Company?  @relation("SubCompanies", fields: [parentCompanyId], references: [id])
+  subCompanies     Company[] @relation("SubCompanies")
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  
+  users            User[]
+  clients          Client[]
+  suppliers        Supplier[]
+  collaborators    Collaborator[]
+  vehicles         Vehicle[]
+  taxSettings      TaxSetting[]
+  emailConfigs     EmailConfig[]
   quotes           Quote[]
   financialPayables    FinancialPayable[]
   financialReceivables FinancialReceivable[]
   plataformasGestao    PlataformaGestao[]
 
   @@index([cnpj])
+  @@index([parentCompanyId])
 }
 
 model Client {
@@ -64,12 +91,16 @@ model Client {
   status             String   @default("ATIVO") // ATIVO, INATIVO
   veiculos           Vehicle[]
 
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   quotes    Quote[]
 
   @@index([email])
   @@index([cnpj])
+  @@index([companyId])
 }
 
 model Quote {
@@ -143,8 +174,13 @@ model EmailConfig {
   fromName  String?
   fromEmail String?
   
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model FinancialPayable {
@@ -265,10 +301,15 @@ model Supplier {
   estado             String?
   dataSituacao       String?
   atividadePrincipal String?
+  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([cnpj])
+  @@index([companyId])
 }
 
 model Vehicle {
@@ -301,6 +342,9 @@ model Vehicle {
   status             String   @default("ATIVO") // ATIVO, EM_MANUTENCAO, INATIVO, VENDIDO
   observacoes        String?
   
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
   events             VehicleEvent[]
@@ -310,6 +354,7 @@ model Vehicle {
 
   @@index([clienteId])
   @@index([placa])
+  @@index([companyId])
 }
 
 model ConsultaPlaca {
@@ -413,11 +458,16 @@ model Collaborator {
   salario            Float?
   status             String   @default("ATIVO") // ATIVO, INATIVO
   observacoes        String?
+  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([cpf])
   @@index([email])
+  @@index([companyId])
 }
 
 model PayableQuoteLink {
@@ -434,6 +484,22 @@ model PayableQuoteLink {
   @@index([payableId])
   @@index([quoteId])
   @@unique([payableId, quoteId])
+}
+
+model TaxSetting {
+  id        String   @id @default(uuid())
+  nome      String
+  aliquota  Float
+  tipo      String   @default("FATURAMENTO") // FATURAMENTO, RETENCAO, OUTRO
+  status    String   @default("ATIVO") // ATIVO, INATIVO
+  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model PlataformaGestao {
@@ -467,5 +533,3 @@ model PlataformaGestao {
   @@index([cnpj])
   @@index([companyId])
 }
-
-
