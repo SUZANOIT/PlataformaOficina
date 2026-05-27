@@ -35,7 +35,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
     return (
       <div
         ref={ref}
-        className="bg-white text-slate-900 p-12 w-[718px] min-h-[1012px] flex flex-col justify-between"
+        className="bg-white text-slate-900 p-8 w-[718px] min-h-[1012px] flex flex-col justify-between"
         style={{ fontFamily: "'Inter', 'Arial', sans-serif" }}
       >
         <style>{`
@@ -50,7 +50,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
 
         <div>
           {/* Header */}
-          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
             <div>
               <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight uppercase">
                 COMPROVANTE DE ADIANTAMENTO
@@ -82,7 +82,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
           </div>
 
           {/* Description banner */}
-          <div className="receipt-accent receipt-border p-5 rounded-xl mb-8 flex justify-between items-center">
+          <div className="receipt-accent receipt-border p-4 rounded-xl mb-5 flex justify-between items-center">
             <div>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Valor do Adiantamento</span>
               <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">
@@ -98,11 +98,11 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
           </div>
 
           {/* Collaborator Details */}
-          <div className="receipt-border rounded-xl p-5 mb-8">
-            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
+          <div className="receipt-border rounded-xl p-4 mb-5">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2 mb-3">
               Dados do Colaborador
             </h3>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-[12px]">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[12px]">
               <div>
                 <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Nome Completo</span>
                 <p className="font-bold text-slate-900 mt-0.5">{collaborator.nome}</p>
@@ -123,11 +123,11 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
           </div>
 
           {/* Details of Advance */}
-          <div className="receipt-border rounded-xl p-5 mb-8">
-            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2 mb-4">
+          <div className="receipt-border rounded-xl p-4 mb-5">
+            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2 mb-3">
               Detalhes e Status
             </h3>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-[12px] mb-4">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-[12px] mb-2">
               <div>
                 <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Status do Adiantamento</span>
                 <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider mt-1 ${
@@ -150,7 +150,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
               )}
             </div>
             {advance.observacoes && (
-              <div className="text-[11px] text-slate-600 mt-4 p-3 bg-slate-50 border border-slate-100 rounded-lg whitespace-pre-wrap leading-relaxed">
+              <div className="text-[11px] text-slate-600 mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg whitespace-pre-wrap leading-relaxed">
                 <span className="font-bold text-slate-800 block mb-1 uppercase tracking-wide">Observações:</span>
                 {advance.observacoes}
               </div>
@@ -158,14 +158,13 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
           </div>
 
           {/* Declaration Statement */}
-          <p className="text-[10px] text-slate-500 leading-relaxed text-center px-4 mb-8">
-            Declaro para os devidos fins que recebi a importância de <span className="font-bold text-slate-800">{formatCurrency(advance.valor)}</span>, 
-            a título de adiantamento salarial, valor este que concordo expressamente que seja descontado integralmente em meu próximo demonstrativo de pagamento de salário (folha de pagamento), nos termos do Artigo 462 da CLT.
+          <p className="text-[10px] text-slate-500 leading-relaxed text-center px-4 mb-6">
+            Declaro para os devidos fins que recebi a importância de <span className="font-bold text-slate-800">{formatCurrency(advance.valor)}</span>, a título de adiantamento salarial.
           </p>
         </div>
 
         {/* Dual Signature Blocks */}
-        <div className="mt-16">
+        <div className="mt-10">
           <div className="grid grid-cols-2 gap-12 text-center text-xs">
             <div className="flex flex-col items-center">
               <div className="w-full border-t border-slate-400 pt-2 max-w-[240px]">
@@ -182,7 +181,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
           </div>
 
           {/* Footer Metadata */}
-          <div className="border-t border-slate-100 pt-4 mt-12 flex justify-between items-center text-[9px] text-slate-400 font-medium">
+          <div className="border-t border-slate-100 pt-4 mt-8 flex justify-between items-center text-[9px] text-slate-400 font-medium">
             <span>Comprovante gerado via Sistema SuzanoIT Gestão</span>
             <span>Impresso em: {new Date().toLocaleString('pt-BR')}</span>
           </div>
