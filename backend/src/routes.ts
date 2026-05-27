@@ -5,6 +5,7 @@ import { QuoteController } from './controllers/quote.controller';
 import { EmailController } from './controllers/email.controller';
 import { FinancialController } from './controllers/financial.controller';
 import { RegistryController } from './controllers/registry.controller';
+import { PlatformController } from './controllers/platform.controller';
 import { fleetController } from './controllers/fleet.controller';
 import jwt from 'jsonwebtoken';
 
@@ -72,6 +73,11 @@ routes.get('/registry/collaborators', RegistryController.listCollaborators);
 routes.post('/registry/collaborators', RegistryController.createCollaborator);
 routes.put('/registry/collaborators/:id', RegistryController.updateCollaborator);
 routes.delete('/registry/collaborators/:id', RegistryController.deleteCollaborator);
+
+routes.get('/registry/platforms', PlatformController.list);
+routes.post('/registry/platforms', PlatformController.create);
+routes.put('/registry/platforms/:id', PlatformController.update);
+routes.delete('/registry/platforms/:id', PlatformController.delete);
 
 
 // Dashboard

@@ -32,6 +32,8 @@ const createQuoteSchema = z.object({
   veiculoModelo: z.string().nullish(),
   veiculoAno: z.string().nullish(),
   veiculoPlaca: z.string().nullish(),
+  plataformaGestaoId: z.string().nullish(),
+  osExterna: z.string().max(100).nullish(),
   items: z.array(z.object({
     descricao: z.string(),
     quantidade: z.number(),
@@ -52,6 +54,7 @@ export const QuoteController = {
           client: true,
           company: true,
           items: true,
+          plataformaGestao: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -231,6 +234,8 @@ export const QuoteController = {
           veiculoModelo: data.veiculoModelo,
           veiculoAno: data.veiculoAno,
           veiculoPlaca: data.veiculoPlaca,
+          plataformaGestaoId: data.plataformaGestaoId,
+          osExterna: data.osExterna,
           subtotal: data.subtotal,
           total: data.total,
           status: data.status,
@@ -241,7 +246,8 @@ export const QuoteController = {
         include: {
           items: true,
           client: true,
-          company: true
+          company: true,
+          plataformaGestao: true
         }
       });
 
@@ -274,7 +280,8 @@ export const QuoteController = {
         include: {
           items: true,
           client: true,
-          company: true
+          company: true,
+          plataformaGestao: true
         }
       });
 
@@ -336,6 +343,8 @@ export const QuoteController = {
           veiculoModelo: data.veiculoModelo,
           veiculoAno: data.veiculoAno,
           veiculoPlaca: data.veiculoPlaca,
+          plataformaGestaoId: data.plataformaGestaoId,
+          osExterna: data.osExterna,
           subtotal: data.subtotal,
           total: data.total,
           status: data.status,
@@ -347,7 +356,8 @@ export const QuoteController = {
         include: {
           items: true,
           client: true,
-          company: true
+          company: true,
+          plataformaGestao: true
         }
       });
 

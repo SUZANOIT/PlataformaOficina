@@ -35,6 +35,7 @@ model Company {
   quotes           Quote[]
   financialPayables    FinancialPayable[]
   financialReceivables FinancialReceivable[]
+  plataformasGestao    PlataformaGestao[]
 
   @@index([cnpj])
 }
@@ -104,11 +105,16 @@ model Quote {
   financialReceivables FinancialReceivable[]
   linkedPayables      PayableQuoteLink[]
   
+  plataformaGestaoId  String?
+  plataformaGestao    PlataformaGestao? @relation(fields: [plataformaGestaoId], references: [id], onDelete: SetNull)
+  osExterna           String?
+  
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
   @@index([companyId])
   @@index([clientId])
+  @@index([plataformaGestaoId])
 }
 
 model QuoteItem {
@@ -429,4 +435,37 @@ model PayableQuoteLink {
   @@index([quoteId])
   @@unique([payableId, quoteId])
 }
+
+model PlataformaGestao {
+  id             String   @id @default(uuid())
+  razaoSocial    String
+  nomeFantasia   String
+  cnpj           String
+  cnpjSemMascara String
+  telefone       String
+  email          String
+  responsavel    String
+  status         String   @default("ATIVO") // ATIVO, INATIVO
+  observacoes    String?
+  
+  // Endereço
+  endereco       String?
+  cidade         String?
+  estado         String?
+  cep            String?
+
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id])
+
+  quotes         Quote[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([companyId, cnpj])
+  @@unique([companyId, cnpjSemMascara])
+  @@index([cnpj])
+  @@index([companyId])
+}
+
 

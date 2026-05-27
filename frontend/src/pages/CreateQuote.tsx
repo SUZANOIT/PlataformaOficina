@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, FileDown, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { quoteService } from '../services/quoteService';
+import { platformService } from '../services/platformService';
 import { QuotePdfTemplate } from '../components/QuotePdfTemplate';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
 
@@ -32,6 +33,8 @@ type QuoteFormValues = {
   validade: string;
   garantia: string;
   prazoExecucao: string;
+  plataformaGestaoId?: string;
+  osExterna?: string;
   items: {
     descricao: string;
     quantidade: number;
@@ -65,6 +68,24 @@ export function CreateQuote() {
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
   const [isMobile, setIsMobile] = useState(false);
+
+  // Platform Integration States
+  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [searchPlatformTerm, setSearchPlatformTerm] = useState('');
+  const [showPlatformsDropdown, setShowPlatformsDropdown] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchPlatformsList = async () => {
+      try {
+        const res = await platformService.list({ limit: 200 });
+        setPlatforms(res.data || []);
+      } catch (error) {
+        console.error("Failed to load active platforms", error);
+      }
+    };
+    fetchPlatformsList();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -111,7 +132,9 @@ export function CreateQuote() {
       veiculoModelo: '',
       veiculoAno: '',
       veiculoPlaca: '',
-      status: 'Aguardando Aprovação'
+      status: 'Aguardando Aprovação',
+      plataformaGestaoId: '',
+      osExterna: ''
     }
   });
 
@@ -144,6 +167,8 @@ export function CreateQuote() {
           veiculoModelo: data.veiculoModelo || '',
           veiculoAno: data.veiculoAno || '',
           veiculoPlaca: data.veiculoPlaca || '',
+          plataformaGestaoId: data.plataformaGestaoId || '',
+          osExterna: data.osExterna || '',
           items: data.items.map((i: any) => ({
             descricao: i.descricao,
             quantidade: i.quantidade,
@@ -155,6 +180,13 @@ export function CreateQuote() {
         };
         
         reset(formData);
+        if (data.plataformaGestao) {
+          setSelectedPlatform(data.plataformaGestao);
+          setSearchPlatformTerm(data.plataformaGestao.nomeFantasia);
+        } else {
+          setSelectedPlatform(null);
+          setSearchPlatformTerm('');
+        }
       } catch (error) {
         toast.error('Erro ao carregar os dados do orçamento.');
         console.error(error);
@@ -340,11 +372,130 @@ export function CreateQuote() {
           </div>
         </div>
 
-        {/* Section 2: Cliente */}
+        {/* Section 2: Integração / Plataforma de Gestão */}
+        <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">2</span>
+            Integração / Plataforma de Gestão
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* ComboBox Busca de Plataforma */}
+            <div className="space-y-2 relative">
+              <label className="text-sm font-medium">Plataforma de Gestão (Busca Dinâmica)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar plataforma por Nome Fantasia, Razão ou CNPJ..."
+                  value={searchPlatformTerm}
+                  onChange={(e) => {
+                    setSearchPlatformTerm(e.target.value);
+                    setShowPlatformsDropdown(true);
+                    if (!e.target.value) {
+                      setSelectedPlatform(null);
+                      setValue('plataformaGestaoId', '');
+                    }
+                  }}
+                  onFocus={() => setShowPlatformsDropdown(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowPlatformsDropdown(false), 250);
+                  }}
+                  className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  autoComplete="off"
+                />
+                
+                {selectedPlatform && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlatform(null);
+                      setSearchPlatformTerm('');
+                      setValue('plataformaGestaoId', '');
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground font-bold p-1 bg-secondary/60 hover:bg-secondary rounded-sm transition-all text-xs"
+                    title="Limpar plataforma"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Autocomplete Dropdown list */}
+              {showPlatformsDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  {platforms
+                    .filter(p => {
+                      const isCurrentSelected = selectedPlatform?.id === p.id;
+                      if (!isCurrentSelected && p.status !== 'ATIVO') return false;
+
+                      const query = searchPlatformTerm.toLowerCase();
+                      return (
+                        p.nomeFantasia.toLowerCase().includes(query) ||
+                        p.razaoSocial.toLowerCase().includes(query) ||
+                        p.cnpj.replace(/\D/g, '').includes(query)
+                      );
+                    })
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlatform(p);
+                          setSearchPlatformTerm(p.nomeFantasia);
+                          setValue('plataformaGestaoId', p.id);
+                          setShowPlatformsDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm hover:bg-muted/70 transition-colors flex items-center justify-between gap-2 ${
+                          selectedPlatform?.id === p.id ? 'bg-primary/5 font-semibold' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-foreground">{p.nomeFantasia}</span>
+                          <span className="text-xs text-muted-foreground font-normal">CNPJ: {p.cnpj}</span>
+                        </div>
+                        {p.status === 'INATIVO' && (
+                          <span className="text-[10px] bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded-full font-bold">
+                            Inativa (Antiga)
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  {platforms.filter(p => {
+                    const isCurrentSelected = selectedPlatform?.id === p.id;
+                    if (!isCurrentSelected && p.status !== 'ATIVO') return false;
+                    const query = searchPlatformTerm.toLowerCase();
+                    return (
+                      p.nomeFantasia.toLowerCase().includes(query) ||
+                      p.razaoSocial.toLowerCase().includes(query) ||
+                      p.cnpj.replace(/\D/g, '').includes(query)
+                    );
+                  }).length === 0 && (
+                    <div className="px-4 py-3 text-xs text-muted-foreground text-center">
+                      Nenhuma plataforma ativa encontrada.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Campo OS Externa */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nº da OS Externa (Opcional - Máx. 100 caracteres)</label>
+              <input
+                type="text"
+                maxLength={100}
+                placeholder="Ex: OS-9874A, Seguradora X..."
+                {...register('osExterna')}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Cliente */}
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-0">
-              <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">2</span>
+              <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">3</span>
               Dados do Cliente
             </h2>
             <button
@@ -528,11 +679,11 @@ export function CreateQuote() {
           )}
         </div>
 
-        {/* Section 3: Itens */}
+        {/* Section 4: Itens */}
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">3</span>
+              <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">4</span>
               Itens do Orçamento
             </h2>
           </div>
@@ -707,10 +858,10 @@ export function CreateQuote() {
           </div>
         </div>
 
-        {/* Section 4: Condições e Informações Extras */}
+        {/* Section 5: Condições e Informações Extras */}
         <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">4</span>
+            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">5</span>
             Condições e Observações
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

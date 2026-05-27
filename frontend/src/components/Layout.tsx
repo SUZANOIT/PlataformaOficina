@@ -151,6 +151,14 @@ export function Layout() {
                   <UserCheck size={16} className="text-muted-foreground" />
                   <span>Colaboradores</span>
                 </Link>
+                <Link 
+                  to="/platforms" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Plataformas de Gestão</span>
+                </Link>
               </div>
             )}
           </div>
@@ -382,6 +390,13 @@ export function Layout() {
                 >
                   <UserCheck size={16} className="text-muted-foreground" />
                   <span>Colaboradores</span>
+                </Link>
+                <Link 
+                  to="/platforms" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <Building size={16} className="text-muted-foreground" />
+                  <span>Plataformas de Gestão</span>
                 </Link>
               </div>
             )}
