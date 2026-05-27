@@ -9,7 +9,7 @@ const platformSchema = zod_1.z.object({
     cnpj: zod_1.z.string().min(14, 'CNPJ inválido'),
     telefone: zod_1.z.string().min(1, 'Telefone é obrigatório'),
     email: zod_1.z.string().email('E-mail inválido'),
-    responsavel: zod_1.z.string().min(1, 'Responsável é obrigatório'),
+    responsavel: zod_1.z.string().optional().nullable(),
     status: zod_1.z.enum(['ATIVO', 'INATIVO']).default('ATIVO'),
     observacoes: zod_1.z.string().optional().nullable(),
     endereco: zod_1.z.string().optional().nullable(),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, X, Search, User, Phone, Mail, Award, Calendar, DollarSign, Coins, FileDown, Printer, History } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, User, Phone, Mail, Award, Calendar, DollarSign, Coins, Printer, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { AdvancePdfTemplate } from '../components/AdvancePdfTemplate';
@@ -30,7 +30,7 @@ export function Collaborators() {
   // PDF Ref & states
   const [selectedAdvanceForPdf, setSelectedAdvanceForPdf] = useState<any>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
-  const { generatePdf, isGeneratingPdf } = useGeneratePdf();
+  const { generatePdf } = useGeneratePdf();
   
   // Form states
   const [nome, setNome] = useState('');

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { authStorage, UserProfile } from '../utils/auth';
+import { authStorage } from '../utils/auth';
+import type { UserProfile } from '../utils/auth';
 import { AUTH_EXPIRED_EVENT } from '../services/api';
 import { toast } from 'sonner';
 

@@ -107,6 +107,13 @@ exports.FinancialController = {
             });
             const receivables = await prisma_1.prisma.financialReceivable.findMany({
                 where: filterReceivable,
+                include: {
+                    quote: {
+                        include: {
+                            plataformaGestao: true,
+                        },
+                    },
+                },
             });
             // Cálculo de KPIs Básicos
             const totalContasPagar = payables.reduce((sum, p) => sum + p.valor, 0);
@@ -183,6 +190,12 @@ exports.FinancialController = {
                 const center = p.centroCusto || 'Geral';
                 contasPorCentroCusto[center] = (contasPorCentroCusto[center] || 0) + p.valor;
             });
+            // G) Receita por plataforma de gestão
+            const receitaPorPlataforma = {};
+            receivables.forEach(r => {
+                const platformName = r.quote?.plataformaGestao?.nomeFantasia || 'Sem plataforma';
+                receitaPorPlataforma[platformName] = (receitaPorPlataforma[platformName] || 0) + r.valor;
+            });
             return res.json({
                 kpis: {
                     totalContasPagar,
@@ -202,7 +215,8 @@ exports.FinancialController = {
                     contasPorStatus,
                     contasPorEmpresa,
                     contasPorCentroCusto,
-                    fluxoMensal
+                    fluxoMensal,
+                    receitaPorPlataforma
                 }
             });
         }
