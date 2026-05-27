@@ -212,6 +212,7 @@ model FinancialPayable {
   attachments           FinancialAttachment[]
   audits                FinancialAudit[]
   linkedQuotes          PayableQuoteLink[]
+  salaryAdvance         SalaryAdvance?
   
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -461,6 +462,7 @@ model Collaborator {
   
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
+  advances  SalaryAdvance[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -532,4 +534,35 @@ model PlataformaGestao {
   @@unique([companyId, cnpjSemMascara])
   @@index([cnpj])
   @@index([companyId])
+}
+
+model SalaryAdvance {
+  id                String             @id @default(uuid())
+  collaboratorId    String
+  collaborator      Collaborator       @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  valor             Float
+  formaPagamento    String
+  status            String             @default("PENDENTE") // PENDENTE, DESCONTADO_EM_FOLHA
+  data              DateTime           @default(now())
+  responsavel       String
+  observacoes       String?
+  numeroComprovante String             @unique
+  payableId         String?            @unique
+  payable           FinancialPayable?  @relation(fields: [payableId], references: [id], onDelete: SetNull)
+  pdfs              SalaryAdvancePdf[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([collaboratorId])
+  @@index([payableId])
+}
+
+model SalaryAdvancePdf {
+  id              String        @id @default(uuid())
+  salaryAdvanceId String
+  salaryAdvance   SalaryAdvance @relation(fields: [salaryAdvanceId], references: [id], onDelete: Cascade)
+  fileName        String
+  generatedAt     DateTime      @default(now())
+
+  @@index([salaryAdvanceId])
 }

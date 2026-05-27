@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, User, Phone, Mail, Award, Calendar, DollarSign } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Edit, Trash2, X, Search, User, Phone, Mail, Award, Calendar, DollarSign, Coins, FileDown, Printer, History } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGeneratePdf } from '../hooks/useGeneratePdf';
+import { AdvancePdfTemplate } from '../components/AdvancePdfTemplate';
 
 export function Collaborators() {
   const [collaborators, setCollaborators] = useState<any[]>([]);
@@ -9,6 +11,26 @@ export function Collaborators() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
+  
+  // Advances modal state
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [currentCollabForAdvance, setCurrentCollabForAdvance] = useState<any>(null);
+  const [advances, setAdvances] = useState<any[]>([]);
+  const [loadingAdvances, setLoadingAdvances] = useState(false);
+
+  // New advance form state
+  const [isCreateAdvanceFormOpen, setIsCreateAdvanceFormOpen] = useState(false);
+  const [advanceValor, setAdvanceValor] = useState('');
+  const [advanceFormaPagamento, setAdvanceFormaPagamento] = useState('PIX');
+  const [advanceData, setAdvanceData] = useState(new Date().toISOString().substring(0, 10));
+  const [advanceObservacoes, setAdvanceObservacoes] = useState('');
+  const [savingAdvance, setSavingAdvance] = useState(false);
+
+  // PDF Ref & states
+  const [selectedAdvanceForPdf, setSelectedAdvanceForPdf] = useState<any>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
+  const { generatePdf, isGeneratingPdf } = useGeneratePdf();
   
   // Form states
   const [nome, setNome] = useState('');
@@ -38,9 +60,209 @@ export function Collaborators() {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/companies', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data);
+      }
+    } catch (error) {
+      console.error("Failed to load companies", error);
+    }
+  };
+
   useEffect(() => {
     fetchCollaborators();
+    fetchCompanies();
   }, []);
+
+  const fetchAdvances = async (collabId: string) => {
+    setLoadingAdvances(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/registry/collaborators/${collabId}/advances`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAdvances(data);
+      } else {
+        toast.error("Erro ao carregar adiantamentos.");
+      }
+    } catch (error) {
+      console.error("Failed to load advances", error);
+      toast.error("Erro de conexão ao carregar adiantamentos.");
+    } finally {
+      setLoadingAdvances(false);
+    }
+  };
+
+  const handleOpenAdvanceModal = (collab: any) => {
+    setCurrentCollabForAdvance(collab);
+    setAdvances([]);
+    setIsAdvanceModalOpen(true);
+    setIsCreateAdvanceFormOpen(false);
+    // Reset form fields
+    setAdvanceValor('');
+    setAdvanceFormaPagamento('PIX');
+    setAdvanceData(new Date().toISOString().substring(0, 10));
+    setAdvanceObservacoes('');
+    
+    fetchAdvances(collab.id);
+  };
+
+  const handleSaveAdvance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!advanceValor || parseFloat(advanceValor) <= 0) {
+      toast.error("Por favor, insira um valor válido para o adiantamento.");
+      return;
+    }
+
+    setSavingAdvance(true);
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        valor: parseFloat(advanceValor),
+        formaPagamento: advanceFormaPagamento,
+        data: advanceData ? new Date(advanceData).toISOString() : null,
+        observacoes: advanceObservacoes || null
+      };
+
+      const response = await fetch(`/registry/collaborators/${currentCollabForAdvance.id}/advances`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const newAdvance = await response.json();
+        toast.success("Adiantamento cadastrado com sucesso!");
+        
+        // Clear form
+        setAdvanceValor('');
+        setAdvanceFormaPagamento('PIX');
+        setAdvanceData(new Date().toISOString().substring(0, 10));
+        setAdvanceObservacoes('');
+        setIsCreateAdvanceFormOpen(false);
+
+        // Refresh advances list
+        await fetchAdvances(currentCollabForAdvance.id);
+
+        // Auto trigger PDF generation for this new advance!
+        handleDownloadPdf(newAdvance);
+      } else {
+        const errData = await response.json();
+        toast.error(errData.error || "Erro ao cadastrar adiantamento.");
+      }
+    } catch (error) {
+      console.error("Failed to save advance", error);
+      toast.error("Erro de conexão ao salvar adiantamento.");
+    } finally {
+      setSavingAdvance(false);
+    }
+  };
+
+  const handleToggleAdvanceStatus = async (advanceId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'PENDENTE' ? 'DESCONTADO_EM_FOLHA' : 'PENDENTE';
+    const message = newStatus === 'DESCONTADO_EM_FOLHA' 
+      ? 'Deseja marcar este adiantamento como "Descontado em Folha"?'
+      : 'Deseja reverter o adiantamento para "Pendente"?';
+
+    if (!window.confirm(message)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/registry/collaborators/advances/${advanceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        toast.success("Status atualizado com sucesso!");
+        fetchAdvances(currentCollabForAdvance.id);
+      } else {
+        toast.error("Erro ao atualizar status.");
+      }
+    } catch (error) {
+      console.error("Failed to update status", error);
+      toast.error("Erro de conexão.");
+    }
+  };
+
+  const handleDeleteAdvance = async (advanceId: string) => {
+    if (!window.confirm("Tem certeza de que deseja excluir este adiantamento? Esta ação também removerá o lançamento financeiro associado.")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/registry/collaborators/advances/${advanceId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        toast.success("Adiantamento excluído com sucesso!");
+        fetchAdvances(currentCollabForAdvance.id);
+      } else {
+        toast.error("Erro ao excluir adiantamento.");
+      }
+    } catch (error) {
+      console.error("Failed to delete advance", error);
+      toast.error("Erro de conexão.");
+    }
+  };
+
+  const handleDownloadPdf = async (advance: any) => {
+    // Set active advance
+    setSelectedAdvanceForPdf(advance);
+    
+    // Wait for the DOM to update so the PDF template renders off-screen
+    setTimeout(async () => {
+      if (!pdfRef.current) {
+        toast.error("Erro ao preparar documento de comprovante.");
+        return;
+      }
+
+      const fileName = `Comprovante_Adiantamento_${advance.numeroComprovante}.pdf`;
+      try {
+        const success = await generatePdf(pdfRef.current, fileName);
+        if (success) {
+          toast.success("Comprovante baixado com sucesso!");
+          
+          // Log pdf generation in backend history logs
+          const token = localStorage.getItem('token');
+          await fetch(`/registry/collaborators/advances/${advance.id}/pdf`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ fileName })
+          });
+          
+          // Refresh list to show new log in print history
+          fetchAdvances(currentCollabForAdvance.id);
+        } else {
+          toast.error("Falha ao gerar o PDF.");
+        }
+      } catch (error) {
+        console.error("Failed to generate PDF receipt", error);
+        toast.error("Erro ao gerar arquivo PDF.");
+      }
+    }, 450);
+  };
 
   const handleOpenCreateModal = () => {
     setSelectedCollaborator(null);
@@ -254,6 +476,13 @@ export function Collaborators() {
                   <td className="p-4">
                     <div className="flex gap-2">
                       <button 
+                        onClick={() => handleOpenAdvanceModal(collab)}
+                        className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition"
+                        title="Adiantamentos Salariais"
+                      >
+                        <Coins size={14} />
+                      </button>
+                      <button 
                         onClick={() => handleOpenEditModal(collab)}
                         className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
                         title="Editar"
@@ -313,6 +542,13 @@ export function Collaborators() {
             <div className="flex justify-between items-center pt-2.5 border-t border-border/50">
               <span className="text-[10px] text-muted-foreground">Criado em: {new Date(collab.createdAt).toLocaleDateString('pt-BR')}</span>
               <div className="flex gap-2">
+                <button 
+                  onClick={() => handleOpenAdvanceModal(collab)}
+                  className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition"
+                  title="Adiantamentos"
+                >
+                  <Coins size={12} />
+                </button>
                 <button 
                   onClick={() => handleOpenEditModal(collab)}
                   className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
@@ -505,6 +741,283 @@ export function Collaborators() {
           </div>
         </div>
       )}
+
+      {/* Modal de Gestão de Adiantamentos Salariais */}
+      {isAdvanceModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
+              <div className="flex items-center gap-2">
+                <Coins className="text-emerald-500 animate-pulse" size={22} />
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Gestão de Adiantamentos Salariais
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Colaborador: <span className="font-semibold text-foreground">{currentCollabForAdvance?.nome}</span>
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAdvanceModalOpen(false)}
+                className="p-1.5 hover:bg-muted rounded-lg transition text-muted-foreground hover:text-foreground"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Employee Summary Card */}
+              <div className="bg-muted/40 border border-border p-4 rounded-xl flex flex-wrap gap-6 justify-between items-center text-sm shadow-sm">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">CPF</span>
+                  <span className="font-mono font-medium text-foreground">{currentCollabForAdvance?.cpf || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Cargo</span>
+                  <span className="font-medium text-foreground">{currentCollabForAdvance?.cargo || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Departamento</span>
+                  <span className="font-medium text-foreground">{currentCollabForAdvance?.departamento || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Salário Base</span>
+                  <span className="font-bold text-emerald-600">
+                    {currentCollabForAdvance?.salario !== null && currentCollabForAdvance?.salario !== undefined
+                      ? formatCurrency(currentCollabForAdvance.salario)
+                      : 'Não informado'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action and Form Row */}
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                  Histórico de Lançamentos
+                  <span className="bg-emerald-500/10 text-emerald-600 text-xs px-2 py-0.5 rounded-full font-bold">
+                    {advances.length}
+                  </span>
+                </h4>
+                {!isCreateAdvanceFormOpen && (
+                  <button
+                    onClick={() => setIsCreateAdvanceFormOpen(true)}
+                    className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white font-semibold py-2 px-3 rounded-lg hover:bg-emerald-700 transition animate-bounce"
+                  >
+                    <Plus size={14} /> Novo Adiantamento
+                  </button>
+                )}
+              </div>
+
+              {/* Create Advance Form */}
+              {isCreateAdvanceFormOpen && (
+                <form onSubmit={handleSaveAdvance} className="bg-card border border-emerald-500/30 p-5 rounded-xl space-y-4 shadow-md animate-in slide-in-from-top-4 duration-200">
+                  <div className="flex justify-between items-center border-b border-border pb-2">
+                    <h5 className="font-bold text-xs text-foreground uppercase tracking-wider">
+                      Registrar Novo Adiantamento
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateAdvanceFormOpen(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                        Valor (R$) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={advanceValor}
+                        onChange={(e) => setAdvanceValor(e.target.value)}
+                        placeholder="Ex: 500.00"
+                        className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                        Forma de Pagamento *
+                      </label>
+                      <select
+                        required
+                        value={advanceFormaPagamento}
+                        onChange={(e) => setAdvanceFormaPagamento(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                      >
+                        <option value="PIX">PIX</option>
+                        <option value="Transferência Bancária">Transferência Bancária</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cheque">Cheque</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                        Data do Adiantamento *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={advanceData}
+                        onChange={(e) => setAdvanceData(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Observações / Justificativa
+                    </label>
+                    <textarea
+                      value={advanceObservacoes}
+                      onChange={(e) => setAdvanceObservacoes(e.target.value)}
+                      placeholder="Indique observações relevantes ou motivo..."
+                      rows={2}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateAdvanceFormOpen(false)}
+                      className="px-3 py-1.5 bg-muted text-foreground text-xs font-semibold rounded-lg hover:bg-muted/80 transition"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingAdvance}
+                      className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
+                    >
+                      {savingAdvance ? 'Salvando...' : 'Salvar e Gerar Comprovante'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Advances History Table */}
+              <div className="border border-border rounded-xl overflow-hidden bg-card/50">
+                {loadingAdvances ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Carregando histórico...
+                  </div>
+                ) : advances.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Nenhum adiantamento salarial registrado para este colaborador.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-muted/30 border-b border-border">
+                          <th className="p-3 font-bold text-muted-foreground">Emissão / Comprovante</th>
+                          <th className="p-3 font-bold text-muted-foreground">Valor</th>
+                          <th className="p-3 font-bold text-muted-foreground">Forma de Pagamento</th>
+                          <th className="p-3 font-bold text-muted-foreground">Status</th>
+                          <th className="p-3 font-bold text-muted-foreground">Lançamento / Histórico</th>
+                          <th className="p-3 font-bold text-muted-foreground text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {advances.map((adv) => (
+                          <tr key={adv.id} className="border-b border-border/50 hover:bg-muted/10 transition">
+                            <td className="p-3">
+                              <span className="font-bold text-foreground block text-xs">
+                                {new Date(adv.data).toLocaleDateString('pt-BR')}
+                              </span>
+                              <span className="font-mono text-[9px] text-muted-foreground block mt-0.5">
+                                {adv.numeroComprovante}
+                              </span>
+                            </td>
+                            <td className="p-3 font-bold text-foreground text-xs">
+                              {formatCurrency(adv.valor)}
+                            </td>
+                            <td className="p-3 text-muted-foreground uppercase text-xs">
+                              {adv.formaPagamento}
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => handleToggleAdvanceStatus(adv.id, adv.status)}
+                                className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition ${
+                                  adv.status === 'DESCONTADO_EM_FOLHA' 
+                                    ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20' 
+                                    : 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
+                                }`}
+                                title="Clique para alterar status"
+                              >
+                                {adv.status === 'DESCONTADO_EM_FOLHA' ? 'Descontado em Folha' : 'Pendente'}
+                              </button>
+                            </td>
+                            <td className="p-3 text-muted-foreground text-[10px]">
+                              <div className="flex flex-col gap-0.5">
+                                <span>Por: {adv.responsavel}</span>
+                                {adv.pdfs && adv.pdfs.length > 0 ? (
+                                  <span className="text-[9px] text-slate-400 flex items-center gap-1 font-semibold">
+                                    <History size={10} /> {adv.pdfs.length} via(s) gerada(s)
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] text-amber-500 font-semibold">Nunca gerado</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => handleDownloadPdf(adv)}
+                                  className="p-1.5 bg-slate-500/10 text-slate-600 rounded hover:bg-slate-500/20 transition"
+                                  title="Baixar Comprovante (PDF)"
+                                >
+                                  <Printer size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAdvance(adv.id)}
+                                  className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
+                                  title="Excluir Adiantamento"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border flex justify-end bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setIsAdvanceModalOpen(false)}
+                className="px-4 py-2 bg-muted text-foreground font-semibold rounded-xl hover:bg-muted/80 transition text-sm"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Container invisível para geração do PDF */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        {selectedAdvanceForPdf && (
+          <AdvancePdfTemplate
+            ref={pdfRef}
+            advance={selectedAdvanceForPdf}
+            collaborator={currentCollabForAdvance}
+            company={companies.find(c => c.id === currentCollabForAdvance?.companyId) || companies[0]}
+          />
+        )}
+      </div>
     </div>
   );
 }

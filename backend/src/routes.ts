@@ -7,6 +7,7 @@ import { FinancialController } from './controllers/financial.controller';
 import { RegistryController } from './controllers/registry.controller';
 import { PlatformController } from './controllers/platform.controller';
 import { fleetController } from './controllers/fleet.controller';
+import { AdvanceController } from './controllers/advance.controller';
 import jwt from 'jsonwebtoken';
 
 const routes = Router();
@@ -104,6 +105,12 @@ routes.get('/registry/collaborators', RegistryController.listCollaborators);
 routes.post('/registry/collaborators', RegistryController.createCollaborator);
 routes.put('/registry/collaborators/:id', RegistryController.updateCollaborator);
 routes.delete('/registry/collaborators/:id', RegistryController.deleteCollaborator);
+
+routes.get('/registry/collaborators/:id/advances', AdvanceController.listAdvances);
+routes.post('/registry/collaborators/:id/advances', AdvanceController.createAdvance);
+routes.put('/registry/collaborators/advances/:advanceId', AdvanceController.updateAdvanceStatus);
+routes.delete('/registry/collaborators/advances/:advanceId', AdvanceController.deleteAdvance);
+routes.post('/registry/collaborators/advances/:advanceId/pdf', AdvanceController.logPdfGeneration);
 
 routes.get('/registry/platforms', PlatformController.list);
 routes.post('/registry/platforms', PlatformController.create);
