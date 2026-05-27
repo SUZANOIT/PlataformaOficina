@@ -25,6 +25,8 @@ export function Collaborators() {
   const [advanceFormaPagamento, setAdvanceFormaPagamento] = useState('PIX');
   const [advanceData, setAdvanceData] = useState(new Date().toISOString().substring(0, 10));
   const [advanceObservacoes, setAdvanceObservacoes] = useState('');
+  const [advanceOficinaId, setAdvanceOficinaId] = useState('');
+  const [workshops, setWorkshops] = useState<any[]>([]);
   const [savingAdvance, setSavingAdvance] = useState(false);
 
   // PDF Ref & states
@@ -75,9 +77,25 @@ export function Collaborators() {
     }
   };
 
+  const fetchWorkshops = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/fleet/workshops', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setWorkshops(data);
+      }
+    } catch (error) {
+      console.error("Failed to load workshops", error);
+    }
+  };
+
   useEffect(() => {
     fetchCollaborators();
     fetchCompanies();
+    fetchWorkshops();
   }, []);
 
   const fetchAdvances = async (collabId: string) => {
@@ -111,6 +129,7 @@ export function Collaborators() {
     setAdvanceFormaPagamento('PIX');
     setAdvanceData(new Date().toISOString().substring(0, 10));
     setAdvanceObservacoes('');
+    setAdvanceOficinaId('');
     
     fetchAdvances(collab.id);
   };
@@ -129,7 +148,8 @@ export function Collaborators() {
         valor: parseFloat(advanceValor),
         formaPagamento: advanceFormaPagamento,
         data: advanceData ? new Date(advanceData).toISOString() : null,
-        observacoes: advanceObservacoes || null
+        observacoes: advanceObservacoes || null,
+        oficinaId: advanceOficinaId || null
       };
 
       const response = await fetch(`/registry/collaborators/${currentCollabForAdvance.id}/advances`, {
@@ -825,7 +845,7 @@ export function Collaborators() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground mb-1">
                         Valor (R$) *
@@ -867,6 +887,24 @@ export function Collaborators() {
                         onChange={(e) => setAdvanceData(e.target.value)}
                         className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                        Oficina Vinculada *
+                      </label>
+                      <select
+                        required
+                        value={advanceOficinaId}
+                        onChange={(e) => setAdvanceOficinaId(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2 text-sm focus:outline-none focus:border-primary text-foreground"
+                      >
+                        <option value="">Selecione uma oficina...</option>
+                        {workshops.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.nome}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -920,6 +958,7 @@ export function Collaborators() {
                           <th className="p-3 font-bold text-muted-foreground">Emissão / Comprovante</th>
                           <th className="p-3 font-bold text-muted-foreground">Valor</th>
                           <th className="p-3 font-bold text-muted-foreground">Forma de Pagamento</th>
+                          <th className="p-3 font-bold text-muted-foreground">Oficina</th>
                           <th className="p-3 font-bold text-muted-foreground">Status</th>
                           <th className="p-3 font-bold text-muted-foreground">Lançamento / Histórico</th>
                           <th className="p-3 font-bold text-muted-foreground text-right">Ações</th>
@@ -941,6 +980,9 @@ export function Collaborators() {
                             </td>
                             <td className="p-3 text-muted-foreground uppercase text-xs">
                               {adv.formaPagamento}
+                            </td>
+                            <td className="p-3 text-muted-foreground text-xs font-semibold">
+                              {adv.oficina ? adv.oficina.nome : <span className="text-slate-400">—</span>}
                             </td>
                             <td className="p-3">
                               <button

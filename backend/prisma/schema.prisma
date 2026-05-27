@@ -380,6 +380,7 @@ model Oficina {
   
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
+  salaryAdvances     SalaryAdvance[]
   
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -550,11 +551,16 @@ model SalaryAdvance {
   payableId         String?            @unique
   payable           FinancialPayable?  @relation(fields: [payableId], references: [id], onDelete: SetNull)
   pdfs              SalaryAdvancePdf[]
+  
+  oficinaId         String?
+  oficina           Oficina?           @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+  
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   @@index([collaboratorId])
   @@index([payableId])
+  @@index([oficinaId])
 }
 
 model SalaryAdvancePdf {

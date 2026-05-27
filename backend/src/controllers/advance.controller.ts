@@ -7,6 +7,7 @@ const createAdvanceSchema = z.object({
   formaPagamento: z.string(),
   observacoes: z.string().optional().nullable(),
   data: z.string().optional().nullable(),
+  oficinaId: z.string().optional().nullable(),
 });
 
 export const AdvanceController = {
@@ -29,7 +30,8 @@ export const AdvanceController = {
           pdfs: {
             orderBy: { generatedAt: 'desc' }
           },
-          payable: true
+          payable: true,
+          oficina: true
         },
         orderBy: { data: 'desc' }
       });
@@ -105,11 +107,13 @@ export const AdvanceController = {
           responsavel: responsavel,
           observacoes: dataParsed.observacoes || null,
           numeroComprovante,
-          payableId: payable.id
+          payableId: payable.id,
+          oficinaId: dataParsed.oficinaId || null
         },
         include: {
           pdfs: true,
-          payable: true
+          payable: true,
+          oficina: true
         }
       });
 
