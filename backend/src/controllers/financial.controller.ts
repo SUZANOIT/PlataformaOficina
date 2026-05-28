@@ -50,6 +50,10 @@ const createReceivableSchema = z.object({
   status: z.string().default('PENDENTE'),
   quoteId: z.string().optional().nullable(),
   attachments: z.array(attachmentSchema).optional(),
+  linkedQuotes: z.array(z.object({
+    quoteId: z.string(),
+    valorVinculado: z.number().positive()
+  })).optional(),
 });
 
 function calculateDueDate(baseDate: Date, type: string, index: number): Date {
@@ -248,6 +252,7 @@ export const FinancialController = {
 
   async getApprovedQuotes(req: Request, res: Response) {
     try {
+      const { type } = req.query as any;
       const approvedQuotes = await prisma.quote.findMany({
         where: { status: 'Aprovado' },
         include: {
@@ -256,15 +261,24 @@ export const FinancialController = {
             include: {
               payable: true
             }
+          },
+          linkedReceivables: {
+            include: {
+              receivable: true
+            }
           }
         }
       });
 
       const result = approvedQuotes.map(quote => {
-        // Calcular o total já utilizado (desconsiderando CANCELADA ou REPROVADA)
-        const totalUtilizado = quote.linkedPayables
-          .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
-          .reduce((sum, link) => sum + link.valorVinculado, 0);
+        // Calcular o total já utilizado
+        const totalUtilizado = type === 'receivable'
+          ? quote.linkedReceivables
+              .filter(link => link.receivable.status !== 'CANCELADA' && link.receivable.status !== 'REPROVADA')
+              .reduce((sum, link) => sum + link.valorVinculado, 0)
+          : quote.linkedPayables
+              .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
+              .reduce((sum, link) => sum + link.valorVinculado, 0);
 
         const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
         const statusFinanceiro = saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível');
@@ -686,7 +700,20 @@ export const FinancialController = {
       const [receivables, totalCount] = await prisma.$transaction([
         prisma.financialReceivable.findMany({
           where: whereClause,
-          include: { company: true, attachments: true, quote: true },
+          include: { 
+            company: true, 
+            attachments: true, 
+            quote: true,
+            linkedQuotes: {
+              include: {
+                quote: {
+                  include: {
+                    client: true
+                  }
+                }
+              }
+            }
+          },
           orderBy: { vencimento: 'asc' },
           skip,
           take: Number(limit)
@@ -706,6 +733,37 @@ export const FinancialController = {
       const body = createReceivableSchema.parse(req.body);
       const executor = req.headers['x-user-email'] as string || 'Usuário';
 
+      // Validar saldos dos orçamentos se houver vinculação
+      if (body.linkedQuotes && body.linkedQuotes.length > 0) {
+        for (const link of body.linkedQuotes) {
+          const quote = await prisma.quote.findUnique({
+            where: { id: link.quoteId },
+            include: {
+              linkedReceivables: {
+                include: { receivable: true }
+              }
+            }
+          });
+
+          if (!quote) {
+            return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+          }
+
+          // Calcular o total já utilizado (desconsiderando CANCELADA ou REPROVADA)
+          const totalUtilizado = quote.linkedReceivables
+            .filter(l => l.receivable.status !== 'CANCELADA' && l.receivable.status !== 'REPROVADA')
+            .reduce((sum, l) => sum + l.valorVinculado, 0);
+
+          const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+
+          if (link.valorVinculado > saldoDisponivel) {
+            return res.status(400).json({ 
+              error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+            });
+          }
+        }
+      }
+
       const receivable = await prisma.financialReceivable.create({
         data: {
           companyId: body.companyId,
@@ -720,7 +778,7 @@ export const FinancialController = {
           responsavel: body.responsavel,
           observacoes: body.observacoes,
           status: body.status,
-          quoteId: body.quoteId,
+          quoteId: body.quoteId || (body.linkedQuotes && body.linkedQuotes.length > 0 ? body.linkedQuotes[0].quoteId : null),
           attachments: {
             create: body.attachments?.map(att => ({
               fileName: att.fileName,
@@ -728,8 +786,26 @@ export const FinancialController = {
               fileUrl: att.fileUrl,
             })) || [],
           },
+          linkedQuotes: body.linkedQuotes && body.linkedQuotes.length > 0 ? {
+            create: body.linkedQuotes.map(l => ({
+              quoteId: l.quoteId,
+              valorVinculado: l.valorVinculado
+            }))
+          } : undefined,
         },
-        include: { company: true, attachments: true }
+        include: { 
+          company: true, 
+          attachments: true,
+          linkedQuotes: {
+            include: {
+              quote: {
+                include: {
+                  client: true
+                }
+              }
+            }
+          }
+        }
       });
 
       await prisma.financialAudit.create({
@@ -763,6 +839,54 @@ export const FinancialController = {
         return res.status(404).json({ error: 'Lançamento não encontrado' });
       }
 
+      // Validar saldos dos orçamentos se houver vinculação no update
+      if (updateFields.linkedQuotes !== undefined) {
+        if (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0) {
+          for (const link of updateFields.linkedQuotes) {
+            const quote = await prisma.quote.findUnique({
+              where: { id: link.quoteId },
+              include: {
+                linkedReceivables: {
+                  include: { receivable: true }
+                }
+              }
+            });
+
+            if (!quote) {
+              return res.status(404).json({ error: `Orçamento de ID ${link.quoteId} não encontrado.` });
+            }
+
+            // Calcular o saldo desconsiderando este receivable
+            const totalUtilizado = quote.linkedReceivables
+              .filter(l => l.receivable.status !== 'CANCELADA' && l.receivable.status !== 'REPROVADA' && l.receivableId !== id)
+              .reduce((sum, l) => sum + l.valorVinculado, 0);
+
+            const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
+
+            if (link.valorVinculado > saldoDisponivel) {
+              return res.status(400).json({ 
+                error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+              });
+            }
+          }
+        }
+
+        // Se a validação passou, limpar os links antigos e criar os novos
+        await prisma.receivableQuoteLink.deleteMany({
+          where: { receivableId: id }
+        });
+
+        if (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0) {
+          await prisma.receivableQuoteLink.createMany({
+            data: updateFields.linkedQuotes.map((l: any) => ({
+              receivableId: id,
+              quoteId: l.quoteId,
+              valorVinculado: Number(l.valorVinculado)
+            }))
+          });
+        }
+      }
+
       const updateData: any = {
         cliente: updateFields.cliente,
         categoria: updateFields.categoria,
@@ -775,7 +899,7 @@ export const FinancialController = {
         responsavel: updateFields.responsavel,
         observacoes: updateFields.observacoes,
         status: updateFields.status,
-        quoteId: updateFields.quoteId,
+        quoteId: updateFields.quoteId !== undefined ? updateFields.quoteId : (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0 ? updateFields.linkedQuotes[0].quoteId : undefined),
       };
 
       if (updateFields.attachments && Array.isArray(updateFields.attachments)) {
@@ -792,7 +916,19 @@ export const FinancialController = {
       const updated = await prisma.financialReceivable.update({
         where: { id },
         data: updateData,
-        include: { company: true, attachments: true }
+        include: { 
+          company: true, 
+          attachments: true,
+          linkedQuotes: {
+            include: {
+              quote: {
+                include: {
+                  client: true
+                }
+              }
+            }
+          }
+        }
       });
 
       await prisma.financialAudit.create({

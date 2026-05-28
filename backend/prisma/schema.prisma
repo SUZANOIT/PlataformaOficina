@@ -135,6 +135,7 @@ model Quote {
   items               QuoteItem[]
   financialReceivables FinancialReceivable[]
   linkedPayables      PayableQuoteLink[]
+  linkedReceivables   ReceivableQuoteLink[]
   
   plataformaGestaoId  String?
   plataformaGestao    PlataformaGestao? @relation(fields: [plataformaGestaoId], references: [id], onDelete: SetNull)
@@ -242,6 +243,7 @@ model FinancialReceivable {
 
   attachments           FinancialAttachment[]
   audits                FinancialAudit[]
+  linkedQuotes          ReceivableQuoteLink[]
   
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -491,6 +493,22 @@ model PayableQuoteLink {
   @@index([payableId])
   @@index([quoteId])
   @@unique([payableId, quoteId])
+}
+
+model ReceivableQuoteLink {
+  id             String              @id @default(uuid())
+  receivableId   String
+  receivable     FinancialReceivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  quoteId        String
+  quote          Quote               @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  valorVinculado Float               // O valor alocado deste lançamento para este orçamento
+
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([receivableId])
+  @@index([quoteId])
+  @@unique([receivableId, quoteId])
 }
 
 model TaxSetting {
