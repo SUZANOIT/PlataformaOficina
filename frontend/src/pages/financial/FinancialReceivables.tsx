@@ -57,6 +57,7 @@ export function FinancialReceivables() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [linkedQuotes, setLinkedQuotes] = useState<{ quoteId: string, valorVinculado: number }[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -87,8 +88,11 @@ export function FinancialReceivables() {
   const [responsavel, setResponsavel] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [status, setStatus] = useState('PENDENTE');
-  const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [collaborators, setCollaborators] = useState<any[]>([]);
 
   // Fetch Companies, Quotes & Receivables
   const fetchCompanies = async () => {
@@ -109,16 +113,45 @@ export function FinancialReceivables() {
   const fetchApprovedQuotes = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/quotes', {
+      const res = await fetch('/financial/approved-quotes?type=receivable', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        const approved = data.filter((q: any) => q.status === 'Aprovado');
-        setQuotes(approved);
+        setQuotes(data);
       }
     } catch (err) {
       console.error('Failed to fetch approved quotes:', err);
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/registry/clients', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchCollaborators = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/registry/collaborators', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCollaborators(data);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -155,11 +188,46 @@ export function FinancialReceivables() {
   useEffect(() => {
     fetchCompanies();
     fetchApprovedQuotes();
+    fetchClients();
+    fetchCollaborators();
   }, []);
 
   useEffect(() => {
     fetchReceivables();
   }, [page, search, statusFilter, companyFilter, categoryFilter]);
+
+  // Sincronizar valor alocado de forma automática com o valor do lançamento se houver apenas 1 orçamento vinculado
+  useEffect(() => {
+    const numericValor = Number(valor) || 0;
+    if (linkedQuotes.length === 1) {
+      setLinkedQuotes(prev => {
+        if (prev[0].valorVinculado !== numericValor) {
+          return [{ ...prev[0], valorVinculado: numericValor }];
+        }
+        return prev;
+      });
+    }
+  }, [valor, linkedQuotes.length]);
+
+  const handleAddLink = (quoteId: string) => {
+    if (!quoteId) return;
+    if (linkedQuotes.some(link => link.quoteId === quoteId)) return;
+
+    const q = quotes.find(item => item.id === quoteId);
+    const initialVal = linkedQuotes.length === 0 ? (Number(valor) || q?.saldoDisponivel || 0) : (q?.saldoDisponivel || 0);
+
+    setLinkedQuotes(prev => [...prev, { quoteId, valorVinculado: initialVal }]);
+    
+    // Preencher dados automaticamente se for a primeira vinculação
+    if (linkedQuotes.length === 0 && q) {
+      setCliente(q.clientName || q.client?.nome || q.client || '');
+      setValor(String(initialVal || ''));
+      setDescricao(`Faturamento ref. Orçamento #${q.numeroOrcamento}`);
+      if (q.companyId) setCompanyId(q.companyId);
+      setCategoria('Serviços Mecânicos');
+      toast.info(`Preenchido automaticamente com dados do Orçamento #${q.numeroOrcamento}!`);
+    }
+  };
 
   // Handle File Upload (Convert to Base64)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,6 +264,7 @@ export function FinancialReceivables() {
     setSelectedReceivable(null);
     setCompanyId(companies[0]?.id || '');
     setCliente('');
+    setClientSearch('');
     setCategoria('');
     setDescricao('');
     setValor('');
@@ -209,7 +278,7 @@ export function FinancialReceivables() {
     setResponsavel('');
     setObservacoes('');
     setStatus('PENDENTE');
-    setSelectedQuoteId('');
+    setLinkedQuotes([]);
     setAttachments([]);
     setIsFormOpen(true);
   };
@@ -219,6 +288,7 @@ export function FinancialReceivables() {
     setSelectedReceivable(receivable);
     setCompanyId(receivable.companyId);
     setCliente(receivable.cliente);
+    setClientSearch(receivable.cliente);
     setCategoria(receivable.categoria);
     setDescricao(receivable.descricao);
     setValor(String(receivable.valor));
@@ -229,25 +299,12 @@ export function FinancialReceivables() {
     setResponsavel(receivable.responsavel);
     setObservacoes(receivable.observacoes || '');
     setStatus(receivable.status);
-    setSelectedQuoteId(receivable.quoteId || '');
+    setLinkedQuotes((receivable as any).linkedQuotes ? (receivable as any).linkedQuotes.map((l: any) => ({ quoteId: l.quoteId, valorVinculado: l.valorVinculado })) : []);
     setAttachments(receivable.attachments || []);
     setIsFormOpen(true);
   };
 
-  const handleQuoteChange = (quoteId: string) => {
-    setSelectedQuoteId(quoteId);
-    if (!quoteId) return;
 
-    const selected = quotes.find(q => q.id === quoteId);
-    if (selected) {
-      setCliente(selected.client?.nome || '');
-      setValor(String(selected.total || ''));
-      setDescricao(`Faturamento ref. Orçamento #${selected.numeroOrcamento}`);
-      setCompanyId(selected.companyId || '');
-      setCategoria('Serviços Mecânicos');
-      toast.info(`Preenchido automaticamente com dados do Orçamento #${selected.numeroOrcamento}!`);
-    }
-  };
 
   // Save / Update Account Receivable
   const handleSave = async (e: React.FormEvent) => {
@@ -256,6 +313,19 @@ export function FinancialReceivables() {
     if (!companyId || !cliente || !categoria || !valor || !dataEmissao || !vencimento || !responsavel) {
       toast.warning('Preencha todos os campos obrigatórios.');
       return;
+    }
+
+    // Validar se algum orçamento tem valor alocado maior que o saldo disponível
+    for (const link of linkedQuotes) {
+      const q = quotes.find(item => item.id === link.quoteId);
+      const previousLinkedVal = selectedReceivable && (selectedReceivable as any).linkedQuotes
+        ? (selectedReceivable as any).linkedQuotes.find((l: any) => l.quoteId === link.quoteId)?.valorVinculado || 0
+        : 0;
+      const realAvailable = (q?.saldoDisponivel || 0) + previousLinkedVal;
+      if (link.valorVinculado > realAvailable) {
+        toast.error(`O valor alocado no Orçamento #${q?.numeroOrcamento} excede o saldo restante de R$ ${realAvailable.toFixed(2)}.`);
+        return;
+      }
     }
 
     const token = localStorage.getItem('token');
@@ -283,7 +353,11 @@ export function FinancialReceivables() {
       responsavel,
       observacoes,
       status,
-      quoteId: selectedQuoteId || null,
+      quoteId: linkedQuotes.length > 0 ? linkedQuotes[0].quoteId : null,
+      linkedQuotes: linkedQuotes.map(link => ({
+        quoteId: link.quoteId,
+        valorVinculado: Number(link.valorVinculado)
+      })),
       attachments
     };
 
@@ -641,30 +715,10 @@ export function FinancialReceivables() {
 
             <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto max-h-[80vh]">
               
-              {/* Vínculo de Orçamento */}
-              <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-2">
-                <label className="text-xs font-bold text-primary uppercase flex items-center gap-1.5">
-                  📋 Vincular Orçamento Aprovado (Opcional)
-                </label>
-                <select
-                  value={selectedQuoteId}
-                  onChange={(e) => handleQuoteChange(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none font-medium"
-                >
-                  <option value="">Nenhum orçamento vinculado</option>
-                  {quotes.map((q: any) => (
-                    <option key={q.id} value={q.id}>
-                      Orçamento #{q.numeroOrcamento} - {q.client?.nome} ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(q.total)})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-muted-foreground">
-                  Selecionar um orçamento aprovado irá auto-preencher Cliente, Valor, Descrição e Empresa de forma inteligente.
-                </p>
-              </div>
-
               {/* Grid Principal */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Row 1: Empresa & Cliente */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Empresa *</label>
                   <select 
@@ -679,18 +733,90 @@ export function FinancialReceivables() {
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 relative">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Cliente *</label>
-                  <input 
-                    type="text" 
-                    value={cliente}
-                    onChange={(e) => setCliente(e.target.value)}
-                    placeholder="Nome do cliente corporativo ou particular"
-                    className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                    required
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={clientSearch}
+                      onChange={(e) => {
+                        setClientSearch(e.target.value);
+                        setCliente(e.target.value);
+                        setShowClientDropdown(true);
+                      }}
+                      onFocus={() => setShowClientDropdown(true)}
+                      placeholder="Busque ou digite o nome do cliente..."
+                      className="w-full bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                      required
+                    />
+                    {clientSearch && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientSearch('');
+                          setCliente('');
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-md hover:bg-secondary"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {showClientDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowClientDropdown(false)} 
+                      />
+                      
+                      <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-lg z-20 divide-y divide-border/60">
+                        {clients.filter(c => {
+                          const term = clientSearch.toLowerCase();
+                          return (
+                            (c.nome || '').toLowerCase().includes(term) ||
+                            (c.empresa || '').toLowerCase().includes(term) ||
+                            (c.cnpj || '').replace(/\D/g, '').includes(term)
+                          );
+                        }).length === 0 ? (
+                          <div className="p-3 text-xs text-muted-foreground italic">
+                            Nenhum cliente cadastrado com esse nome. Pressione Tab ou clique fora para usar o nome digitado.
+                          </div>
+                        ) : (
+                          clients.filter(c => {
+                            const term = clientSearch.toLowerCase();
+                            return (
+                              (c.nome || '').toLowerCase().includes(term) ||
+                              (c.empresa || '').toLowerCase().includes(term) ||
+                              (c.cnpj || '').replace(/\D/g, '').includes(term)
+                            );
+                          }).map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setCliente(c.nome);
+                                setClientSearch(c.nome);
+                                setShowClientDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/5 hover:text-primary transition-colors flex flex-col gap-0.5"
+                            >
+                              <span className="font-bold">{c.nome}</span>
+                              {c.empresa && (
+                                <span className="text-[10px] text-muted-foreground">Empresa: {c.empresa}</span>
+                              )}
+                              {c.cnpj && (
+                                <span className="text-[9px] font-mono text-muted-foreground font-black">CNPJ: {c.cnpj}</span>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
+                {/* Row 2: Categoria de Receita */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Categoria de Receita *</label>
                   <select 
@@ -709,6 +835,10 @@ export function FinancialReceivables() {
                   </select>
                 </div>
 
+                {/* Blank space for alignment parity */}
+                <div className="hidden md:block" />
+
+                {/* Row 3: Descrição / Faturamento */}
                 <div className="flex flex-col gap-1 text-sm md:col-span-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Descrição / Faturamento</label>
                   <input 
@@ -720,6 +850,7 @@ export function FinancialReceivables() {
                   />
                 </div>
 
+                {/* Row 4: Valor & Meio de Recebimento */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Valor a Receber (R$) *</label>
                   <input 
@@ -749,6 +880,7 @@ export function FinancialReceivables() {
                   </select>
                 </div>
 
+                {/* Row 5: Data de Emissão & Data de Vencimento */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Data de Emissão *</label>
                   <input 
@@ -771,6 +903,7 @@ export function FinancialReceivables() {
                   />
                 </div>
 
+                {/* Row 6: Status & Responsável */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Status</label>
                   <select 
@@ -788,17 +921,23 @@ export function FinancialReceivables() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável *</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento *</label>
+                  <select 
                     value={responsavel}
                     onChange={(e) => setResponsavel(e.target.value)}
-                    placeholder="Colaborador que efetuou a cobrança"
                     className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                     required
-                  />
+                  >
+                    <option value="">Selecione um colaborador...</option>
+                    {collaborators.map((c: any) => (
+                      <option key={c.id} value={c.nome}>
+                        {c.nome} {c.cargo ? `- ${c.cargo}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* Conditional Row: Data do Recebimento */}
                 {status === 'RECEBIDA' && (
                   <div className="flex flex-col gap-1 animate-in slide-in-from-top-1">
                     <label className="text-xs font-bold text-muted-foreground uppercase">Data do Recebimento</label>
@@ -808,6 +947,132 @@ export function FinancialReceivables() {
                       onChange={(e) => setDataRecebimento(e.target.value)}
                       className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                     />
+                  </div>
+                )}
+              </div>
+
+              {/* Seção de Vínculo de Orçamentos Aprovados (Multi-Quote) */}
+              <div className="p-4 bg-secondary/20 border border-border rounded-xl space-y-3">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5">
+                      📋 Vincular Orçamentos (Opcional)
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Vincule um ou mais orçamentos de clientes (aprovados, pagos ou aguardando pagamento) a esta receita.
+                    </p>
+                  </div>
+                  
+                  {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).length > 0 && (
+                    <select
+                      onChange={(e) => {
+                        handleAddLink(e.target.value);
+                        e.target.value = ''; // Reset select
+                      }}
+                      className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[200px]"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>+ Adicionar Orçamento...</option>
+                      {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
+                        <option key={q.id} value={q.id}>
+                          #{q.numeroOrcamento} - {q.client} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {linkedQuotes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">
+                    Nenhum orçamento vinculado a este lançamento.
+                  </p>
+                ) : (
+                  <div className="space-y-3 divide-y divide-border/40">
+                    {linkedQuotes.map((link, idx) => {
+                      const q = quotes.find(item => item.id === link.quoteId);
+                      const previousLinkedVal = selectedReceivable && (selectedReceivable as any).linkedQuotes
+                        ? (selectedReceivable as any).linkedQuotes.find((l: any) => l.quoteId === link.quoteId)?.valorVinculado || 0
+                        : 0;
+                      const realAvailable = (q?.saldoDisponivel || 0) + previousLinkedVal;
+                      const hasError = link.valorVinculado > realAvailable;
+
+                      return (
+                        <div key={link.quoteId} className={`flex flex-col gap-2 pt-3 ${idx === 0 ? 'pt-0' : ''}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-foreground">Orçamento #{q?.numeroOrcamento}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                  realAvailable === 0
+                                    ? 'bg-red-500/10 text-red-500'
+                                    : (q?.totalUtilizado || 0) > 0
+                                      ? 'bg-amber-500/10 text-amber-500'
+                                      : 'bg-emerald-500/10 text-emerald-500'
+                                }`}>
+                                  {realAvailable === 0
+                                    ? 'Consumido'
+                                    : (q?.totalUtilizado || 0) > 0
+                                      ? 'Parcialmente Consumido'
+                                      : 'Disponível'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                Cliente: <span className="font-bold text-foreground/80">{q?.client}</span>
+                              </p>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLinkedQuotes(prev => prev.filter(item => item.quoteId !== link.quoteId));
+                              }}
+                              className="text-red-500 hover:text-red-600 hover:bg-red-500/5 p-1 rounded-lg transition-colors"
+                              title="Remover vínculo"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-background/50 border border-border/40 rounded-lg p-2.5 text-[10px]">
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Total Orçamento</span>
+                              <span className="font-bold text-foreground">R$ {q?.total.toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Já Faturado</span>
+                              <span className="font-bold text-foreground">R$ {((q?.totalUtilizado || 0) - previousLinkedVal).toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Saldo Restante</span>
+                              <span className={`font-bold ${realAvailable <= 0 ? 'text-red-500' : 'text-foreground'}`}>
+                                R$ {realAvailable.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-muted-foreground uppercase font-black text-[9px]">Valor Alocado (R$) *</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={link.valorVinculado || ''}
+                                onChange={(e) => {
+                                  const newVal = Number(e.target.value);
+                                  setLinkedQuotes(prev => prev.map(item => item.quoteId === link.quoteId ? { ...item, valorVinculado: newVal } : item));
+                                }}
+                                className={`bg-background border ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary'} rounded-md text-[11px] px-1.5 py-0.5 text-foreground focus:outline-none w-full disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-muted/30`}
+                                required
+                                disabled={linkedQuotes.length === 1}
+                              />
+                            </div>
+                          </div>
+
+                          {hasError && (
+                            <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 animate-pulse">
+                              ⚠️ O valor alocado ultrapassa o saldo disponível do orçamento!
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -913,14 +1178,21 @@ export function FinancialReceivables() {
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Cliente</span>
                   <span className="font-bold text-foreground">{selectedReceivable.cliente}</span>
                 </div>
-                {selectedReceivable.quote && (
+                {(selectedReceivable as any).linkedQuotes && (selectedReceivable as any).linkedQuotes.length > 0 ? (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Orçamentos Vinculados</span>
+                    <span className="font-extrabold text-primary flex items-center gap-1 flex-wrap">
+                      {(selectedReceivable as any).linkedQuotes.map((l: any) => `#${l.quote?.numeroOrcamento}`).join(', ')}
+                    </span>
+                  </div>
+                ) : selectedReceivable.quote ? (
                   <div>
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Orçamento Vinculado</span>
                     <span className="font-extrabold text-primary flex items-center gap-1">
                       📋 Orçamento #{selectedReceivable.quote.numeroOrcamento}
                     </span>
                   </div>
-                )}
+                ) : null}
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Descrição</span>
                   <span className="font-medium text-foreground">{selectedReceivable.descricao}</span>
@@ -965,6 +1237,26 @@ export function FinancialReceivables() {
                 <div className="p-3 bg-muted/40 border border-border rounded-xl">
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Observações do Recebimento</span>
                   <p className="text-xs text-foreground leading-relaxed">{selectedReceivable.observacoes}</p>
+                </div>
+              )}
+
+              {/* Orçamentos Vinculados */}
+              {(selectedReceivable as any).linkedQuotes && (selectedReceivable as any).linkedQuotes.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-xs uppercase text-muted-foreground tracking-wider mb-2 flex items-center gap-1.5">
+                    📋 Orçamentos Vinculados e Valores Alocados
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2 bg-secondary/20 border border-border/40 rounded-xl p-3.5">
+                    {(selectedReceivable as any).linkedQuotes.map((link: any) => (
+                      <div key={link.id || link.quoteId} className="flex items-center justify-between text-xs py-1.5 border-b border-border/30 last:border-b-0">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground">Orçamento #{link.quote?.numeroOrcamento}</span>
+                          <span className="text-[10px] text-muted-foreground">Cliente: {link.quote?.client?.nome || 'Não identificado'}</span>
+                        </div>
+                        <span className="font-black text-emerald-500">{formatCurrency(link.valorVinculado)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
