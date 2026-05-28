@@ -194,6 +194,7 @@ export function QuotesList() {
                 <option value="all">Todos os Status</option>
                 <option value="Aguardando Aprovação">Aguardando Aprovação</option>
                 <option value="Aprovado">Aprovado</option>
+                <option value="Aguardando Pagamento">Aguardando Pagamento</option>
                 <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
                 <option value="Cobertura">Cobertura</option>
                 <option value="Pago">Pago</option>
@@ -265,6 +266,7 @@ export function QuotesList() {
                     <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold border ${
                       (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                      quote.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
                       quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
                       quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :

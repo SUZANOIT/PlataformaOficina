@@ -55,6 +55,7 @@ const condicoesPagamento = [
 const statusOptions = [
   'Aguardando Aprovação',
   'Aprovado',
+  'Aguardando Pagamento',
   'Emitir Nota Fiscal',
   'Cobertura',
   'Pago',

@@ -139,6 +139,7 @@ export function Dashboard() {
   const statusTotals: Record<string, number> = {
     'Aguardando Aprovação': 0,
     'Aprovado': 0,
+    'Aguardando Pagamento': 0,
     'Emitir Nota Fiscal': 0,
     'Cobertura': 0,
     'Pago': 0,
@@ -175,6 +176,7 @@ export function Dashboard() {
   const statusConfig: Record<string, { colorClass: string; textClass: string }> = {
     'Aguardando Aprovação': { colorClass: 'bg-purple-500', textClass: 'text-purple-600' },
     'Aprovado': { colorClass: 'bg-emerald-500', textClass: 'text-emerald-600' },
+    'Aguardando Pagamento': { colorClass: 'bg-amber-500', textClass: 'text-amber-600' },
     'Emitir Nota Fiscal': { colorClass: 'bg-teal-500', textClass: 'text-teal-600' },
     'Cobertura': { colorClass: 'bg-indigo-500', textClass: 'text-indigo-600' },
     'Pago': { colorClass: 'bg-sky-500', textClass: 'text-sky-600' },
@@ -188,7 +190,7 @@ export function Dashboard() {
   const monthlyMaoDeObraTotals = Array(12).fill(0);
   
   const approvedQuotesThisYear = quotes.filter((q: any) => {
-    const isApproved = q.status === 'Aprovado' || q.status === 'Pago';
+    const isApproved = q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento';
     const date = new Date(q.createdAt);
     const isCurrentYear = date.getFullYear() === currentYear;
     return isApproved && isCurrentYear;
@@ -240,13 +242,13 @@ export function Dashboard() {
   let totalMaoDeObraVal = 0;
 
   // Aprovados
-  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado' || q.status === 'Pago');
+  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento');
   const totalApprovedVal = approvedQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
   let totalPecasApprovedVal = 0;
   let totalMaoDeObraApprovedVal = 0;
 
   activeQuotes.forEach((q: any) => {
-    const isApproved = q.status === 'Aprovado' || q.status === 'Pago';
+    const isApproved = q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento';
     (q.items || []).forEach((item: any) => {
       const tipo = item.tipo || 'Peça';
       const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
