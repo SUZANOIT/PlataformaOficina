@@ -975,7 +975,7 @@ export function FinancialReceivables() {
                       <option value="" disabled>+ Adicionar Orçamento...</option>
                       {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
                         <option key={q.id} value={q.id}>
-                          #{q.numeroOrcamento} - {q.client} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                          #{q.numeroOrcamento} - {q.client} ({q.status || 'Status não identificado'}) (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
                         </option>
                       ))}
                     </select>

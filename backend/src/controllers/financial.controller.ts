@@ -301,7 +301,7 @@ export const FinancialController = {
           totalUtilizado,
           saldoDisponivel,
           statusFinanceiro,
-          status: statusFinanceiro
+          status: quote.status
         };
       });
 

@@ -233,7 +233,11 @@ exports.FinancialController = {
         try {
             const { type } = req.query;
             const approvedQuotes = await prisma_1.prisma.quote.findMany({
-                where: { status: 'Aprovado' },
+                where: {
+                    status: {
+                        in: ['Aprovado', 'Pago', 'Aguardando Pagamento']
+                    }
+                },
                 include: {
                     client: true,
                     linkedPayables: {
@@ -273,7 +277,7 @@ exports.FinancialController = {
                     totalUtilizado,
                     saldoDisponivel,
                     statusFinanceiro,
-                    status: statusFinanceiro
+                    status: quote.status
                 };
             });
             return res.json(result);
