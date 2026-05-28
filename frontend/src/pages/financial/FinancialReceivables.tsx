@@ -975,7 +975,7 @@ export function FinancialReceivables() {
                       <option value="" disabled>+ Adicionar Orçamento...</option>
                       {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
                         <option key={q.id} value={q.id}>
-                          #{q.numeroOrcamento} - {q.client} ({q.status || 'Status não identificado'}) (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                          #{q.numeroOrcamento} - {typeof q.client === 'object' && q.client !== null ? q.client.nome : q.client} ({q.status || 'Status não identificado'}) (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
                         </option>
                       ))}
                     </select>
@@ -1017,7 +1017,7 @@ export function FinancialReceivables() {
                                 </span>
                               </div>
                               <p className="text-[10px] text-muted-foreground">
-                                Cliente: <span className="font-bold text-foreground/80">{q?.client}</span>
+                                Cliente: <span className="font-bold text-foreground/80">{typeof q?.client === 'object' && q.client !== null ? q.client.nome : q?.client}</span>
                               </p>
                             </div>
                             
