@@ -196,6 +196,7 @@ export function QuotesList() {
                 <option value="Aprovado">Aprovado</option>
                 <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
                 <option value="Cobertura">Cobertura</option>
+                <option value="Pago">Pago</option>
                 <option value="Cancelado">Cancelado</option>
               </select>
             </div>
@@ -266,6 +267,7 @@ export function QuotesList() {
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
                       quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
+                      quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
                       quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
                       'bg-slate-500/10 text-slate-600 border-slate-500/20'
                     }`}>

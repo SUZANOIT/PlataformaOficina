@@ -78,7 +78,7 @@ export const QuoteController = {
       const quotes = await prisma.quote.findMany({
         where: {
           status: {
-            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
           }
         },
         select: { total: true }
@@ -102,7 +102,7 @@ export const QuoteController = {
             where: { 
               companyId: company.id,
               status: {
-                in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+                in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
               }
             },
             select: { total: true }

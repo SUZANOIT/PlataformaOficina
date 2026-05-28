@@ -57,6 +57,7 @@ const statusOptions = [
   'Aprovado',
   'Emitir Nota Fiscal',
   'Cobertura',
+  'Pago',
   'Cancelado'
 ];
 

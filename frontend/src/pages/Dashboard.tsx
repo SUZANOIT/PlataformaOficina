@@ -141,6 +141,7 @@ export function Dashboard() {
     'Aprovado': 0,
     'Emitir Nota Fiscal': 0,
     'Cobertura': 0,
+    'Pago': 0,
     'Cancelado': 0
   };
 
@@ -176,6 +177,7 @@ export function Dashboard() {
     'Aprovado': { colorClass: 'bg-emerald-500', textClass: 'text-emerald-600' },
     'Emitir Nota Fiscal': { colorClass: 'bg-teal-500', textClass: 'text-teal-600' },
     'Cobertura': { colorClass: 'bg-indigo-500', textClass: 'text-indigo-600' },
+    'Pago': { colorClass: 'bg-sky-500', textClass: 'text-sky-600' },
     'Cancelado': { colorClass: 'bg-rose-500', textClass: 'text-rose-600' },
   };
 
@@ -186,7 +188,7 @@ export function Dashboard() {
   const monthlyMaoDeObraTotals = Array(12).fill(0);
   
   const approvedQuotesThisYear = quotes.filter((q: any) => {
-    const isApproved = q.status === 'Aprovado';
+    const isApproved = q.status === 'Aprovado' || q.status === 'Pago';
     const date = new Date(q.createdAt);
     const isCurrentYear = date.getFullYear() === currentYear;
     return isApproved && isCurrentYear;
@@ -238,13 +240,13 @@ export function Dashboard() {
   let totalMaoDeObraVal = 0;
 
   // Aprovados
-  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado');
+  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado' || q.status === 'Pago');
   const totalApprovedVal = approvedQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
   let totalPecasApprovedVal = 0;
   let totalMaoDeObraApprovedVal = 0;
 
   activeQuotes.forEach((q: any) => {
-    const isApproved = q.status === 'Aprovado';
+    const isApproved = q.status === 'Aprovado' || q.status === 'Pago';
     (q.items || []).forEach((item: any) => {
       const tipo = item.tipo || 'Peça';
       const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
@@ -579,6 +581,7 @@ export function Dashboard() {
                 <option value="Aprovado">Aprovado</option>
                 <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
                 <option value="Cobertura">Cobertura</option>
+                <option value="Pago">Pago</option>
                 <option value="Cancelado">Cancelado</option>
               </select>
             </div>
@@ -649,6 +652,7 @@ export function Dashboard() {
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
                       quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
+                      quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
                       quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
                       'bg-slate-500/10 text-slate-600 border-slate-500/20'
                     }`}>
