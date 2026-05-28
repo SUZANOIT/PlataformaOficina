@@ -48,6 +48,7 @@ const collaboratorSchema = zod_1.z.object({
     salario: zod_1.z.number().optional().nullable(),
     status: zod_1.z.string().default('ATIVO'),
     observacoes: zod_1.z.string().optional().nullable(),
+    oficinaId: zod_1.z.string().optional().nullable(),
 });
 exports.RegistryController = {
     // CLIENTS CRUD
@@ -217,6 +218,9 @@ exports.RegistryController = {
             }
             const collaborators = await prisma_1.prisma.collaborator.findMany({
                 where: whereClause,
+                include: {
+                    oficina: true
+                },
                 orderBy: { nome: 'asc' },
             });
             return res.json(collaborators);
@@ -235,7 +239,11 @@ exports.RegistryController = {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+                    oficinaId: data.oficinaId || null
                 },
+                include: {
+                    oficina: true
+                }
             });
             return res.status(201).json(collaborator);
         }
@@ -258,7 +266,11 @@ exports.RegistryController = {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
+                    oficinaId: data.oficinaId || null
                 },
+                include: {
+                    oficina: true
+                }
             });
             return res.json(collaborator);
         }

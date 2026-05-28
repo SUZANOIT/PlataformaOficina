@@ -8,6 +8,7 @@ const createAdvanceSchema = zod_1.z.object({
     formaPagamento: zod_1.z.string(),
     observacoes: zod_1.z.string().optional().nullable(),
     data: zod_1.z.string().optional().nullable(),
+    oficinaId: zod_1.z.string().optional().nullable(),
 });
 exports.AdvanceController = {
     async listAdvances(req, res) {
@@ -26,7 +27,8 @@ exports.AdvanceController = {
                     pdfs: {
                         orderBy: { generatedAt: 'desc' }
                     },
-                    payable: true
+                    payable: true,
+                    oficina: true
                 },
                 orderBy: { data: 'desc' }
             });
@@ -93,11 +95,13 @@ exports.AdvanceController = {
                     responsavel: responsavel,
                     observacoes: dataParsed.observacoes || null,
                     numeroComprovante,
-                    payableId: payable.id
+                    payableId: payable.id,
+                    oficinaId: dataParsed.oficinaId || null
                 },
                 include: {
                     pdfs: true,
-                    payable: true
+                    payable: true,
+                    oficina: true
                 }
             });
             return res.status(201).json(advance);

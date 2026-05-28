@@ -78,7 +78,7 @@ exports.QuoteController = {
             const quotes = await prisma_1.prisma.quote.findMany({
                 where: {
                     status: {
-                        in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+                        in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
                     }
                 },
                 select: { total: true }
@@ -99,7 +99,7 @@ exports.QuoteController = {
                     where: {
                         companyId: company.id,
                         status: {
-                            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura']
+                            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
                         }
                     },
                     select: { total: true }
@@ -218,7 +218,7 @@ exports.QuoteController = {
                     veiculoModelo: data.veiculoModelo,
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
-                    plataformaGestaoId: data.plataformaGestaoId,
+                    plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     subtotal: data.subtotal,
                     total: data.total,
@@ -319,7 +319,7 @@ exports.QuoteController = {
                     veiculoModelo: data.veiculoModelo,
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
-                    plataformaGestaoId: data.plataformaGestaoId,
+                    plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     subtotal: data.subtotal,
                     total: data.total,
