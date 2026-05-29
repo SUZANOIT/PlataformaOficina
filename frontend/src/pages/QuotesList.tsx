@@ -1,4 +1,4 @@
-import { Edit, Copy, Trash2, Search, Filter } from 'lucide-react';
+import { Edit, Copy, Trash2, Search, Filter, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -281,9 +281,17 @@ export function QuotesList() {
                   </td>
                   <td className="p-4 flex gap-2">
                     <button 
+                      onClick={() => navigate(`/quotes/view/${quote.id}`)}
+                      className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
+                      title="Visualizar"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button 
                       onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                      className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Editar"
+                      disabled={quote.status === 'Pago'}
+                      className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
+                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser editados" : "Editar"}
                     >
                       <Edit size={16} />
                     </button>
@@ -296,8 +304,9 @@ export function QuotesList() {
                     </button>
                     <button 
                       onClick={() => handleDelete(quote.id)}
-                      className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Excluir"
+                      disabled={quote.status === 'Pago'}
+                      className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-rose-500/10"
+                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser excluídos" : "Excluir"}
                     >
                       <Trash2 size={16} />
                     </button>

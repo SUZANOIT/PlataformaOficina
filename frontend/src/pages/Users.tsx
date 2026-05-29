@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, Shield, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { handleApiError } from '../utils/toast.helper';
 
 export function Users() {
   const [users, setUsers] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export function Users() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPassword, setEditPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -56,6 +58,9 @@ export function Users() {
       return;
     }
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/users/${selectedUser.id}`, {
@@ -76,12 +81,13 @@ export function Users() {
         handleCloseEditModal();
         fetchUsers();
       } else {
-        const errData = await response.json();
-        toast.error(errData.error || 'Erro ao atualizar usuário.');
+        handleApiError(response, 'Erro ao atualizar usuário.');
       }
     } catch (error) {
       console.error('Failed to update user', error);
-      toast.error('Erro de conexão ao atualizar.');
+      handleApiError(error, 'Erro de conexão ao atualizar.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -297,9 +303,10 @@ export function Users() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition shadow-sm"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Salvar Alterações
+                  {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
               </div>
             </form>

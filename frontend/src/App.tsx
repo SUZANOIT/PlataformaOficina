@@ -41,6 +41,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="quotes/new" element={<CreateQuote />} />
               <Route path="quotes/edit/:id" element={<CreateQuote />} />
+              <Route path="quotes/view/:id" element={<CreateQuote />} />
               <Route path="quotes" element={<QuotesList />} />
               <Route path="users" element={<Users />} />
               <Route path="settings/email" element={<EmailConfig />} />

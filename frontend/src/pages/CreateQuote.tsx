@@ -70,6 +70,8 @@ export function CreateQuote() {
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
   const [isMobile, setIsMobile] = useState(false);
+  const [suggestedClients, setSuggestedClients] = useState<any[]>([]);
+  const [showClientsDropdown, setShowClientsDropdown] = useState(false);
 
   // Platform Integration States
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -88,6 +90,25 @@ export function CreateQuote() {
     };
     fetchPlatformsList();
   }, []);
+
+  const handleSelectClient = (client: any) => {
+    setValue('client.nome', client.nome || '');
+    setValue('client.empresa', client.empresa || '');
+    setValue('client.cnpj', client.cnpj || '');
+    setValue('client.telefone', client.telefone || '');
+    setValue('client.email', client.email || '');
+    setValue('client.cep', client.cep || '');
+    setValue('client.logradouro', client.logradouro || '');
+    setValue('client.numero', client.numero || '');
+    setValue('client.complemento', client.complemento || '');
+    setValue('client.bairro', client.bairro || '');
+    setValue('client.cidade', client.cidade || '');
+    setValue('client.estado', client.estado || '');
+    
+    setShowClientsDropdown(false);
+    setSuggestedClients([]);
+  };
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -121,7 +142,8 @@ export function CreateQuote() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const cloneId = searchParams.get('clone');
-  const isEditing = !!id;
+  const isViewing = window.location.pathname.includes('/quotes/view/');
+  const isEditing = !!id && !isViewing;
 
   const { register, control, watch, handleSubmit, setValue, reset } = useForm<QuoteFormValues>({
     defaultValues: {
@@ -148,12 +170,12 @@ export function CreateQuote() {
 
       try {
         const data = await quoteService.getQuote(quoteId);
-        if (isEditing) {
+        if (isEditing || isViewing) {
           setNumeroOrcamento(data.numeroOrcamento);
         }
         
         const formData: any = {
-          companyId: isEditing ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
+          companyId: (isEditing || isViewing) ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
           client: data.client,
           condicaoPagamento: data.condicaoPagamento,
           status: data.status || 'Aguardando Aprovação',
@@ -323,21 +345,31 @@ export function CreateQuote() {
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {isEditing ? 'Editar Orçamento' : cloneId ? 'Clonar Orçamento' : 'Novo Orçamento'}
+            {isViewing ? 'Visualizar Orçamento' : isEditing ? 'Editar Orçamento' : cloneId ? 'Clonar Orçamento' : 'Novo Orçamento'}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
+            {isViewing ? 'Visualização dos detalhes do orçamento.' : isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button 
-            type="button"
-            onClick={handleSubmit(onSubmit)}
-            disabled={isGeneratingPdf}
-            className="flex-1 md:flex-none text-center px-4 py-2 border border-border bg-card rounded-lg hover:bg-muted font-medium transition disabled:opacity-50"
-          >
-            {isEditing ? 'Atualizar' : 'Salvar'}
-          </button>
+          {isViewing ? (
+            <button 
+              type="button"
+              onClick={() => navigate('/quotes')}
+              className="flex-1 md:flex-none text-center px-4 py-2 border border-border bg-card rounded-lg hover:bg-muted font-medium transition"
+            >
+              Voltar
+            </button>
+          ) : (
+            <button 
+              type="button"
+              onClick={handleSubmit(onSubmit)}
+              disabled={isGeneratingPdf}
+              className="flex-1 md:flex-none text-center px-4 py-2 border border-border bg-card rounded-lg hover:bg-muted font-medium transition disabled:opacity-50"
+            >
+              {isEditing ? 'Atualizar' : 'Salvar'}
+            </button>
+          )}
           <button 
             type="button"
             onClick={handleGeneratePDF}
@@ -363,6 +395,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Selecione a Empresa</label>
               <select 
                 {...register('companyId')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">Selecione...</option>
@@ -389,6 +422,7 @@ export function CreateQuote() {
                   type="text"
                   placeholder="Buscar plataforma por Nome Fantasia, Razão ou CNPJ..."
                   value={searchPlatformTerm}
+                  disabled={isViewing}
                   onChange={(e) => {
                     setSearchPlatformTerm(e.target.value);
                     setShowPlatformsDropdown(true);
@@ -397,7 +431,7 @@ export function CreateQuote() {
                       setValue('plataformaGestaoId', '');
                     }
                   }}
-                  onFocus={() => setShowPlatformsDropdown(true)}
+                  onFocus={() => !isViewing && setShowPlatformsDropdown(true)}
                   onBlur={() => {
                     setTimeout(() => setShowPlatformsDropdown(false), 250);
                   }}
@@ -405,7 +439,7 @@ export function CreateQuote() {
                   autoComplete="off"
                 />
                 
-                {selectedPlatform && (
+                {selectedPlatform && !isViewing && (
                   <button
                     type="button"
                     onClick={() => {
@@ -422,7 +456,7 @@ export function CreateQuote() {
               </div>
 
               {/* Autocomplete Dropdown list */}
-              {showPlatformsDropdown && (
+              {showPlatformsDropdown && !isViewing && (
                 <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 duration-150">
                   {platforms
                     .filter(p => {
@@ -486,6 +520,7 @@ export function CreateQuote() {
                 type="text"
                 maxLength={100}
                 placeholder="Ex: OS-9874A, Seguradora X..."
+                disabled={isViewing}
                 {...register('osExterna')}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
@@ -500,13 +535,15 @@ export function CreateQuote() {
               <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">3</span>
               Dados do Cliente
             </h2>
-            <button
-              type="button"
-              onClick={() => setIsVehicleModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition-colors"
-            >
-              🚗 {watch('veiculoPlaca') ? `Veículo: ${watch('veiculoPlaca')}` : 'Adicionar Veículo'}
-            </button>
+            {(!isViewing || watch('veiculoPlaca') || watch('veiculoModelo')) && (
+              <button
+                type="button"
+                onClick={() => setIsVehicleModalOpen(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition-colors"
+              >
+                🚗 {watch('veiculoPlaca') ? `Veículo: ${watch('veiculoPlaca')}` : isViewing ? 'Visualizar Veículo' : 'Adicionar Veículo'}
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2 lg:col-span-3">
@@ -514,6 +551,7 @@ export function CreateQuote() {
               <div className="flex gap-2">
                 <input 
                   {...register('client.cnpj')}
+                  disabled={isViewing}
                   onChange={(e) => {
                     let v = e.target.value.replace(/\D/g, '');
                     if (v.length <= 14) {
@@ -532,25 +570,87 @@ export function CreateQuote() {
                 <button 
                   type="button" 
                   onClick={handleCnpjSearch}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition"
+                  disabled={isViewing}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Search size={18} />
                   Buscar
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-sm font-medium">Nome do Cliente/Razão Social</label>
               <input 
                 {...register('client.nome')}
-                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+                disabled={isViewing}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  register('client.nome').onChange(e);
+                  
+                  if (val.trim().length >= 3) {
+                    try {
+                      const token = localStorage.getItem('token');
+                      const response = await fetch(`/registry/clients?search=${encodeURIComponent(val)}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      if (response.ok) {
+                        const data = await response.json();
+                        setSuggestedClients(data);
+                        setShowClientsDropdown(true);
+                      }
+                    } catch (error) {
+                      console.error('Error searching clients:', error);
+                    }
+                  } else {
+                    setSuggestedClients([]);
+                    setShowClientsDropdown(false);
+                  }
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowClientsDropdown(false);
+                  }, 200);
+                }}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Ex: João da Silva"
+                autoComplete="off"
               />
+
+              {showClientsDropdown && suggestedClients.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  {suggestedClients.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => handleSelectClient(client)}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-muted/70 transition-colors flex flex-col gap-1"
+                    >
+                      <span className="font-semibold text-foreground">{client.nome}</span>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        {client.empresa && <span>{client.empresa}</span>}
+                        {client.cnpj && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span>CNPJ: {client.cnpj}</span>
+                          </>
+                        )}
+                        {client.cidade && (
+                          <>
+                            <span className="text-border">•</span>
+                            <span>{client.cidade} - {client.estado}</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome Fantasia (Opcional)</label>
               <input 
                 {...register('client.empresa')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                 placeholder="Ex: Tech Solutions"
               />
@@ -559,6 +659,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Telefone</label>
               <input 
                 {...register('client.telefone')}
+                disabled={isViewing}
                 onChange={(e) => {
                   let v = e.target.value.replace(/\D/g, '');
                   if (v.length <= 11) {
@@ -578,6 +679,7 @@ export function CreateQuote() {
               <input 
                 type="email"
                 {...register('client.email')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                 placeholder="cliente@email.com"
               />
@@ -586,6 +688,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">CEP</label>
               <input 
                 {...register('client.cep')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -593,6 +696,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Logradouro</label>
               <input 
                 {...register('client.logradouro')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -600,6 +704,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Número</label>
               <input 
                 {...register('client.numero')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -607,6 +712,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Complemento</label>
               <input 
                 {...register('client.complemento')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -614,6 +720,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Bairro</label>
               <input 
                 {...register('client.bairro')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -621,6 +728,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Cidade</label>
               <input 
                 {...register('client.cidade')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -628,6 +736,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Estado</label>
               <select 
                 {...register('client.estado')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               >
                 <option value="">Selecione...</option>
@@ -661,21 +770,25 @@ export function CreateQuote() {
                   onClick={() => setIsVehicleModalOpen(true)}
                   className="text-xs text-primary hover:underline font-semibold"
                 >
-                  Editar
+                  {isViewing ? 'Visualizar' : 'Editar'}
                 </button>
-                <span className="text-muted-foreground/30 text-xs">|</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setValue('veiculoMarca', '');
-                    setValue('veiculoModelo', '');
-                    setValue('veiculoAno', '');
-                    setValue('veiculoPlaca', '');
-                  }}
-                  className="text-xs text-destructive hover:underline font-semibold"
-                >
-                  Remover
-                </button>
+                {!isViewing && (
+                  <>
+                    <span className="text-muted-foreground/30 text-xs">|</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('veiculoMarca', '');
+                        setValue('veiculoModelo', '');
+                        setValue('veiculoAno', '');
+                        setValue('veiculoPlaca', '');
+                      }}
+                      className="text-xs text-destructive hover:underline font-semibold"
+                    >
+                      Remover
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -702,14 +815,16 @@ export function CreateQuote() {
                   <div key={field.id} className="bg-muted/5 border border-border p-4 rounded-xl space-y-3 relative">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
-                      <button 
-                        type="button" 
-                        onClick={() => remove(index)}
-                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                        title="Excluir Item"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {!isViewing && (
+                        <button 
+                          type="button" 
+                          onClick={() => remove(index)}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                          title="Excluir Item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
@@ -717,6 +832,7 @@ export function CreateQuote() {
                         <label className="text-xs font-semibold text-muted-foreground">Tipo</label>
                         <select
                           {...register(`items.${index}.tipo`)}
+                          disabled={isViewing}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
                         >
                           <option value="Peça">Peça</option>
@@ -726,12 +842,11 @@ export function CreateQuote() {
                       
                       <div className="col-span-2 space-y-1">
                         <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
-                        <textarea 
+                        <input 
                           {...register(`items.${index}.descricao`)}
-                          className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          disabled={isViewing}
+                          className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
                           placeholder="Descrição do serviço/produto"
-                          maxLength={3000}
-                          rows={2}
                         />
                       </div>
                       
@@ -741,6 +856,7 @@ export function CreateQuote() {
                           type="number"
                           min="1"
                           {...register(`items.${index}.quantidade`)}
+                          disabled={isViewing}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
                         />
                       </div>
@@ -751,6 +867,7 @@ export function CreateQuote() {
                           type="number"
                           step="0.01"
                           {...register(`items.${index}.valorUnitario`)}
+                          disabled={isViewing}
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
                         />
                       </div>
@@ -775,7 +892,7 @@ export function CreateQuote() {
                     <th className="p-3 font-medium w-[12%]">Qtd</th>
                     <th className="p-3 font-medium w-[18%]">Valor Unit. (R$)</th>
                     <th className="p-3 font-medium w-[15%]">Total</th>
-                    <th className="p-3 font-medium w-[5%]"></th>
+                    {!isViewing && <th className="p-3 font-medium w-[5%]"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -789,6 +906,7 @@ export function CreateQuote() {
                         <td className="p-2">
                           <select
                             {...register(`items.${index}.tipo`)}
+                            disabled={isViewing}
                             className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
                           >
                             <option value="Peça">Peça</option>
@@ -796,12 +914,11 @@ export function CreateQuote() {
                           </select>
                         </td>
                         <td className="p-2">
-                          <textarea 
+                          <input 
                             {...register(`items.${index}.descricao`)}
-                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm resize-y min-h-[38px] h-[38px] focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            disabled={isViewing}
+                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
                             placeholder="Descrição do serviço/produto"
-                            maxLength={3000}
-                            rows={1}
                           />
                         </td>
                         <td className="p-2">
@@ -809,6 +926,7 @@ export function CreateQuote() {
                             type="number"
                             min="1"
                             {...register(`items.${index}.quantidade`)}
+                            disabled={isViewing}
                             className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-center"
                           />
                         </td>
@@ -817,21 +935,24 @@ export function CreateQuote() {
                             type="number"
                             step="0.01"
                             {...register(`items.${index}.valorUnitario`)}
+                            disabled={isViewing}
                             className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
                           />
                         </td>
                         <td className="p-2 text-right font-medium">
                           {formatCurrency(lineTotal)}
                         </td>
-                        <td className="p-2 text-center">
-                          <button 
-                            type="button" 
-                            onClick={() => remove(index)}
-                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
+                        {!isViewing && (
+                          <td className="p-2 text-center">
+                            <button 
+                              type="button" 
+                              onClick={() => remove(index)}
+                              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -841,13 +962,15 @@ export function CreateQuote() {
           )}
 
           <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-border pt-4">
-            <button 
-              type="button"
-              onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' })}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors border border-primary/10 md:border-transparent"
-            >
-              <Plus size={16} /> Adicionar Item
-            </button>
+            {!isViewing && (
+              <button 
+                type="button"
+                onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' })}
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors border border-primary/10 md:border-transparent"
+              >
+                <Plus size={16} /> Adicionar Item
+              </button>
+            )}
 
             <div className="text-center md:text-right space-y-2 w-full md:w-auto">
               <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-6 text-sm text-muted-foreground mb-1">
@@ -871,6 +994,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Condição de Pagamento</label>
               <select 
                 {...register('condicaoPagamento')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               >
                 <option value="">Selecione...</option>
@@ -884,6 +1008,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Status do Orçamento</label>
               <select 
                 {...register('status')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               >
                 {statusOptions.map(st => (
@@ -899,6 +1024,7 @@ export function CreateQuote() {
                   <input 
                     type="number"
                     {...register('parcelas')}
+                    disabled={isViewing}
                     className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                   />
                 </div>
@@ -908,6 +1034,7 @@ export function CreateQuote() {
                     type="number"
                     step="0.01"
                     {...register('valorParcela')}
+                    disabled={isViewing}
                     className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                   />
                 </div>
@@ -918,6 +1045,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Validade da Proposta</label>
               <input 
                 {...register('validade')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -926,6 +1054,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Garantia</label>
               <input 
                 {...register('garantia')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -934,6 +1063,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Prazo de Execução</label>
               <input 
                 {...register('prazoExecucao')}
+                disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               />
             </div>
@@ -942,6 +1072,7 @@ export function CreateQuote() {
               <label className="text-sm font-medium">Observações</label>
               <textarea 
                 {...register('observacao')}
+                disabled={isViewing}
                 rows={3}
                 placeholder="Adicione informações adicionais que aparecerão no final do orçamento..."
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -986,6 +1117,7 @@ export function CreateQuote() {
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marca</label>
                   <input 
                     {...register('veiculoMarca')}
+                    disabled={isViewing}
                     placeholder="Ex: Chevrolet"
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -994,6 +1126,7 @@ export function CreateQuote() {
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modelo</label>
                   <input 
                     {...register('veiculoModelo')}
+                    disabled={isViewing}
                     placeholder="Ex: Onix"
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -1002,6 +1135,7 @@ export function CreateQuote() {
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ano</label>
                   <input 
                     {...register('veiculoAno')}
+                    disabled={isViewing}
                     placeholder="Ex: 2022"
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
@@ -1010,6 +1144,7 @@ export function CreateQuote() {
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Placa</label>
                   <input 
                     {...register('veiculoPlaca')}
+                    disabled={isViewing}
                     onChange={(e) => {
                       e.target.value = e.target.value.toUpperCase();
                       register('veiculoPlaca').onChange(e);
@@ -1029,7 +1164,7 @@ export function CreateQuote() {
                 onClick={() => setIsVehicleModalOpen(false)}
                 className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition shadow-sm text-sm"
               >
-                Confirmar
+                {isViewing ? 'Fechar' : 'Confirmar'}
               </button>
             </div>
           </div>

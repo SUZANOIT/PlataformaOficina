@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from '../utils/toast.helper';
 
 export function Suppliers() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -9,6 +10,7 @@ export function Suppliers() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form states
   const [razaoSocial, setRazaoSocial] = useState('');
@@ -142,6 +144,9 @@ export function Suppliers() {
       return;
     }
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const payload = {
       razaoSocial,
       nomeFantasia,
@@ -178,12 +183,13 @@ export function Suppliers() {
         handleCloseModal();
         fetchSuppliers();
       } else {
-        const errData = await response.json();
-        toast.error(errData.error || 'Erro ao salvar dados do fornecedor.');
+        handleApiError(response, 'Erro ao salvar dados do fornecedor.');
       }
     } catch (error) {
       console.error('Failed to save supplier', error);
-      toast.error('Erro de conexão ao salvar.');
+      handleApiError(error, 'Erro de conexão ao salvar.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -584,9 +590,10 @@ export function Suppliers() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm"
+                  disabled={isSubmitting}
+                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {selectedSupplier ? 'Atualizar Fornecedor' : 'Cadastrar Fornecedor'}
+                  {isSubmitting ? 'Salvando...' : (selectedSupplier ? 'Atualizar Fornecedor' : 'Cadastrar Fornecedor')}
                 </button>
               </div>
             </form>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Search, Eye, Edit2, Trash2, Sparkles, Check, X } from 'lucide-react';
+import { Truck, Plus, Search, Eye, Edit2, Trash2, Sparkles, Check, X, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { handleApiError } from '../../utils/toast.helper';
 
 export default function FleetVehicles() {
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -232,12 +233,11 @@ export default function FleetVehicles() {
         setIsModalOpen(false);
         fetchVehicles();
       } else {
-        const errData = await res.json();
-        toast.error(errData.error || 'Erro ao salvar veículo.');
+        handleApiError(res, 'Erro ao salvar veículo.');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Erro de conexão ao salvar.');
+      handleApiError(err, 'Erro de conexão ao salvar.');
     } finally {
       setIsSubmitting(false);
     }
@@ -280,6 +280,22 @@ export default function FleetVehicles() {
 
     return matchesSearch;
   });
+
+  // Group vehicles by client
+  const vehiclesByClient = filteredVehicles.reduce((groups: Record<string, { clientName: string; clientEmpresa?: string; vehicles: any[] }>, v) => {
+    const clientId = v.clienteId || 'sem_cliente';
+    const clientName = v.client?.nome || 'Sem Proprietário';
+    const clientEmpresa = v.client?.empresa || '';
+    if (!groups[clientId]) {
+      groups[clientId] = {
+        clientName,
+        clientEmpresa,
+        vehicles: []
+      };
+    }
+    groups[clientId].vehicles.push(v);
+    return groups;
+  }, {});
 
   return (
     <div className="p-6 space-y-6">
@@ -327,94 +343,127 @@ export default function FleetVehicles() {
         </div>
       </div>
 
-      {/* Vehicle Grid List */}
+      {/* Grouped Clients & Associated Fleets */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
-      ) : filteredVehicles.length === 0 ? (
+      ) : Object.keys(vehiclesByClient).length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-100 dark:border-gray-700">
           <Truck size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
           <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300">Nenhum veículo encontrado</h3>
           <p className="text-gray-400 mt-2">Cadastre um novo veículo ou modifique seus filtros.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVehicles.map((v) => (
+        <div className="space-y-6">
+          {Object.entries(vehiclesByClient).map(([clientId, group]: [string, any]) => (
             <div
-              key={v.id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col hover:shadow-md transition-shadow"
+              key={clientId}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              {/* Header colored banner */}
-              <div className="p-4 bg-indigo-600 text-white flex justify-between items-center">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-white/10 p-2 rounded-lg">
-                    <Truck size={20} />
+              {/* Client Group Header Banner */}
+              <div className="p-6 bg-gradient-to-r from-indigo-50 to-indigo-100/50 dark:from-gray-700/50 dark:to-gray-700/30 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 flex items-center justify-center font-bold text-lg">
+                    {group.clientName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-sm uppercase tracking-wider">{v.placa}</h4>
-                    <span className="text-xs text-indigo-200">{v.marca} {v.modelo}</span>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">{group.clientName}</h3>
+                    {group.clientEmpresa && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 mt-0.5">
+                        <Building size={12} /> {group.clientEmpresa}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${
-                  v.status === 'ATIVO' ? 'bg-green-500 text-white' :
-                  v.status === 'EM_MANUTENCAO' ? 'bg-amber-500 text-white' :
-                  v.status === 'VENDIDO' ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'
-                }`}>
-                  {v.status.replace("_", " ")}
-                </span>
-              </div>
-
-              {/* Vehicle body info */}
-              <div className="p-5 flex-1 space-y-4 text-sm text-gray-600 dark:text-gray-300">
-                <div className="flex justify-between items-center pb-2 border-b border-gray-50 dark:border-gray-700">
-                  <span className="text-xs text-gray-400">Proprietário</span>
-                  <span className="font-semibold text-gray-800 dark:text-white max-w-[180px] truncate">{v.client?.nome || 'N/A'}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-xs text-gray-400 block">Km Atual</span>
-                    <span className="font-bold text-gray-800 dark:text-white">{v.kmAtual.toLocaleString('pt-BR')} KM</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-gray-400 block">Ano Modelo</span>
-                    <span className="font-bold text-gray-800 dark:text-white">{v.anoModelo || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-xs text-gray-400 block">Frota</span>
-                    <span className="font-medium text-gray-700 dark:text-gray-400 truncate block">{v.frota || '—'}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-gray-400 block">Subfrota</span>
-                    <span className="font-medium text-gray-700 dark:text-gray-400 truncate block">{v.subfrota || '—'}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 font-bold px-3 py-1 rounded-full text-xs">
+                    {group.vehicles.length} {group.vehicles.length === 1 ? 'Veículo' : 'Veículos'}
+                  </span>
                 </div>
               </div>
 
-              {/* Action buttons footer */}
-              <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center gap-2">
-                <Link
-                  to={`/fleet/vehicles/${v.id}`}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg transition"
-                >
-                  <Eye size={14} />
-                  Ver Histórico
-                </Link>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleOpenEditModal(v)}
-                    className="p-2 text-gray-500 hover:text-indigo-600 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 transition"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(v.id)}
-                    className="p-2 text-gray-500 hover:text-rose-600 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 transition"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+              {/* Associated Vehicles List */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {group.vehicles.map((v: any) => (
+                    <div
+                      key={v.id}
+                      className="bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200/50 dark:border-gray-700 overflow-hidden flex flex-col hover:shadow-sm transition-shadow"
+                    >
+                      {/* Vehicle Header */}
+                      <div className="p-4 bg-gray-100 dark:bg-gray-700/60 border-b border-gray-200/50 dark:border-gray-700 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Truck size={16} className="text-indigo-600 dark:text-indigo-400" />
+                          <h4 className="font-extrabold text-sm uppercase tracking-wider text-gray-800 dark:text-white">{v.placa}</h4>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          v.status === 'ATIVO' ? 'bg-green-500/10 text-green-600' :
+                          v.status === 'EM_MANUTENCAO' ? 'bg-amber-500/10 text-amber-600' :
+                          v.status === 'VENDIDO' ? 'bg-blue-500/10 text-blue-600' : 'bg-gray-500/10 text-gray-500'
+                        }`}>
+                          {v.status.replace("_", " ")}
+                        </span>
+                      </div>
+
+                      {/* Vehicle Specs */}
+                      <div className="p-4 flex-1 space-y-3 text-xs text-gray-600 dark:text-gray-300">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Modelo / Marca</span>
+                          <span className="font-semibold text-gray-800 dark:text-white">{v.marca} {v.modelo}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Ano</span>
+                          <span className="font-semibold text-gray-800 dark:text-white">{v.anoModelo || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400">Quilometragem</span>
+                          <span className="font-bold text-gray-800 dark:text-white">{v.kmAtual.toLocaleString('pt-BR')} KM</span>
+                        </div>
+                        {(v.frota || v.subfrota) && (
+                          <div className="pt-2 border-t border-gray-200/50 dark:border-gray-700 grid grid-cols-2 gap-2 text-[10px]">
+                            {v.frota && (
+                              <div>
+                                <span className="text-gray-400 block">Frota</span>
+                                <span className="font-medium truncate block text-gray-700 dark:text-gray-400">{v.frota}</span>
+                              </div>
+                            )}
+                            {v.subfrota && (
+                              <div>
+                                <span className="text-gray-400 block">Subfrota</span>
+                                <span className="font-medium truncate block text-gray-700 dark:text-gray-400">{v.subfrota}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="p-3 bg-gray-100/50 dark:bg-gray-700/20 border-t border-gray-200/50 dark:border-gray-700 flex justify-between items-center gap-2">
+                        <Link
+                          to={`/fleet/vehicles/${v.id}`}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg transition"
+                        >
+                          <Eye size={12} />
+                          Histórico
+                        </Link>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditModal(v)}
+                            className="p-1.5 text-gray-500 hover:text-indigo-600 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 transition"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(v.id)}
+                            className="p-1.5 text-gray-500 hover:text-rose-600 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 transition"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

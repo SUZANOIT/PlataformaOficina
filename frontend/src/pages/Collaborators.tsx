@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, X, Search, User, Phone, Mail, Award, Calendar, Doll
 import { toast } from 'sonner';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { AdvancePdfTemplate } from '../components/AdvancePdfTemplate';
+import { handleApiError } from '../utils/toast.helper';
 
 export function Collaborators() {
   const [collaborators, setCollaborators] = useState<any[]>([]);
@@ -11,6 +12,7 @@ export function Collaborators() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Advances modal state
   const [companies, setCompanies] = useState<any[]>([]);
@@ -335,6 +337,9 @@ export function Collaborators() {
       return;
     }
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const payload = {
       nome,
       cpf: cpf || null,
@@ -369,12 +374,13 @@ export function Collaborators() {
         handleCloseModal();
         fetchCollaborators();
       } else {
-        const errData = await response.json();
-        toast.error(errData.error || 'Erro ao salvar dados do colaborador.');
+        handleApiError(response, 'Erro ao salvar dados do colaborador.');
       }
     } catch (error) {
       console.error('Failed to save collaborator', error);
-      toast.error('Erro de conexão ao salvar.');
+      handleApiError(error, 'Erro de conexão ao salvar.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -783,9 +789,10 @@ export function Collaborators() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm"
+                  disabled={isSubmitting}
+                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {selectedCollaborator ? 'Atualizar Colaborador' : 'Cadastrar Colaborador'}
+                  {isSubmitting ? 'Salvando...' : (selectedCollaborator ? 'Atualizar Colaborador' : 'Cadastrar Colaborador')}
                 </button>
               </div>
             </form>

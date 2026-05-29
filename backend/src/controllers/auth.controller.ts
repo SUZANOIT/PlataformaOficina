@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import { AuditLogger } from '../utils/audit.logger';
 
 const registerSchema = z.object({
   name: z.string().min(3),
@@ -29,7 +30,8 @@ export const AuthController = {
 
       const userExists = await prisma.user.findUnique({ where: { email } });
       if (userExists) {
-        return res.status(400).json({ error: 'User already exists' });
+        AuditLogger.log(null, null, 'REGISTER_USER', `Attempted duplicate user email: ${email}`, 'DUPLICATE_ATTEMPT');
+        return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,7 +44,7 @@ export const AuthController = {
         },
       });
 
-      console.log(`User registered: ${user.email} (id=${user.id})`);
+      AuditLogger.log(user.id, null, 'REGISTER_USER', `Registered user: ${user.email} (${user.id})`, 'SUCCESS');
       return res.status(201).json({ id: user.id, name: user.name, email: user.email });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -50,7 +52,7 @@ export const AuthController = {
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          return res.status(400).json({ error: 'User already exists' });
+          return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
         }
         console.error('Prisma error in register:', error.code, error.message);
         return res.status(500).json({ error: 'Database error', code: error.code });
@@ -125,6 +127,8 @@ export const AuthController = {
   async updateUser(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
+      const currentUserId = (req as any).userId || null;
+      const currentCompanyId = (req as any).companyId || null;
       const { name, email, password } = updateUserSchema.parse(req.body);
 
       const user = await prisma.user.findUnique({ where: { id } });
@@ -135,7 +139,8 @@ export const AuthController = {
       if (email !== user.email) {
         const emailCollision = await prisma.user.findUnique({ where: { email } });
         if (emailCollision) {
-          return res.status(400).json({ error: 'E-mail already in use' });
+          AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Attempted duplicate user email update: ${email}`, 'DUPLICATE_ATTEMPT');
+          return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
         }
       }
 
@@ -150,7 +155,7 @@ export const AuthController = {
         select: { id: true, name: true, email: true, createdAt: true }
       });
 
-      console.log(`User updated: ${updatedUser.email} (id=${updatedUser.id})`);
+      AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Updated user: ${updatedUser.email} (${updatedUser.id})`, 'SUCCESS');
       return res.json(updatedUser);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -158,7 +163,7 @@ export const AuthController = {
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          return res.status(400).json({ error: 'E-mail already in use' });
+          return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
         }
         if (error.code === 'P2025') {
           return res.status(404).json({ error: 'User not found' });

@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, User, MapPin, Loa
 import { toast } from 'sonner';
 import { platformService } from '../services/platformService';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
+import { handleApiError } from '../utils/toast.helper';
 
 export function Platforms() {
   useBreadcrumbs([{ label: 'Plataformas de Gestão' }]);
@@ -180,6 +181,9 @@ export function Platforms() {
       return;
     }
 
+    if (isSaving) return;
+    setIsSaving(true);
+
     const payload = {
       razaoSocial,
       nomeFantasia,
@@ -195,7 +199,6 @@ export function Platforms() {
       cep
     };
 
-    setIsSaving(true);
     try {
       if (selectedPlatform) {
         await platformService.update(selectedPlatform.id, payload);
@@ -208,8 +211,7 @@ export function Platforms() {
       fetchPlatforms();
     } catch (error: any) {
       console.error('Error saving platform:', error);
-      const errMsg = error.response?.data?.error || 'Erro ao salvar os dados da plataforma.';
-      toast.error(errMsg);
+      handleApiError(error, 'Erro ao salvar os dados da plataforma.');
     } finally {
       setIsSaving(false);
     }
@@ -278,7 +280,7 @@ export function Platforms() {
             Cadastro de Plataformas de Gestão
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Cadastre e gerencie as plataformas externas de frotas e integration utilizadas pelos seus clientes.
+            Cadastre e gerencie as plataformas externas de frotas e integração utilizadas pelos seus clientes.
           </p>
         </div>
         <button

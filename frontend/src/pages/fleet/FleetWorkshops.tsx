@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Wrench, Plus, Search, User, Phone, Mail, MapPin, Check, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from '../../utils/toast.helper';
 
 export default function FleetWorkshops() {
   const [workshops, setWorkshops] = useState<any[]>([]);
@@ -126,6 +127,7 @@ export default function FleetWorkshops() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
@@ -146,12 +148,11 @@ export default function FleetWorkshops() {
         setIsModalOpen(false);
         fetchWorkshops();
       } else {
-        const errData = await res.json();
-        toast.error(errData.error || 'Erro ao salvar oficina.');
+        handleApiError(res, 'Erro ao salvar oficina.');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Erro de conexão ao salvar.');
+      handleApiError(err, 'Erro de conexão ao salvar.');
     } finally {
       setIsSubmitting(false);
     }

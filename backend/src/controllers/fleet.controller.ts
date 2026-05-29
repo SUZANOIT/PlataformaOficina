@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import { AuditLogger } from '../utils/audit.logger';
 
 // Formats for Zod validation
 const createVehicleSchema = z.object({
@@ -169,6 +170,8 @@ export const fleetController = {
 
   async createVehicle(req: Request, res: Response) {
     try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
       const data = createVehicleSchema.parse(req.body);
 
       // Check duplicate plate
@@ -177,7 +180,8 @@ export const fleetController = {
       });
 
       if (existing) {
-        return res.status(400).json({ error: 'Veículo com esta placa já está cadastrado' });
+        AuditLogger.log(userId, companyId, 'CREATE_VEHICLE', `Attempted duplicate vehicle plate: ${data.placa}`, 'DUPLICATE_ATTEMPT');
+        return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
       }
 
       const vehicle = await prisma.vehicle.create({
@@ -196,6 +200,7 @@ export const fleetController = {
         },
       });
 
+      AuditLogger.log(userId, companyId, 'CREATE_VEHICLE', `Created vehicle: ${vehicle.placa} (${vehicle.id})`, 'SUCCESS');
       return res.status(201).json(vehicle);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -209,11 +214,23 @@ export const fleetController = {
   async updateVehicle(req: Request, res: Response) {
     try {
       const { id } = req.params as any;
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
       const data = createVehicleSchema.partial().parse(req.body);
 
       const oldVehicle = await prisma.vehicle.findUnique({ where: { id } });
       if (!oldVehicle) {
         return res.status(404).json({ error: 'Veículo não encontrado' });
+      }
+
+      if (data.placa && data.placa !== oldVehicle.placa) {
+        const duplicate = await prisma.vehicle.findUnique({
+          where: { placa: data.placa }
+        });
+        if (duplicate) {
+          AuditLogger.log(userId, companyId, 'UPDATE_VEHICLE', `Attempted duplicate vehicle plate update: ${data.placa}`, 'DUPLICATE_ATTEMPT');
+          return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+        }
       }
 
       const vehicle = await prisma.vehicle.update({
@@ -246,6 +263,7 @@ export const fleetController = {
         });
       }
 
+      AuditLogger.log(userId, companyId, 'UPDATE_VEHICLE', `Updated vehicle: ${vehicle.placa} (${vehicle.id})`, 'SUCCESS');
       return res.json(vehicle);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -441,6 +459,8 @@ export const fleetController = {
 
   async createWorkshop(req: Request, res: Response) {
     try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
       const data = createWorkshopSchema.parse(req.body);
 
       const existing = await prisma.oficina.findUnique({
@@ -448,10 +468,12 @@ export const fleetController = {
       });
 
       if (existing) {
-        return res.status(400).json({ error: 'Oficina com este CNPJ já está cadastrada' });
+        AuditLogger.log(userId, companyId, 'CREATE_WORKSHOP', `Attempted duplicate workshop CNPJ: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+        return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
       }
 
       const workshop = await prisma.oficina.create({ data });
+      AuditLogger.log(userId, companyId, 'CREATE_WORKSHOP', `Created workshop: ${workshop.nome} (${workshop.id})`, 'SUCCESS');
       return res.status(201).json(workshop);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -465,11 +487,30 @@ export const fleetController = {
   async updateWorkshop(req: Request, res: Response) {
     try {
       const { id } = req.params as any;
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
       const data = createWorkshopSchema.partial().parse(req.body);
+
+      const oldWorkshop = await prisma.oficina.findUnique({ where: { id } });
+      if (!oldWorkshop) {
+        return res.status(404).json({ error: 'Oficina não encontrada' });
+      }
+
+      if (data.cnpj && data.cnpj !== oldWorkshop.cnpj) {
+        const duplicate = await prisma.oficina.findUnique({
+          where: { cnpj: data.cnpj }
+        });
+        if (duplicate) {
+          AuditLogger.log(userId, companyId, 'UPDATE_WORKSHOP', `Attempted duplicate workshop CNPJ update: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+          return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+        }
+      }
+
       const workshop = await prisma.oficina.update({
         where: { id },
         data,
       });
+      AuditLogger.log(userId, companyId, 'UPDATE_WORKSHOP', `Updated workshop: ${workshop.nome} (${workshop.id})`, 'SUCCESS');
       return res.json(workshop);
     } catch (error) {
       if (error instanceof z.ZodError) {

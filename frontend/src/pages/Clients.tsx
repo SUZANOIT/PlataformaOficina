@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleApiError } from '../utils/toast.helper';
 
 export function Clients() {
   const [clients, setClients] = useState<any[]>([]);
@@ -9,6 +10,7 @@ export function Clients() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form states
   const [nome, setNome] = useState('');
@@ -174,6 +176,9 @@ export function Clients() {
       return;
     }
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const payload = {
       nome,
       empresa,
@@ -210,12 +215,13 @@ export function Clients() {
         handleCloseModal();
         fetchClients();
       } else {
-        const errData = await response.json();
-        toast.error(errData.error || 'Erro ao salvar dados do cliente.');
+        handleApiError(response, 'Erro ao salvar dados do cliente.');
       }
     } catch (error) {
       console.error('Failed to save client', error);
-      toast.error('Erro de conexão ao salvar.');
+      handleApiError(error, 'Erro de conexão ao salvar.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -442,6 +448,18 @@ export function Clients() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              
+              {/* Resumo do Cliente (Orçamentos) se for edição */}
+              {selectedClient && (
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between text-sm animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-foreground font-semibold">
+                    <span>Total de Orçamentos cadastrados para este cliente:</span>
+                  </div>
+                  <span className="bg-primary text-primary-foreground font-mono font-bold px-3 py-1 rounded-full text-xs shadow-sm">
+                    {selectedClient._count?.quotes || 0} {selectedClient._count?.quotes === 1 ? 'Orçamento' : 'Orçamentos'}
+                  </span>
+                </div>
+              )}
               
               {/* Seletor Tipo de Pessoa */}
               <div className="flex justify-center gap-6 pb-4 border-b border-border">
@@ -686,9 +704,10 @@ export function Clients() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm"
+                  disabled={isSubmitting}
+                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {selectedClient ? 'Atualizar Cliente' : 'Cadastrar Cliente'}
+                  {isSubmitting ? 'Salvando...' : (selectedClient ? 'Atualizar Cliente' : 'Cadastrar Cliente')}
                 </button>
               </div>
             </form>
