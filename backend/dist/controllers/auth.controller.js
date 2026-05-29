@@ -9,6 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
+const audit_logger_1 = require("../utils/audit.logger");
 const registerSchema = zod_1.z.object({
     name: zod_1.z.string().min(3),
     email: zod_1.z.string().email(),
@@ -29,7 +30,8 @@ exports.AuthController = {
             const { name, email, password } = registerSchema.parse(req.body);
             const userExists = await prisma_1.prisma.user.findUnique({ where: { email } });
             if (userExists) {
-                return res.status(400).json({ error: 'User already exists' });
+                audit_logger_1.AuditLogger.log(null, null, 'REGISTER_USER', `Attempted duplicate user email: ${email}`, 'DUPLICATE_ATTEMPT');
+                return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
             }
             const hashedPassword = await bcrypt_1.default.hash(password, 10);
             const user = await prisma_1.prisma.user.create({
@@ -39,7 +41,7 @@ exports.AuthController = {
                     password: hashedPassword,
                 },
             });
-            console.log(`User registered: ${user.email} (id=${user.id})`);
+            audit_logger_1.AuditLogger.log(user.id, null, 'REGISTER_USER', `Registered user: ${user.email} (${user.id})`, 'SUCCESS');
             return res.status(201).json({ id: user.id, name: user.name, email: user.email });
         }
         catch (error) {
@@ -48,7 +50,7 @@ exports.AuthController = {
             }
             if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
-                    return res.status(400).json({ error: 'User already exists' });
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
                 }
                 console.error('Prisma error in register:', error.code, error.message);
                 return res.status(500).json({ error: 'Database error', code: error.code });
@@ -118,6 +120,8 @@ exports.AuthController = {
     async updateUser(req, res) {
         try {
             const id = req.params.id;
+            const currentUserId = req.userId || null;
+            const currentCompanyId = req.companyId || null;
             const { name, email, password } = updateUserSchema.parse(req.body);
             const user = await prisma_1.prisma.user.findUnique({ where: { id } });
             if (!user) {
@@ -126,7 +130,8 @@ exports.AuthController = {
             if (email !== user.email) {
                 const emailCollision = await prisma_1.prisma.user.findUnique({ where: { email } });
                 if (emailCollision) {
-                    return res.status(400).json({ error: 'E-mail already in use' });
+                    audit_logger_1.AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Attempted duplicate user email update: ${email}`, 'DUPLICATE_ATTEMPT');
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
                 }
             }
             const updateData = { name, email };
@@ -138,7 +143,7 @@ exports.AuthController = {
                 data: updateData,
                 select: { id: true, name: true, email: true, createdAt: true }
             });
-            console.log(`User updated: ${updatedUser.email} (id=${updatedUser.id})`);
+            audit_logger_1.AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Updated user: ${updatedUser.email} (${updatedUser.id})`, 'SUCCESS');
             return res.json(updatedUser);
         }
         catch (error) {
@@ -147,7 +152,7 @@ exports.AuthController = {
             }
             if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2002') {
-                    return res.status(400).json({ error: 'E-mail already in use' });
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
                 }
                 if (error.code === 'P2025') {
                     return res.status(404).json({ error: 'User not found' });

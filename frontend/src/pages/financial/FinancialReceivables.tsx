@@ -93,6 +93,7 @@ export function FinancialReceivables() {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [collaborators, setCollaborators] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   // Fetch Companies, Quotes & Receivables
   const fetchCompanies = async () => {
@@ -185,11 +186,27 @@ export function FinancialReceivables() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/financial/categories', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchCompanies();
     fetchApprovedQuotes();
     fetchClients();
     fetchCollaborators();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -572,12 +589,11 @@ export function FinancialReceivables() {
           className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
         >
           <option value="">Todas as Categorias</option>
-          <option value="Serviços Mecânicos">Serviços Mecânicos</option>
-          <option value="Serviços Funilaria">Serviços Funilaria</option>
-          <option value="Venda de Peças">Venda de Peças</option>
-          <option value="Contrato Mensal">Contrato Mensal</option>
-          <option value="Rendimento Aplicações">Rendimento Aplicações</option>
-          <option value="Outros">Outros</option>
+          {categories
+            .filter(c => c.type === 'RECEIVABLE' || c.type === 'BOTH')
+            .map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
         </select>
       </div>
 
@@ -826,12 +842,11 @@ export function FinancialReceivables() {
                     required
                   >
                     <option value="">Selecione...</option>
-                    <option value="Serviços Mecânicos">Serviços Mecânicos</option>
-                    <option value="Serviços Funilaria">Serviços Funilaria</option>
-                    <option value="Venda de Peças">Venda de Peças</option>
-                    <option value="Contrato Mensal">Contrato Mensal</option>
-                    <option value="Rendimento Aplicações">Rendimento Aplicações</option>
-                    <option value="Outros">Outros</option>
+                    {categories
+                      .filter(c => c.type === 'RECEIVABLE' || c.type === 'BOTH')
+                      .map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
                   </select>
                 </div>
 

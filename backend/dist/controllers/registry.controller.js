@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegistryController = void 0;
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
+const audit_logger_1 = require("../utils/audit.logger");
 const clientSchema = zod_1.z.object({
     nome: zod_1.z.string(),
     empresa: zod_1.z.string().optional().nullable(),
@@ -77,10 +78,29 @@ exports.RegistryController = {
     },
     async createClient(req, res) {
         try {
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = clientSchema.parse(req.body);
+            if (data.cnpj) {
+                const cleanedCnpj = data.cnpj.replace(/\D/g, '');
+                if (cleanedCnpj) {
+                    const duplicate = await prisma_1.prisma.client.findFirst({
+                        where: {
+                            cnpj: {
+                                contains: cleanedCnpj
+                            }
+                        }
+                    });
+                    if (duplicate) {
+                        audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_CLIENT', `Attempted duplicate client CNPJ: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                        return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                    }
+                }
+            }
             const client = await prisma_1.prisma.client.create({
                 data,
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_CLIENT', `Created client: ${client.nome} (${client.id})`, 'SUCCESS');
             return res.status(201).json(client);
         }
         catch (error) {
@@ -94,11 +114,31 @@ exports.RegistryController = {
     async updateClient(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = clientSchema.parse(req.body);
+            if (data.cnpj) {
+                const cleanedCnpj = data.cnpj.replace(/\D/g, '');
+                if (cleanedCnpj) {
+                    const duplicate = await prisma_1.prisma.client.findFirst({
+                        where: {
+                            cnpj: {
+                                contains: cleanedCnpj
+                            },
+                            id: { not: id }
+                        }
+                    });
+                    if (duplicate) {
+                        audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_CLIENT', `Attempted duplicate client CNPJ update: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                        return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                    }
+                }
+            }
             const client = await prisma_1.prisma.client.update({
                 where: { id },
                 data,
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_CLIENT', `Updated client: ${client.nome} (${client.id})`, 'SUCCESS');
             return res.json(client);
         }
         catch (error) {
@@ -148,15 +188,28 @@ exports.RegistryController = {
     },
     async createSupplier(req, res) {
         try {
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = supplierSchema.parse(req.body);
-            // Sanitizar CNPJ sem mascara para indice único se fornecido
             let cnpjSemMascara = data.cnpj ? data.cnpj.replace(/\D/g, '') : null;
+            if (cnpjSemMascara) {
+                const duplicate = await prisma_1.prisma.supplier.findFirst({
+                    where: {
+                        cnpjSemMascara
+                    }
+                });
+                if (duplicate) {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_SUPPLIER', `Attempted duplicate supplier CNPJ: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                }
+            }
             const supplier = await prisma_1.prisma.supplier.create({
                 data: {
                     ...data,
                     cnpjSemMascara,
                 },
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_SUPPLIER', `Created supplier: ${supplier.razaoSocial} (${supplier.id})`, 'SUCCESS');
             return res.status(201).json(supplier);
         }
         catch (error) {
@@ -170,8 +223,22 @@ exports.RegistryController = {
     async updateSupplier(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = supplierSchema.parse(req.body);
             let cnpjSemMascara = data.cnpj ? data.cnpj.replace(/\D/g, '') : null;
+            if (cnpjSemMascara) {
+                const duplicate = await prisma_1.prisma.supplier.findFirst({
+                    where: {
+                        cnpjSemMascara,
+                        id: { not: id }
+                    }
+                });
+                if (duplicate) {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_SUPPLIER', `Attempted duplicate supplier CNPJ update: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                }
+            }
             const supplier = await prisma_1.prisma.supplier.update({
                 where: { id },
                 data: {
@@ -179,6 +246,7 @@ exports.RegistryController = {
                     cnpjSemMascara,
                 },
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_SUPPLIER', `Updated supplier: ${supplier.razaoSocial} (${supplier.id})`, 'SUCCESS');
             return res.json(supplier);
         }
         catch (error) {
@@ -232,8 +300,21 @@ exports.RegistryController = {
     },
     async createCollaborator(req, res) {
         try {
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = collaboratorSchema.parse(req.body);
             let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+            if (cpfSemMascara) {
+                const duplicate = await prisma_1.prisma.collaborator.findFirst({
+                    where: {
+                        cpfSemMascara
+                    }
+                });
+                if (duplicate) {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_COLLABORATOR', `Attempted duplicate collaborator CPF: ${data.cpf}`, 'DUPLICATE_ATTEMPT');
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                }
+            }
             const collaborator = await prisma_1.prisma.collaborator.create({
                 data: {
                     ...data,
@@ -245,6 +326,7 @@ exports.RegistryController = {
                     oficina: true
                 }
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_COLLABORATOR', `Created collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');
             return res.status(201).json(collaborator);
         }
         catch (error) {
@@ -258,8 +340,22 @@ exports.RegistryController = {
     async updateCollaborator(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
             const data = collaboratorSchema.parse(req.body);
             let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+            if (cpfSemMascara) {
+                const duplicate = await prisma_1.prisma.collaborator.findFirst({
+                    where: {
+                        cpfSemMascara,
+                        id: { not: id }
+                    }
+                });
+                if (duplicate) {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_COLLABORATOR', `Attempted duplicate collaborator CPF update: ${data.cpf}`, 'DUPLICATE_ATTEMPT');
+                    return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
+                }
+            }
             const collaborator = await prisma_1.prisma.collaborator.update({
                 where: { id },
                 data: {
@@ -272,6 +368,7 @@ exports.RegistryController = {
                     oficina: true
                 }
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_COLLABORATOR', `Updated collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');
             return res.json(collaborator);
         }
         catch (error) {

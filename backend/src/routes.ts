@@ -8,6 +8,7 @@ import { RegistryController } from './controllers/registry.controller';
 import { PlatformController } from './controllers/platform.controller';
 import { fleetController } from './controllers/fleet.controller';
 import { AdvanceController } from './controllers/advance.controller';
+import { FinancialCategoryController } from './controllers/financial-category.controller';
 import jwt from 'jsonwebtoken';
 
 const routes = Router();
@@ -154,6 +155,12 @@ routes.delete('/financial/receivables/:id', FinancialController.deleteReceivable
 routes.post('/financial/approve/:id', FinancialController.approveTransaction);
 routes.get('/financial/audits', FinancialController.getAuditHistory);
 routes.get('/financial/recurrences', FinancialController.getRecurrentHistory);
+
+// Categorias Financeiras
+routes.get('/financial/categories', FinancialCategoryController.list);
+routes.post('/financial/categories', FinancialCategoryController.create);
+routes.put('/financial/categories/:id', FinancialCategoryController.update);
+routes.delete('/financial/categories/:id', FinancialCategoryController.delete);
 
 // Gestão de Frotas (Suporta tanto /fleet quanto /api/fleet para compatibilidade com cache de navegadores)
 const registerFleetRoutes = (prefix: string) => {

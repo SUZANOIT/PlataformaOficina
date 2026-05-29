@@ -14,6 +14,7 @@ const registry_controller_1 = require("./controllers/registry.controller");
 const platform_controller_1 = require("./controllers/platform.controller");
 const fleet_controller_1 = require("./controllers/fleet.controller");
 const advance_controller_1 = require("./controllers/advance.controller");
+const financial_category_controller_1 = require("./controllers/financial-category.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const routes = (0, express_1.Router)();
 exports.routes = routes;
@@ -138,6 +139,11 @@ routes.delete('/financial/receivables/:id', financial_controller_1.FinancialCont
 routes.post('/financial/approve/:id', financial_controller_1.FinancialController.approveTransaction);
 routes.get('/financial/audits', financial_controller_1.FinancialController.getAuditHistory);
 routes.get('/financial/recurrences', financial_controller_1.FinancialController.getRecurrentHistory);
+// Categorias Financeiras
+routes.get('/financial/categories', financial_category_controller_1.FinancialCategoryController.list);
+routes.post('/financial/categories', financial_category_controller_1.FinancialCategoryController.create);
+routes.put('/financial/categories/:id', financial_category_controller_1.FinancialCategoryController.update);
+routes.delete('/financial/categories/:id', financial_category_controller_1.FinancialCategoryController.delete);
 // Gestão de Frotas (Suporta tanto /fleet quanto /api/fleet para compatibilidade com cache de navegadores)
 const registerFleetRoutes = (prefix) => {
     routes.use(prefix, authMiddleware);

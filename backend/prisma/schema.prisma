@@ -62,6 +62,7 @@ model Company {
   financialPayables    FinancialPayable[]
   financialReceivables FinancialReceivable[]
   plataformasGestao    PlataformaGestao[]
+  financialCategories  FinancialCategory[]
 
   @@index([cnpj])
   @@index([parentCompanyId])
@@ -593,4 +594,18 @@ model SalaryAdvancePdf {
   generatedAt     DateTime      @default(now())
 
   @@index([salaryAdvanceId])
+}
+
+model FinancialCategory {
+  id         String   @id @default(uuid())
+  name       String
+  type       String   // 'PAYABLE' | 'RECEIVABLE' | 'BOTH'
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([companyId, name, type])
+  @@index([companyId])
 }

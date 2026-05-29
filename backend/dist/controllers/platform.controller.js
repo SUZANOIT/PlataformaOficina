@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlatformController = void 0;
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
+const audit_logger_1 = require("../utils/audit.logger");
 const platformSchema = zod_1.z.object({
     razaoSocial: zod_1.z.string().min(1, 'Razão Social é obrigatória'),
     nomeFantasia: zod_1.z.string().min(1, 'Nome Fantasia é obrigatório'),
@@ -65,6 +66,7 @@ exports.PlatformController = {
     async create(req, res) {
         try {
             const companyId = req.companyId;
+            const userId = req.userId;
             const data = platformSchema.parse(req.body);
             const cnpjSemMascara = data.cnpj.replace(/\D/g, '');
             if (cnpjSemMascara.length !== 14) {
@@ -78,7 +80,8 @@ exports.PlatformController = {
                 }
             });
             if (duplicate) {
-                return res.status(400).json({ error: 'Já existe uma plataforma cadastrada com este CNPJ' });
+                audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_PLATFORM', `Attempted duplicate platform CNPJ: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
             }
             const platform = await prisma_1.prisma.plataformaGestao.create({
                 data: {
@@ -87,6 +90,7 @@ exports.PlatformController = {
                     companyId,
                 }
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_PLATFORM', `Created platform: ${platform.nomeFantasia} (${platform.id})`, 'SUCCESS');
             return res.status(201).json(platform);
         }
         catch (error) {
@@ -101,6 +105,7 @@ exports.PlatformController = {
         try {
             const id = req.params.id;
             const companyId = req.companyId;
+            const userId = req.userId;
             const data = platformSchema.parse(req.body);
             const cnpjSemMascara = data.cnpj.replace(/\D/g, '');
             if (cnpjSemMascara.length !== 14) {
@@ -122,7 +127,8 @@ exports.PlatformController = {
                 }
             });
             if (duplicate) {
-                return res.status(400).json({ error: 'Já existe outra plataforma cadastrada com este CNPJ' });
+                audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_PLATFORM', `Attempted duplicate platform CNPJ update: ${data.cnpj}`, 'DUPLICATE_ATTEMPT');
+                return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
             }
             const platform = await prisma_1.prisma.plataformaGestao.update({
                 where: { id },
@@ -131,6 +137,7 @@ exports.PlatformController = {
                     cnpjSemMascara,
                 }
             });
+            audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_PLATFORM', `Updated platform: ${platform.nomeFantasia} (${platform.id})`, 'SUCCESS');
             return res.json(platform);
         }
         catch (error) {

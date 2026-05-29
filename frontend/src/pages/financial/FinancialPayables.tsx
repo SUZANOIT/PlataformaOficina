@@ -108,6 +108,7 @@ export function FinancialPayables() {
   const [pagamentoAutomatico, setPagamentoAutomatico] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [collaborators, setCollaborators] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   
   // Sequence update / delete
   const [editMode, setEditMode] = useState<'CURRENT' | 'SEQUENCE'>('CURRENT');
@@ -187,11 +188,27 @@ export function FinancialPayables() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/financial/categories', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchCompanies();
     fetchSuppliers();
     fetchCollaborators();
     fetchApprovedQuotes();
+    fetchCategories();
   }, []);
 
   // Sincronizar valor alocado de forma automática com o valor do lançamento se houver apenas 1 orçamento vinculado
@@ -642,15 +659,11 @@ export function FinancialPayables() {
           className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
         >
           <option value="">Todas as Categorias</option>
-          <option value="Aluguel">Aluguel</option>
-          <option value="Energia/Água/Internet">Energia/Água/Internet</option>
-          <option value="Ferramentas">Ferramentas</option>
-          <option value="Impostos/Taxas">Impostos/Taxas</option>
-          <option value="Marketing/Anúncios">Marketing/Anúncios</option>
-          <option value="Peças/Estoque">Peças/Estoque</option>
-          <option value="Salários/Encargos">Salários/Encargos</option>
-          <option value="Serviços Terceirizados">Serviços Terceirizados</option>
-          <option value="Outros">Outros</option>
+          {categories
+            .filter(c => c.type === 'PAYABLE' || c.type === 'BOTH')
+            .map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
         </select>
 
         <select 
@@ -943,15 +956,11 @@ export function FinancialPayables() {
                     required
                   >
                     <option value="">Selecione...</option>
-                    <option value="Aluguel">Aluguel</option>
-                    <option value="Energia/Água/Internet">Energia/Água/Internet</option>
-                    <option value="Ferramentas">Ferramentas</option>
-                    <option value="Impostos/Taxas">Impostos/Taxas</option>
-                    <option value="Marketing/Anúncios">Marketing/Anúncios</option>
-                    <option value="Peças/Estoque">Peças/Estoque</option>
-                    <option value="Salários/Encargos">Salários/Encargos</option>
-                    <option value="Serviços Terceirizados">Serviços Terceirizados</option>
-                    <option value="Outros">Outros</option>
+                    {categories
+                      .filter(c => c.type === 'PAYABLE' || c.type === 'BOTH')
+                      .map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
                   </select>
                 </div>
 
