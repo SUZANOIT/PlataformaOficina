@@ -3,7 +3,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
-  AlertTriangle, 
   Calendar, 
   Filter, 
   Briefcase, 
