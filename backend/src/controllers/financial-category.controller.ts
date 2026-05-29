@@ -8,9 +8,30 @@ const categorySchema = z.object({
 });
 
 export class FinancialCategoryController {
+  private static async getCompanyId(req: Request): Promise<string | null> {
+    let companyId = (req as any).companyId as string;
+    
+    if (!companyId && req.query.companyId) {
+      companyId = req.query.companyId as string;
+    }
+    
+    if (!companyId && req.body && req.body.companyId) {
+      companyId = req.body.companyId as string;
+    }
+    
+    if (!companyId) {
+      const firstCompany = await prisma.company.findFirst();
+      if (firstCompany) {
+        companyId = firstCompany.id;
+      }
+    }
+    
+    return companyId || null;
+  }
+
   static async list(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId as string;
+      const companyId = await FinancialCategoryController.getCompanyId(req);
       if (!companyId) {
         return res.status(400).json({ error: 'Empresa não identificada' });
       }
@@ -64,7 +85,7 @@ export class FinancialCategoryController {
 
   static async create(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId as string;
+      const companyId = await FinancialCategoryController.getCompanyId(req);
       if (!companyId) {
         return res.status(400).json({ error: 'Empresa não identificada' });
       }
@@ -106,7 +127,7 @@ export class FinancialCategoryController {
 
   static async update(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId as string;
+      const companyId = await FinancialCategoryController.getCompanyId(req);
       const id = req.params.id as string;
 
       if (!companyId) {
@@ -157,7 +178,7 @@ export class FinancialCategoryController {
 
   static async delete(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId as string;
+      const companyId = await FinancialCategoryController.getCompanyId(req);
       const id = req.params.id as string;
 
       if (!companyId) {

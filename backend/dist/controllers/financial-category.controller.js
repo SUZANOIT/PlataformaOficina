@@ -8,9 +8,25 @@ const categorySchema = zod_1.z.object({
     type: zod_1.z.enum(['PAYABLE', 'RECEIVABLE', 'BOTH']),
 });
 class FinancialCategoryController {
+    static async getCompanyId(req) {
+        let companyId = req.companyId;
+        if (!companyId && req.query.companyId) {
+            companyId = req.query.companyId;
+        }
+        if (!companyId && req.body && req.body.companyId) {
+            companyId = req.body.companyId;
+        }
+        if (!companyId) {
+            const firstCompany = await prisma_1.prisma.company.findFirst();
+            if (firstCompany) {
+                companyId = firstCompany.id;
+            }
+        }
+        return companyId || null;
+    }
     static async list(req, res) {
         try {
-            const companyId = req.companyId;
+            const companyId = await FinancialCategoryController.getCompanyId(req);
             if (!companyId) {
                 return res.status(400).json({ error: 'Empresa não identificada' });
             }
@@ -58,7 +74,7 @@ class FinancialCategoryController {
     }
     static async create(req, res) {
         try {
-            const companyId = req.companyId;
+            const companyId = await FinancialCategoryController.getCompanyId(req);
             if (!companyId) {
                 return res.status(400).json({ error: 'Empresa não identificada' });
             }
@@ -94,7 +110,7 @@ class FinancialCategoryController {
     }
     static async update(req, res) {
         try {
-            const companyId = req.companyId;
+            const companyId = await FinancialCategoryController.getCompanyId(req);
             const id = req.params.id;
             if (!companyId) {
                 return res.status(400).json({ error: 'Empresa não identificada' });
@@ -136,7 +152,7 @@ class FinancialCategoryController {
     }
     static async delete(req, res) {
         try {
-            const companyId = req.companyId;
+            const companyId = await FinancialCategoryController.getCompanyId(req);
             const id = req.params.id;
             if (!companyId) {
                 return res.status(400).json({ error: 'Empresa não identificada' });
