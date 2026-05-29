@@ -277,27 +277,6 @@ export function FinancialDashboard() {
       </div>
 
       {/* Alertas */}
-      {kpis.contasVencidas > 0 && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl p-4 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20">
-              <AlertTriangle size={20} />
-            </div>
-            <div>
-              <h4 className="font-bold text-sm">Atenção: Títulos Financeiros Vencidos</h4>
-              <p className="text-xs text-red-400">Você possui {kpis.contasVencidas} lançamento(s) pendente(s) com data de vencimento ultrapassada.</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => {
-              toast.info('Navegue pelas telas de Contas a Pagar/Receber filtrando por status PENDENTE para regularizar.');
-            }}
-            className="text-xs font-bold px-3 py-1.5 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors"
-          >
-            Visualizar Contas
-          </button>
-        </div>
-      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
