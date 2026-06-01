@@ -301,18 +301,57 @@ export function FinancialReports() {
     return new Date(dateStr).toLocaleDateString('pt-BR');
   };
 
+  // Helper to calculate total per category in DRE tab
+  const getDRECategoryTotals = () => {
+    const totals: Record<string, { receitas: number; despesas: number; saldo: number }> = {};
+    records.forEach(r => {
+      const cat = r.categoria || 'Sem Categoria';
+      if (!totals[cat]) {
+        totals[cat] = { receitas: 0, despesas: 0, saldo: 0 };
+      }
+      if (r.type === 'RECEITA') {
+        totals[cat].receitas += r.valor;
+        totals[cat].saldo += r.valor;
+      } else {
+        totals[cat].despesas += r.valor;
+        totals[cat].saldo -= r.valor;
+      }
+    });
+    return Object.entries(totals).sort((a, b) => b[1].receitas + b[1].despesas - (a[1].receitas + a[1].despesas));
+  };
+
+  // Helper to calculate total per category in Budget tab
+  const getBudgetCategoryTotals = () => {
+    const totals: Record<string, number> = {};
+    linkedPayables.forEach(p => {
+      const cat = p.categoria || 'Sem Categoria';
+      const allocatedVal = p.linkedQuotes?.find((l: any) => l.quoteId === selectedQuoteId)?.valorVinculado || 0;
+      totals[cat] = (totals[cat] || 0) + allocatedVal;
+    });
+    return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  };
+
   return (
     <div className="space-y-6 pb-12 print:p-0 print:space-y-4">
       
       {/* CSS customizado para ocultação de menus na impressão PDF do browser */}
       <style>{`
         @media print {
+          /* Remove constraints so the print engine can paginate naturally over multiple pages */
+          html, body, #root, .flex.h-screen, main, .flex-1.overflow-auto, .overflow-y-auto, .overflow-auto {
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            position: relative !important;
+            display: block !important;
+          }
           body {
             background: white !important;
             color: black !important;
           }
           /* Oculta Sidebars, Navegações, Cabeçalhos dinâmicos e botões de filtro */
-          aside, nav, header, button, select, input, .no-print, toast {
+          aside, nav, header, button, select, input, .no-print, toast, [role="status"] {
             display: none !important;
           }
           /* Ajusta largura do main container */
@@ -332,6 +371,15 @@ export function FinancialReports() {
           }
           table {
             border-collapse: collapse !important;
+            width: 100% !important;
+            page-break-inside: auto !important;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+          }
+          thead {
+            display: table-header-group !important;
           }
           th, td {
             border: 1px solid #ddd !important;
@@ -586,6 +634,44 @@ export function FinancialReports() {
                 </tbody>
               </table>
             </div>
+
+            {/* Resumo: Somatório por Categoria no final */}
+            <div className="border-t border-border/60 pt-6 mt-6 page-break-inside-avoid">
+              <h3 className="text-xs font-black uppercase text-muted-foreground tracking-wider mb-4 flex items-center gap-1.5">
+                <FileText size={15} /> Resumo: Somatório por Categoria
+              </h3>
+              <table className="w-full text-left text-xs border-collapse max-w-2xl">
+                <thead>
+                  <tr className="bg-muted/40 border-b border-border/80 font-bold uppercase text-[9px] text-muted-foreground">
+                    <th className="p-2.5">Categoria</th>
+                    <th className="p-2.5 text-right">Total Receitas (+)</th>
+                    <th className="p-2.5 text-right">Total Despesas (-)</th>
+                    <th className="p-2.5 text-right">Saldo Líquido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getDRECategoryTotals().map(([cat, val]) => (
+                    <tr key={cat} className="border-b border-border/40 hover:bg-secondary/10 transition-colors">
+                      <td className="p-2.5 font-bold text-foreground">{cat}</td>
+                      <td className="p-2.5 text-right text-emerald-500 font-semibold">
+                        {val.receitas > 0 ? formatCurrency(val.receitas) : '-'}
+                      </td>
+                      <td className="p-2.5 text-right text-red-500 font-semibold">
+                        {val.despesas > 0 ? `(${formatCurrency(val.despesas)})` : '-'}
+                      </td>
+                      <td className={`p-2.5 text-right font-bold ${val.saldo >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {formatCurrency(val.saldo)}
+                      </td>
+                    </tr>
+                  ))}
+                  {getDRECategoryTotals().length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-muted-foreground italic">Nenhum lançamento categorizado</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </>
         ) : (
           <div className="space-y-6">
@@ -666,6 +752,34 @@ export function FinancialReports() {
                           <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
                             Nenhum lançamento de Contas a Pagar vinculado a este orçamento.
                           </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Resumo: Somatório por Categoria no final */}
+                <div className="border-t border-border/60 pt-6 mt-6 page-break-inside-avoid">
+                  <h3 className="text-xs font-black uppercase text-muted-foreground tracking-wider mb-4 flex items-center gap-1.5">
+                    <FileText size={15} /> Resumo: Somatório por Categoria
+                  </h3>
+                  <table className="w-full text-left text-xs border-collapse max-w-md">
+                    <thead>
+                      <tr className="bg-muted/40 border-b border-border/80 font-bold uppercase text-[9px] text-muted-foreground">
+                        <th className="p-2.5">Categoria</th>
+                        <th className="p-2.5 text-right">Total Alocado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getBudgetCategoryTotals().map(([cat, total]) => (
+                        <tr key={cat} className="border-b border-border/40 hover:bg-secondary/10 transition-colors">
+                          <td className="p-2.5 font-bold text-foreground">{cat}</td>
+                          <td className="p-2.5 text-right font-bold text-red-500">{formatCurrency(total)}</td>
+                        </tr>
+                      ))}
+                      {getBudgetCategoryTotals().length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="p-4 text-center text-muted-foreground italic">Nenhuma categoria alocada</td>
                         </tr>
                       )}
                     </tbody>
