@@ -68,6 +68,8 @@ export function FinancialReceivables() {
   const [statusFilter, setStatusFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
 
   // Modals & Active State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -167,6 +169,8 @@ export function FinancialReceivables() {
       if (statusFilter) params.append('status', statusFilter);
       if (companyFilter) params.append('companyId', companyFilter);
       if (categoryFilter) params.append('category', categoryFilter);
+      if (startDateFilter) params.append('startDate', startDateFilter);
+      if (endDateFilter) params.append('endDate', endDateFilter);
 
       const res = await fetch(`/financial/receivables?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -211,7 +215,7 @@ export function FinancialReceivables() {
 
   useEffect(() => {
     fetchReceivables();
-  }, [page, search, statusFilter, companyFilter, categoryFilter]);
+  }, [page, search, statusFilter, companyFilter, categoryFilter, startDateFilter, endDateFilter]);
 
   // Sincronizar valor alocado de forma automática com o valor do lançamento se houver apenas 1 orçamento vinculado
   useEffect(() => {
@@ -546,7 +550,7 @@ export function FinancialReceivables() {
       </div>
 
       {/* Advanced Filters Panel */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input 
@@ -561,7 +565,7 @@ export function FinancialReceivables() {
         <select 
           value={companyFilter}
           onChange={(e) => { setCompanyFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todas as Empresas</option>
           {companies.map(c => (
@@ -572,7 +576,7 @@ export function FinancialReceivables() {
         <select 
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todos os Status</option>
           <option value="PENDENTE">Pendente</option>
@@ -586,7 +590,7 @@ export function FinancialReceivables() {
         <select 
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todas as Categorias</option>
           {categories
@@ -595,6 +599,22 @@ export function FinancialReceivables() {
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
         </select>
+
+        <input 
+          type="date"
+          value={startDateFilter}
+          onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+          title="Data Inicial Vencimento"
+        />
+
+        <input 
+          type="date"
+          value={endDateFilter}
+          onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+          title="Data Final Vencimento"
+        />
       </div>
 
       {/* Main Table */}

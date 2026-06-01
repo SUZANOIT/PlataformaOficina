@@ -290,7 +290,7 @@ exports.FinancialController = {
     // 2. Contas a Pagar
     async listPayables(req, res) {
         try {
-            const { companyId, status, category, costCenter, search, page = 1, limit = 10 } = req.query;
+            const { companyId, status, category, costCenter, search, startDate, endDate, page = 1, limit = 10 } = req.query;
             const whereClause = {};
             if (companyId)
                 whereClause.companyId = companyId;
@@ -313,6 +313,17 @@ exports.FinancialController = {
                     { descricao: { contains: search, mode: 'insensitive' } },
                     { responsavel: { contains: search, mode: 'insensitive' } },
                 ];
+            }
+            if (startDate || endDate) {
+                whereClause.vencimento = {};
+                if (startDate) {
+                    whereClause.vencimento.gte = new Date(startDate);
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setUTCHours(23, 59, 59, 999);
+                    whereClause.vencimento.lte = end;
+                }
             }
             const skip = (Number(page) - 1) * Number(limit);
             const [payables, totalCount] = await prisma_1.prisma.$transaction([
@@ -622,7 +633,7 @@ exports.FinancialController = {
     // 3. Contas a Receber
     async listReceivables(req, res) {
         try {
-            const { companyId, status, category, search, page = 1, limit = 10 } = req.query;
+            const { companyId, status, category, search, startDate, endDate, page = 1, limit = 10 } = req.query;
             const whereClause = {};
             if (companyId)
                 whereClause.companyId = companyId;
@@ -636,6 +647,17 @@ exports.FinancialController = {
                     { descricao: { contains: search, mode: 'insensitive' } },
                     { responsavel: { contains: search, mode: 'insensitive' } },
                 ];
+            }
+            if (startDate || endDate) {
+                whereClause.vencimento = {};
+                if (startDate) {
+                    whereClause.vencimento.gte = new Date(startDate);
+                }
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setUTCHours(23, 59, 59, 999);
+                    whereClause.vencimento.lte = end;
+                }
             }
             const skip = (Number(page) - 1) * Number(limit);
             const [receivables, totalCount] = await prisma_1.prisma.$transaction([

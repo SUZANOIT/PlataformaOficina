@@ -74,6 +74,8 @@ export function FinancialPayables() {
   const [companyFilter, setCompanyFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [costCenterFilter, setCostCenterFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
 
   // Modals & Active State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -236,6 +238,8 @@ export function FinancialPayables() {
       if (companyFilter) params.append('companyId', companyFilter);
       if (categoryFilter) params.append('category', categoryFilter);
       if (costCenterFilter) params.append('costCenter', costCenterFilter);
+      if (startDateFilter) params.append('startDate', startDateFilter);
+      if (endDateFilter) params.append('endDate', endDateFilter);
 
       const res = await fetch(`/financial/payables?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -258,7 +262,7 @@ export function FinancialPayables() {
 
   useEffect(() => {
     fetchPayables();
-  }, [page, search, statusFilter, companyFilter, categoryFilter, costCenterFilter]);
+  }, [page, search, statusFilter, companyFilter, categoryFilter, costCenterFilter, startDateFilter, endDateFilter]);
 
   // Handle File Upload (Convert to Base64)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -616,7 +620,7 @@ export function FinancialPayables() {
       </div>
 
       {/* Advanced Filters Panel */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-5 gap-3">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input 
@@ -631,7 +635,7 @@ export function FinancialPayables() {
         <select 
           value={companyFilter}
           onChange={(e) => { setCompanyFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todas as Empresas</option>
           {companies.map(c => (
@@ -642,7 +646,7 @@ export function FinancialPayables() {
         <select 
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todos os Status</option>
           <option value="PENDENTE">Pendente</option>
@@ -656,7 +660,7 @@ export function FinancialPayables() {
         <select 
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todas as Categorias</option>
           {categories
@@ -669,7 +673,7 @@ export function FinancialPayables() {
         <select 
           value={costCenterFilter}
           onChange={(e) => { setCostCenterFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
         >
           <option value="">Todos os Centros de Custo</option>
           <option value="Administrativo">Administrativo</option>
@@ -679,6 +683,22 @@ export function FinancialPayables() {
           <option value="Mecânica Pesada">Mecânica Pesada</option>
           <option value="Estética Automotiva">Estética Automotiva</option>
         </select>
+
+        <input 
+          type="date"
+          value={startDateFilter}
+          onChange={(e) => { setStartDateFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+          title="Data Inicial Vencimento"
+        />
+
+        <input 
+          type="date"
+          value={endDateFilter}
+          onChange={(e) => { setEndDateFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+          title="Data Final Vencimento"
+        />
       </div>
 
       {/* Main Ledger Table */}
