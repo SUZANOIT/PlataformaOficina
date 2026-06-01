@@ -84,16 +84,7 @@ export function FinancialReports() {
         const data = await res.json();
         
         // Build DRE structures from API graphs and totals
-        const graficos = data.graficos;
         const kpis = data.kpis;
-
-        setDreData({
-          receitas: graficos.receitasPorCategoria || {},
-          despesas: graficos.despesasPorCategoria || {},
-          totalReceitas: kpis.recebimentosRealizados,
-          totalDespesas: kpis.despesasPagas,
-          resultado: kpis.saldoLiquido
-        });
 
         // Let's also fetch actual lists for the transaction detail appendix
         const [payablesRes, receivablesRes] = await Promise.all([
@@ -142,6 +133,28 @@ export function FinancialReports() {
         // Sort by due date
         items.sort((a, b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime());
         setRecords(items);
+
+        // Dynamically compute category breakdowns excluding PENDENTE status for the monthly closing report
+        const receitasRealizadasPorCategoria: Record<string, number> = {};
+        const despesasRealizadasPorCategoria: Record<string, number> = {};
+
+        items.forEach(item => {
+          if (item.status === 'PENDENTE') return;
+
+          if (item.type === 'RECEITA') {
+            receitasRealizadasPorCategoria[item.categoria] = (receitasRealizadasPorCategoria[item.categoria] || 0) + item.valor;
+          } else {
+            despesasRealizadasPorCategoria[item.categoria] = (despesasRealizadasPorCategoria[item.categoria] || 0) + item.valor;
+          }
+        });
+
+        setDreData({
+          receitas: receitasRealizadasPorCategoria,
+          despesas: despesasRealizadasPorCategoria,
+          totalReceitas: kpis.recebimentosRealizados,
+          totalDespesas: kpis.despesasPagas,
+          resultado: kpis.saldoLiquido
+        });
 
       } else {
         toast.error('Erro ao gerar DRE / Fluxo consolidado.');
@@ -305,6 +318,7 @@ export function FinancialReports() {
   const getDRECategoryTotals = () => {
     const totals: Record<string, { receitas: number; despesas: number; saldo: number }> = {};
     records.forEach(r => {
+      if (r.status === 'PENDENTE') return;
       const cat = r.categoria || 'Sem Categoria';
       if (!totals[cat]) {
         totals[cat] = { receitas: 0, despesas: 0, saldo: 0 };
