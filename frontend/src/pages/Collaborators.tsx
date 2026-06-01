@@ -30,8 +30,6 @@ export function Collaborators() {
   const [advanceFormaPagamento, setAdvanceFormaPagamento] = useState('PIX');
   const [advanceData, setAdvanceData] = useState(new Date().toISOString().substring(0, 10));
   const [advanceObservacoes, setAdvanceObservacoes] = useState('');
-  const [advanceOficinaId, setAdvanceOficinaId] = useState('');
-  const [workshops, setWorkshops] = useState<any[]>([]);
   const [savingAdvance, setSavingAdvance] = useState(false);
 
   // General Advance Form (from the main advances tab)
@@ -41,7 +39,6 @@ export function Collaborators() {
   const [generalAdvanceFormaPagamento, setGeneralAdvanceFormaPagamento] = useState('PIX');
   const [generalAdvanceData, setGeneralAdvanceData] = useState(new Date().toISOString().substring(0, 10));
   const [generalAdvanceObservacoes, setGeneralAdvanceObservacoes] = useState('');
-  const [generalAdvanceOficinaId, setGeneralAdvanceOficinaId] = useState('');
   const [savingGeneralAdvance, setSavingGeneralAdvance] = useState(false);
   const [selectedFormCollab, setSelectedFormCollab] = useState<any>(null);
 
@@ -70,7 +67,6 @@ export function Collaborators() {
   const [salario, setSalario] = useState('');
   const [status, setStatus] = useState('ATIVO');
   const [observacoes, setObservacoes] = useState('');
-  const [oficinaId, setOficinaId] = useState('');
   const [companyId, setCompanyId] = useState('');
 
   const fetchCollaborators = async () => {
@@ -103,25 +99,9 @@ export function Collaborators() {
     }
   };
 
-  const fetchWorkshops = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/fleet/workshops', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setWorkshops(data);
-      }
-    } catch (error) {
-      console.error("Failed to load workshops", error);
-    }
-  };
-
   useEffect(() => {
     fetchCollaborators();
     fetchCompanies();
-    fetchWorkshops();
   }, []);
 
   // Update selected collaborator details in general form when formCollabId changes
@@ -129,10 +109,8 @@ export function Collaborators() {
     if (formCollabId) {
       const collab = collaborators.find(c => c.id === formCollabId);
       setSelectedFormCollab(collab);
-      setGeneralAdvanceOficinaId(collab?.oficinaId || '');
     } else {
       setSelectedFormCollab(null);
-      setGeneralAdvanceOficinaId('');
     }
   }, [formCollabId, collaborators]);
 
@@ -167,7 +145,6 @@ export function Collaborators() {
     setAdvanceFormaPagamento('PIX');
     setAdvanceData(new Date().toISOString().substring(0, 10));
     setAdvanceObservacoes('');
-    setAdvanceOficinaId(collab.oficinaId || '');
     
     fetchAdvances(collab.id);
   };
@@ -187,7 +164,7 @@ export function Collaborators() {
         formaPagamento: advanceFormaPagamento,
         data: advanceData ? new Date(advanceData).toISOString() : null,
         observacoes: advanceObservacoes || null,
-        oficinaId: advanceOficinaId || null
+        oficinaId: currentCollabForAdvance?.companyId || null
       };
 
       const response = await fetch(`/registry/collaborators/${currentCollabForAdvance.id}/advances`, {
@@ -208,7 +185,6 @@ export function Collaborators() {
         setAdvanceFormaPagamento('PIX');
         setAdvanceData(new Date().toISOString().substring(0, 10));
         setAdvanceObservacoes('');
-        setAdvanceOficinaId(currentCollabForAdvance?.oficinaId || '');
         setIsCreateAdvanceFormOpen(false);
 
         // Refresh lists
@@ -248,7 +224,7 @@ export function Collaborators() {
         formaPagamento: generalAdvanceFormaPagamento,
         data: generalAdvanceData ? new Date(generalAdvanceData).toISOString() : null,
         observacoes: generalAdvanceObservacoes || null,
-        oficinaId: generalAdvanceOficinaId || null
+        oficinaId: selectedFormCollab?.companyId || null
       };
 
       const response = await fetch(`/registry/collaborators/${formCollabId}/advances`, {
@@ -270,7 +246,6 @@ export function Collaborators() {
         setGeneralAdvanceFormaPagamento('PIX');
         setGeneralAdvanceData(new Date().toISOString().substring(0, 10));
         setGeneralAdvanceObservacoes('');
-        setGeneralAdvanceOficinaId('');
         setIsGeneralAdvanceOpen(false);
 
         // Refresh collaborators list to load new advances details
@@ -436,7 +411,6 @@ export function Collaborators() {
     setEmail('');
     setCargo('');
     setDepartamento('');
-    setOficinaId('');
     setCompanyId('');
     
     // Default to today
@@ -461,7 +435,6 @@ export function Collaborators() {
     setSalario(collab.salario !== null && collab.salario !== undefined ? String(collab.salario) : '');
     setStatus(collab.status || 'ATIVO');
     setObservacoes(collab.observacoes || '');
-    setOficinaId(collab.oficinaId || '');
     setCompanyId(collab.companyId || '');
     setIsModalOpen(true);
   };
@@ -494,7 +467,7 @@ export function Collaborators() {
       salario: salario ? parseFloat(salario) : null,
       status,
       observacoes: observacoes || null,
-      oficinaId: oficinaId || null,
+      oficinaId: companyId || null,
       companyId: companyId || null
     };
 
@@ -579,8 +552,7 @@ export function Collaborators() {
   const getCollabSaldoDisponivel = (collab: any, month: number, year: number) => {
     const salarioBase = collab.salario || 0;
     const totalMonth = getCollabMonthTotal(collab, month, year);
-    const limit = salarioBase * 0.40; // 40% Standard Brazilian limit
-    return Math.max(0, limit - totalMonth);
+    return Math.max(0, salarioBase - totalMonth);
   };
 
   const getCollabLatestAdvance = (collab: any) => {
@@ -1549,40 +1521,22 @@ export function Collaborators() {
                   </div>
                 </div>
 
-                {/* Oficina e Empresa Vinculada */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Oficina Vinculada *</label>
-                    <select
-                      required
-                      value={oficinaId}
-                      onChange={(e) => setOficinaId(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm text-foreground"
-                    >
-                      <option value="">Selecione a oficina vinculada...</option>
-                      {workshops.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Empresa Vinculada *</label>
-                    <select
-                      required
-                      value={companyId}
-                      onChange={(e) => setCompanyId(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm text-foreground"
-                    >
-                      <option value="">Selecione a empresa vinculada...</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.razaoSocial}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Empresa Vinculada */}
+                <div className="space-y-1 mt-3">
+                  <label className="text-xs font-semibold text-foreground">Empresa Vinculada *</label>
+                  <select
+                    required
+                    value={companyId}
+                    onChange={(e) => setCompanyId(e.target.value)}
+                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm text-foreground font-semibold"
+                  >
+                    <option value="">Selecione a empresa vinculada...</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.razaoSocial}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1714,7 +1668,7 @@ export function Collaborators() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
                         Valor (R$) *
@@ -1756,24 +1710,6 @@ export function Collaborators() {
                         onChange={(e) => setAdvanceData(e.target.value)}
                         className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                        Oficina Vinculada *
-                      </label>
-                      <select
-                        required
-                        value={advanceOficinaId}
-                        onChange={(e) => setAdvanceOficinaId(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
-                      >
-                        <option value="">Selecione uma oficina...</option>
-                        {workshops.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.nome}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                   </div>
 
@@ -2057,7 +1993,7 @@ export function Collaborators() {
               <div className="border-t border-border pt-4 space-y-4">
                 <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Informações do Adiantamento</h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
                       Valor (R$) *
@@ -2099,24 +2035,6 @@ export function Collaborators() {
                       onChange={(e) => setGeneralAdvanceData(e.target.value)}
                       className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500 text-foreground"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                      Oficina Vinculada *
-                    </label>
-                    <select
-                      required
-                      value={generalAdvanceOficinaId}
-                      onChange={(e) => setGeneralAdvanceOficinaId(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500 text-foreground"
-                    >
-                      <option value="">Selecione uma oficina...</option>
-                      {workshops.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.nome}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
