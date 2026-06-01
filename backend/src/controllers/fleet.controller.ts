@@ -83,6 +83,483 @@ const createEventSchema = z.object({
 
 export const fleetController = {
   // ==========================================
+  // LAZY-LOAD TREE ACTIONS
+  // ==========================================
+  async listClientsTree(req: Request, res: Response) {
+    try {
+      const { search, placa, chassi, status, startDate, endDate } = req.query as any;
+
+      // Base query for clients: we only want active clients or based on general search
+      const whereClause: Prisma.ClientWhereInput = {};
+
+      if (search) {
+        whereClause.OR = [
+          { nome: { contains: search, mode: 'insensitive' } },
+          { empresa: { contains: search, mode: 'insensitive' } },
+          { cnpj: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      // If vehicle-specific filters are provided, we should only return clients who own matching vehicles
+      const vehicleWhere: Prisma.VehicleWhereInput = {};
+      let hasVehicleFilter = false;
+
+      if (placa) {
+        vehicleWhere.placa = { contains: placa.toUpperCase().replace(/[\s-]/g, ""), mode: 'insensitive' };
+        hasVehicleFilter = true;
+      }
+      if (chassi) {
+        vehicleWhere.chassi = { contains: chassi, mode: 'insensitive' };
+        hasVehicleFilter = true;
+      }
+      if (status) {
+        if (status !== 'all') {
+          vehicleWhere.status = status;
+          hasVehicleFilter = true;
+        }
+      } else {
+        // By default, only active vehicles
+        vehicleWhere.status = 'ATIVO';
+        hasVehicleFilter = true;
+      }
+
+      if (startDate || endDate) {
+        const dateFilter: Prisma.DateTimeFilter = {};
+        if (startDate) dateFilter.gte = new Date(startDate);
+        if (endDate) dateFilter.lte = new Date(endDate);
+        
+        vehicleWhere.OR = [
+          { createdAt: dateFilter },
+          { events: { some: { data: dateFilter } } }
+        ];
+        hasVehicleFilter = true;
+      }
+
+      if (hasVehicleFilter) {
+        whereClause.veiculos = {
+          some: vehicleWhere
+        };
+      }
+
+      const clients = await prisma.client.findMany({
+        where: whereClause,
+        orderBy: { nome: 'asc' },
+        select: {
+          id: true,
+          nome: true,
+          empresa: true,
+          cnpj: true,
+          status: true,
+          _count: {
+            select: {
+              veiculos: {
+                where: vehicleWhere
+              }
+            }
+          }
+        }
+      });
+
+      return res.json(clients);
+    } catch (error) {
+      console.error('[Fleet] Erro listClientsTree:', error);
+      return res.status(500).json({ error: 'Erro ao listar árvore de clientes' });
+    }
+  },
+
+  async getClientFleet(req: Request, res: Response) {
+    try {
+      const { clientId } = req.params as any;
+      const { search, placa, chassi, status, startDate, endDate } = req.query as any;
+
+      const vehicleWhere: Prisma.VehicleWhereInput = {
+        clienteId: clientId
+      };
+
+      if (placa) {
+        vehicleWhere.placa = { contains: placa.toUpperCase().replace(/[\s-]/g, ""), mode: 'insensitive' };
+      }
+      if (chassi) {
+        vehicleWhere.chassi = { contains: chassi, mode: 'insensitive' };
+      }
+      if (status) {
+        if (status !== 'all') {
+          vehicleWhere.status = status;
+        }
+      } else {
+        // By default, only active vehicles
+        vehicleWhere.status = 'ATIVO';
+      }
+
+      if (startDate || endDate) {
+        const dateFilter: Prisma.DateTimeFilter = {};
+        if (startDate) dateFilter.gte = new Date(startDate);
+        if (endDate) dateFilter.lte = new Date(endDate);
+
+        vehicleWhere.OR = [
+          { createdAt: dateFilter },
+          { events: { some: { data: dateFilter } } }
+        ];
+      }
+
+      const vehicles = await prisma.vehicle.findMany({
+        where: vehicleWhere,
+        orderBy: [{ subfrota: 'asc' }, { placa: 'asc' }],
+        include: {
+          client: true,
+          events: {
+            orderBy: { data: 'desc' },
+            take: 1, // To find the last service date
+          },
+          trocasOleoMotor: {
+            orderBy: { dataTroca: 'desc' },
+            take: 1
+          },
+          trocasOleoCambio: {
+            orderBy: { dataTroca: 'desc' },
+            take: 1
+          }
+        }
+      });
+
+      const formattedVehicles = vehicles.map(v => {
+        // Calculate last service date
+        const eventDates = [
+          v.events[0]?.data,
+          v.trocasOleoMotor[0]?.dataTroca,
+          v.trocasOleoCambio[0]?.dataTroca
+        ].filter(Boolean) as Date[];
+        
+        const lastServiceDate = eventDates.length > 0 
+          ? new Date(Math.max(...eventDates.map(d => d.getTime())))
+          : null;
+
+        return {
+          id: v.id,
+          placa: v.placa,
+          chassi: v.chassi,
+          renavam: v.renavam,
+          marca: v.marca,
+          modelo: v.modelo,
+          ano: v.anoModelo,
+          anoFabricacao: v.anoFabricacao,
+          quilometragem: v.kmAtual,
+          status: v.status,
+          clienteId: v.clienteId,
+          clienteNome: v.client?.nome,
+          subfrota: v.subfrota || null,
+          frota: v.frota || null,
+          dataUltimoServico: lastServiceDate
+        };
+      });
+
+      return res.json(formattedVehicles);
+    } catch (error) {
+      console.error('[Fleet] Erro getClientFleet:', error);
+      return res.status(500).json({ error: 'Erro ao carregar frota do cliente' });
+    }
+  },
+
+  async getVehicleDetails(req: Request, res: Response) {
+    try {
+      const { vehicleId } = req.params as any;
+
+      const vehicle = await prisma.vehicle.findUnique({
+        where: { id: vehicleId },
+        include: {
+          client: true,
+          events: {
+            orderBy: { data: 'desc' }
+          },
+          trocasOleoMotor: {
+            orderBy: { dataTroca: 'desc' },
+            include: { oficina: true }
+          },
+          trocasOleoCambio: {
+            orderBy: { dataTroca: 'desc' },
+            include: { oficina: true }
+          }
+        }
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ error: 'Veículo não encontrado' });
+      }
+
+      // Fetch all quotes related to this vehicle's plate
+      const quotes = await prisma.quote.findMany({
+        where: {
+          veiculoPlaca: {
+            equals: vehicle.placa,
+            mode: 'insensitive'
+          }
+        },
+        include: {
+          items: true,
+          financialReceivables: {
+            include: { attachments: true }
+          },
+          linkedPayables: {
+            include: {
+              payable: {
+                include: { attachments: true }
+              }
+            }
+          },
+          linkedReceivables: {
+            include: {
+              receivable: {
+                include: { attachments: true }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Distinguish between Orçamentos (Budgets) and Ordens de Serviço (Service Orders)
+      // OS = status is Approved, Paid, etc. OR has osExterna
+      const osStatuses = ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago'];
+      
+      const orcamentos = quotes.filter(q => !osStatuses.includes(q.status) && !q.osExterna);
+      const ordensServico = quotes.filter(q => osStatuses.includes(q.status) || q.osExterna);
+
+      // Histórico de manutenção: combine trocas de óleo and general events
+      const manutencoes = [
+        ...vehicle.trocasOleoMotor.map(t => ({
+          id: t.id,
+          tipo: 'TROCA_OLEO_MOTOR',
+          data: t.dataTroca,
+          km: t.kmTroca,
+          descricao: `Troca de Óleo do Motor (${t.tipoOleo || 'N/A'}) - Oficina: ${t.oficina?.nome || 'MCA'}`,
+          valor: t.valor,
+          proximaTroca: `Próxima: ${t.proximaTrocaKm} KM ou ${t.proximaTrocaData.toLocaleDateString('pt-BR')}`
+        })),
+        ...vehicle.trocasOleoCambio.map(t => ({
+          id: t.id,
+          tipo: 'TROCA_OLEO_CAMBIO',
+          data: t.dataTroca,
+          km: t.kmTroca,
+          descricao: `Troca de Óleo do Câmbio (${t.tipoCambio}) - Oficina: ${t.oficina?.nome || 'MCA'}`,
+          valor: t.valor,
+          proximaTroca: `Próxima: ${t.proximaTrocaKm} KM ou ${t.proximaTrocaData.toLocaleDateString('pt-BR')}`
+        })),
+        ...vehicle.events.map(e => ({
+          id: e.id,
+          tipo: e.tipo,
+          data: e.data,
+          km: e.km,
+          descricao: e.descricao,
+          valor: e.valor || 0,
+          proximaTroca: null as any
+        }))
+      ].sort((a, b) => b.data.getTime() - a.data.getTime());
+
+      // Peças utilizadas: extract items from quotes/OS where tipo is "Peça" or "Peca"
+      const pecas: any[] = [];
+      const pecasSet = new Set<string>();
+
+      quotes.forEach(q => {
+        q.items.forEach(item => {
+          if (item.tipo && (item.tipo.toLowerCase() === 'peça' || item.tipo.toLowerCase() === 'peca')) {
+            const key = `${item.descricao.toLowerCase()}_${item.valorUnitario}`;
+            if (!pecasSet.has(key)) {
+              pecasSet.add(key);
+              pecas.push({
+                descricao: item.descricao,
+                quantidade: item.quantidade,
+                valorUnitario: item.valorUnitario,
+                valorTotal: item.valorTotal,
+                data: q.createdAt,
+                numeroOrcamento: q.numeroOrcamento,
+                status: q.status
+              });
+            } else {
+              // Aggregate quantity/totals
+              const existing = pecas.find(p => p.descricao.toLowerCase() === item.descricao.toLowerCase() && p.valorUnitario === item.valorUnitario);
+              if (existing) {
+                existing.quantidade += item.quantidade;
+                existing.valorTotal += item.valorTotal;
+              }
+            }
+          }
+        });
+      });
+
+      // Anexos e documentos: gather from financial payables/receivables linked to quotes
+      const documentos: any[] = [];
+      const docUrls = new Set<string>();
+
+      quotes.forEach(q => {
+        // From receivables
+        q.financialReceivables.forEach(r => {
+          r.attachments.forEach(att => {
+            if (!docUrls.has(att.fileUrl)) {
+              docUrls.add(att.fileUrl);
+              documentos.push({
+                id: att.id,
+                nome: att.fileName,
+                tipo: att.fileType,
+                url: att.fileUrl,
+                origem: `Recebível #${r.numeroRecebimento} - ${r.descricao}`,
+                data: att.createdAt
+              });
+            }
+          });
+        });
+
+        // From linked receivables
+        q.linkedReceivables.forEach(link => {
+          link.receivable.attachments.forEach(att => {
+            if (!docUrls.has(att.fileUrl)) {
+              docUrls.add(att.fileUrl);
+              documentos.push({
+                id: att.id,
+                nome: att.fileName,
+                tipo: att.fileType,
+                url: att.fileUrl,
+                origem: `Recebível #${link.receivable.numeroRecebimento} - ${link.receivable.descricao}`,
+                data: att.createdAt
+              });
+            }
+          });
+        });
+
+        // From linked payables
+        q.linkedPayables.forEach(link => {
+          link.payable.attachments.forEach(att => {
+            if (!docUrls.has(att.fileUrl)) {
+              docUrls.add(att.fileUrl);
+              documentos.push({
+                id: att.id,
+                nome: att.fileName,
+                tipo: att.fileType,
+                url: att.fileUrl,
+                origem: `Contas a Pagar #${link.payable.numeroLancamento} - ${link.payable.descricao}`,
+                data: att.createdAt
+              });
+            }
+          });
+        });
+      });
+
+      // Histórico financeiro: Payables and Receivables
+      const financeiro: any[] = [];
+
+      quotes.forEach(q => {
+        // Receivables
+        q.financialReceivables.forEach(r => {
+          financeiro.push({
+            id: r.id,
+            tipo: 'RECEITA',
+            numero: r.numeroRecebimento,
+            descricao: r.descricao,
+            valor: r.valor,
+            vencimento: r.vencimento,
+            dataLiquidacao: r.dataRecebimento,
+            status: r.status
+          });
+        });
+
+        q.linkedReceivables.forEach(link => {
+          financeiro.push({
+            id: link.receivable.id,
+            tipo: 'RECEITA',
+            numero: link.receivable.numeroRecebimento,
+            descricao: link.receivable.descricao,
+            valor: link.valorVinculado,
+            vencimento: link.receivable.vencimento,
+            dataLiquidacao: link.receivable.dataRecebimento,
+            status: link.receivable.status
+          });
+        });
+
+        // Payables
+        q.linkedPayables.forEach(link => {
+          financeiro.push({
+            id: link.payable.id,
+            tipo: 'DESPESA',
+            numero: link.payable.numeroLancamento,
+            descricao: link.payable.descricao,
+            valor: link.valorVinculado,
+            vencimento: link.payable.vencimento,
+            dataLiquidacao: link.payable.dataPagamento,
+            status: link.payable.status
+          });
+        });
+      });
+
+      // Add maintenance events that have a cost (valor) to the financial history as DESPESA
+      manutencoes.forEach(m => {
+        if (m.valor > 0) {
+          financeiro.push({
+            id: m.id,
+            tipo: 'DESPESA_MANUTENCAO',
+            numero: null,
+            descricao: m.descricao,
+            valor: m.valor,
+            vencimento: m.data,
+            dataLiquidacao: m.data,
+            status: 'PAGO'
+          });
+        }
+      });
+
+      // Sort financial history by date desc
+      financeiro.sort((a, b) => new Date(b.vencimento).getTime() - new Date(a.vencimento).getTime());
+
+      // Format basic vehicle data
+      const infoCadastral = {
+        id: vehicle.id,
+        placa: vehicle.placa,
+        chassi: vehicle.chassi,
+        renavam: vehicle.renavam,
+        vin: vehicle.vin,
+        codigoFipe: vehicle.codigoFipe,
+        codigoInterno: vehicle.codigoInterno,
+        frota: vehicle.frota,
+        subfrota: vehicle.subfrota,
+        marca: vehicle.marca,
+        modelo: vehicle.modelo,
+        versao: vehicle.versao,
+        anoFabricacao: vehicle.anoFabricacao,
+        anoModelo: vehicle.anoModelo,
+        cor: vehicle.cor,
+        combustivel: vehicle.combustivel,
+        categoria: vehicle.categoria,
+        tipoVeiculo: vehicle.tipoVeiculo,
+        municipio: vehicle.municipio,
+        uf: vehicle.uf,
+        kmAtual: vehicle.kmAtual,
+        mediaConsumo: vehicle.mediaConsumo,
+        status: vehicle.status,
+        observacoes: vehicle.observacoes,
+        cliente: vehicle.client ? {
+          id: vehicle.client.id,
+          nome: vehicle.client.nome,
+          empresa: vehicle.client.empresa,
+          cnpj: vehicle.client.cnpj,
+          telefone: vehicle.client.telefone,
+          email: vehicle.client.email
+        } : null
+      };
+
+      return res.json({
+        infoCadastral,
+        orcamentos,
+        ordensServico,
+        manutencoes,
+        pecas,
+        documentos,
+        financeiro
+      });
+    } catch (error) {
+      console.error('[Fleet] Erro getVehicleDetails:', error);
+      return res.status(500).json({ error: 'Erro ao carregar detalhes do veículo' });
+    }
+  },
+
+  // ==========================================
   // CLIENTS ACTIONS
   // ==========================================
   async listClients(req: Request, res: Response) {

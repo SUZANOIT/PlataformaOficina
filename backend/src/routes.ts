@@ -168,6 +168,9 @@ const registerFleetRoutes = (prefix: string) => {
   routes.get(`${prefix}/dashboard/stats`, fleetController.getDashboardStats);
   routes.get(`${prefix}/reports`, fleetController.getReportData);
   routes.get(`${prefix}/clients`, fleetController.listClients);
+  routes.get(`${prefix}/tree/clients`, fleetController.listClientsTree);
+  routes.get(`${prefix}/tree/clients/:clientId/vehicles`, fleetController.getClientFleet);
+  routes.get(`${prefix}/tree/vehicles/:vehicleId/details`, fleetController.getVehicleDetails);
   routes.put(`${prefix}/clients/:id/status`, fleetController.updateClientStatus);
   routes.get(`${prefix}/vehicles`, fleetController.listVehicles);
   routes.get(`${prefix}/vehicles/:id`, fleetController.getVehicle);

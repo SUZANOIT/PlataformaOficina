@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FinancialController = void 0;
+// Utility to parse YYYY-MM-DD strings as local dates without timezone shift
+function parseLocalDate(val) {
+    const [year, month, day] = val.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+}
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const attachmentSchema = zod_1.z.object({
@@ -15,8 +20,14 @@ const createPayableSchema = zod_1.z.object({
     centroCusto: zod_1.z.string(),
     descricao: zod_1.z.string(),
     valor: zod_1.z.number().positive(),
-    dataEmissao: zod_1.z.string().transform((val) => new Date(val)),
-    vencimento: zod_1.z.string().transform((val) => new Date(val)),
+    dataEmissao: zod_1.z.string().transform((val) => {
+        const [year, month, day] = val.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    }),
+    vencimento: zod_1.z.string().transform((val) => {
+        const [year, month, day] = val.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    }),
     dataPagamento: zod_1.z.string().optional().nullable().transform((val) => val ? new Date(val) : null),
     formaPagamento: zod_1.z.string(),
     responsavel: zod_1.z.string(),
@@ -523,8 +534,8 @@ exports.FinancialController = {
                 centroCusto: updateFields.centroCusto,
                 descricao: updateFields.descricao,
                 valor: updateFields.valor ? Number(updateFields.valor) : undefined,
-                dataEmissao: updateFields.dataEmissao ? new Date(updateFields.dataEmissao) : undefined,
-                vencimento: updateFields.vencimento ? new Date(updateFields.vencimento) : undefined,
+                dataEmissao: updateFields.dataEmissao ? parseLocalDate(updateFields.dataEmissao) : undefined,
+                vencimento: updateFields.vencimento ? parseLocalDate(updateFields.vencimento) : undefined,
                 dataPagamento: updateFields.dataPagamento ? new Date(updateFields.dataPagamento) : null,
                 formaPagamento: updateFields.formaPagamento,
                 responsavel: updateFields.responsavel,

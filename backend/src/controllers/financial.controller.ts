@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+
+// Utility to parse YYYY-MM-DD strings as local dates without timezone shift
+function parseLocalDate(val: string): Date {
+  const [year, month, day] = val.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 
@@ -16,8 +22,14 @@ const createPayableSchema = z.object({
   centroCusto: z.string(),
   descricao: z.string(),
   valor: z.number().positive(),
-  dataEmissao: z.string().transform((val) => new Date(val)),
-  vencimento: z.string().transform((val) => new Date(val)),
+  dataEmissao: z.string().transform((val) => {
+    const [year, month, day] = val.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  }),
+  vencimento: z.string().transform((val) => {
+    const [year, month, day] = val.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  }),
   dataPagamento: z.string().optional().nullable().transform((val) => val ? new Date(val) : null),
   formaPagamento: z.string(),
   responsavel: z.string(),
@@ -577,8 +589,8 @@ export const FinancialController = {
         centroCusto: updateFields.centroCusto,
         descricao: updateFields.descricao,
         valor: updateFields.valor ? Number(updateFields.valor) : undefined,
-        dataEmissao: updateFields.dataEmissao ? new Date(updateFields.dataEmissao) : undefined,
-        vencimento: updateFields.vencimento ? new Date(updateFields.vencimento) : undefined,
+        dataEmissao: updateFields.dataEmissao ? parseLocalDate(updateFields.dataEmissao) : undefined,
+        vencimento: updateFields.vencimento ? parseLocalDate(updateFields.vencimento) : undefined,
         dataPagamento: updateFields.dataPagamento ? new Date(updateFields.dataPagamento) : null,
         formaPagamento: updateFields.formaPagamento,
         responsavel: updateFields.responsavel,
