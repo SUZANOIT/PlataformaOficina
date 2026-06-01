@@ -6,4 +6,6 @@
 > backend@1.0.0 start
 > node dist/server.js
 
+◇ injected env (3) from .env // tip: ⌘ override existing { override: true }
 Server is running on port 3333
+User logged in: rafaelsuzano@hotmail.com (id=b96e6885-8af7-49fd-84df-e2c43ae6a808)
