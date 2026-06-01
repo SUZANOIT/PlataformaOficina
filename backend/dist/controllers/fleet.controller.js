@@ -126,7 +126,13 @@ exports.fleetController = {
                 ];
                 hasVehicleFilter = true;
             }
-            if (hasVehicleFilter) {
+            // Only filter client entities if there is an explicit vehicle attribute search (plate, chassis, or date range)
+            // This prevents clients with 0 vehicles from being hidden by default when status is 'ATIVO'
+            let hasExplicitVehicleSearch = false;
+            if (placa || chassi || startDate || endDate) {
+                hasExplicitVehicleSearch = true;
+            }
+            if (hasExplicitVehicleSearch) {
                 whereClause.veiculos = {
                     some: vehicleWhere
                 };
@@ -455,6 +461,20 @@ exports.fleetController = {
                         status: link.payable.status
                     });
                 });
+                // Fallback faturamento: If the quote has no direct receivables and no linked receivables, but it is an approved or paid quote,
+                // we add the quote itself as a faturamento entry so that it does not show R$ 0,00.
+                if (q.financialReceivables.length === 0 && q.linkedReceivables.length === 0 && ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'].includes(q.status)) {
+                    financeiro.push({
+                        id: `quote-${q.id}`,
+                        tipo: 'RECEITA',
+                        numero: q.numeroOrcamento,
+                        descricao: `Faturamento ref. Orçamento #${q.numeroOrcamento} (${q.status})`,
+                        valor: q.total,
+                        vencimento: q.updatedAt,
+                        dataLiquidacao: q.updatedAt,
+                        status: q.status === 'Pago' ? 'RECEBIDA' : 'PENDENTE'
+                    });
+                }
             });
             // Add maintenance events that have a cost (valor) to the financial history as DESPESA
             manutencoes.forEach(m => {

@@ -51,6 +51,7 @@ const collaboratorSchema = z.object({
   status: z.string().default('ATIVO'),
   observacoes: z.string().optional().nullable(),
   oficinaId: z.string().optional().nullable(),
+  companyId: z.string().optional().nullable(),
 });
 
 export const RegistryController = {
@@ -290,22 +291,48 @@ export const RegistryController = {
   async listCollaborators(req: Request, res: Response) {
     try {
       const { search } = req.query;
+      const userCompanyId = (req as any).companyId || null;
       const whereClause: any = {};
 
+      if (userCompanyId) {
+        whereClause.companyId = userCompanyId;
+      }
+
       if (search) {
-        whereClause.OR = [
-          { nome: { contains: search as string, mode: 'insensitive' } },
-          { cpf: { contains: search as string, mode: 'insensitive' } },
-          { email: { contains: search as string, mode: 'insensitive' } },
-          { cargo: { contains: search as string, mode: 'insensitive' } },
-          { departamento: { contains: search as string, mode: 'insensitive' } },
-        ];
+        if (userCompanyId) {
+          whereClause.AND = [
+            { companyId: userCompanyId },
+            {
+              OR: [
+                { nome: { contains: search as string, mode: 'insensitive' } },
+                { cpf: { contains: search as string, mode: 'insensitive' } },
+                { email: { contains: search as string, mode: 'insensitive' } },
+                { cargo: { contains: search as string, mode: 'insensitive' } },
+                { departamento: { contains: search as string, mode: 'insensitive' } },
+              ]
+            }
+          ];
+        } else {
+          whereClause.OR = [
+            { nome: { contains: search as string, mode: 'insensitive' } },
+            { cpf: { contains: search as string, mode: 'insensitive' } },
+            { email: { contains: search as string, mode: 'insensitive' } },
+            { cargo: { contains: search as string, mode: 'insensitive' } },
+            { departamento: { contains: search as string, mode: 'insensitive' } },
+          ];
+        }
       }
 
       const collaborators = await prisma.collaborator.findMany({
         where: whereClause,
         include: {
-          oficina: true
+          oficina: true,
+          company: true,
+          advances: {
+            include: {
+              oficina: true
+            }
+          }
         },
         orderBy: { nome: 'asc' },
       });
@@ -340,10 +367,12 @@ export const RegistryController = {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-          oficinaId: data.oficinaId || null
+          oficinaId: data.oficinaId || null,
+          companyId: data.companyId || companyId || null
         },
         include: {
-          oficina: true
+          oficina: true,
+          company: true
         }
       });
       AuditLogger.log(userId, companyId, 'CREATE_COLLABORATOR', `Created collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');
@@ -384,10 +413,12 @@ export const RegistryController = {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-          oficinaId: data.oficinaId || null
+          oficinaId: data.oficinaId || null,
+          companyId: data.companyId || companyId || null
         },
         include: {
-          oficina: true
+          oficina: true,
+          company: true
         }
       });
       AuditLogger.log(userId, companyId, 'UPDATE_COLLABORATOR', `Updated collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');

@@ -119,6 +119,14 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
                 <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Departamento</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{collaborator.departamento || 'Não informado'}</p>
               </div>
+              <div>
+                <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Empresa</span>
+                <p className="font-bold text-slate-900 mt-0.5">{collaborator.company?.razaoSocial || company?.razaoSocial || 'Suzano IT'}</p>
+              </div>
+              <div>
+                <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">CNPJ da Empresa</span>
+                <p className="font-mono text-slate-900 mt-0.5">{collaborator.company?.cnpj || company?.cnpj || 'Não informado'}</p>
+              </div>
             </div>
           </div>
 

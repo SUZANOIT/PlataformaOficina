@@ -50,6 +50,7 @@ const collaboratorSchema = zod_1.z.object({
     status: zod_1.z.string().default('ATIVO'),
     observacoes: zod_1.z.string().optional().nullable(),
     oficinaId: zod_1.z.string().optional().nullable(),
+    companyId: zod_1.z.string().optional().nullable(),
 });
 exports.RegistryController = {
     // CLIENTS CRUD
@@ -274,20 +275,46 @@ exports.RegistryController = {
     async listCollaborators(req, res) {
         try {
             const { search } = req.query;
+            const userCompanyId = req.companyId || null;
             const whereClause = {};
+            if (userCompanyId) {
+                whereClause.companyId = userCompanyId;
+            }
             if (search) {
-                whereClause.OR = [
-                    { nome: { contains: search, mode: 'insensitive' } },
-                    { cpf: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
-                    { cargo: { contains: search, mode: 'insensitive' } },
-                    { departamento: { contains: search, mode: 'insensitive' } },
-                ];
+                if (userCompanyId) {
+                    whereClause.AND = [
+                        { companyId: userCompanyId },
+                        {
+                            OR: [
+                                { nome: { contains: search, mode: 'insensitive' } },
+                                { cpf: { contains: search, mode: 'insensitive' } },
+                                { email: { contains: search, mode: 'insensitive' } },
+                                { cargo: { contains: search, mode: 'insensitive' } },
+                                { departamento: { contains: search, mode: 'insensitive' } },
+                            ]
+                        }
+                    ];
+                }
+                else {
+                    whereClause.OR = [
+                        { nome: { contains: search, mode: 'insensitive' } },
+                        { cpf: { contains: search, mode: 'insensitive' } },
+                        { email: { contains: search, mode: 'insensitive' } },
+                        { cargo: { contains: search, mode: 'insensitive' } },
+                        { departamento: { contains: search, mode: 'insensitive' } },
+                    ];
+                }
             }
             const collaborators = await prisma_1.prisma.collaborator.findMany({
                 where: whereClause,
                 include: {
-                    oficina: true
+                    oficina: true,
+                    company: true,
+                    advances: {
+                        include: {
+                            oficina: true
+                        }
+                    }
                 },
                 orderBy: { nome: 'asc' },
             });
@@ -320,10 +347,12 @@ exports.RegistryController = {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-                    oficinaId: data.oficinaId || null
+                    oficinaId: data.oficinaId || null,
+                    companyId: data.companyId || companyId || null
                 },
                 include: {
-                    oficina: true
+                    oficina: true,
+                    company: true
                 }
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_COLLABORATOR', `Created collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');
@@ -362,10 +391,12 @@ exports.RegistryController = {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-                    oficinaId: data.oficinaId || null
+                    oficinaId: data.oficinaId || null,
+                    companyId: data.companyId || companyId || null
                 },
                 include: {
-                    oficina: true
+                    oficina: true,
+                    company: true
                 }
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_COLLABORATOR', `Updated collaborator: ${collaborator.nome} (${collaborator.id})`, 'SUCCESS');
