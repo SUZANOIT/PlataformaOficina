@@ -342,12 +342,21 @@ exports.RegistryController = {
                     return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
                 }
             }
+            let targetOficinaId = null;
+            if (data.oficinaId) {
+                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
+                    where: { id: data.oficinaId }
+                });
+                if (oficinaExists) {
+                    targetOficinaId = data.oficinaId;
+                }
+            }
             const collaborator = await prisma_1.prisma.collaborator.create({
                 data: {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-                    oficinaId: data.oficinaId || null,
+                    oficinaId: targetOficinaId,
                     companyId: data.companyId || companyId || null
                 },
                 include: {
@@ -385,13 +394,22 @@ exports.RegistryController = {
                     return res.status(409).json({ error: 'Já existe um cadastro com os dados informados.', code: 'DUPLICATE_RECORD' });
                 }
             }
+            let targetOficinaId = null;
+            if (data.oficinaId) {
+                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
+                    where: { id: data.oficinaId }
+                });
+                if (oficinaExists) {
+                    targetOficinaId = data.oficinaId;
+                }
+            }
             const collaborator = await prisma_1.prisma.collaborator.update({
                 where: { id },
                 data: {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-                    oficinaId: data.oficinaId || null,
+                    oficinaId: targetOficinaId,
                     companyId: data.companyId || companyId || null
                 },
                 include: {

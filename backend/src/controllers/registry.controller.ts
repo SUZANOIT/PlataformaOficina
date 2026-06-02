@@ -362,12 +362,22 @@ export const RegistryController = {
         }
       }
 
+      let targetOficinaId: string | null = null;
+      if (data.oficinaId) {
+        const oficinaExists = await prisma.oficina.findUnique({
+          where: { id: data.oficinaId }
+        });
+        if (oficinaExists) {
+          targetOficinaId = data.oficinaId;
+        }
+      }
+
       const collaborator = await prisma.collaborator.create({
         data: {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-          oficinaId: data.oficinaId || null,
+          oficinaId: targetOficinaId,
           companyId: data.companyId || companyId || null
         },
         include: {
@@ -407,13 +417,23 @@ export const RegistryController = {
         }
       }
 
+      let targetOficinaId: string | null = null;
+      if (data.oficinaId) {
+        const oficinaExists = await prisma.oficina.findUnique({
+          where: { id: data.oficinaId }
+        });
+        if (oficinaExists) {
+          targetOficinaId = data.oficinaId;
+        }
+      }
+
       const collaborator = await prisma.collaborator.update({
         where: { id },
         data: {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
-          oficinaId: data.oficinaId || null,
+          oficinaId: targetOficinaId,
           companyId: data.companyId || companyId || null
         },
         include: {

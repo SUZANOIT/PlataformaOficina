@@ -84,6 +84,25 @@ exports.AdvanceController = {
                     observacoes: dataParsed.observacoes || 'Lançamento automático de adiantamento salarial'
                 }
             });
+            // Verify if the provided oficinaId is a valid Oficina record to prevent foreign key violations (since frontend may pass companyId)
+            let targetOficinaId = null;
+            if (dataParsed.oficinaId) {
+                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
+                    where: { id: dataParsed.oficinaId }
+                });
+                if (oficinaExists) {
+                    targetOficinaId = dataParsed.oficinaId;
+                }
+            }
+            // If the provided one is not a valid Oficina, fall back to the collaborator's associated oficinaId (if valid)
+            if (!targetOficinaId && collaborator.oficinaId) {
+                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
+                    where: { id: collaborator.oficinaId }
+                });
+                if (oficinaExists) {
+                    targetOficinaId = collaborator.oficinaId;
+                }
+            }
             // 2. Create SalaryAdvance
             const advance = await prisma_1.prisma.salaryAdvance.create({
                 data: {
@@ -96,7 +115,7 @@ exports.AdvanceController = {
                     observacoes: dataParsed.observacoes || null,
                     numeroComprovante,
                     payableId: payable.id,
-                    oficinaId: dataParsed.oficinaId || null
+                    oficinaId: targetOficinaId
                 },
                 include: {
                     pdfs: true,

@@ -96,6 +96,27 @@ export const AdvanceController = {
         }
       });
 
+      // Verify if the provided oficinaId is a valid Oficina record to prevent foreign key violations (since frontend may pass companyId)
+      let targetOficinaId: string | null = null;
+      if (dataParsed.oficinaId) {
+        const oficinaExists = await prisma.oficina.findUnique({
+          where: { id: dataParsed.oficinaId }
+        });
+        if (oficinaExists) {
+          targetOficinaId = dataParsed.oficinaId;
+        }
+      }
+
+      // If the provided one is not a valid Oficina, fall back to the collaborator's associated oficinaId (if valid)
+      if (!targetOficinaId && collaborator.oficinaId) {
+        const oficinaExists = await prisma.oficina.findUnique({
+          where: { id: collaborator.oficinaId }
+        });
+        if (oficinaExists) {
+          targetOficinaId = collaborator.oficinaId;
+        }
+      }
+
       // 2. Create SalaryAdvance
       const advance = await prisma.salaryAdvance.create({
         data: {
@@ -108,7 +129,7 @@ export const AdvanceController = {
           observacoes: dataParsed.observacoes || null,
           numeroComprovante,
           payableId: payable.id,
-          oficinaId: dataParsed.oficinaId || null
+          oficinaId: targetOficinaId
         },
         include: {
           pdfs: true,
