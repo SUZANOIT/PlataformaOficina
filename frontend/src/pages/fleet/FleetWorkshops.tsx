@@ -27,7 +27,10 @@ export default function FleetWorkshops() {
     banco: '',
     agencia: '',
     contaCorrente: '',
-    chavePix: ''
+    tipoConta: '',
+    chavePix: '',
+    favorecido: '',
+    cpfCnpjFavorecido: ''
   });
 
   const fetchWorkshops = async () => {
@@ -67,7 +70,10 @@ export default function FleetWorkshops() {
       banco: '',
       agencia: '',
       contaCorrente: '',
-      chavePix: ''
+      tipoConta: '',
+      chavePix: '',
+      favorecido: '',
+      cpfCnpjFavorecido: ''
     });
     setIsModalOpen(true);
   };
@@ -87,7 +93,10 @@ export default function FleetWorkshops() {
       banco: workshop.banco || '',
       agencia: workshop.agencia || '',
       contaCorrente: workshop.contaCorrente || '',
-      chavePix: workshop.chavePix || ''
+      tipoConta: workshop.tipoConta || '',
+      chavePix: workshop.chavePix || '',
+      favorecido: workshop.favorecido || '',
+      cpfCnpjFavorecido: workshop.cpfCnpjFavorecido || ''
     });
     setIsModalOpen(true);
   };
@@ -289,9 +298,9 @@ export default function FleetWorkshops() {
                   <div className="p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg text-xs space-y-1 border border-indigo-100/50 dark:border-indigo-900/20">
                     <span className="font-bold text-indigo-700 dark:text-indigo-400 uppercase block">Dados Bancários</span>
                     <p className="text-gray-600 dark:text-gray-400">
-                      {w.banco ? `${w.banco} • Ag: ${w.agencia || '—'} • CC: ${w.contaCorrente || '—'}` : ''}
-                      {w.banco && w.chavePix ? <br /> : ''}
-                      {w.chavePix ? `Pix: ${w.chavePix}` : ''}
+                      {w.banco ? `${w.banco} • Ag: ${w.agencia || '—'} • CC: ${w.contaCorrente || '—'}${w.tipoConta ? ` (${w.tipoConta})` : ''}` : ''}
+                      {w.chavePix ? <><br />Pix: {w.chavePix}</> : ''}
+                      {w.favorecido ? <><br />Fav: {w.favorecido}{w.cpfCnpjFavorecido ? ` (${w.cpfCnpjFavorecido})` : ''}</> : ''}
                     </p>
                   </div>
                 )}
@@ -327,7 +336,7 @@ export default function FleetWorkshops() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[90vh] overflow-y-auto lg:overflow-visible">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Coluna 1: Dados Gerais */}
                 <div className="space-y-4">
@@ -477,6 +486,21 @@ export default function FleetWorkshops() {
                       />
                     </div>
                     <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Tipo de Conta</label>
+                      <select
+                        value={form.tipoConta}
+                        onChange={(e) => setForm({ ...form, tipoConta: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">Selecione...</option>
+                        <option value="Corrente">Corrente</option>
+                        <option value="Poupança">Poupança</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Chave PIX</label>
                       <input
                         type="text"
@@ -486,6 +510,27 @@ export default function FleetWorkshops() {
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Favorecido</label>
+                      <input
+                        type="text"
+                        placeholder="Nome do favorecido..."
+                        value={form.favorecido}
+                        onChange={(e) => setForm({ ...form, favorecido: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">CPF/CNPJ do Favorecido</label>
+                    <input
+                      type="text"
+                      placeholder="CPF ou CNPJ..."
+                      value={form.cpfCnpjFavorecido}
+                      onChange={(e) => setForm({ ...form, cpfCnpjFavorecido: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
                   </div>
 
                   <div className="space-y-1">

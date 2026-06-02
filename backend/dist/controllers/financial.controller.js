@@ -246,11 +246,13 @@ exports.FinancialController = {
             const approvedQuotes = await prisma_1.prisma.quote.findMany({
                 where: {
                     status: {
-                        in: ['Aprovado', 'Pago', 'Aguardando Pagamento']
+                        in: ['Aprovado', 'Pago', 'Aguardando Pagamento', 'Emitir Nota Fiscal']
                     }
                 },
                 include: {
                     client: true,
+                    oficina: true,
+                    items: true,
                     linkedPayables: {
                         include: {
                             payable: true
@@ -288,7 +290,24 @@ exports.FinancialController = {
                     totalUtilizado,
                     saldoDisponivel,
                     statusFinanceiro,
-                    status: quote.status
+                    status: quote.status,
+                    oficinaId: quote.oficinaId,
+                    oficina: quote.oficina,
+                    osExterna: quote.osExterna,
+                    veiculoMarca: quote.veiculoMarca,
+                    veiculoModelo: quote.veiculoModelo,
+                    veiculoAno: quote.veiculoAno,
+                    veiculoPlaca: quote.veiculoPlaca,
+                    veiculoPrefixo: quote.veiculoPrefixo,
+                    veiculoAnoFabricacao: quote.veiculoAnoFabricacao,
+                    veiculoAnoModelo: quote.veiculoAnoModelo,
+                    veiculoChassi: quote.veiculoChassi,
+                    veiculoRenavam: quote.veiculoRenavam,
+                    veiculoFrota: quote.veiculoFrota,
+                    veiculoSubfrota: quote.veiculoSubfrota,
+                    veiculoHodometro: quote.veiculoHodometro,
+                    veiculoTipo: quote.veiculoTipo,
+                    items: quote.items
                 };
             });
             return res.json(result);
@@ -347,7 +366,9 @@ exports.FinancialController = {
                             include: {
                                 quote: {
                                     include: {
-                                        client: true
+                                        client: true,
+                                        oficina: true,
+                                        items: true
                                     }
                                 }
                             }

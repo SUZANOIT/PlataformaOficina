@@ -34,8 +34,17 @@ const createQuoteSchema = zod_1.z.object({
     veiculoAno: zod_1.z.string().nullish(),
     veiculoPlaca: zod_1.z.string().nullish(),
     veiculoPrefixo: zod_1.z.string().nullish(),
+    veiculoAnoFabricacao: zod_1.z.string().nullish(),
+    veiculoAnoModelo: zod_1.z.string().nullish(),
+    veiculoChassi: zod_1.z.string().nullish(),
+    veiculoRenavam: zod_1.z.string().nullish(),
+    veiculoFrota: zod_1.z.string().nullish(),
+    veiculoSubfrota: zod_1.z.string().nullish(),
+    veiculoHodometro: zod_1.z.string().nullish(),
+    veiculoTipo: zod_1.z.string().nullish(),
     plataformaGestaoId: zod_1.z.string().nullish(),
     osExterna: zod_1.z.string().max(100).nullish(),
+    oficinaId: zod_1.z.string().nullish(),
     items: zod_1.z.array(zod_1.z.object({
         descricao: zod_1.z.string(),
         quantidade: zod_1.z.number(),
@@ -55,7 +64,8 @@ exports.QuoteController = {
                     client: true,
                     company: true,
                     items: true,
-                    plataformaGestao: true
+                    plataformaGestao: true,
+                    oficina: true
                 },
                 orderBy: { createdAt: 'desc' }
             });
@@ -220,8 +230,17 @@ exports.QuoteController = {
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
                     veiculoPrefixo: data.veiculoPrefixo,
+                    veiculoAnoFabricacao: data.veiculoAnoFabricacao,
+                    veiculoAnoModelo: data.veiculoAnoModelo,
+                    veiculoChassi: data.veiculoChassi,
+                    veiculoRenavam: data.veiculoRenavam,
+                    veiculoFrota: data.veiculoFrota,
+                    veiculoSubfrota: data.veiculoSubfrota,
+                    veiculoHodometro: data.veiculoHodometro,
+                    veiculoTipo: data.veiculoTipo,
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
+                    oficinaId: data.oficinaId || null,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -233,7 +252,8 @@ exports.QuoteController = {
                     items: true,
                     client: true,
                     company: true,
-                    plataformaGestao: true
+                    plataformaGestao: true,
+                    oficina: true
                 }
             });
             console.log(`Quote created: #${quote.numeroOrcamento} for client ${client.nome} (id=${quote.id})`);
@@ -266,7 +286,8 @@ exports.QuoteController = {
                     items: true,
                     client: true,
                     company: true,
-                    plataformaGestao: true
+                    plataformaGestao: true,
+                    oficina: true
                 }
             });
             if (!quote) {
@@ -365,8 +386,17 @@ exports.QuoteController = {
                     veiculoAno: data.veiculoAno,
                     veiculoPlaca: data.veiculoPlaca,
                     veiculoPrefixo: data.veiculoPrefixo,
+                    veiculoAnoFabricacao: data.veiculoAnoFabricacao,
+                    veiculoAnoModelo: data.veiculoAnoModelo,
+                    veiculoChassi: data.veiculoChassi,
+                    veiculoRenavam: data.veiculoRenavam,
+                    veiculoFrota: data.veiculoFrota,
+                    veiculoSubfrota: data.veiculoSubfrota,
+                    veiculoHodometro: data.veiculoHodometro,
+                    veiculoTipo: data.veiculoTipo,
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
+                    oficinaId: data.oficinaId || null,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -379,7 +409,8 @@ exports.QuoteController = {
                     items: true,
                     client: true,
                     company: true,
-                    plataformaGestao: true
+                    plataformaGestao: true,
+                    oficina: true
                 }
             });
             console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);

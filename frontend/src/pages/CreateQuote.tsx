@@ -47,6 +47,15 @@ type QuoteFormValues = {
   veiculoAno?: string;
   veiculoPlaca?: string;
   veiculoPrefixo?: string;
+  veiculoAnoFabricacao?: string;
+  veiculoAnoModelo?: string;
+  veiculoChassi?: string;
+  veiculoRenavam?: string;
+  veiculoFrota?: string;
+  veiculoSubfrota?: string;
+  veiculoHodometro?: string;
+  veiculoTipo?: string;
+  oficinaId?: string;
 };
 
 const condicoesPagamento = [
@@ -80,6 +89,8 @@ export function CreateQuote() {
   const [showPlatformsDropdown, setShowPlatformsDropdown] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<any>(null);
 
+  const [workshops, setWorkshops] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchPlatformsList = async () => {
       try {
@@ -89,7 +100,22 @@ export function CreateQuote() {
         console.error("Failed to load active platforms", error);
       }
     };
+    const fetchWorkshopsList = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/fleet/workshops', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWorkshops(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to load workshops", error);
+      }
+    };
     fetchPlatformsList();
+    fetchWorkshopsList();
   }, []);
 
   const handleSelectClient = (client: any) => {
@@ -158,6 +184,15 @@ export function CreateQuote() {
       veiculoAno: '',
       veiculoPlaca: '',
       veiculoPrefixo: '',
+      veiculoAnoFabricacao: '',
+      veiculoAnoModelo: '',
+      veiculoChassi: '',
+      veiculoRenavam: '',
+      veiculoFrota: '',
+      veiculoSubfrota: '',
+      veiculoHodometro: '',
+      veiculoTipo: '',
+      oficinaId: '',
       status: 'Aguardando Aprovação',
       plataformaGestaoId: '',
       osExterna: ''
@@ -194,6 +229,15 @@ export function CreateQuote() {
           veiculoAno: data.veiculoAno || '',
           veiculoPlaca: data.veiculoPlaca || '',
           veiculoPrefixo: data.veiculoPrefixo || '',
+          veiculoAnoFabricacao: data.veiculoAnoFabricacao || '',
+          veiculoAnoModelo: data.veiculoAnoModelo || '',
+          veiculoChassi: data.veiculoChassi || '',
+          veiculoRenavam: data.veiculoRenavam || '',
+          veiculoFrota: data.veiculoFrota || '',
+          veiculoSubfrota: data.veiculoSubfrota || '',
+          veiculoHodometro: data.veiculoHodometro || '',
+          veiculoTipo: data.veiculoTipo || '',
+          oficinaId: data.oficinaId || '',
           plataformaGestaoId: data.plataformaGestaoId || '',
           osExterna: data.osExterna || '',
           items: data.items.map((i: any) => ({
@@ -528,6 +572,72 @@ export function CreateQuote() {
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+
+            {/* Oficina Responsável */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Oficina Responsável</label>
+              <select
+                disabled={isViewing}
+                {...register('oficinaId')}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">Selecione a oficina...</option>
+                {workshops.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.nome} {w.cnpj ? `(${w.cnpj})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dados Bancários da Oficina Selecionada */}
+            {(() => {
+              const selectedOficinaId = watch('oficinaId');
+              const selectedOficina = workshops.find(w => w.id === selectedOficinaId);
+              if (!selectedOficina) return null;
+
+              return (
+                <div className="md:col-span-2 p-4 bg-indigo-50/45 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                    <span>🏦</span>
+                    <span>Dados Bancários da Oficina Carregados</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Oficina</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.nome}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Banco</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.banco || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Agência</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.agencia || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Conta Corrente</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.contaCorrente || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Tipo de Conta</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.tipoConta || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Chave PIX</span>
+                      <span className="font-semibold text-foreground">{selectedOficina.chavePix || '—'}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-muted-foreground block uppercase font-bold text-[10px]">Favorecido</span>
+                      <span className="font-semibold text-foreground">
+                        {selectedOficina.favorecido || '—'} 
+                        {selectedOficina.cpfCnpjFavorecido ? ` (${selectedOficina.cpfCnpjFavorecido})` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -1093,6 +1203,7 @@ export function CreateQuote() {
           ref={pdfRef} 
           data={watch()} 
           company={companies.find(c => c.id === watch('companyId'))} 
+          workshops={workshops}
         />
       </div>
 
@@ -1116,9 +1227,9 @@ export function CreateQuote() {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5 col-span-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marca</label>
                   <input 
                     {...register('veiculoMarca')}
@@ -1127,7 +1238,7 @@ export function CreateQuote() {
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
-                <div className="space-y-1.5 col-span-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modelo</label>
                   <input 
                     {...register('veiculoModelo')}
@@ -1136,15 +1247,26 @@ export function CreateQuote() {
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
+                
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ano</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ano Fabr.</label>
                   <input 
-                    {...register('veiculoAno')}
+                    {...register('veiculoAnoFabricacao')}
+                    disabled={isViewing}
+                    placeholder="Ex: 2021"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ano Modelo</label>
+                  <input 
+                    {...register('veiculoAnoModelo')}
                     disabled={isViewing}
                     placeholder="Ex: 2022"
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Placa</label>
                   <input 
@@ -1159,12 +1281,69 @@ export function CreateQuote() {
                     maxLength={8}
                   />
                 </div>
-                <div className="space-y-1.5 col-span-2">
+                <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prefixo</label>
                   <input 
                     {...register('veiculoPrefixo')}
                     disabled={isViewing}
-                    placeholder="Ex: PREFIXO-123"
+                    placeholder="Ex: PFX-102"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chassi</label>
+                  <input 
+                    {...register('veiculoChassi')}
+                    disabled={isViewing}
+                    placeholder="Chassi do veículo..."
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Renavam</label>
+                  <input 
+                    {...register('veiculoRenavam')}
+                    disabled={isViewing}
+                    placeholder="Renavam..."
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frota</label>
+                  <input 
+                    {...register('veiculoFrota')}
+                    disabled={isViewing}
+                    placeholder="Ex: Frota A"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subfrota</label>
+                  <input 
+                    {...register('veiculoSubfrota')}
+                    disabled={isViewing}
+                    placeholder="Ex: Subfrota B"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hodômetro</label>
+                  <input 
+                    {...register('veiculoHodometro')}
+                    disabled={isViewing}
+                    placeholder="Ex: 45000"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo de Veículo</label>
+                  <input 
+                    {...register('veiculoTipo')}
+                    disabled={isViewing}
+                    placeholder="Ex: Leve, Pesado..."
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>

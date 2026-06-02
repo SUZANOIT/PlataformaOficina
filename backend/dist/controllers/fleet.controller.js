@@ -44,7 +44,10 @@ const createWorkshopSchema = zod_1.z.object({
     banco: zod_1.z.string().optional().nullable(),
     agencia: zod_1.z.string().optional().nullable(),
     contaCorrente: zod_1.z.string().optional().nullable(),
+    tipoConta: zod_1.z.string().optional().nullable(),
     chavePix: zod_1.z.string().optional().nullable(),
+    favorecido: zod_1.z.string().optional().nullable(),
+    cpfCnpjFavorecido: zod_1.z.string().optional().nullable(),
 });
 const createOilMotorSchema = zod_1.z.object({
     veiculoId: zod_1.z.string(),
