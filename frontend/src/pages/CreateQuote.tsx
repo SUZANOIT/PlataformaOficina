@@ -352,6 +352,33 @@ Serviços executados conforme orçamento aprovado e ordem de serviço vinculada 
   };
 
   const watchStatus = watch('status');
+  const watchCompanyId = watch('companyId');
+  const watchOficinaId = watch('oficinaId');
+
+  // Automatically find and set corresponding workshop when company (Emitente) is selected
+  useEffect(() => {
+    if (watchCompanyId && workshops.length > 0 && companies.length > 0) {
+      const selectedCompany = companies.find(c => c.id === watchCompanyId);
+      if (selectedCompany) {
+        const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
+        let matchingWorkshop = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
+        
+        if (!matchingWorkshop) {
+          const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
+          matchingWorkshop = workshops.find(w => 
+            (w.nome || '').toLowerCase().includes(companyName) || 
+            companyName.includes((w.nome || '').toLowerCase())
+          );
+        }
+
+        if (matchingWorkshop) {
+          setValue('oficinaId', matchingWorkshop.id);
+        }
+      }
+    }
+  }, [watchCompanyId, workshops, companies, setValue]);
+
+  // Generate description when status is changed to 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
     if (watchStatus === 'Emitir Nota Fiscal') {
       const { hasBanking } = handleGenerateInvoiceDescription();
@@ -361,7 +388,7 @@ Serviços executados conforme orçamento aprovado e ordem de serviço vinculada 
         toast.success('Descrição da nota fiscal gerada com sucesso via IA!');
       }
     }
-  }, [watchStatus]);
+  }, [watchStatus, watchOficinaId]);
 
   const handleCnpjSearch = async () => {
     const cnpj = watch('client.cnpj')?.replace(/\D/g, '');
