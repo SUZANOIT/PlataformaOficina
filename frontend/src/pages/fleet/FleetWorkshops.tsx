@@ -14,7 +14,6 @@ export default function FleetWorkshops() {
   const [isCnpjLoading, setIsCnpjLoading] = useState(false);
   const [editingWorkshopId, setEditingWorkshopId] = useState<string | null>(null);
 
-  // Form State
   const [form, setForm] = useState({
     nome: '',
     cnpj: '',
@@ -24,7 +23,11 @@ export default function FleetWorkshops() {
     email: '',
     endereco: '',
     servicosRealizados: '',
-    observacoes: ''
+    observacoes: '',
+    banco: '',
+    agencia: '',
+    contaCorrente: '',
+    chavePix: ''
   });
 
   const fetchWorkshops = async () => {
@@ -60,7 +63,11 @@ export default function FleetWorkshops() {
       email: '',
       endereco: '',
       servicosRealizados: '',
-      observacoes: ''
+      observacoes: '',
+      banco: '',
+      agencia: '',
+      contaCorrente: '',
+      chavePix: ''
     });
     setIsModalOpen(true);
   };
@@ -76,7 +83,11 @@ export default function FleetWorkshops() {
       email: workshop.email || '',
       endereco: workshop.endereco || '',
       servicosRealizados: workshop.servicosRealizados || '',
-      observacoes: workshop.observacoes || ''
+      observacoes: workshop.observacoes || '',
+      banco: workshop.banco || '',
+      agencia: workshop.agencia || '',
+      contaCorrente: workshop.contaCorrente || '',
+      chavePix: workshop.chavePix || ''
     });
     setIsModalOpen(true);
   };
@@ -273,6 +284,17 @@ export default function FleetWorkshops() {
                   <span className="font-bold text-gray-700 dark:text-gray-300 uppercase block">Serviços Realizados</span>
                   <p className="text-gray-600 dark:text-gray-400 line-clamp-2">{w.servicosRealizados || 'Geral'}</p>
                 </div>
+
+                {(w.banco || w.chavePix) && (
+                  <div className="p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg text-xs space-y-1 border border-indigo-100/50 dark:border-indigo-900/20">
+                    <span className="font-bold text-indigo-700 dark:text-indigo-400 uppercase block">Dados Bancários</span>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {w.banco ? `${w.banco} • Ag: ${w.agencia || '—'} • CC: ${w.contaCorrente || '—'}` : ''}
+                      {w.banco && w.chavePix ? <br /> : ''}
+                      {w.chavePix ? `Pix: ${w.chavePix}` : ''}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 border-t border-gray-100 dark:border-gray-700 mt-5 pt-4">
@@ -297,137 +319,199 @@ export default function FleetWorkshops() {
       {/* Creation & Edition Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg shadow-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
               <h2 className="text-lg font-bold">{editingWorkshopId ? 'Editar Oficina' : 'Cadastrar Oficina'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/85 hover:text-white transition">
+              <button onClick={() => setIsModalOpen(false)} className="text-white/85 hover:text-white transition text-2xl font-semibold leading-none">
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-              <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20 flex gap-3 items-end">
-                <div className="flex-1 space-y-1">
-                  <label className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block">CNPJ da Oficina</label>
-                  <input
-                    type="text"
-                    placeholder="Somente números"
-                    value={form.cnpj}
-                    onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
-                    className="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[90vh] overflow-y-auto lg:overflow-visible">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Coluna 1: Dados Gerais */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700 pb-1.5">
+                    Informações Gerais
+                  </h3>
+
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">CNPJ da Oficina</label>
+                      <input
+                        type="text"
+                        placeholder="Somente números"
+                        value={form.cnpj}
+                        onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                        className="w-full bg-white dark:bg-gray-850 text-gray-850 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLookupCnpj}
+                      disabled={isCnpjLoading}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition disabled:opacity-50 text-sm h-[38px]"
+                    >
+                      {isCnpjLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      ) : (
+                        <Sparkles size={15} />
+                      )}
+                      Buscar
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Nome Fantasia / Razão Social *</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.nome}
+                      onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Responsável</label>
+                      <input
+                        type="text"
+                        value={form.responsavel}
+                        onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">E-mail</label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Telefone</label>
+                      <input
+                        type="text"
+                        value={form.telefone}
+                        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">WhatsApp</label>
+                      <input
+                        type="text"
+                        value={form.whatsapp}
+                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Endereço Completo</label>
+                    <input
+                      type="text"
+                      value={form.endereco}
+                      onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleLookupCnpj}
-                  disabled={isCnpjLoading}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
-                >
-                  {isCnpjLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  ) : (
-                    <Sparkles size={15} />
-                  )}
-                  Consultar CNPJ
-                </button>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Nome Fantasia / Razão Social *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+                {/* Coluna 2: Serviços e Dados Bancários */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700 pb-1.5">
+                    Serviços & Dados Bancários
+                  </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Responsável</label>
-                  <input
-                    type="text"
-                    value={form.responsavel}
-                    onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Serviços Realizados</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Motor, Câmbio, Suspensão, Pintura..."
+                      value={form.servicosRealizados}
+                      onChange={(e) => setForm({ ...form, servicosRealizados: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Banco</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Itaú, Bradesco..."
+                        value={form.banco}
+                        onChange={(e) => setForm({ ...form, banco: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Agência</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 0001"
+                        value={form.agencia}
+                        onChange={(e) => setForm({ ...form, agencia: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Conta Corrente</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 12345-6"
+                        value={form.contaCorrente}
+                        onChange={(e) => setForm({ ...form, contaCorrente: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Chave PIX</label>
+                      <input
+                        type="text"
+                        placeholder="E-mail, CNPJ, Celular..."
+                        value={form.chavePix}
+                        onChange={(e) => setForm({ ...form, chavePix: e.target.value })}
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Observações gerais</label>
+                    <textarea
+                      rows={2}
+                      value={form.observacoes}
+                      onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                      className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">E-mail</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Telefone</label>
-                  <input
-                    type="text"
-                    value={form.telefone}
-                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">WhatsApp</label>
-                  <input
-                    type="text"
-                    value={form.whatsapp}
-                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Endereço Completo</label>
-                <input
-                  type="text"
-                  value={form.endereco}
-                  onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Serviços Realizados</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Motor, Câmbio, Suspensão, Elétrica, Pintura..."
-                  value={form.servicosRealizados}
-                  onChange={(e) => setForm({ ...form, servicosRealizados: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Observações gerais</label>
-                <textarea
-                  rows={2}
-                  value={form.observacoes}
-                  onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm font-semibold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-1.5 transition disabled:opacity-50"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-1.5 transition disabled:opacity-50 text-sm"
                 >
                   {isSubmitting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>

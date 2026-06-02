@@ -65,7 +65,8 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
     data.veiculoMarca || 
     data.veiculoModelo || 
     data.veiculoAno || 
-    data.veiculoPlaca
+    data.veiculoPlaca ||
+    data.veiculoPrefixo
   );
 
   return (
@@ -222,6 +223,12 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                       <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Placa</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoPlaca}</p>
+                      </div>
+                    )}
+                    {data.veiculoPrefixo && (
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
+                        <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Prefixo</span>
+                        <p className="font-medium text-slate-900 mt-0.5">{data.veiculoPrefixo}</p>
                       </div>
                     )}
                   </div>

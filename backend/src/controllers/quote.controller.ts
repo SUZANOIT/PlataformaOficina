@@ -32,6 +32,7 @@ const createQuoteSchema = z.object({
   veiculoModelo: z.string().nullish(),
   veiculoAno: z.string().nullish(),
   veiculoPlaca: z.string().nullish(),
+  veiculoPrefixo: z.string().nullish(),
   plataformaGestaoId: z.string().nullish(),
   osExterna: z.string().max(100).nullish(),
   items: z.array(z.object({
@@ -234,6 +235,7 @@ export const QuoteController = {
           veiculoModelo: data.veiculoModelo,
           veiculoAno: data.veiculoAno,
           veiculoPlaca: data.veiculoPlaca,
+          veiculoPrefixo: data.veiculoPrefixo,
           plataformaGestaoId: data.plataformaGestaoId || null,
           osExterna: data.osExterna,
           subtotal: data.subtotal,
@@ -390,6 +392,7 @@ export const QuoteController = {
           veiculoModelo: data.veiculoModelo,
           veiculoAno: data.veiculoAno,
           veiculoPlaca: data.veiculoPlaca,
+          veiculoPrefixo: data.veiculoPrefixo,
           plataformaGestaoId: data.plataformaGestaoId || null,
           osExterna: data.osExterna,
           subtotal: data.subtotal,

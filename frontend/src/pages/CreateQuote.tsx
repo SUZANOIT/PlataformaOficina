@@ -46,6 +46,7 @@ type QuoteFormValues = {
   veiculoModelo?: string;
   veiculoAno?: string;
   veiculoPlaca?: string;
+  veiculoPrefixo?: string;
 };
 
 const condicoesPagamento = [
@@ -156,6 +157,7 @@ export function CreateQuote() {
       veiculoModelo: '',
       veiculoAno: '',
       veiculoPlaca: '',
+      veiculoPrefixo: '',
       status: 'Aguardando Aprovação',
       plataformaGestaoId: '',
       osExterna: ''
@@ -191,6 +193,7 @@ export function CreateQuote() {
           veiculoModelo: data.veiculoModelo || '',
           veiculoAno: data.veiculoAno || '',
           veiculoPlaca: data.veiculoPlaca || '',
+          veiculoPrefixo: data.veiculoPrefixo || '',
           plataformaGestaoId: data.plataformaGestaoId || '',
           osExterna: data.osExterna || '',
           items: data.items.map((i: any) => ({
@@ -748,7 +751,7 @@ export function CreateQuote() {
           </div>
 
           {/* Resumo do Veículo */}
-          {(watch('veiculoMarca') || watch('veiculoModelo') || watch('veiculoAno') || watch('veiculoPlaca')) && (
+          {(watch('veiculoMarca') || watch('veiculoModelo') || watch('veiculoAno') || watch('veiculoPlaca') || watch('veiculoPrefixo')) && (
             <div className="mt-6 p-4 bg-muted/30 rounded-lg flex items-center justify-between text-sm border border-border/80 animate-in fade-in slide-in-from-top-1 duration-200">
               <div className="flex items-center gap-3">
                 <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">🚗</span>
@@ -759,7 +762,8 @@ export function CreateQuote() {
                       watch('veiculoMarca'),
                       watch('veiculoModelo'),
                       watch('veiculoAno') ? `Ano ${watch('veiculoAno')}` : null,
-                      watch('veiculoPlaca') ? `Placa ${watch('veiculoPlaca')}` : null
+                      watch('veiculoPlaca') ? `Placa ${watch('veiculoPlaca')}` : null,
+                      watch('veiculoPrefixo') ? `Prefixo ${watch('veiculoPrefixo')}` : null
                     ].filter(Boolean).join(' • ')}
                   </p>
                 </div>
@@ -782,6 +786,7 @@ export function CreateQuote() {
                         setValue('veiculoModelo', '');
                         setValue('veiculoAno', '');
                         setValue('veiculoPlaca', '');
+                        setValue('veiculoPrefixo', '');
                       }}
                       className="text-xs text-destructive hover:underline font-semibold"
                     >
@@ -1152,6 +1157,15 @@ export function CreateQuote() {
                     placeholder="Ex: ABC-1234"
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     maxLength={8}
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prefixo</label>
+                  <input 
+                    {...register('veiculoPrefixo')}
+                    disabled={isViewing}
+                    placeholder="Ex: PREFIXO-123"
+                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>

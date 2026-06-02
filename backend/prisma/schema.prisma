@@ -128,6 +128,7 @@ model Quote {
   veiculoModelo       String?
   veiculoAno          String?
   veiculoPlaca        String?
+  veiculoPrefixo      String?
   
   subtotal            Float
   total               Float
@@ -380,6 +381,12 @@ model Oficina {
   endereco           String?
   servicosRealizados String?
   observacoes        String?
+  
+  // Dados Bancários
+  banco              String?
+  agencia            String?
+  contaCorrente      String?
+  chavePix           String?
   
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
