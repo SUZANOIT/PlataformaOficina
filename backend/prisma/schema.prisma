@@ -153,6 +153,7 @@ model Quote {
   
   oficinaId           String?
   oficina             Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+  notaFiscalDescricao String?
   
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt

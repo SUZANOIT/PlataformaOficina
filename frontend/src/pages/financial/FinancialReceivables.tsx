@@ -243,7 +243,7 @@ export function FinancialReceivables() {
     if (linkedQuotes.length === 0 && q) {
       setCliente(q.clientName || q.client?.nome || q.client || '');
       setValor(String(initialVal || ''));
-      setDescricao(`Faturamento ref. Orçamento #${q.numeroOrcamento}`);
+      setDescricao(q.notaFiscalDescricao || `Faturamento ref. Orçamento #${q.numeroOrcamento}`);
       if (q.companyId) setCompanyId(q.companyId);
       setCategoria('Serviços Mecânicos');
       toast.info(`Preenchido automaticamente com dados do Orçamento #${q.numeroOrcamento}!`);

@@ -332,6 +332,7 @@ export const FinancialController = {
           veiculoSubfrota: quote.veiculoSubfrota,
           veiculoHodometro: quote.veiculoHodometro,
           veiculoTipo: quote.veiculoTipo,
+          notaFiscalDescricao: quote.notaFiscalDescricao,
           items: quote.items
         };
       });

@@ -45,6 +45,7 @@ const createQuoteSchema = zod_1.z.object({
     plataformaGestaoId: zod_1.z.string().nullish(),
     osExterna: zod_1.z.string().max(100).nullish(),
     oficinaId: zod_1.z.string().nullish(),
+    notaFiscalDescricao: zod_1.z.string().nullish(),
     items: zod_1.z.array(zod_1.z.object({
         descricao: zod_1.z.string(),
         quantidade: zod_1.z.number(),
@@ -241,6 +242,7 @@ exports.QuoteController = {
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     oficinaId: data.oficinaId || null,
+                    notaFiscalDescricao: data.notaFiscalDescricao || null,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -397,6 +399,7 @@ exports.QuoteController = {
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     oficinaId: data.oficinaId || null,
+                    notaFiscalDescricao: data.notaFiscalDescricao || null,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
