@@ -129,6 +129,14 @@ model Quote {
   veiculoAno          String?
   veiculoPlaca        String?
   veiculoPrefixo      String?
+  veiculoAnoFabricacao String?
+  veiculoAnoModelo     String?
+  veiculoChassi        String?
+  veiculoRenavam       String?
+  veiculoFrota         String?
+  veiculoSubfrota      String?
+  veiculoHodometro     String?
+  veiculoTipo          String?
   
   subtotal            Float
   total               Float
@@ -143,12 +151,16 @@ model Quote {
   plataformaGestao    PlataformaGestao? @relation(fields: [plataformaGestaoId], references: [id], onDelete: SetNull)
   osExterna           String?
   
+  oficinaId           String?
+  oficina             Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+  
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
   @@index([companyId])
   @@index([clientId])
   @@index([plataformaGestaoId])
+  @@index([oficinaId])
 }
 
 model QuoteItem {
@@ -386,12 +398,16 @@ model Oficina {
   banco              String?
   agencia            String?
   contaCorrente      String?
+  tipoConta          String?
   chavePix           String?
+  favorecido         String?
+  cpfCnpjFavorecido  String?
   
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
   salaryAdvances     SalaryAdvance[]
   collaborators      Collaborator[]
+  quotes             Quote[]
   
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

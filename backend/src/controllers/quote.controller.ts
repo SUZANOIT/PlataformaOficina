@@ -33,8 +33,17 @@ const createQuoteSchema = z.object({
   veiculoAno: z.string().nullish(),
   veiculoPlaca: z.string().nullish(),
   veiculoPrefixo: z.string().nullish(),
+  veiculoAnoFabricacao: z.string().nullish(),
+  veiculoAnoModelo: z.string().nullish(),
+  veiculoChassi: z.string().nullish(),
+  veiculoRenavam: z.string().nullish(),
+  veiculoFrota: z.string().nullish(),
+  veiculoSubfrota: z.string().nullish(),
+  veiculoHodometro: z.string().nullish(),
+  veiculoTipo: z.string().nullish(),
   plataformaGestaoId: z.string().nullish(),
   osExterna: z.string().max(100).nullish(),
+  oficinaId: z.string().nullish(),
   items: z.array(z.object({
     descricao: z.string(),
     quantidade: z.number(),
@@ -55,7 +64,8 @@ export const QuoteController = {
           client: true,
           company: true,
           items: true,
-          plataformaGestao: true
+          plataformaGestao: true,
+          oficina: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -236,8 +246,17 @@ export const QuoteController = {
           veiculoAno: data.veiculoAno,
           veiculoPlaca: data.veiculoPlaca,
           veiculoPrefixo: data.veiculoPrefixo,
+          veiculoAnoFabricacao: data.veiculoAnoFabricacao,
+          veiculoAnoModelo: data.veiculoAnoModelo,
+          veiculoChassi: data.veiculoChassi,
+          veiculoRenavam: data.veiculoRenavam,
+          veiculoFrota: data.veiculoFrota,
+          veiculoSubfrota: data.veiculoSubfrota,
+          veiculoHodometro: data.veiculoHodometro,
+          veiculoTipo: data.veiculoTipo,
           plataformaGestaoId: data.plataformaGestaoId || null,
           osExterna: data.osExterna,
+          oficinaId: data.oficinaId || null,
           subtotal: data.subtotal,
           total: data.total,
           status: data.status,
@@ -249,7 +268,8 @@ export const QuoteController = {
           items: true,
           client: true,
           company: true,
-          plataformaGestao: true
+          plataformaGestao: true,
+          oficina: true
         }
       });
 
@@ -283,7 +303,8 @@ export const QuoteController = {
           items: true,
           client: true,
           company: true,
-          plataformaGestao: true
+          plataformaGestao: true,
+          oficina: true
         }
       });
 
@@ -395,6 +416,7 @@ export const QuoteController = {
           veiculoPrefixo: data.veiculoPrefixo,
           plataformaGestaoId: data.plataformaGestaoId || null,
           osExterna: data.osExterna,
+          oficinaId: data.oficinaId || null,
           subtotal: data.subtotal,
           total: data.total,
           status: data.status,
@@ -407,7 +429,8 @@ export const QuoteController = {
           items: true,
           client: true,
           company: true,
-          plataformaGestao: true
+          plataformaGestao: true,
+          oficina: true
         }
       });
 
