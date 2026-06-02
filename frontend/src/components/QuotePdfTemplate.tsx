@@ -218,73 +218,73 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 15px' }} className="text-[12px]">
                     {data.veiculoMarca && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Marca</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoMarca}</p>
                       </div>
                     )}
                     {data.veiculoModelo && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Modelo</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoModelo}</p>
                       </div>
                     )}
                     {(data.veiculoAnoFabricacao || data.veiculoAno) && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Ano Fabr.</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoAnoFabricacao || data.veiculoAno}</p>
                       </div>
                     )}
                     {data.veiculoAnoModelo && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Ano Modelo</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoAnoModelo}</p>
                       </div>
                     )}
                     {data.veiculoPlaca && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Placa</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoPlaca}</p>
                       </div>
                     )}
                     {data.veiculoPrefixo && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Prefixo</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoPrefixo}</p>
                       </div>
                     )}
                     {data.veiculoChassi && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Chassi</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoChassi}</p>
                       </div>
                     )}
                     {data.veiculoRenavam && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Renavam</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoRenavam}</p>
                       </div>
                     )}
                     {data.veiculoFrota && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Frota</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoFrota}</p>
                       </div>
                     )}
                     {data.veiculoSubfrota && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Subfrota</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoSubfrota}</p>
                       </div>
                     )}
                     {data.veiculoHodometro && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Hodômetro</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoHodometro}</p>
                       </div>
                     )}
                     {data.veiculoTipo && (
-                      <div style={{ width: '45%', minWidth: '110px' }}>
+                      <div style={{ width: isCurio ? '22%' : (hasClientData ? '100%' : '45%'), minWidth: '110px' }}>
                         <span className="font-semibold text-slate-400 text-[10px] uppercase tracking-wide block">Tipo de Veículo</span>
                         <p className="font-medium text-slate-900 mt-0.5">{data.veiculoTipo}</p>
                       </div>
