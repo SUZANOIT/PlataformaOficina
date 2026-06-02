@@ -551,8 +551,11 @@ export function Collaborators() {
 
   const getCollabSaldoDisponivel = (collab: any, month: number, year: number) => {
     const salarioBase = collab.salario || 0;
-    const totalMonth = getCollabMonthTotal(collab, month, year);
-    return Math.max(0, salarioBase - totalMonth);
+    const monthAdvances = getCollabMonthAdvances(collab, month, year);
+    const pendingMonthTotal = monthAdvances
+      .filter((adv: any) => adv.status === 'PENDENTE')
+      .reduce((sum: number, adv: any) => sum + adv.valor, 0);
+    return Math.max(0, salarioBase - pendingMonthTotal);
   };
 
   const getCollabLatestAdvance = (collab: any) => {

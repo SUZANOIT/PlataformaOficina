@@ -321,17 +321,64 @@ export const QuoteController = {
         return res.status(404).json({ error: 'Quote not found' });
       }
 
-      // Update client
-      await prisma.client.update({
-        where: { id: existingQuote.clientId },
-        data: data.client,
-      });
+      // Prevenir duplicação de cliente e evitar sobrescrever registros compartilhados
+      let client;
+      
+      const normalizedCnpj = data.client.cnpj ? data.client.cnpj.trim().replace(/\D/g, '') : '';
+      const normalizedEmail = data.client.email ? data.client.email.trim().toLowerCase() : '';
+      const normalizedNome = data.client.nome.trim();
+
+      if (normalizedCnpj && normalizedCnpj.length === 14) {
+        client = await prisma.client.findFirst({
+          where: {
+            cnpj: {
+              contains: normalizedCnpj
+            }
+          }
+        });
+      }
+
+      if (!client && normalizedEmail) {
+        client = await prisma.client.findFirst({
+          where: {
+            email: {
+              equals: normalizedEmail,
+              mode: 'insensitive'
+            }
+          }
+        });
+      }
+
+      if (!client) {
+        client = await prisma.client.findFirst({
+          where: {
+            nome: {
+              equals: normalizedNome,
+              mode: 'insensitive'
+            }
+          }
+        });
+      }
+
+      if (client) {
+        // Atualiza os dados do cliente existente para mantê-lo atualizado
+        client = await prisma.client.update({
+          where: { id: client.id },
+          data: data.client,
+        });
+      } else {
+        // Cria um novo cliente se realmente não existir
+        client = await prisma.client.create({
+          data: data.client,
+        });
+      }
 
       // Update quote & items (delete old, create new)
       const quote = await prisma.quote.update({
         where: { id },
         data: {
           companyId: data.companyId,
+          clientId: client.id,
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
           valorParcela: data.valorParcela,
