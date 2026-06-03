@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Attachment {
   id?: string;
@@ -46,14 +47,20 @@ interface Receivable {
   dataRecebimento?: string | null;
   formaRecebimento: string;
   responsavel: string;
+  responsavel_lancamento_id?: string | null;
+  responsavel_lancamento_nome?: string | null;
+  data_criacao?: string | null;
   observacoes?: string | null;
   status: string;
   quoteId?: string | null;
   quote?: { id: string; numeroOrcamento: number } | null;
   attachments: Attachment[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export function FinancialReceivables() {
+  const { user: currentUser } = useAuth();
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -94,7 +101,6 @@ export function FinancialReceivables() {
   const [clients, setClients] = useState<any[]>([]);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [collaborators, setCollaborators] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
   // Fetch Companies, Quotes & Receivables
@@ -137,21 +143,6 @@ export function FinancialReceivables() {
       if (res.ok) {
         const data = await res.json();
         setClients(data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchCollaborators = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/registry/collaborators', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCollaborators(data);
       }
     } catch (err) {
       console.error(err);
@@ -209,7 +200,6 @@ export function FinancialReceivables() {
     fetchCompanies();
     fetchApprovedQuotes();
     fetchClients();
-    fetchCollaborators();
     fetchCategories();
   }, []);
 
@@ -296,7 +286,7 @@ export function FinancialReceivables() {
     setVencimento(todayStr);
     setDataRecebimento('');
     setFormaRecebimento('Pix');
-    setResponsavel('');
+    setResponsavel(currentUser?.nome || 'Sistema');
     setObservacoes('');
     setStatus('PENDENTE');
     setLinkedQuotes([]);
@@ -317,7 +307,7 @@ export function FinancialReceivables() {
     setVencimento(receivable.vencimento.substring(0, 10));
     setDataRecebimento(receivable.dataRecebimento ? receivable.dataRecebimento.substring(0, 10) : '');
     setFormaRecebimento(receivable.formaRecebimento);
-    setResponsavel(receivable.responsavel);
+    setResponsavel(receivable.responsavel_lancamento_nome || receivable.responsavel);
     setObservacoes(receivable.observacoes || '');
     setStatus(receivable.status);
     setLinkedQuotes((receivable as any).linkedQuotes ? (receivable as any).linkedQuotes.map((l: any) => ({ quoteId: l.quoteId, valorVinculado: l.valorVinculado })) : []);
@@ -331,7 +321,11 @@ export function FinancialReceivables() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyId || !cliente || !categoria || !valor || !dataEmissao || !vencimento || !responsavel) {
+    const activeResponsavel = selectedReceivable
+      ? (selectedReceivable.responsavel_lancamento_nome || selectedReceivable.responsavel)
+      : (currentUser?.nome || 'Sistema');
+
+    if (!companyId || !cliente || !categoria || !valor || !dataEmissao || !vencimento || !activeResponsavel) {
       toast.warning('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -371,7 +365,7 @@ export function FinancialReceivables() {
       vencimento,
       dataRecebimento: status === 'RECEBIDA' ? (dataRecebimento || new Date()) : null,
       formaRecebimento,
-      responsavel,
+      responsavel: activeResponsavel,
       observacoes,
       status,
       quoteId: linkedQuotes.length > 0 ? linkedQuotes[0].quoteId : null,
@@ -956,20 +950,23 @@ export function FinancialReceivables() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento *</label>
-                  <select 
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento</label>
+                  <input 
+                    type="text" 
                     value={responsavel}
-                    onChange={(e) => setResponsavel(e.target.value)}
-                    className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                    required
-                  >
-                    <option value="">Selecione um colaborador...</option>
-                    {collaborators.map((c: any) => (
-                      <option key={c.id} value={c.nome}>
-                        {c.nome} {c.cargo ? `- ${c.cargo}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    className="bg-muted/40 border border-border rounded-lg text-sm px-3 py-2 text-muted-foreground focus:outline-none select-none cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Data de Criação</label>
+                  <input 
+                    type="text" 
+                    value={selectedReceivable && (selectedReceivable.data_criacao || selectedReceivable.createdAt) ? new Date(selectedReceivable.data_criacao || selectedReceivable.createdAt || '').toLocaleString('pt-BR') : new Date().toLocaleString('pt-BR')}
+                    className="bg-muted/40 border border-border rounded-lg text-sm px-3 py-2 text-muted-foreground focus:outline-none select-none cursor-not-allowed"
+                    readOnly
+                  />
                 </div>
 
                 {/* Conditional Row: Data do Recebimento */}
@@ -1257,7 +1254,11 @@ export function FinancialReceivables() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Responsável</span>
-                  <span className="font-semibold text-foreground">{selectedReceivable.responsavel}</span>
+                  <span className="font-semibold text-foreground">{selectedReceivable.responsavel_lancamento_nome || selectedReceivable.responsavel}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Data de Criação</span>
+                  <span className="font-semibold text-foreground">{selectedReceivable && (selectedReceivable.data_criacao || selectedReceivable.createdAt) ? new Date(selectedReceivable.data_criacao || selectedReceivable.createdAt || '').toLocaleString('pt-BR') : ''}</span>
                 </div>
                 {selectedReceivable.status === 'RECEBIDA' && selectedReceivable.dataRecebimento && (
                   <div>

@@ -32,7 +32,7 @@ const createPayableSchema = z.object({
   }),
   dataPagamento: z.string().optional().nullable().transform((val) => val ? new Date(val) : null),
   formaPagamento: z.string(),
-  responsavel: z.string(),
+  responsavel: z.string().optional(),
   observacoes: z.string().optional().nullable(),
   status: z.string().default('PENDENTE'),
   
@@ -57,7 +57,7 @@ const createReceivableSchema = z.object({
   vencimento: z.string().transform((val) => new Date(val)),
   dataRecebimento: z.string().optional().nullable().transform((val) => val ? new Date(val) : null),
   formaRecebimento: z.string(),
-  responsavel: z.string(),
+  responsavel: z.string().optional(),
   observacoes: z.string().optional().nullable(),
   status: z.string().default('PENDENTE'),
   quoteId: z.string().optional().nullable(),
@@ -457,6 +457,12 @@ export const FinancialController = {
 
       // Obter nome de usuário logado
       const executor = req.headers['x-user-email'] as string || 'Usuário';
+      const userId = (req as any).userId;
+      const creatorUser = userId ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true }
+      }) : null;
+      const responsavelNome = creatorUser?.name || executor || 'Sistema';
 
       let actualParentId = '';
 
@@ -484,7 +490,7 @@ export const FinancialController = {
             vencimento: dueDate,
             dataPagamento: payDate,
             formaPagamento: body.formaPagamento,
-            responsavel: body.responsavel,
+            responsavel: responsavelNome,
             observacoes: body.observacoes,
             status: finalStatus,
             recorrente: body.recorrente,
@@ -493,6 +499,9 @@ export const FinancialController = {
             parcelaAtual: i + 1,
             pagamentoAutomatico: body.pagamentoAutomatico,
             parentRecurrenceId: i === 0 ? undefined : actualParentId,
+            responsavel_lancamento_id: userId || null,
+            responsavel_lancamento_nome: responsavelNome,
+            data_criacao: new Date(),
             attachments: {
               create: body.attachments?.map(att => ({
                 fileName: att.fileName,
@@ -518,14 +527,33 @@ export const FinancialController = {
           });
         }
 
+        const quoteNumbers = [];
+        if (body.linkedQuotes && body.linkedQuotes.length > 0) {
+          for (const l of body.linkedQuotes) {
+            const qRecord = await prisma.quote.findUnique({ where: { id: l.quoteId }, select: { numeroOrcamento: true } });
+            if (qRecord) quoteNumbers.push(qRecord.numeroOrcamento);
+          }
+        }
+        const origemText = quoteNumbers.length > 0
+          ? `Orçamento #${quoteNumbers.join(', #')}`
+          : 'Lançamento Manual';
+
+        const auditChanges = [
+          `Data/Hora: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+          `Usuário: ${responsavelNome}`,
+          `Operação: Criação de Conta a Pagar`,
+          `Origem: ${origemText}`,
+          `Valor: R$ ${body.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ].join('\n');
+
         // Criar log de auditoria
         await prisma.financialAudit.create({
           data: {
             payableId: payable.id,
             action: 'CREATE',
             newStatus: finalStatus,
-            user: executor,
-            changes: `Conta criada${body.recorrente ? ` (Parcela ${i + 1}/${installments})` : ''}`,
+            user: responsavelNome,
+            changes: auditChanges,
           }
         });
 
@@ -795,6 +823,13 @@ export const FinancialController = {
       const body = createReceivableSchema.parse(req.body);
       const executor = req.headers['x-user-email'] as string || 'Usuário';
 
+      const userId = (req as any).userId;
+      const creatorUser = userId ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true }
+      }) : null;
+      const responsavelNome = creatorUser?.name || executor || 'Sistema';
+
       // Validar saldos dos orçamentos se houver vinculação
       if (body.linkedQuotes && body.linkedQuotes.length > 0) {
         for (const link of body.linkedQuotes) {
@@ -837,10 +872,13 @@ export const FinancialController = {
           vencimento: body.vencimento,
           dataRecebimento: body.dataRecebimento,
           formaRecebimento: body.formaRecebimento,
-          responsavel: body.responsavel,
+          responsavel: responsavelNome,
           observacoes: body.observacoes,
           status: body.status,
           quoteId: body.quoteId || (body.linkedQuotes && body.linkedQuotes.length > 0 ? body.linkedQuotes[0].quoteId : null),
+          responsavel_lancamento_id: userId || null,
+          responsavel_lancamento_nome: responsavelNome,
+          data_criacao: new Date(),
           attachments: {
             create: body.attachments?.map(att => ({
               fileName: att.fileName,
@@ -870,13 +908,32 @@ export const FinancialController = {
         }
       });
 
+      const quoteNumbers = [];
+      if (body.linkedQuotes && body.linkedQuotes.length > 0) {
+        for (const l of body.linkedQuotes) {
+          const qRecord = await prisma.quote.findUnique({ where: { id: l.quoteId }, select: { numeroOrcamento: true } });
+          if (qRecord) quoteNumbers.push(qRecord.numeroOrcamento);
+        }
+      }
+      const origemText = quoteNumbers.length > 0
+        ? `Orçamento #${quoteNumbers.join(', #')}`
+        : 'Lançamento Manual';
+
+      const auditChanges = [
+        `Data/Hora: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+        `Usuário: ${responsavelNome}`,
+        `Operação: Criação de Conta a Receber`,
+        `Origem: ${origemText}`,
+        `Valor: R$ ${body.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ].join('\n');
+
       await prisma.financialAudit.create({
         data: {
           receivableId: receivable.id,
           action: 'CREATE',
           newStatus: body.status,
-          user: executor,
-          changes: 'Lançamento de conta a receber criado',
+          user: responsavelNome,
+          changes: auditChanges,
         }
       });
 

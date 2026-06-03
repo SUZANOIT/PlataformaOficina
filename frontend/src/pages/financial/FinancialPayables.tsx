@@ -15,6 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Attachment {
   id?: string;
@@ -48,6 +49,9 @@ interface Payable {
   dataPagamento?: string | null;
   formaPagamento: string;
   responsavel: string;
+  responsavel_lancamento_id?: string | null;
+  responsavel_lancamento_nome?: string | null;
+  data_criacao?: string | null;
   observacoes?: string | null;
   status: string;
   recorrente: boolean;
@@ -58,9 +62,12 @@ interface Payable {
   parentRecurrenceId?: string | null;
   attachments: Attachment[];
   linkedQuotes?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export function FinancialPayables() {
+  const { user: currentUser } = useAuth();
   const [payables, setPayables] = useState<Payable[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -109,7 +116,6 @@ export function FinancialPayables() {
   const [quantidadeParcelas, setQuantidadeParcelas] = useState('12');
   const [pagamentoAutomatico, setPagamentoAutomatico] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [collaborators, setCollaborators] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
   // Sequence update / delete
@@ -160,21 +166,6 @@ export function FinancialPayables() {
     }
   };
 
-  const fetchCollaborators = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/registry/collaborators', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCollaborators(data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const fetchApprovedQuotes = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -208,7 +199,6 @@ export function FinancialPayables() {
   useEffect(() => {
     fetchCompanies();
     fetchSuppliers();
-    fetchCollaborators();
     fetchApprovedQuotes();
     fetchCategories();
   }, []);
@@ -314,7 +304,7 @@ export function FinancialPayables() {
     setVencimento(todayStr);
     setDataPagamento('');
     setFormaPagamento('Pix');
-    setResponsavel('');
+    setResponsavel(currentUser?.nome || 'Sistema');
     setObservacoes('');
     setStatus('PENDENTE');
     setRecorrente(false);
@@ -341,7 +331,7 @@ export function FinancialPayables() {
     setVencimento(payable.vencimento.substring(0, 10));
     setDataPagamento(payable.dataPagamento ? payable.dataPagamento.substring(0, 10) : '');
     setFormaPagamento(payable.formaPagamento);
-    setResponsavel(payable.responsavel);
+    setResponsavel(payable.responsavel_lancamento_nome || payable.responsavel);
     setObservacoes(payable.observacoes || '');
     setStatus(payable.status);
     setRecorrente(payable.recorrente);
@@ -368,7 +358,11 @@ export function FinancialPayables() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyId || !fornecedor || !categoria || !centroCusto || !valor || !dataEmissao || !vencimento || !responsavel) {
+    const activeResponsavel = selectedPayable
+      ? (selectedPayable.responsavel_lancamento_nome || selectedPayable.responsavel)
+      : (currentUser?.nome || 'Sistema');
+
+    if (!companyId || !fornecedor || !categoria || !centroCusto || !valor || !dataEmissao || !vencimento || !activeResponsavel) {
       toast.warning('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -413,7 +407,7 @@ export function FinancialPayables() {
       vencimento,
       dataPagamento: status === 'PAGA' ? (dataPagamento || new Date()) : null,
       formaPagamento,
-      responsavel,
+      responsavel: activeResponsavel,
       observacoes,
       status,
       recorrente,
@@ -1081,20 +1075,23 @@ export function FinancialPayables() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento *</label>
-                  <select 
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Responsável pelo Lançamento</label>
+                  <input 
+                    type="text" 
                     value={responsavel}
-                    onChange={(e) => setResponsavel(e.target.value)}
-                    className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                    required
-                  >
-                    <option value="">Selecione um colaborador...</option>
-                    {collaborators.map((c: any) => (
-                      <option key={c.id} value={c.nome}>
-                        {c.nome} {c.cargo ? `- ${c.cargo}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    className="bg-muted/40 border border-border rounded-lg text-sm px-3 py-2 text-muted-foreground focus:outline-none select-none cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Data de Criação</label>
+                  <input 
+                    type="text" 
+                    value={selectedPayable && (selectedPayable.data_criacao || selectedPayable.createdAt) ? new Date(selectedPayable.data_criacao || selectedPayable.createdAt || '').toLocaleString('pt-BR') : new Date().toLocaleString('pt-BR')}
+                    className="bg-muted/40 border border-border rounded-lg text-sm px-3 py-2 text-muted-foreground focus:outline-none select-none cursor-not-allowed"
+                    readOnly
+                  />
                 </div>
 
                 {status === 'PAGA' && (
@@ -1432,7 +1429,11 @@ export function FinancialPayables() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Responsável</span>
-                  <span className="font-semibold text-foreground">{selectedPayable.responsavel}</span>
+                  <span className="font-semibold text-foreground">{selectedPayable.responsavel_lancamento_nome || selectedPayable.responsavel}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Data de Criação</span>
+                  <span className="font-semibold text-foreground">{selectedPayable && (selectedPayable.data_criacao || selectedPayable.createdAt) ? new Date(selectedPayable.data_criacao || selectedPayable.createdAt || '').toLocaleString('pt-BR') : ''}</span>
                 </div>
                 {selectedPayable.status === 'PAGA' && selectedPayable.dataPagamento && (
                   <div>

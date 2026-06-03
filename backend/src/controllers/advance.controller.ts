@@ -92,7 +92,29 @@ export const AdvanceController = {
           formaPagamento: dataParsed.formaPagamento,
           responsavel: responsavel,
           status: 'PAGA', // Automatically Paid
-          observacoes: dataParsed.observacoes || 'Lançamento automático de adiantamento salarial'
+          observacoes: dataParsed.observacoes || 'Lançamento automático de adiantamento salarial',
+          responsavel_lancamento_id: userId || null,
+          responsavel_lancamento_nome: responsavel,
+          data_criacao: new Date()
+        }
+      });
+
+      // Write audit log for the auto-created payable
+      const auditChanges = [
+        `Data/Hora: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+        `Usuário: ${responsavel}`,
+        `Operação: Criação de Conta a Pagar (Adiantamento)`,
+        `Origem: Adiantamento Salarial (${numeroComprovante})`,
+        `Valor: R$ ${dataParsed.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ].join('\n');
+
+      await prisma.financialAudit.create({
+        data: {
+          payableId: payable.id,
+          action: 'CREATE',
+          newStatus: 'PAGA',
+          user: responsavel,
+          changes: auditChanges
         }
       });
 
