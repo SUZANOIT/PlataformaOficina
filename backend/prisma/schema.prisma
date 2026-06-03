@@ -70,6 +70,7 @@ model Company {
   financialReceivables FinancialReceivable[]
   plataformasGestao    PlataformaGestao[]
   financialCategories  FinancialCategory[]
+  fiscalDocuments      FiscalDocument[]
 
   @@index([cnpj])
   @@index([parentCompanyId])
@@ -647,4 +648,39 @@ model FinancialCategory {
 
   @@unique([companyId, name, type])
   @@index([companyId])
+}
+
+model FiscalDocument {
+  id               String   @id @default(uuid())
+  numeroDocumento  String
+  chaveAcesso      String?
+  tipo             String   // 'XML' | 'PDF'
+  nomeArquivo      String
+  dataEmissao      DateTime?
+  valorTotal       Float?
+  emitenteNome     String?
+  emitenteCnpj     String?
+  destinatarioNome String?
+  destinatarioCnpj String?
+  status           String   @default("IMPORTADO")
+  xmlContent       String?  @db.Text
+  fileUrl          String?
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model FiscalAudit {
+  id          String   @id @default(uuid())
+  userId      String
+  userName    String
+  userEmail   String
+  userProfile String
+  action      String
+  details     String   @db.Text
+  ipAddress   String?
+  createdAt   DateTime @default(now())
 }

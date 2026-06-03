@@ -15,6 +15,7 @@ const platform_controller_1 = require("./controllers/platform.controller");
 const fleet_controller_1 = require("./controllers/fleet.controller");
 const advance_controller_1 = require("./controllers/advance.controller");
 const financial_category_controller_1 = require("./controllers/financial-category.controller");
+const fiscal_controller_1 = require("./controllers/fiscal.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const routes = (0, express_1.Router)();
 exports.routes = routes;
@@ -173,3 +174,13 @@ const registerFleetRoutes = (prefix) => {
 };
 registerFleetRoutes('/fleet');
 registerFleetRoutes('/api/fleet');
+// Módulo Fiscal / Documentos Fiscais
+routes.use('/fiscal', authMiddleware);
+routes.get('/fiscal/documents', fiscal_controller_1.FiscalController.listDocuments);
+routes.post('/fiscal/documents/upload', fiscal_controller_1.FiscalController.uploadDocuments);
+routes.put('/fiscal/documents/:id', fiscal_controller_1.FiscalController.updateDocument);
+routes.delete('/fiscal/documents/:id', fiscal_controller_1.FiscalController.deleteDocument);
+routes.get('/fiscal/documents/:id/download', fiscal_controller_1.FiscalController.downloadIndividual);
+routes.post('/fiscal/documents/download-batch', fiscal_controller_1.FiscalController.downloadBatch);
+routes.get('/fiscal/audits', fiscal_controller_1.FiscalController.listAudits);
+routes.get('/fiscal/dashboard', fiscal_controller_1.FiscalController.getDashboard);

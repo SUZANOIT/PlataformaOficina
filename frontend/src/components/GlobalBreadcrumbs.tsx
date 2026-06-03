@@ -74,6 +74,13 @@ export function GlobalBreadcrumbs() {
       baseItems.push({ label: 'Relatórios', path: '/financial/reports', icon: 'BarChart3' });
     } else if (pathname === '/financial/accountant') {
       baseItems.push({ label: 'Visão do Contador', path: '/financial/accountant', icon: 'Calculator' });
+    } else if (pathname === '/financial/fiscal-documents') {
+      baseItems.push({ label: 'Central de Documentos Fiscais', path: '/financial/fiscal-documents', icon: 'FileText' });
+    }
+  } else if (pathname.startsWith('/accounting')) {
+    baseItems.push({ label: 'Contabilidade', icon: 'FileText' });
+    if (pathname === '/accounting/fiscal-documents') {
+      baseItems.push({ label: 'Documentos Fiscais', path: '/accounting/fiscal-documents', icon: 'FileText' });
     }
   } else if (pathname.startsWith('/fleet')) {
     baseItems.push({ label: 'Frotas', icon: 'Truck' });

@@ -28,9 +28,10 @@ export function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOficinaOpen, setIsOficinaOpen] = useState(true);
   const [isFinancialOpen, setIsFinancialOpen] = useState(true);
+  const [isContabilidadeOpen, setIsContabilidadeOpen] = useState(true);
   const [isFleetOpen, setIsFleetOpen] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -227,9 +228,48 @@ export function Layout() {
                   <Tag size={16} className="text-violet-500" />
                   <span>Categorias</span>
                 </Link>
+                {user?.roleAdmin && (
+                  <Link 
+                    to="/financial/fiscal-documents" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-blue-500" />
+                    <span>Central de Documentos Fiscais</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
+
+          {/* Categoria 2.5: Contabilidade */}
+          {user?.roleContabilidade && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Contabilidade</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isContabilidadeOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isContabilidadeOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/accounting/fiscal-documents" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-blue-500" />
+                    <span>Documentos Fiscais</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria 3: Gestão de Frotas */}
           <div className="pt-2 border-t border-border/40">
@@ -468,9 +508,46 @@ export function Layout() {
                   <Tag size={16} className="text-violet-500" />
                   <span>Categorias</span>
                 </Link>
+                {user?.roleAdmin && (
+                  <Link 
+                    to="/financial/fiscal-documents" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-blue-500" />
+                    <span>Central de Documentos Fiscais</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
+
+          {/* Categoria 2.5: Contabilidade */}
+          {user?.roleContabilidade && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Contabilidade</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isContabilidadeOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isContabilidadeOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/accounting/fiscal-documents" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-blue-500" />
+                    <span>Documentos Fiscais</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria 3: Gestão de Frotas */}
           <div className="pt-2 border-t border-border/40">

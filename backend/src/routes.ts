@@ -9,6 +9,7 @@ import { PlatformController } from './controllers/platform.controller';
 import { fleetController } from './controllers/fleet.controller';
 import { AdvanceController } from './controllers/advance.controller';
 import { FinancialCategoryController } from './controllers/financial-category.controller';
+import { FiscalController } from './controllers/fiscal.controller';
 import jwt from 'jsonwebtoken';
 
 const routes = Router();
@@ -192,5 +193,16 @@ const registerFleetRoutes = (prefix: string) => {
 
 registerFleetRoutes('/fleet');
 registerFleetRoutes('/api/fleet');
+
+// Módulo Fiscal / Documentos Fiscais
+routes.use('/fiscal', authMiddleware);
+routes.get('/fiscal/documents', FiscalController.listDocuments);
+routes.post('/fiscal/documents/upload', FiscalController.uploadDocuments);
+routes.put('/fiscal/documents/:id', FiscalController.updateDocument);
+routes.delete('/fiscal/documents/:id', FiscalController.deleteDocument);
+routes.get('/fiscal/documents/:id/download', FiscalController.downloadIndividual);
+routes.post('/fiscal/documents/download-batch', FiscalController.downloadBatch);
+routes.get('/fiscal/audits', FiscalController.listAudits);
+routes.get('/fiscal/dashboard', FiscalController.getDashboard);
 
 export { routes };

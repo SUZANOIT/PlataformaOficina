@@ -157,7 +157,71 @@ exports.fleetController = {
                     }
                 }
             });
-            return res.json(clients);
+            const dbClients = await prisma_1.prisma.client.findMany({ select: { id: true } });
+            const dbClientIds = new Set(dbClients.map(c => c.id));
+            const allVehicles = await prisma_1.prisma.vehicle.findMany({
+                select: {
+                    id: true,
+                    placa: true,
+                    chassi: true,
+                    renavam: true,
+                    vin: true,
+                    clienteId: true
+                }
+            });
+            const normalizePlate = (p) => p.toUpperCase().replace(/[\s-]/g, "");
+            const plateCounts = new Map();
+            const chassiCounts = new Map();
+            const renavamCounts = new Map();
+            const vinCounts = new Map();
+            allVehicles.forEach(v => {
+                const p = normalizePlate(v.placa);
+                plateCounts.set(p, (plateCounts.get(p) || 0) + 1);
+                if (v.chassi) {
+                    const c = v.chassi.trim();
+                    if (c)
+                        chassiCounts.set(c, (chassiCounts.get(c) || 0) + 1);
+                }
+                if (v.renavam) {
+                    const r = v.renavam.trim();
+                    if (r)
+                        renavamCounts.set(r, (renavamCounts.get(r) || 0) + 1);
+                }
+                if (v.vin) {
+                    const vi = v.vin.trim();
+                    if (vi)
+                        vinCounts.set(vi, (vinCounts.get(vi) || 0) + 1);
+                }
+            });
+            const orphanVehicles = allVehicles.filter(v => !dbClientIds.has(v.clienteId));
+            const duplicateVehicles = allVehicles.filter(v => {
+                const p = normalizePlate(v.placa);
+                return (plateCounts.get(p) || 0) > 1 ||
+                    (v.chassi ? (chassiCounts.get(v.chassi.trim()) || 0) > 1 : false) ||
+                    (v.renavam ? (renavamCounts.get(v.renavam.trim()) || 0) > 1 : false);
+            });
+            const totalInconsistencies = orphanVehicles.length + duplicateVehicles.length;
+            const formattedClients = clients.map(c => ({
+                id: c.id,
+                nome: c.nome,
+                empresa: c.empresa,
+                cnpj: c.cnpj,
+                status: c.status,
+                _count: c._count
+            }));
+            if (totalInconsistencies > 0) {
+                formattedClients.push({
+                    id: 'audit-orphans',
+                    nome: '⚠️ Auditoria de Frota',
+                    empresa: 'Registros com Inconsistências',
+                    cnpj: '',
+                    status: 'ATIVO',
+                    _count: {
+                        veiculos: totalInconsistencies
+                    }
+                });
+            }
+            return res.json(formattedClients);
         }
         catch (error) {
             console.error('[Fleet] Erro listClientsTree:', error);
@@ -168,56 +232,124 @@ exports.fleetController = {
         try {
             const { clientId } = req.params;
             const { search, placa, chassi, status, startDate, endDate } = req.query;
-            const vehicleWhere = {
-                clienteId: clientId
-            };
-            if (placa) {
-                vehicleWhere.placa = { contains: placa.toUpperCase().replace(/[\s-]/g, ""), mode: 'insensitive' };
-            }
-            if (chassi) {
-                vehicleWhere.chassi = { contains: chassi, mode: 'insensitive' };
-            }
-            if (status) {
-                if (status !== 'all') {
-                    vehicleWhere.status = status;
-                }
-            }
-            else {
-                // By default, only active vehicles
-                vehicleWhere.status = 'ATIVO';
-            }
-            if (startDate || endDate) {
-                const dateFilter = {};
-                if (startDate)
-                    dateFilter.gte = new Date(startDate);
-                if (endDate)
-                    dateFilter.lte = new Date(endDate);
-                vehicleWhere.OR = [
-                    { createdAt: dateFilter },
-                    { events: { some: { data: dateFilter } } }
-                ];
-            }
-            const vehicles = await prisma_1.prisma.vehicle.findMany({
-                where: vehicleWhere,
-                orderBy: [{ subfrota: 'asc' }, { placa: 'asc' }],
-                include: {
-                    client: true,
-                    events: {
-                        orderBy: { data: 'desc' },
-                        take: 1, // To find the last service date
-                    },
-                    trocasOleoMotor: {
-                        orderBy: { dataTroca: 'desc' },
-                        take: 1
-                    },
-                    trocasOleoCambio: {
-                        orderBy: { dataTroca: 'desc' },
-                        take: 1
-                    }
+            const dbClients = await prisma_1.prisma.client.findMany({ select: { id: true } });
+            const dbClientIds = new Set(dbClients.map(c => c.id));
+            const allVehiclesForAudit = await prisma_1.prisma.vehicle.findMany({
+                select: {
+                    id: true,
+                    placa: true,
+                    chassi: true,
+                    renavam: true,
+                    vin: true,
+                    clienteId: true
                 }
             });
+            const normalizePlate = (p) => p.toUpperCase().replace(/[\s-]/g, "");
+            const plateCounts = new Map();
+            const chassiCounts = new Map();
+            const renavamCounts = new Map();
+            const vinCounts = new Map();
+            allVehiclesForAudit.forEach(v => {
+                const p = normalizePlate(v.placa);
+                plateCounts.set(p, (plateCounts.get(p) || 0) + 1);
+                if (v.chassi) {
+                    const c = v.chassi.trim();
+                    if (c)
+                        chassiCounts.set(c, (chassiCounts.get(c) || 0) + 1);
+                }
+                if (v.renavam) {
+                    const r = v.renavam.trim();
+                    if (r)
+                        renavamCounts.set(r, (renavamCounts.get(r) || 0) + 1);
+                }
+                if (v.vin) {
+                    const vi = v.vin.trim();
+                    if (vi)
+                        vinCounts.set(vi, (vinCounts.get(vi) || 0) + 1);
+                }
+            });
+            let vehicles;
+            if (clientId === 'audit-orphans') {
+                const orphanIds = allVehiclesForAudit.filter(v => !dbClientIds.has(v.clienteId)).map(v => v.id);
+                const duplicateIds = allVehiclesForAudit.filter(v => {
+                    const p = normalizePlate(v.placa);
+                    return (plateCounts.get(p) || 0) > 1 ||
+                        (v.chassi ? (chassiCounts.get(v.chassi.trim()) || 0) > 1 : false) ||
+                        (v.renavam ? (renavamCounts.get(v.renavam.trim()) || 0) > 1 : false);
+                }).map(v => v.id);
+                const targetIds = Array.from(new Set([...orphanIds, ...duplicateIds]));
+                vehicles = await prisma_1.prisma.vehicle.findMany({
+                    where: {
+                        id: { in: targetIds }
+                    },
+                    orderBy: [{ subfrota: 'asc' }, { placa: 'asc' }],
+                    include: {
+                        client: true,
+                        events: {
+                            orderBy: { data: 'desc' },
+                            take: 1
+                        },
+                        trocasOleoMotor: {
+                            orderBy: { dataTroca: 'desc' },
+                            take: 1
+                        },
+                        trocasOleoCambio: {
+                            orderBy: { dataTroca: 'desc' },
+                            take: 1
+                        }
+                    }
+                });
+            }
+            else {
+                const vehicleWhere = {
+                    clienteId: clientId
+                };
+                if (placa) {
+                    vehicleWhere.placa = { contains: placa.toUpperCase().replace(/[\s-]/g, ""), mode: 'insensitive' };
+                }
+                if (chassi) {
+                    vehicleWhere.chassi = { contains: chassi, mode: 'insensitive' };
+                }
+                if (status) {
+                    if (status !== 'all') {
+                        vehicleWhere.status = status;
+                    }
+                }
+                else {
+                    vehicleWhere.status = 'ATIVO';
+                }
+                if (startDate || endDate) {
+                    const dateFilter = {};
+                    if (startDate)
+                        dateFilter.gte = new Date(startDate);
+                    if (endDate)
+                        dateFilter.lte = new Date(endDate);
+                    vehicleWhere.OR = [
+                        { createdAt: dateFilter },
+                        { events: { some: { data: dateFilter } } }
+                    ];
+                }
+                vehicles = await prisma_1.prisma.vehicle.findMany({
+                    where: vehicleWhere,
+                    orderBy: [{ subfrota: 'asc' }, { placa: 'asc' }],
+                    include: {
+                        client: true,
+                        events: {
+                            orderBy: { data: 'desc' },
+                            take: 1
+                        },
+                        trocasOleoMotor: {
+                            orderBy: { dataTroca: 'desc' },
+                            take: 1
+                        },
+                        trocasOleoCambio: {
+                            orderBy: { dataTroca: 'desc' },
+                            take: 1
+                        }
+                    }
+                });
+            }
             const formattedVehicles = vehicles.map(v => {
-                // Calculate last service date
                 const eventDates = [
                     v.events[0]?.data,
                     v.trocasOleoMotor[0]?.dataTroca,
@@ -226,6 +358,19 @@ exports.fleetController = {
                 const lastServiceDate = eventDates.length > 0
                     ? new Date(Math.max(...eventDates.map(d => d.getTime())))
                     : null;
+                const hasDupPlate = (plateCounts.get(normalizePlate(v.placa)) || 0) > 1;
+                const hasDupChassi = v.chassi ? (chassiCounts.get(v.chassi.trim()) || 0) > 1 : false;
+                const hasDupRenavam = v.renavam ? (renavamCounts.get(v.renavam.trim()) || 0) > 1 : false;
+                const isOrphan = !dbClientIds.has(v.clienteId);
+                const auditAlerts = [];
+                if (isOrphan)
+                    auditAlerts.push('Órfão (sem cliente válido)');
+                if (hasDupPlate)
+                    auditAlerts.push('Placa duplicada');
+                if (hasDupChassi)
+                    auditAlerts.push('Chassi duplicado');
+                if (hasDupRenavam)
+                    auditAlerts.push('Renavam duplicado');
                 return {
                     id: v.id,
                     placa: v.placa,
@@ -238,10 +383,13 @@ exports.fleetController = {
                     quilometragem: v.kmAtual,
                     status: v.status,
                     clienteId: v.clienteId,
-                    clienteNome: v.client?.nome,
+                    clienteNome: v.client?.nome || '—',
                     subfrota: v.subfrota || null,
                     frota: v.frota || null,
-                    dataUltimoServico: lastServiceDate
+                    dataUltimoServico: lastServiceDate,
+                    auditAlerts,
+                    isOrphan,
+                    isDuplicate: hasDupPlate || hasDupChassi || hasDupRenavam
                 };
             });
             return res.json(formattedVehicles);
@@ -254,6 +402,42 @@ exports.fleetController = {
     async getVehicleDetails(req, res) {
         try {
             const { vehicleId } = req.params;
+            const dbClients = await prisma_1.prisma.client.findMany({ select: { id: true } });
+            const dbClientIds = new Set(dbClients.map(c => c.id));
+            const allVehiclesForAudit = await prisma_1.prisma.vehicle.findMany({
+                select: {
+                    id: true,
+                    placa: true,
+                    chassi: true,
+                    renavam: true,
+                    vin: true,
+                    clienteId: true
+                }
+            });
+            const normalizePlate = (p) => p.toUpperCase().replace(/[\s-]/g, "");
+            const plateCounts = new Map();
+            const chassiCounts = new Map();
+            const renavamCounts = new Map();
+            const vinCounts = new Map();
+            allVehiclesForAudit.forEach(v => {
+                const p = normalizePlate(v.placa);
+                plateCounts.set(p, (plateCounts.get(p) || 0) + 1);
+                if (v.chassi) {
+                    const c = v.chassi.trim();
+                    if (c)
+                        chassiCounts.set(c, (chassiCounts.get(c) || 0) + 1);
+                }
+                if (v.renavam) {
+                    const r = v.renavam.trim();
+                    if (r)
+                        renavamCounts.set(r, (renavamCounts.get(r) || 0) + 1);
+                }
+                if (v.vin) {
+                    const vi = v.vin.trim();
+                    if (vi)
+                        vinCounts.set(vi, (vinCounts.get(vi) || 0) + 1);
+                }
+            });
             const vehicle = await prisma_1.prisma.vehicle.findUnique({
                 where: { id: vehicleId },
                 include: {
@@ -496,6 +680,19 @@ exports.fleetController = {
             // Sort financial history by date desc
             financeiro.sort((a, b) => new Date(b.vencimento).getTime() - new Date(a.vencimento).getTime());
             // Format basic vehicle data
+            const hasDupPlate = (plateCounts.get(normalizePlate(vehicle.placa)) || 0) > 1;
+            const hasDupChassi = vehicle.chassi ? (chassiCounts.get(vehicle.chassi.trim()) || 0) > 1 : false;
+            const hasDupRenavam = vehicle.renavam ? (renavamCounts.get(vehicle.renavam.trim()) || 0) > 1 : false;
+            const isOrphan = !dbClientIds.has(vehicle.clienteId);
+            const auditAlerts = [];
+            if (isOrphan)
+                auditAlerts.push('Órfão (sem cliente válido)');
+            if (hasDupPlate)
+                auditAlerts.push('Placa duplicada');
+            if (hasDupChassi)
+                auditAlerts.push('Chassi duplicado');
+            if (hasDupRenavam)
+                auditAlerts.push('Renavam duplicado');
             const infoCadastral = {
                 id: vehicle.id,
                 placa: vehicle.placa,
@@ -516,6 +713,9 @@ exports.fleetController = {
                 kmAtual: vehicle.kmAtual,
                 status: vehicle.status,
                 observacoes: vehicle.observacoes,
+                auditAlerts,
+                isOrphan,
+                isDuplicate: hasDupPlate || hasDupChassi || hasDupRenavam,
                 cliente: vehicle.client ? {
                     id: vehicle.client.id,
                     nome: vehicle.client.nome,

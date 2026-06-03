@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Truck, Plus, Search, Edit2, Trash2, Sparkles, Check, X,
   ChevronDown, ChevronRight, Folder, FolderOpen, DollarSign,
-  Wrench, Package, Paperclip, Clipboard, CheckSquare, FileText, AlertCircle,
+  Wrench, Package, Paperclip, Clipboard, CheckSquare, FileText, AlertCircle, AlertTriangle,
   TrendingUp, TrendingDown, Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -242,7 +242,7 @@ export default function FleetVehicles() {
       prefixo: vehicle.prefixo || '',
       kmAtual: vehicle.kmAtual || 0,
       status: vehicle.status || 'ATIVO',
-      clienteId: vehicle.clienteId || '',
+      clienteId: vehicle.clienteId || vehicle.cliente?.id || '',
       observacoes: vehicle.observacoes || ''
     });
     setActiveTab('geral');
@@ -468,6 +468,14 @@ export default function FleetVehicles() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 pl-1">
+          {v.auditAlerts && v.auditAlerts.length > 0 && (
+            <span 
+              title={`Inconsistência: ${v.auditAlerts.join(', ')}`}
+              className="text-amber-500 dark:text-amber-400 cursor-help"
+            >
+              <AlertTriangle size={14} />
+            </span>
+          )}
           <span className={`w-2 h-2 rounded-full ${
             v.status === 'ATIVO' ? 'bg-green-500' :
             v.status === 'EM_MANUTENCAO' ? 'bg-amber-500' : 'bg-red-500'
@@ -721,6 +729,16 @@ export default function FleetVehicles() {
                   </button>
                 </div>
               </div>
+
+              {vehicleDetails.infoCadastral.auditAlerts && vehicleDetails.infoCadastral.auditAlerts.length > 0 && (
+                <div className="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl flex items-center gap-3 text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="shrink-0 text-amber-500" size={18} />
+                  <div className="text-xs">
+                    <span className="font-bold block">Aviso de Auditoria:</span>
+                    Este registro possui as seguintes inconsistências cadastrais: <span className="font-semibold">{vehicleDetails.infoCadastral.auditAlerts.join(', ')}</span>.
+                  </div>
+                </div>
+              )}
 
               {/* Glassmorphic Horizon Tab Menu */}
               <div className="flex overflow-x-auto border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10 px-6 hide-scrollbar shrink-0">
@@ -1320,7 +1338,7 @@ export default function FleetVehicles() {
               {/* TAB 2: TECHNICAL DETAILS */}
               {activeTab === 'tecnico' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                     <div className="space-y-1">
                       <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Renavam</label>
                       <input
@@ -1330,27 +1348,6 @@ export default function FleetVehicles() {
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Chassi</label>
-                      <input
-                        type="text"
-                        value={form.chassi}
-                        onChange={(e) => setForm({ ...form, chassi: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">VIN (Nº de Identificação)</label>
-                      <input
-                        type="text"
-                        value={form.vin}
-                        onChange={(e) => setForm({ ...form, vin: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="space-y-1">
                       <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Combustível</label>
                       <select

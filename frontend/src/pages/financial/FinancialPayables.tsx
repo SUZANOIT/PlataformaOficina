@@ -81,8 +81,20 @@ export function FinancialPayables() {
   const [companyFilter, setCompanyFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [costCenterFilter, setCostCenterFilter] = useState('');
-  const [startDateFilter, setStartDateFilter] = useState('');
-  const [endDateFilter, setEndDateFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
+  });
+  const [endDateFilter, setEndDateFilter] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    const monthStr = String(month).padStart(2, '0');
+    return `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+  });
 
   // Modals & Active State
   const [isFormOpen, setIsFormOpen] = useState(false);
