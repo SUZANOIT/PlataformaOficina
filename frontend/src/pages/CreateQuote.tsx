@@ -418,9 +418,9 @@ ${bankingText}`;
     }
   }, [watchCompanyId, workshops, companies, setValue]);
 
-  // Generate description when status is changed to 'Aguardando Pagamento' or workshop changes
+  // Generate description when status is changed to 'Aguardando Pagamento' or 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
-    if (watchStatus === 'Aguardando Pagamento') {
+    if (watchStatus === 'Aguardando Pagamento' || watchStatus === 'Emitir Nota Fiscal') {
       const { hasBanking } = handleGenerateInvoiceDescription();
       if (!hasBanking) {
         toast.warning('Dados bancários da oficina não cadastrados.');
@@ -1268,7 +1268,7 @@ ${bankingText}`;
               />
             </div>
 
-            {watchStatus === 'Aguardando Pagamento' && (
+            {(watchStatus === 'Aguardando Pagamento' || watchStatus === 'Emitir Nota Fiscal') && (
               <div className="md:col-span-2 space-y-4 p-5 bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/20 dark:border-teal-500/30 rounded-2xl animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div className="flex items-center gap-2">

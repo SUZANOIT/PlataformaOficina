@@ -6,5 +6,5 @@
 > backend@1.0.0 start
 > node dist/server.js
 
-◇ injected env (3) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env // tip: ⌘ suppress logs { quiet: true }
 Server is running on port 3333
