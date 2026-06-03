@@ -149,7 +149,7 @@ export function CreateQuote() {
 
 
   // Load companies
-  useState(() => {
+  useEffect(() => {
     const fetchCompanies = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -165,7 +165,7 @@ export function CreateQuote() {
       }
     };
     fetchCompanies();
-  });
+  }, []);
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -275,18 +275,18 @@ export function CreateQuote() {
     name: 'items'
   });
 
-  const watchItems = watch('items');
+  const watchItems = watch('items') || [];
   const watchCondicao = watch('condicaoPagamento');
 
-  const subtotal = watchItems.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
+  const subtotal = watchItems.reduce((acc, item) => acc + (Number(item?.quantidade || 0) * Number(item?.valorUnitario || 0)), 0);
   const total = subtotal; // no future adding discounts or taxes yet
 
   const subtotalPecas = watchItems.reduce((acc, item) => {
-    return item.tipo === 'Peça' ? acc + (Number(item.quantidade) * Number(item.valorUnitario)) : acc;
+    return item?.tipo === 'Peça' ? acc + (Number(item?.quantidade || 0) * Number(item?.valorUnitario || 0)) : acc;
   }, 0);
 
   const subtotalMaoDeObra = watchItems.reduce((acc, item) => {
-    return item.tipo === 'Mão de Obra' ? acc + (Number(item.quantidade) * Number(item.valorUnitario)) : acc;
+    return item?.tipo === 'Mão de Obra' ? acc + (Number(item?.quantidade || 0) * Number(item?.valorUnitario || 0)) : acc;
   }, 0);
 
   const formatCurrency = (value: number) => {
@@ -294,73 +294,79 @@ export function CreateQuote() {
   };
 
   const handleGenerateInvoiceDescription = () => {
-    const data = watch();
-    
-    // Automatically find matching workshop (Oficina) from selected company
-    const selectedCompany = companies.find(c => c.id === data.companyId);
-    let selectedOficina = null;
-    if (selectedCompany && workshops.length > 0) {
-      const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
-      selectedOficina = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
+    try {
+      const data = watch();
       
-      if (!selectedOficina) {
-        const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
-        selectedOficina = workshops.find(w => 
-          (w.nome || '').toLowerCase().includes(companyName) || 
-          companyName.includes((w.nome || '').toLowerCase())
-        );
+      // Try to load by existing oficinaId first (crucial when editing an existing quote)
+      let selectedOficina = null;
+      if (data.oficinaId && workshops.length > 0) {
+        selectedOficina = workshops.find(w => w.id === data.oficinaId);
       }
-    }
-
-    const orcamentoNumero = numeroOrcamento ? `#${numeroOrcamento}` : '(Em geração)';
-    const osExterna = data.osExterna || 'N/A';
-    const placa = data.veiculoPlaca || '';
-    const prefixo = data.veiculoPrefixo || '';
-
-    // Services and Parts lists
-    const itemsList = data.items || [];
-    const servicos = itemsList
-      .filter(item => item.tipo === 'Mão de Obra')
-      .map(item => item.descricao)
-      .filter(Boolean)
-      .join(', ');
       
-    const pecas = itemsList
-      .filter(item => item.tipo === 'Peça')
-      .map(item => item.descricao)
-      .filter(Boolean)
-      .join(', ');
+      // Automatically find matching workshop (Oficina) from selected company if not found
+      const selectedCompany = companies.find(c => c.id === data.companyId);
+      if (!selectedOficina && selectedCompany && workshops.length > 0) {
+        const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
+        selectedOficina = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
+        
+        if (!selectedOficina) {
+          const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
+          selectedOficina = workshops.find(w => 
+            (w.nome || '').toLowerCase().includes(companyName) || 
+            companyName.includes((w.nome || '').toLowerCase())
+          );
+        }
+      }
 
-    // Mileage (Quilometragem)
-    const kmText = data.veiculoHodometro ? `${data.veiculoHodometro} km` : 'Não informado';
+      const orcamentoNumero = numeroOrcamento ? `#${numeroOrcamento}` : '(Em geração)';
+      const osExterna = data.osExterna || 'N/A';
+      const placa = data.veiculoPlaca || '';
+      const prefixo = data.veiculoPrefixo || '';
 
-    // Banking info from the automatically mapped workshop
-    let bankingText = '';
-    let hasBanking = false;
-    let oficinaNome = '';
-    
-    if (selectedOficina) {
-      oficinaNome = selectedOficina.nome;
-      hasBanking = !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix);
-      if (hasBanking) {
-        bankingText = `Banco: ${selectedOficina.banco || '—'}
+      // Services and Parts lists
+      const itemsList = data.items || [];
+      const servicos = itemsList
+        .filter(item => item?.tipo === 'Mão de Obra')
+        .map(item => item?.descricao)
+        .filter(Boolean)
+        .join(', ');
+        
+      const pecas = itemsList
+        .filter(item => item?.tipo === 'Peça')
+        .map(item => item?.descricao)
+        .filter(Boolean)
+        .join(', ');
+
+      // Mileage (Quilometragem)
+      const kmText = data.veiculoHodometro ? `${data.veiculoHodometro} km` : 'Não informado';
+
+      // Banking info from the automatically mapped workshop
+      let bankingText = '';
+      let hasBanking = false;
+      let oficinaNome = '';
+      
+      if (selectedOficina) {
+        oficinaNome = selectedOficina.nome;
+        hasBanking = !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix);
+        if (hasBanking) {
+          bankingText = `Banco: ${selectedOficina.banco || '—'}
 Agência: ${selectedOficina.agencia || '—'}
 Conta: ${selectedOficina.contaCorrente || '—'}`;
-        if (selectedOficina.chavePix) {
-          bankingText += `\nPIX: ${selectedOficina.chavePix}`;
+          if (selectedOficina.chavePix) {
+            bankingText += `\nPIX: ${selectedOficina.chavePix}`;
+          }
+        } else {
+          bankingText = 'Dados bancários da oficina não cadastrados.';
         }
+        
+        // Auto-set the oficinaId in form so database links it
+        setValue('oficinaId', selectedOficina.id);
       } else {
+        oficinaNome = selectedCompany ? (selectedCompany.nomeFantasia || selectedCompany.razaoSocial) : 'Não informado';
         bankingText = 'Dados bancários da oficina não cadastrados.';
       }
-      
-      // Auto-set the oficinaId in form so database links it
-      setValue('oficinaId', selectedOficina.id);
-    } else {
-      oficinaNome = selectedCompany ? (selectedCompany.nomeFantasia || selectedCompany.razaoSocial) : 'Não informado';
-      bankingText = 'Dados bancários da oficina não cadastrados.';
-    }
 
-    const desc = `Referente aos serviços executados conforme Orçamento nº ${orcamentoNumero} e Ordem de Serviço da Plataforma nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
+      const desc = `Referente aos serviços executados conforme Orçamento nº ${orcamentoNumero} e Ordem de Serviço da Plataforma nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
 
 DETALHES DO ATENDIMENTO:
 Oficina Emitente: ${oficinaNome}
@@ -376,8 +382,13 @@ ${pecas || 'Nenhuma peça registrada.'}
 DADOS BANCÁRIOS PARA PAGAMENTO:
 ${bankingText}`;
 
-    setValue('notaFiscalDescricao', desc);
-    return { desc, hasBanking };
+      setValue('notaFiscalDescricao', desc, { shouldValidate: true, shouldDirty: true });
+      return { desc, hasBanking };
+    } catch (e) {
+      console.error('Error generating description:', e);
+      toast.error('Erro ao gerar a descrição da nota.');
+      return { desc: '', hasBanking: false };
+    }
   };
 
   const watchStatus = watch('status');
@@ -1335,7 +1346,7 @@ ${bankingText}`;
       {isVehicleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div 
-            className="w-full max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            className="w-full max-w-4xl bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
             role="dialog"
             aria-modal="true"
           >
@@ -1351,8 +1362,8 @@ ${bankingText}`;
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marca</label>
                   <input 
@@ -1411,25 +1422,6 @@ ${bankingText}`;
                     {...register('veiculoPrefixo')}
                     disabled={isViewing}
                     placeholder="Ex: PFX-102"
-                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chassi</label>
-                  <input 
-                    {...register('veiculoChassi')}
-                    disabled={isViewing}
-                    placeholder="Chassi do veículo..."
-                    className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Renavam</label>
-                  <input 
-                    {...register('veiculoRenavam')}
-                    disabled={isViewing}
-                    placeholder="Renavam..."
                     className="w-full px-3.5 py-2 bg-input/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
