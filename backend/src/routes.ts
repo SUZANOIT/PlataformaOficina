@@ -82,6 +82,7 @@ routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
 // Usuários
 routes.use('/users', authMiddleware);
 routes.get('/users', AuthController.listUsers);
+routes.post('/users', AuthController.createUser);
 routes.put('/users/:id', AuthController.updateUser);
 routes.delete('/users/:id', AuthController.deleteUser);
 

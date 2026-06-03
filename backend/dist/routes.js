@@ -80,6 +80,7 @@ routes.get('/api/cnpj/:cnpj', async (req, res) => {
 // Usuários
 routes.use('/users', authMiddleware);
 routes.get('/users', auth_controller_1.AuthController.listUsers);
+routes.post('/users', auth_controller_1.AuthController.createUser);
 routes.put('/users/:id', auth_controller_1.AuthController.updateUser);
 routes.delete('/users/:id', auth_controller_1.AuthController.deleteUser);
 // Empresas

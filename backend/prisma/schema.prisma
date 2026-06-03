@@ -18,6 +18,13 @@ model User {
   role      String   @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
   status    String   @default("ATIVO") // ATIVO, INATIVO
   
+  // Níveis de acesso / Permissões (Granular)
+  roleAdmin        Boolean @default(false)
+  roleOrcamentista Boolean @default(false)
+  roleContasPagar   Boolean @default(false)
+  roleContasReceber Boolean @default(false)
+  roleContabilidade Boolean @default(false)
+  
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 

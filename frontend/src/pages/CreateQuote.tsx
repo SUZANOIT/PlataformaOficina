@@ -318,7 +318,6 @@ export function CreateQuote() {
         }
       }
 
-      const orcamentoNumero = numeroOrcamento ? `#${numeroOrcamento}` : '(Em geração)';
       const osExterna = data.osExterna || 'N/A';
       const placa = data.veiculoPlaca || '';
       const prefixo = data.veiculoPrefixo || '';
@@ -366,7 +365,7 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
         bankingText = 'Dados bancários da oficina não cadastrados.';
       }
 
-      const desc = `Referente aos serviços executados conforme Orçamento nº ${orcamentoNumero} e Ordem de Serviço da Plataforma nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
+      const desc = `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
 
 DETALHES DO ATENDIMENTO:
 Oficina Emitente: ${oficinaNome}
