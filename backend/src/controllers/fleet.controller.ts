@@ -11,10 +11,9 @@ const createVehicleSchema = z.object({
   renavam: z.string().optional().nullable(),
   chassi: z.string().optional().nullable(),
   vin: z.string().optional().nullable(),
-  codigoFipe: z.string().optional().nullable(),
-  codigoInterno: z.string().optional().nullable(),
   frota: z.string().optional().nullable(),
   subfrota: z.string().optional().nullable(),
+  prefixo: z.string().optional().nullable(),
   marca: z.string(),
   modelo: z.string(),
   versao: z.string().optional().nullable(),
@@ -22,12 +21,8 @@ const createVehicleSchema = z.object({
   anoModelo: z.number().int(),
   cor: z.string().optional().nullable(),
   combustivel: z.string().optional().nullable(),
-  categoria: z.string().optional().nullable(),
   tipoVeiculo: z.string().optional().nullable(),
-  municipio: z.string().optional().nullable(),
-  uf: z.string().optional().nullable(),
   kmAtual: z.number().int().default(0),
-  mediaConsumo: z.number().optional().nullable(),
   status: z.string().default('ATIVO'),
   observacoes: z.string().optional().nullable(),
 });
@@ -544,10 +539,9 @@ export const fleetController = {
         chassi: vehicle.chassi,
         renavam: vehicle.renavam,
         vin: vehicle.vin,
-        codigoFipe: vehicle.codigoFipe,
-        codigoInterno: vehicle.codigoInterno,
         frota: vehicle.frota,
         subfrota: vehicle.subfrota,
+        prefixo: vehicle.prefixo,
         marca: vehicle.marca,
         modelo: vehicle.modelo,
         versao: vehicle.versao,
@@ -555,12 +549,8 @@ export const fleetController = {
         anoModelo: vehicle.anoModelo,
         cor: vehicle.cor,
         combustivel: vehicle.combustivel,
-        categoria: vehicle.categoria,
         tipoVeiculo: vehicle.tipoVeiculo,
-        municipio: vehicle.municipio,
-        uf: vehicle.uf,
         kmAtual: vehicle.kmAtual,
-        mediaConsumo: vehicle.mediaConsumo,
         status: vehicle.status,
         observacoes: vehicle.observacoes,
         cliente: vehicle.client ? {
@@ -783,6 +773,38 @@ export const fleetController = {
   async deleteVehicle(req: Request, res: Response) {
     try {
       const { id } = req.params as any;
+      
+      const vehicle = await prisma.vehicle.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              quotes: true,
+              events: true,
+              trocasOleoMotor: true,
+              trocasOleoCambio: true
+            }
+          }
+        }
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ error: 'Veículo não encontrado' });
+      }
+
+      const totalHistory = 
+        vehicle._count.quotes + 
+        vehicle._count.events + 
+        vehicle._count.trocasOleoMotor + 
+        vehicle._count.trocasOleoCambio;
+
+      if (totalHistory > 0) {
+        return res.status(400).json({ 
+          error: 'Este veículo possui histórico de orçamentos, ordens de serviço ou manutenções e não pode ser excluído. Você pode apenas inativá-lo.',
+          code: 'CANNOT_DELETE_WITH_HISTORY'
+        });
+      }
+
       await prisma.vehicle.delete({ where: { id } });
       return res.json({ message: 'Veículo excluído com sucesso' });
     } catch (error) {
@@ -860,14 +882,10 @@ export const fleetController = {
                     anoModelo: Number(data.ano_modelo) || Number(data.ano) || 2020,
                     cor: data.cor || '',
                     combustivel: data.combustivel || '',
-                    categoria: data.categoria || '',
                     tipoVeiculo: data.tipo_veiculo || '',
                     chassi: data.chassi || '',
                     renavam: data.renavam || '',
-                    municipio: data.municipio || '',
-                    uf: data.uf || '',
                     kmAtual: 0,
-                    mediaConsumo: 10.5,
                   };
                 }
               }
@@ -904,14 +922,10 @@ export const fleetController = {
           anoModelo: 2019 + (normalizedPlaca.charCodeAt(4) % 7),
           cor: ['Branco', 'Preto', 'Prata', 'Cinza', 'Vermelho', 'Azul'][normalizedPlaca.charCodeAt(5) % 6],
           combustivel: 'Flex',
-          categoria: 'Particular',
           tipoVeiculo: 'Automóvel',
           chassi: '9BWZZZ99Z' + normalizedPlaca + '12345',
           renavam: '12345678901',
-          municipio: 'São Paulo',
-          uf: 'SP',
           kmAtual: 12500 * (normalizedPlaca.charCodeAt(6) % 10),
-          mediaConsumo: 11.2,
         };
       }
 

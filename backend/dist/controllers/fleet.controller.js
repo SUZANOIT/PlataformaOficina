@@ -11,10 +11,9 @@ const createVehicleSchema = zod_1.z.object({
     renavam: zod_1.z.string().optional().nullable(),
     chassi: zod_1.z.string().optional().nullable(),
     vin: zod_1.z.string().optional().nullable(),
-    codigoFipe: zod_1.z.string().optional().nullable(),
-    codigoInterno: zod_1.z.string().optional().nullable(),
     frota: zod_1.z.string().optional().nullable(),
     subfrota: zod_1.z.string().optional().nullable(),
+    prefixo: zod_1.z.string().optional().nullable(),
     marca: zod_1.z.string(),
     modelo: zod_1.z.string(),
     versao: zod_1.z.string().optional().nullable(),
@@ -22,12 +21,8 @@ const createVehicleSchema = zod_1.z.object({
     anoModelo: zod_1.z.number().int(),
     cor: zod_1.z.string().optional().nullable(),
     combustivel: zod_1.z.string().optional().nullable(),
-    categoria: zod_1.z.string().optional().nullable(),
     tipoVeiculo: zod_1.z.string().optional().nullable(),
-    municipio: zod_1.z.string().optional().nullable(),
-    uf: zod_1.z.string().optional().nullable(),
     kmAtual: zod_1.z.number().int().default(0),
-    mediaConsumo: zod_1.z.number().optional().nullable(),
     status: zod_1.z.string().default('ATIVO'),
     observacoes: zod_1.z.string().optional().nullable(),
 });
@@ -507,10 +502,9 @@ exports.fleetController = {
                 chassi: vehicle.chassi,
                 renavam: vehicle.renavam,
                 vin: vehicle.vin,
-                codigoFipe: vehicle.codigoFipe,
-                codigoInterno: vehicle.codigoInterno,
                 frota: vehicle.frota,
                 subfrota: vehicle.subfrota,
+                prefixo: vehicle.prefixo,
                 marca: vehicle.marca,
                 modelo: vehicle.modelo,
                 versao: vehicle.versao,
@@ -518,12 +512,8 @@ exports.fleetController = {
                 anoModelo: vehicle.anoModelo,
                 cor: vehicle.cor,
                 combustivel: vehicle.combustivel,
-                categoria: vehicle.categoria,
                 tipoVeiculo: vehicle.tipoVeiculo,
-                municipio: vehicle.municipio,
-                uf: vehicle.uf,
                 kmAtual: vehicle.kmAtual,
-                mediaConsumo: vehicle.mediaConsumo,
                 status: vehicle.status,
                 observacoes: vehicle.observacoes,
                 cliente: vehicle.client ? {
@@ -732,6 +722,32 @@ exports.fleetController = {
     async deleteVehicle(req, res) {
         try {
             const { id } = req.params;
+            const vehicle = await prisma_1.prisma.vehicle.findUnique({
+                where: { id },
+                include: {
+                    _count: {
+                        select: {
+                            quotes: true,
+                            events: true,
+                            trocasOleoMotor: true,
+                            trocasOleoCambio: true
+                        }
+                    }
+                }
+            });
+            if (!vehicle) {
+                return res.status(404).json({ error: 'Veículo não encontrado' });
+            }
+            const totalHistory = vehicle._count.quotes +
+                vehicle._count.events +
+                vehicle._count.trocasOleoMotor +
+                vehicle._count.trocasOleoCambio;
+            if (totalHistory > 0) {
+                return res.status(400).json({
+                    error: 'Este veículo possui histórico de orçamentos, ordens de serviço ou manutenções e não pode ser excluído. Você pode apenas inativá-lo.',
+                    code: 'CANNOT_DELETE_WITH_HISTORY'
+                });
+            }
             await prisma_1.prisma.vehicle.delete({ where: { id } });
             return res.json({ message: 'Veículo excluído com sucesso' });
         }
@@ -800,14 +816,10 @@ exports.fleetController = {
                                         anoModelo: Number(data.ano_modelo) || Number(data.ano) || 2020,
                                         cor: data.cor || '',
                                         combustivel: data.combustivel || '',
-                                        categoria: data.categoria || '',
                                         tipoVeiculo: data.tipo_veiculo || '',
                                         chassi: data.chassi || '',
                                         renavam: data.renavam || '',
-                                        municipio: data.municipio || '',
-                                        uf: data.uf || '',
                                         kmAtual: 0,
-                                        mediaConsumo: 10.5,
                                     };
                                 }
                             }
@@ -843,14 +855,10 @@ exports.fleetController = {
                     anoModelo: 2019 + (normalizedPlaca.charCodeAt(4) % 7),
                     cor: ['Branco', 'Preto', 'Prata', 'Cinza', 'Vermelho', 'Azul'][normalizedPlaca.charCodeAt(5) % 6],
                     combustivel: 'Flex',
-                    categoria: 'Particular',
                     tipoVeiculo: 'Automóvel',
                     chassi: '9BWZZZ99Z' + normalizedPlaca + '12345',
                     renavam: '12345678901',
-                    municipio: 'São Paulo',
-                    uf: 'SP',
                     kmAtual: 12500 * (normalizedPlaca.charCodeAt(6) % 10),
-                    mediaConsumo: 11.2,
                 };
             }
             // 4. Save into Database Cache

@@ -214,6 +214,66 @@ exports.QuoteController = {
                     data: data.client,
                 });
             }
+            // Resolve or create vehicle
+            let veiculoId = null;
+            if (data.veiculoPlaca && data.veiculoPlaca.trim() !== '') {
+                const cleanPlate = data.veiculoPlaca.toUpperCase().replace(/[\s-]/g, "");
+                const cleanChassi = data.veiculoChassi ? data.veiculoChassi.trim() : '';
+                let vehicle = await prisma_1.prisma.vehicle.findUnique({
+                    where: { placa: cleanPlate }
+                });
+                if (!vehicle && cleanChassi) {
+                    vehicle = await prisma_1.prisma.vehicle.findFirst({
+                        where: { OR: [{ chassi: cleanChassi }, { vin: cleanChassi }] }
+                    });
+                }
+                const parsedYear = data.veiculoAnoFabricacao ? (parseInt(data.veiculoAnoFabricacao) || 2020) : (data.veiculoAno ? (parseInt(data.veiculoAno) || 2020) : 2020);
+                const parsedAnoModelo = data.veiculoAnoModelo ? (parseInt(data.veiculoAnoModelo) || 2020) : (data.veiculoAno ? (parseInt(data.veiculoAno) || 2020) : 2020);
+                const hodometro = data.veiculoHodometro ? (parseInt(data.veiculoHodometro.replace(/\D/g, '')) || 0) : 0;
+                if (vehicle) {
+                    vehicle = await prisma_1.prisma.vehicle.update({
+                        where: { id: vehicle.id },
+                        data: {
+                            clienteId: client.id,
+                            kmAtual: hodometro > vehicle.kmAtual ? hodometro : vehicle.kmAtual,
+                            marca: data.veiculoMarca || vehicle.marca,
+                            modelo: data.veiculoModelo || vehicle.modelo,
+                            prefixo: data.veiculoPrefixo || vehicle.prefixo,
+                            chassi: data.veiculoChassi || vehicle.chassi,
+                            vin: data.veiculoChassi || vehicle.vin,
+                            renavam: data.veiculoRenavam || vehicle.renavam,
+                            frota: data.veiculoFrota || vehicle.frota,
+                            subfrota: data.veiculoSubfrota || vehicle.subfrota,
+                            tipoVeiculo: data.veiculoTipo || vehicle.tipoVeiculo,
+                        }
+                    });
+                    veiculoId = vehicle.id;
+                }
+                else {
+                    const newVehicle = await prisma_1.prisma.vehicle.create({
+                        data: {
+                            placa: cleanPlate,
+                            marca: data.veiculoMarca || 'N/A',
+                            modelo: data.veiculoModelo || 'N/A',
+                            anoFabricacao: parsedYear,
+                            anoModelo: parsedAnoModelo,
+                            chassi: data.veiculoChassi || null,
+                            vin: data.veiculoChassi || null,
+                            renavam: data.veiculoRenavam || null,
+                            frota: data.veiculoFrota || null,
+                            subfrota: data.veiculoSubfrota || null,
+                            prefixo: data.veiculoPrefixo || null,
+                            tipoVeiculo: data.veiculoTipo || null,
+                            kmAtual: hodometro,
+                            clienteId: client.id,
+                            companyId: data.companyId,
+                            status: 'ATIVO',
+                            observacoes: `Criado automaticamente via Novo Orçamento`
+                        }
+                    });
+                    veiculoId = newVehicle.id;
+                }
+            }
             // Create quote
             const quote = await prisma_1.prisma.quote.create({
                 data: {
@@ -239,6 +299,7 @@ exports.QuoteController = {
                     veiculoSubfrota: data.veiculoSubfrota,
                     veiculoHodometro: data.veiculoHodometro,
                     veiculoTipo: data.veiculoTipo,
+                    veiculoId: veiculoId,
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     oficinaId: data.oficinaId || null,
@@ -370,6 +431,66 @@ exports.QuoteController = {
                     data: data.client,
                 });
             }
+            // Resolve or create vehicle
+            let veiculoId = null;
+            if (data.veiculoPlaca && data.veiculoPlaca.trim() !== '') {
+                const cleanPlate = data.veiculoPlaca.toUpperCase().replace(/[\s-]/g, "");
+                const cleanChassi = data.veiculoChassi ? data.veiculoChassi.trim() : '';
+                let vehicle = await prisma_1.prisma.vehicle.findUnique({
+                    where: { placa: cleanPlate }
+                });
+                if (!vehicle && cleanChassi) {
+                    vehicle = await prisma_1.prisma.vehicle.findFirst({
+                        where: { OR: [{ chassi: cleanChassi }, { vin: cleanChassi }] }
+                    });
+                }
+                const parsedYear = data.veiculoAnoFabricacao ? (parseInt(data.veiculoAnoFabricacao) || 2020) : (data.veiculoAno ? (parseInt(data.veiculoAno) || 2020) : 2020);
+                const parsedAnoModelo = data.veiculoAnoModelo ? (parseInt(data.veiculoAnoModelo) || 2020) : (data.veiculoAno ? (parseInt(data.veiculoAno) || 2020) : 2020);
+                const hodometro = data.veiculoHodometro ? (parseInt(data.veiculoHodometro.replace(/\D/g, '')) || 0) : 0;
+                if (vehicle) {
+                    vehicle = await prisma_1.prisma.vehicle.update({
+                        where: { id: vehicle.id },
+                        data: {
+                            clienteId: client.id,
+                            kmAtual: hodometro > vehicle.kmAtual ? hodometro : vehicle.kmAtual,
+                            marca: data.veiculoMarca || vehicle.marca,
+                            modelo: data.veiculoModelo || vehicle.modelo,
+                            prefixo: data.veiculoPrefixo || vehicle.prefixo,
+                            chassi: data.veiculoChassi || vehicle.chassi,
+                            vin: data.veiculoChassi || vehicle.vin,
+                            renavam: data.veiculoRenavam || vehicle.renavam,
+                            frota: data.veiculoFrota || vehicle.frota,
+                            subfrota: data.veiculoSubfrota || vehicle.subfrota,
+                            tipoVeiculo: data.veiculoTipo || vehicle.tipoVeiculo,
+                        }
+                    });
+                    veiculoId = vehicle.id;
+                }
+                else {
+                    const newVehicle = await prisma_1.prisma.vehicle.create({
+                        data: {
+                            placa: cleanPlate,
+                            marca: data.veiculoMarca || 'N/A',
+                            modelo: data.veiculoModelo || 'N/A',
+                            anoFabricacao: parsedYear,
+                            anoModelo: parsedAnoModelo,
+                            chassi: data.veiculoChassi || null,
+                            vin: data.veiculoChassi || null,
+                            renavam: data.veiculoRenavam || null,
+                            frota: data.veiculoFrota || null,
+                            subfrota: data.veiculoSubfrota || null,
+                            prefixo: data.veiculoPrefixo || null,
+                            tipoVeiculo: data.veiculoTipo || null,
+                            kmAtual: hodometro,
+                            clienteId: client.id,
+                            companyId: data.companyId,
+                            status: 'ATIVO',
+                            observacoes: `Criado automaticamente via Edição de Orçamento`
+                        }
+                    });
+                    veiculoId = newVehicle.id;
+                }
+            }
             // Update quote & items (delete old, create new)
             const quote = await prisma_1.prisma.quote.update({
                 where: { id },
@@ -396,6 +517,7 @@ exports.QuoteController = {
                     veiculoSubfrota: data.veiculoSubfrota,
                     veiculoHodometro: data.veiculoHodometro,
                     veiculoTipo: data.veiculoTipo,
+                    veiculoId: veiculoId,
                     plataformaGestaoId: data.plataformaGestaoId || null,
                     osExterna: data.osExterna,
                     oficinaId: data.oficinaId || null,

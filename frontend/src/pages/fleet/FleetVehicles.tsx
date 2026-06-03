@@ -51,19 +51,14 @@ export default function FleetVehicles() {
     anoModelo: new Date().getFullYear(),
     cor: '',
     combustivel: 'Flex',
-    categoria: 'Particular',
     tipoVeiculo: 'Automóvel',
     renavam: '',
     chassi: '',
     vin: '',
-    codigoFipe: '',
-    codigoInterno: '',
     frota: '',
     subfrota: '',
-    municipio: '',
-    uf: '',
+    prefixo: '',
     kmAtual: 0,
-    mediaConsumo: 10.5,
     status: 'ATIVO',
     clienteId: '',
     observacoes: ''
@@ -211,19 +206,14 @@ export default function FleetVehicles() {
       anoModelo: new Date().getFullYear(),
       cor: '',
       combustivel: 'Flex',
-      categoria: 'Particular',
       tipoVeiculo: 'Automóvel',
       renavam: '',
       chassi: '',
       vin: '',
-      codigoFipe: '',
-      codigoInterno: '',
       frota: '',
       subfrota: '',
-      municipio: '',
-      uf: '',
+      prefixo: '',
       kmAtual: 0,
-      mediaConsumo: 10.5,
       status: 'ATIVO',
       clienteId: clients[0]?.id || '',
       observacoes: ''
@@ -243,19 +233,14 @@ export default function FleetVehicles() {
       anoModelo: vehicle.anoModelo || new Date().getFullYear(),
       cor: vehicle.cor || '',
       combustivel: vehicle.combustivel || 'Flex',
-      categoria: vehicle.categoria || 'Particular',
       tipoVeiculo: vehicle.tipoVeiculo || 'Automóvel',
       renavam: vehicle.renavam || '',
       chassi: vehicle.chassi || '',
       vin: vehicle.vin || '',
-      codigoFipe: vehicle.codigoFipe || '',
-      codigoInterno: vehicle.codigoInterno || '',
       frota: vehicle.frota || '',
       subfrota: vehicle.subfrota || '',
-      municipio: vehicle.municipio || '',
-      uf: vehicle.uf || '',
+      prefixo: vehicle.prefixo || '',
       kmAtual: vehicle.kmAtual || 0,
-      mediaConsumo: vehicle.mediaConsumo || 10.5,
       status: vehicle.status || 'ATIVO',
       clienteId: vehicle.clienteId || '',
       observacoes: vehicle.observacoes || ''
@@ -295,12 +280,9 @@ export default function FleetVehicles() {
           anoModelo: data.anoModelo || prev.anoModelo,
           cor: data.cor || prev.cor,
           combustivel: data.combustivel || prev.combustivel,
-          categoria: data.categoria || prev.categoria,
           tipoVeiculo: data.tipoVeiculo || prev.tipoVeiculo,
           chassi: data.chassi || prev.chassi,
           renavam: data.renavam || prev.renavam,
-          municipio: data.municipio || prev.municipio,
-          uf: data.uf || prev.uf,
           kmAtual: data.kmAtual || prev.kmAtual
         }));
         toast.success('Veículo consultado com sucesso!');
@@ -793,12 +775,8 @@ export default function FleetVehicles() {
                             <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.vin || '—'}</span>
                           </div>
                           <div>
-                            <span className="text-gray-400 block mb-0.5">Código FIPE</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.codigoFipe || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Código Interno</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.codigoInterno || '—'}</span>
+                            <span className="text-gray-400 block mb-0.5">Prefixo</span>
+                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.prefixo || '—'}</span>
                           </div>
                         </div>
                       </div>
@@ -819,16 +797,8 @@ export default function FleetVehicles() {
                             <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.combustivel || '—'}</span>
                           </div>
                           <div>
-                            <span className="text-gray-400 block mb-0.5">Média de Consumo</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.mediaConsumo ? `${vehicleDetails.infoCadastral.mediaConsumo} KM/L` : '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Tipo do Veículo / Categoria</span>
-                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.tipoVeiculo} ({vehicleDetails.infoCadastral.categoria})</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Local Emplacamento</span>
-                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.municipio} / {vehicleDetails.infoCadastral.uf}</span>
+                            <span className="text-gray-400 block mb-0.5">Tipo do Veículo</span>
+                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.tipoVeiculo || '—'}</span>
                           </div>
                         </div>
                       </div>
@@ -1380,7 +1350,7 @@ export default function FleetVehicles() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="space-y-1">
                       <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Combustível</label>
                       <select
@@ -1397,15 +1367,6 @@ export default function FleetVehicles() {
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-450">Categoria</label>
-                      <input
-                        type="text"
-                        value={form.categoria}
-                        onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
                       <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Tipo de Veículo</label>
                       <input
                         type="text"
@@ -1414,24 +1375,13 @@ export default function FleetVehicles() {
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Código FIPE</label>
+                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Prefixo</label>
                       <input
                         type="text"
-                        value={form.codigoFipe}
-                        onChange={(e) => setForm({ ...form, codigoFipe: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Código Interno</label>
-                      <input
-                        type="text"
-                        value={form.codigoInterno}
-                        onChange={(e) => setForm({ ...form, codigoInterno: e.target.value })}
+                        value={form.prefixo}
+                        onChange={(e) => setForm({ ...form, prefixo: e.target.value })}
+                        placeholder="Ex: P-01"
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
@@ -1442,16 +1392,6 @@ export default function FleetVehicles() {
                         required
                         value={form.kmAtual}
                         onChange={(e) => setForm({ ...form, kmAtual: parseInt(e.target.value) || 0 })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Média Consumo (KM/L)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={form.mediaConsumo}
-                        onChange={(e) => setForm({ ...form, mediaConsumo: parseFloat(e.target.value) || 10.5 })}
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
@@ -1517,27 +1457,6 @@ export default function FleetVehicles() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Município Emplacamento</label>
-                      <input
-                        type="text"
-                        value={form.municipio}
-                        onChange={(e) => setForm({ ...form, municipio: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">UF Emplacamento</label>
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={form.uf}
-                        onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase() })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  </div>
                 </div>
               )}
 

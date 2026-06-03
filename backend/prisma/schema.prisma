@@ -162,6 +162,9 @@ model Quote {
   oficina             Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
   notaFiscalDescricao String?
   
+  veiculoId           String?
+  veiculo             Vehicle?    @relation(fields: [veiculoId], references: [id], onDelete: SetNull)
+  
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -169,6 +172,7 @@ model Quote {
   @@index([clientId])
   @@index([plataformaGestaoId])
   @@index([oficinaId])
+  @@index([veiculoId])
 }
 
 model QuoteItem {
@@ -346,10 +350,9 @@ model Vehicle {
   renavam            String?
   chassi             String?
   vin                String?
-  codigoFipe         String?
-  codigoInterno      String?
   frota              String?
   subfrota           String?
+  prefixo            String?
   
   marca              String
   modelo             String
@@ -358,12 +361,8 @@ model Vehicle {
   anoModelo          Int
   cor                String?
   combustivel        String?
-  categoria          String?
   tipoVeiculo        String?
-  municipio          String?
-  uf                 String?
   kmAtual            Int      @default(0)
-  mediaConsumo       Float?
   status             String   @default("ATIVO") // ATIVO, EM_MANUTENCAO, INATIVO, VENDIDO
   observacoes        String?
   
@@ -373,6 +372,7 @@ model Vehicle {
   trocasOleoMotor    TrocaOleoMotor[]
   trocasOleoCambio   TrocaOleoCambio[]
   events             VehicleEvent[]
+  quotes             Quote[]
   
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
