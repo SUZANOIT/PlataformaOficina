@@ -295,32 +295,53 @@ export function CreateQuote() {
 
   const handleGenerateInvoiceDescription = () => {
     const data = watch();
-    const selectedOficinaId = data.oficinaId;
-    const selectedOficina = workshops.find(w => w.id === selectedOficinaId);
+    
+    // Automatically find matching workshop (Oficina) from selected company
+    const selectedCompany = companies.find(c => c.id === data.companyId);
+    let selectedOficina = null;
+    if (selectedCompany && workshops.length > 0) {
+      const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
+      selectedOficina = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
+      
+      if (!selectedOficina) {
+        const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
+        selectedOficina = workshops.find(w => 
+          (w.nome || '').toLowerCase().includes(companyName) || 
+          companyName.includes((w.nome || '').toLowerCase())
+        );
+      }
+    }
 
+    const orcamentoNumero = numeroOrcamento ? `#${numeroOrcamento}` : '(Em geração)';
     const osExterna = data.osExterna || 'N/A';
     const placa = data.veiculoPlaca || '';
     const prefixo = data.veiculoPrefixo || '';
-    
-    let veiculoText = '';
-    if (placa && prefixo) {
-      veiculoText = `Placa ${placa} - Prefixo ${prefixo}`;
-    } else if (placa) {
-      veiculoText = `Placa ${placa}`;
-    } else {
-      veiculoText = 'Não informado';
-    }
 
-    // Get description of services
-    const servicos = (data.items || [])
+    // Services and Parts lists
+    const itemsList = data.items || [];
+    const servicos = itemsList
+      .filter(item => item.tipo === 'Mão de Obra')
+      .map(item => item.descricao)
+      .filter(Boolean)
+      .join(', ');
+      
+    const pecas = itemsList
+      .filter(item => item.tipo === 'Peça')
       .map(item => item.descricao)
       .filter(Boolean)
       .join(', ');
 
-    // Banking Info
+    // Mileage (Quilometragem)
+    const kmText = data.veiculoHodometro ? `${data.veiculoHodometro} km` : 'Não informado';
+
+    // Banking info from the automatically mapped workshop
     let bankingText = '';
+    let hasBanking = false;
+    let oficinaNome = '';
+    
     if (selectedOficina) {
-      const hasBanking = selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix;
+      oficinaNome = selectedOficina.nome;
+      hasBanking = !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix);
       if (hasBanking) {
         bankingText = `Banco: ${selectedOficina.banco || '—'}
 Agência: ${selectedOficina.agencia || '—'}
@@ -331,24 +352,32 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
       } else {
         bankingText = 'Dados bancários da oficina não cadastrados.';
       }
+      
+      // Auto-set the oficinaId in form so database links it
+      setValue('oficinaId', selectedOficina.id);
     } else {
+      oficinaNome = selectedCompany ? (selectedCompany.nomeFantasia || selectedCompany.razaoSocial) : 'Não informado';
       bankingText = 'Dados bancários da oficina não cadastrados.';
     }
 
-    const desc = `ORDEM DE SERVIÇO Nº: ${osExterna}
+    const desc = `Referente aos serviços executados conforme Orçamento nº ${orcamentoNumero} e Ordem de Serviço da Plataforma nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
 
-Veículo: ${veiculoText}
+DETALHES DO ATENDIMENTO:
+Oficina Emitente: ${oficinaNome}
+Quilometragem: ${kmText}
+Valor Total: ${formatCurrency(total)}
 
-Serviços Executados:
-${servicos || 'Serviços conforme orçamento aprovado.'}
+SERVIÇOS EXECUTADOS:
+${servicos || 'Nenhum serviço registrado.'}
 
-Dados Bancários da Oficina:
-${bankingText}
+PEÇAS APLICADAS:
+${pecas || 'Nenhuma peça registrada.'}
 
-Serviços executados conforme orçamento aprovado e ordem de serviço vinculada ao veículo informado.`;
+DADOS BANCÁRIOS PARA PAGAMENTO:
+${bankingText}`;
 
     setValue('notaFiscalDescricao', desc);
-    return { desc, hasBanking: selectedOficina ? !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix) : false };
+    return { desc, hasBanking };
   };
 
   const watchStatus = watch('status');
@@ -378,9 +407,9 @@ Serviços executados conforme orçamento aprovado e ordem de serviço vinculada 
     }
   }, [watchCompanyId, workshops, companies, setValue]);
 
-  // Generate description when status is changed to 'Emitir Nota Fiscal' or workshop changes
+  // Generate description when status is changed to 'Aguardando Pagamento' or workshop changes
   useEffect(() => {
-    if (watchStatus === 'Emitir Nota Fiscal') {
+    if (watchStatus === 'Aguardando Pagamento') {
       const { hasBanking } = handleGenerateInvoiceDescription();
       if (!hasBanking) {
         toast.warning('Dados bancários da oficina não cadastrados.');
@@ -1227,111 +1256,15 @@ Serviços executados conforme orçamento aprovado e ordem de serviço vinculada 
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-          </div>
-        </div>
 
-        {/* Section 6: Oficina Credenciada */}
-        <div className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm">6</span>
-            Oficina Credenciada e Dados Bancários
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Oficina Responsável</label>
-              <select
-                disabled={isViewing}
-                {...register('oficinaId')}
-                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="">Selecione a oficina...</option>
-                {workshops.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.nome} {w.cnpj ? `(${w.cnpj})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Dados Bancários da Oficina Selecionada */}
-            {(() => {
-              const selectedOficinaId = watch('oficinaId');
-              const selectedOficina = workshops.find(w => w.id === selectedOficinaId);
-              if (!selectedOficina) {
-                return (
-                  <div className="flex items-center justify-center p-4 bg-muted/20 border border-dashed border-border rounded-xl text-xs text-muted-foreground">
-                    Selecione uma oficina para carregar e visualizar os dados bancários de faturamento.
-                  </div>
-                );
-              }
-
-              const hasBankingData = selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix;
-
-              return (
-                <div className="md:col-span-2 p-4 bg-indigo-50/45 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
-                      <span>🏦</span>
-                      <span>Dados de Faturamento & Pagamento</span>
-                    </div>
-                    {!hasBankingData && (
-                      <span className="text-[10px] font-bold bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Dados Bancários não Cadastrados
-                      </span>
-                    )}
-                  </div>
-                  
-                  {hasBankingData ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Oficina</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.nome}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Banco</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.banco || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Agência</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.agencia || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Conta Corrente</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.contaCorrente || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Tipo de Conta</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.tipoConta || '—'}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Chave PIX</span>
-                        <span className="font-semibold text-foreground">{selectedOficina.chavePix || '—'}</span>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <span className="text-muted-foreground block uppercase font-bold text-[10px]">Favorecido</span>
-                        <span className="font-semibold text-foreground">
-                          {selectedOficina.favorecido || '—'} 
-                          {selectedOficina.cpfCnpjFavorecido ? ` (${selectedOficina.cpfCnpjFavorecido})` : ''}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      ⚠️ A oficina selecionada não possui dados bancários cadastrados. Por favor, atualize o cadastro da oficina para garantir o faturamento auditado.
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
-
-            {watchStatus === 'Emitir Nota Fiscal' && (
+            {watchStatus === 'Aguardando Pagamento' && (
               <div className="md:col-span-2 space-y-4 p-5 bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/20 dark:border-teal-500/30 rounded-2xl animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🤖</span>
                     <div>
                       <h3 className="text-sm font-bold text-teal-800 dark:text-teal-400">Descrição para Nota Fiscal (IA)</h3>
-                      <p className="text-[11px] text-muted-foreground">Esta descrição foi gerada via inteligência artificial e consolidou os dados da OS, veículo e oficina.</p>
+                      <p className="text-[11px] text-muted-foreground">Esta descrição é gerada automaticamente com base nos dados do Emitente, Veículo e OS.</p>
                     </div>
                   </div>
                   <button
@@ -1344,11 +1277,42 @@ Serviços executados conforme orçamento aprovado e ordem de serviço vinculada 
                   </button>
                 </div>
 
+                {(() => {
+                  const selectedCompany = companies.find(c => c.id === watch('companyId'));
+                  let selectedOficina = null;
+                  if (selectedCompany && workshops.length > 0) {
+                    const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
+                    selectedOficina = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
+                    if (!selectedOficina) {
+                      const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
+                      selectedOficina = workshops.find(w => 
+                        (w.nome || '').toLowerCase().includes(companyName) || 
+                        companyName.includes((w.nome || '').toLowerCase())
+                      );
+                    }
+                  }
+                  
+                  const hasBanking = selectedOficina ? !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix) : false;
+                  
+                  if (!hasBanking) {
+                    return (
+                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2.5 text-rose-700 dark:text-rose-400 text-xs font-semibold">
+                        <span>⚠️</span>
+                        <div className="space-y-0.5">
+                          <p>Dados bancários da oficina não cadastrados.</p>
+                          <p className="font-normal text-muted-foreground">Vincule ou adicione dados bancários para o emitente correspondente nas configurações de oficina.</p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 <textarea
                   {...register('notaFiscalDescricao')}
                   disabled={isViewing}
-                  rows={8}
-                  placeholder="Selecione uma oficina e preencha os dados do veículo para gerar a descrição..."
+                  rows={10}
+                  placeholder="Geração automática..."
                   className="w-full px-4 py-3 bg-background border border-border rounded-xl font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                 />
               </div>
