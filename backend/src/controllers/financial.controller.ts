@@ -50,6 +50,8 @@ const createPayableSchema = z.object({
 const createReceivableSchema = z.object({
   companyId: z.string(),
   cliente: z.string(),
+  origem_tipo: z.string().optional().nullable(),
+  origem_id: z.string().optional().nullable(),
   categoria: z.string(),
   descricao: z.string(),
   valor: z.number().positive(),
@@ -758,13 +760,15 @@ export const FinancialController = {
   // 3. Contas a Receber
   async listReceivables(req: Request, res: Response) {
     try {
-      const { companyId, status, category, search, startDate, endDate, page = 1, limit = 10 } = req.query as any;
+      const { companyId, status, category, search, startDate, endDate, origemTipo, origemId, page = 1, limit = 10 } = req.query as any;
 
       const whereClause: any = {};
 
       if (companyId) whereClause.companyId = companyId as string;
       if (status) whereClause.status = status as string;
       if (category) whereClause.categoria = category as string;
+      if (origemTipo) whereClause.origem_tipo = origemTipo as string;
+      if (origemId) whereClause.origem_id = origemId as string;
       if (search) {
         whereClause.OR = [
           { cliente: { contains: search as string, mode: 'insensitive' } },
@@ -865,6 +869,8 @@ export const FinancialController = {
         data: {
           companyId: body.companyId,
           cliente: body.cliente,
+          origem_tipo: body.origem_tipo,
+          origem_id: body.origem_id,
           categoria: body.categoria,
           descricao: body.descricao,
           valor: body.valor,
@@ -1008,6 +1014,8 @@ export const FinancialController = {
 
       const updateData: any = {
         cliente: updateFields.cliente,
+        origem_tipo: updateFields.origem_tipo,
+        origem_id: updateFields.origem_id,
         categoria: updateFields.categoria,
         descricao: updateFields.descricao,
         valor: updateFields.valor ? Number(updateFields.valor) : undefined,

@@ -258,6 +258,8 @@ model FinancialReceivable {
   companyId             String
   company               Company                @relation(fields: [companyId], references: [id])
   cliente               String
+  origem_tipo           String?                // 'CLIENTE' | 'PLATAFORMA'
+  origem_id             String?
   categoria             String
   descricao             String
   valor                 Float

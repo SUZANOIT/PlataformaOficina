@@ -111,8 +111,13 @@ export function FinancialReceivables() {
   const [status, setStatus] = useState('PENDENTE');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [clients, setClients] = useState<any[]>([]);
-  const [clientSearch, setClientSearch] = useState('');
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [origemTipoFilter, setOrigemTipoFilter] = useState('');
+  const [origemIdFilter, setOrigemIdFilter] = useState('');
+  const [origemTipo, setOrigemTipo] = useState<'CLIENTE' | 'PLATAFORMA'>('CLIENTE');
+  const [origemId, setOrigemId] = useState('');
+  const [originSearch, setOriginSearch] = useState('');
+  const [showOriginDropdown, setShowOriginDropdown] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
 
   // Fetch Companies, Quotes & Receivables
@@ -161,6 +166,21 @@ export function FinancialReceivables() {
     }
   };
 
+  const fetchPlatforms = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/registry/platforms?limit=1000', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlatforms(Array.isArray(data) ? data : (data.data || []));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchReceivables = async () => {
     try {
       setLoading(true);
@@ -174,6 +194,8 @@ export function FinancialReceivables() {
       if (categoryFilter) params.append('category', categoryFilter);
       if (startDateFilter) params.append('startDate', startDateFilter);
       if (endDateFilter) params.append('endDate', endDateFilter);
+      if (origemTipoFilter) params.append('origemTipo', origemTipoFilter);
+      if (origemIdFilter) params.append('origemId', origemIdFilter);
 
       const res = await fetch(`/financial/receivables?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -212,12 +234,13 @@ export function FinancialReceivables() {
     fetchCompanies();
     fetchApprovedQuotes();
     fetchClients();
+    fetchPlatforms();
     fetchCategories();
   }, []);
 
   useEffect(() => {
     fetchReceivables();
-  }, [page, search, statusFilter, companyFilter, categoryFilter, startDateFilter, endDateFilter]);
+  }, [page, search, statusFilter, companyFilter, categoryFilter, startDateFilter, endDateFilter, origemTipoFilter, origemIdFilter]);
 
   // Sincronizar valor alocado de forma automática com o valor do lançamento se houver apenas 1 orçamento vinculado
   useEffect(() => {
@@ -243,7 +266,11 @@ export function FinancialReceivables() {
     
     // Preencher dados automaticamente se for a primeira vinculação
     if (linkedQuotes.length === 0 && q) {
-      setCliente(q.clientName || q.client?.nome || q.client || '');
+      const clientName = q.clientName || q.client?.nome || q.client || '';
+      setCliente(clientName);
+      setOrigemTipo('CLIENTE');
+      setOrigemId(q.clientId || q.client?.id || '');
+      setOriginSearch(`Cliente: ${clientName}`);
       setValor(String(initialVal || ''));
       setDescricao(q.notaFiscalDescricao || `Faturamento ref. Orçamento #${q.numeroOrcamento}`);
       if (q.companyId) setCompanyId(q.companyId);
@@ -287,7 +314,9 @@ export function FinancialReceivables() {
     setSelectedReceivable(null);
     setCompanyId(companies[0]?.id || '');
     setCliente('');
-    setClientSearch('');
+    setOrigemTipo('CLIENTE');
+    setOrigemId('');
+    setOriginSearch('');
     setCategoria('');
     setDescricao('');
     setValor('');
@@ -311,7 +340,15 @@ export function FinancialReceivables() {
     setSelectedReceivable(receivable);
     setCompanyId(receivable.companyId);
     setCliente(receivable.cliente);
-    setClientSearch(receivable.cliente);
+    
+    const rTipo = (receivable as any).origem_tipo || 'CLIENTE';
+    const rId = (receivable as any).origem_id || '';
+    setOrigemTipo(rTipo);
+    setOrigemId(rId);
+    
+    const prefix = rTipo === 'CLIENTE' ? 'Cliente' : 'Plataforma';
+    setOriginSearch(rId ? `${prefix}: ${receivable.cliente}` : receivable.cliente);
+    
     setCategoria(receivable.categoria);
     setDescricao(receivable.descricao);
     setValor(String(receivable.valor));
@@ -370,6 +407,8 @@ export function FinancialReceivables() {
     const payload = {
       companyId,
       cliente,
+      origem_tipo: origemId ? origemTipo : null,
+      origem_id: origemId || null,
       categoria,
       descricao,
       valor: Number(valor),
@@ -532,9 +571,28 @@ export function FinancialReceivables() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR');
-  };
+  const combinedOrigins = [
+    ...clients.map(c => ({
+      id: c.id,
+      name: c.nome,
+      type: 'CLIENTE' as const,
+      label: `Cliente: ${c.nome}`,
+      detail: c.empresa ? `Empresa: ${c.empresa}` : c.cnpj ? `CNPJ: ${c.cnpj}` : ''
+    })),
+    ...platforms.map(p => ({
+      id: p.id,
+      name: p.nomeFantasia || p.razaoSocial,
+      type: 'PLATAFORMA' as const,
+      label: `Plataforma: ${p.nomeFantasia || p.razaoSocial}`,
+      detail: p.razaoSocial ? `Razão Social: ${p.razaoSocial}` : p.cnpj ? `CNPJ: ${p.cnpj}` : ''
+    }))
+  ];
+
+  const filteredOrigins = combinedOrigins.filter(o => 
+    o.name.toLowerCase().includes(originSearch.toLowerCase()) ||
+    o.label.toLowerCase().includes(originSearch.toLowerCase()) ||
+    (o.detail && o.detail.toLowerCase().includes(originSearch.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6 pb-12">
@@ -556,7 +614,7 @@ export function FinancialReceivables() {
       </div>
 
       {/* Advanced Filters Panel */}
-      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <input 
@@ -606,6 +664,35 @@ export function FinancialReceivables() {
             ))}
         </select>
 
+        <select 
+          value={origemTipoFilter}
+          onChange={(e) => { 
+            setOrigemTipoFilter(e.target.value); 
+            setOrigemIdFilter(''); 
+            setPage(1); 
+          }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+        >
+          <option value="">Todos os Tipos de Origem</option>
+          <option value="CLIENTE">Cliente</option>
+          <option value="PLATAFORMA">Plataforma</option>
+        </select>
+
+        <select 
+          value={origemIdFilter}
+          onChange={(e) => { setOrigemIdFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+          disabled={!origemTipoFilter}
+        >
+          <option value="">Todas as Origens</option>
+          {origemTipoFilter === 'CLIENTE' && clients.map(c => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+          {origemTipoFilter === 'PLATAFORMA' && platforms.map(p => (
+            <option key={p.id} value={p.id}>{p.nomeFantasia || p.razaoSocial}</option>
+          ))}
+        </select>
+
         <input 
           type="date"
           value={startDateFilter}
@@ -640,7 +727,7 @@ export function FinancialReceivables() {
               <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
                 <tr>
                   <th className="p-4">Empresa</th>
-                  <th className="p-4">Cliente</th>
+                  <th className="p-4">Origem</th>
                   <th className="p-4">Descrição</th>
                   <th className="p-4 text-right">Valor</th>
                   <th className="p-4">Vencimento</th>
@@ -656,7 +743,18 @@ export function FinancialReceivables() {
                       {r.company?.nomeFantasia || r.company?.razaoSocial}
                     </td>
                     <td className="p-4 font-medium text-foreground">
-                      <div>{r.cliente}</div>
+                      <div className="flex items-center gap-1.5">
+                        {(r as any).origem_tipo && (
+                          <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase shrink-0 ${
+                            (r as any).origem_tipo === 'CLIENTE'
+                              ? 'bg-blue-500/10 text-blue-500'
+                              : 'bg-purple-500/10 text-purple-500'
+                          }`}>
+                            {(r as any).origem_tipo === 'CLIENTE' ? 'Cliente' : 'Plataforma'}
+                          </span>
+                        )}
+                        <span className="truncate max-w-[180px]">{r.cliente}</span>
+                      </div>
                       {r.quote && (
                         <div className="text-[10px] text-primary font-bold flex items-center gap-1 mt-0.5" title="Orçamento vinculado">
                           📋 Ref. Orçamento #{r.quote.numeroOrcamento}
