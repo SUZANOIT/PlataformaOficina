@@ -39,6 +39,8 @@ interface Receivable {
   companyId: string;
   company?: { nomeFantasia: string; razaoSocial: string };
   cliente: string;
+  origem_tipo?: string | null;
+  origem_id?: string | null;
   categoria: string;
   descricao: string;
   valor: number;
@@ -571,6 +573,10 @@ export function FinancialReceivables() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('pt-BR');
+  };
+
   const combinedOrigins = [
     ...clients.map(c => ({
       id: c.id,
@@ -874,27 +880,29 @@ export function FinancialReceivables() {
                 </div>
 
                 <div className="flex flex-col gap-1 relative">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Cliente *</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Origem *</label>
                   <div className="relative">
                     <input 
                       type="text" 
-                      value={clientSearch}
+                      value={originSearch}
                       onChange={(e) => {
-                        setClientSearch(e.target.value);
+                        setOriginSearch(e.target.value);
+                        setOrigemId('');
                         setCliente(e.target.value);
-                        setShowClientDropdown(true);
+                        setShowOriginDropdown(true);
                       }}
-                      onFocus={() => setShowClientDropdown(true)}
-                      placeholder="Busque ou digite o nome do cliente..."
+                      onFocus={() => setShowOriginDropdown(true)}
+                      placeholder="Busque a origem (cliente ou plataforma)..."
                       className="w-full bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                       required
                     />
-                    {clientSearch && (
+                    {originSearch && (
                       <button
                         type="button"
                         onClick={() => {
-                          setClientSearch('');
+                          setOriginSearch('');
                           setCliente('');
+                          setOrigemId('');
                         }}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-md hover:bg-secondary"
                       >
@@ -903,50 +911,44 @@ export function FinancialReceivables() {
                     )}
                   </div>
                   
-                  {showClientDropdown && (
+                  {showOriginDropdown && (
                     <>
                       <div 
                         className="fixed inset-0 z-10" 
-                        onClick={() => setShowClientDropdown(false)} 
+                        onClick={() => setShowOriginDropdown(false)} 
                       />
                       
                       <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-lg z-20 divide-y divide-border/60">
-                        {clients.filter(c => {
-                          const term = clientSearch.toLowerCase();
-                          return (
-                            (c.nome || '').toLowerCase().includes(term) ||
-                            (c.empresa || '').toLowerCase().includes(term) ||
-                            (c.cnpj || '').replace(/\D/g, '').includes(term)
-                          );
-                        }).length === 0 ? (
+                        {filteredOrigins.length === 0 ? (
                           <div className="p-3 text-xs text-muted-foreground italic">
-                            Nenhum cliente cadastrado com esse nome. Pressione Tab ou clique fora para usar o nome digitado.
+                            Nenhuma origem cadastrada com esse nome. Pressione Tab ou clique fora para usar o nome digitado.
                           </div>
                         ) : (
-                          clients.filter(c => {
-                            const term = clientSearch.toLowerCase();
-                            return (
-                              (c.nome || '').toLowerCase().includes(term) ||
-                              (c.empresa || '').toLowerCase().includes(term) ||
-                              (c.cnpj || '').replace(/\D/g, '').includes(term)
-                            );
-                          }).map((c) => (
+                          filteredOrigins.map((o) => (
                             <button
-                              key={c.id}
+                              key={`${o.type}-${o.id}`}
                               type="button"
                               onClick={() => {
-                                setCliente(c.nome);
-                                setClientSearch(c.nome);
-                                setShowClientDropdown(false);
+                                setCliente(o.name);
+                                setOrigemTipo(o.type);
+                                setOrigemId(o.id);
+                                setOriginSearch(o.label);
+                                setShowOriginDropdown(false);
                               }}
                               className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-primary/5 hover:text-primary transition-colors flex flex-col gap-0.5"
                             >
-                              <span className="font-bold">{c.nome}</span>
-                              {c.empresa && (
-                                <span className="text-[10px] text-muted-foreground">Empresa: {c.empresa}</span>
-                              )}
-                              {c.cnpj && (
-                                <span className="text-[9px] font-mono text-muted-foreground font-black">CNPJ: {c.cnpj}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase ${
+                                  o.type === 'CLIENTE' 
+                                    ? 'bg-blue-500/10 text-blue-500' 
+                                    : 'bg-purple-500/10 text-purple-500'
+                                }`}>
+                                  {o.type === 'CLIENTE' ? 'Cliente' : 'Plataforma'}
+                                </span>
+                                <span className="font-bold">{o.name}</span>
+                              </div>
+                              {o.detail && (
+                                <span className="text-[10px] text-muted-foreground pl-1">{o.detail}</span>
                               )}
                             </button>
                           ))
@@ -1317,8 +1319,19 @@ export function FinancialReceivables() {
                   <span className="font-bold text-foreground">{selectedReceivable.company?.nomeFantasia || selectedReceivable.company?.razaoSocial}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Cliente</span>
-                  <span className="font-bold text-foreground">{selectedReceivable.cliente}</span>
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Origem</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {selectedReceivable.origem_tipo && (
+                      <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase ${
+                        selectedReceivable.origem_tipo === 'CLIENTE'
+                          ? 'bg-blue-500/10 text-blue-500'
+                          : 'bg-purple-500/10 text-purple-500'
+                      }`}>
+                        {selectedReceivable.origem_tipo === 'CLIENTE' ? 'Cliente' : 'Plataforma'}
+                      </span>
+                    )}
+                    <span className="font-bold text-foreground">{selectedReceivable.cliente}</span>
+                  </div>
                 </div>
                 {(selectedReceivable as any).linkedQuotes && (selectedReceivable as any).linkedQuotes.length > 0 ? (
                   <div>
