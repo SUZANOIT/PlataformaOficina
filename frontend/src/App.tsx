@@ -31,6 +31,7 @@ import { SessionExpired } from './pages/SessionExpired';
 import { SaaSDashboard } from './pages/SaaSDashboard';
 import { ModuleGuard } from './components/ModuleGuard';
 import { SaaSAdminGuard } from './components/SaaSAdminGuard';
+import { MyPlan } from './pages/MyPlan';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
               <Route path="quotes" element={<QuotesList />} />
               <Route path="users" element={<Users />} />
               <Route path="settings/email" element={<EmailConfig />} />
+              <Route path="settings/my-plan" element={<MyPlan />} />
               
               {/* Rotas Licenciadas do Módulo Oficina */}
               <Route path="clients" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><Clients /></ModuleGuard>} />

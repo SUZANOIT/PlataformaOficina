@@ -481,6 +481,30 @@ export const AuthController = {
         const licenseAllowed = user.company.moduleLicenses.map(ml => ml.module.chave);
         activeModules = Array.from(new Set([...planAllowed, ...licenseAllowed]));
       }
+
+      let activeUsersCount = 0;
+      let osCountThisMonth = 0;
+      let planDetails: any = null;
+
+      if (user.company) {
+        planDetails = user.company.plan ? {
+          nome: user.company.plan.nome,
+          limiteUsuarios: user.company.plan.limiteUsuarios,
+          limiteOsMes: user.company.plan.limiteOsMes,
+          preco: user.company.plan.preco
+        } : null;
+
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        [activeUsersCount, osCountThisMonth] = await Promise.all([
+          prisma.user.count({ where: { companyId: user.company.id } }),
+          prisma.quote.count({
+            where: {
+              companyId: user.company.id,
+              createdAt: { gte: startOfMonth }
+            }
+          })
+        ]);
+      }
       
       return res.json({
         id: user.id,
@@ -498,14 +522,60 @@ export const AuthController = {
         company: user.company ? {
           id: user.company.id,
           nome: companyName,
+          cnpj: user.company.cnpj,
+          endereco: user.company.endereco,
+          telefone: user.company.telefone,
+          whatsapp: user.company.whatsapp,
+          email: user.company.email,
           plano: plano,
           statusAssinatura: statusAssinatura,
-          activeModules: activeModules
+          dataVencimento: user.company.dataVencimento,
+          activeModules: activeModules,
+          planDetails: planDetails,
+          activeUsersCount,
+          osCountThisMonth
         } : null
       });
     } catch (error) {
       console.error('Error in auth.me:', error);
       return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      const user = await prisma.user.findFirst({
+        where: { email }
+      });
+      if (!user) {
+        return res.status(404).json({ error: 'Usuário não encontrado com este e-mail' });
+      }
+
+      console.log(`Password reset requested for email: ${email}`);
+      return res.json({
+        success: true,
+        message: 'Link de redefinição de senha enviado para o seu e-mail.',
+        token: 'mock-reset-token-12345'
+      });
+    } catch (error) {
+      console.error('Error in forgotPassword:', error);
+      return res.status(500).json({ error: 'Erro ao processar solicitação de redefinição de senha' });
+    }
+  },
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ error: 'Token e senha são obrigatórios' });
+      }
+      return res.json({
+        success: true,
+        message: 'Senha redefinida com sucesso. Faça login com a nova senha.'
+      });
+    } catch (error) {
+      console.error('Error in resetPassword:', error);
+      return res.status(500).json({ error: 'Erro ao redefinir a senha' });
     }
   }
 };

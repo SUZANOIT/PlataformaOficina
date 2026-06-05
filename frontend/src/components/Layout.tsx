@@ -20,7 +20,8 @@ import {
   Truck,
   Calendar,
   UserCheck,
-  Tag
+  Tag,
+  CreditCard
 } from 'lucide-react';
 
 export function Layout() {
@@ -31,6 +32,7 @@ export function Layout() {
   const [isContabilidadeOpen, setIsContabilidadeOpen] = useState(true);
   const [isFleetOpen, setIsFleetOpen] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isSaaSOpen, setIsSaaSOpen] = useState(false);
   const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
@@ -373,6 +375,14 @@ export function Layout() {
                   <Mail size={16} className="text-muted-foreground" />
                   <span>Config. E-mail</span>
                 </Link>
+                <Link 
+                  to="/settings/my-plan" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <CreditCard size={16} className="text-muted-foreground" />
+                  <span>Meu Plano</span>
+                </Link>
               </div>
             )}
           </div>
@@ -380,14 +390,70 @@ export function Layout() {
           {/* Categoria SaaS (Apenas Administrador MCA) */}
           {user?.roleAdmin && user?.companyId === 'mca-padrao-company-uuid-000000000001' && (
             <div className="pt-2 border-t border-border/40">
-              <Link 
-                to="/saas-dashboard" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors"
+              <button 
+                onClick={() => setIsSaaSOpen(!isSaaSOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors outline-none"
               >
-                <Building size={20} className="text-primary" />
-                <span>Dashboard SaaS</span>
-              </Link>
+                <div className="flex items-center gap-3">
+                  <Building size={20} className="text-primary" />
+                  <span>Administração SaaS</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isSaaSOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isSaaSOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/saas-dashboard?tab=dashboard" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Dashboard SaaS</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=clientes" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Clientes SaaS</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=planos" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Planos</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=licencas" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Licenças</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=assinaturas" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Assinaturas</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=cobrancas" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Cobranças</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=configuracoes" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Configurações SaaS</span>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </nav>
@@ -671,6 +737,13 @@ export function Layout() {
                   <Mail size={16} className="text-muted-foreground" />
                   <span>Config. E-mail</span>
                 </Link>
+                <Link 
+                  to="/settings/my-plan" 
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                >
+                  <CreditCard size={16} className="text-muted-foreground" />
+                  <span>Meu Plano</span>
+                </Link>
               </div>
             )}
           </div>
@@ -678,13 +751,63 @@ export function Layout() {
           {/* Categoria SaaS (Apenas Administrador MCA) */}
           {user?.roleAdmin && user?.companyId === 'mca-padrao-company-uuid-000000000001' && (
             <div className="pt-2 border-t border-border/40">
-              <Link 
-                to="/saas-dashboard" 
-                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors"
+              <button 
+                onClick={() => setIsSaaSOpen(!isSaaSOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors outline-none"
               >
-                <Building size={20} className="text-primary" />
-                <span>Dashboard SaaS</span>
-              </Link>
+                <div className="flex items-center gap-3">
+                  <Building size={20} className="text-primary" />
+                  <span>Administração SaaS</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isSaaSOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isSaaSOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/saas-dashboard?tab=dashboard" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Dashboard SaaS</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=clientes" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Clientes SaaS</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=planos" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Planos</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=licencas" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Licenças</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=assinaturas" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Assinaturas</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=cobrancas" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Cobranças</span>
+                  </Link>
+                  <Link 
+                    to="/saas-dashboard?tab=configuracoes" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Configurações SaaS</span>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </nav>

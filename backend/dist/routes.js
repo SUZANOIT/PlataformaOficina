@@ -71,6 +71,11 @@ routes.get('/debug/run-migrate', async (req, res) => {
 routes.post('/auth/register', auth_controller_1.AuthController.register);
 routes.post('/auth/login', auth_controller_1.AuthController.login);
 routes.get('/auth/me', authMiddleware, auth_controller_1.AuthController.me);
+routes.post('/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
+routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPassword);
+routes.post('/api/auth/login', auth_controller_1.AuthController.login);
+routes.post('/api/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
+routes.post('/api/auth/reset-password', auth_controller_1.AuthController.resetPassword);
 // Proxy ReceitaWS (Bypass CORS)
 routes.get('/api/cnpj/:cnpj', async (req, res) => {
     try {
@@ -197,3 +202,12 @@ routes.put('/saas/subscriptions', saas_controller_1.SaaSController.updateSubscri
 routes.post('/saas/licenses/toggle', saas_controller_1.SaaSController.toggleModuleLicense);
 routes.get('/saas/plans', saas_controller_1.SaaSController.listPlans);
 routes.get('/saas/modules', saas_controller_1.SaaSController.listModules);
+// Rotas de Empresas SaaS (/api/empresas)
+routes.use('/api/empresas', authMiddleware, saas_admin_middleware_1.saasAdminMiddleware);
+routes.post('/api/empresas', saas_controller_1.SaaSController.createCompany);
+routes.get('/api/empresas', saas_controller_1.SaaSController.listCompanies);
+routes.get('/api/empresas/:id', saas_controller_1.SaaSController.getCompany);
+routes.put('/api/empresas/:id', saas_controller_1.SaaSController.updateCompany);
+routes.post('/api/empresas/buscar-cnpj', saas_controller_1.SaaSController.buscarCnpj);
+routes.post('/api/empresas/alterar-plano', saas_controller_1.SaaSController.updateSubscription);
+routes.post('/api/empresas/acessar-cliente', saas_controller_1.SaaSController.acessarCliente);
