@@ -14,10 +14,11 @@ export const AdvanceController = {
   async listAdvances(req: Request, res: Response) {
     try {
       const collaboratorId = req.params.id as string;
+      const companyId = (req as any).companyId || null;
 
-      // Verify collaborator exists
-      const collaborator = await prisma.collaborator.findUnique({
-        where: { id: collaboratorId }
+      // Verify collaborator exists and belongs to the company
+      const collaborator = await prisma.collaborator.findFirst({
+        where: { id: collaboratorId, companyId }
       });
 
       if (!collaborator) {
@@ -46,11 +47,12 @@ export const AdvanceController = {
   async createAdvance(req: Request, res: Response) {
     try {
       const collaboratorId = req.params.id as string;
+      const companyId = (req as any).companyId || null;
       const dataParsed = createAdvanceSchema.parse(req.body);
 
-      // Verify collaborator exists and fetch details
-      const collaborator = await prisma.collaborator.findUnique({
-        where: { id: collaboratorId }
+      // Verify collaborator exists and belongs to the company
+      const collaborator = await prisma.collaborator.findFirst({
+        where: { id: collaboratorId, companyId }
       });
 
       if (!collaborator) {
@@ -64,8 +66,6 @@ export const AdvanceController = {
       });
       const responsavel = user?.name || 'Sistema';
 
-      // Capture active companyId
-      const companyId = collaborator.companyId || (req as any).companyId;
       if (!companyId) {
         return res.status(400).json({ error: 'Nenhuma empresa vinculada ao colaborador ou usuário' });
       }
@@ -118,11 +118,11 @@ export const AdvanceController = {
         }
       });
 
-      // Verify if the provided oficinaId is a valid Oficina record to prevent foreign key violations (since frontend may pass companyId)
+      // Verify if the provided oficinaId is a valid Oficina record belonging to the company
       let targetOficinaId: string | null = null;
       if (dataParsed.oficinaId) {
-        const oficinaExists = await prisma.oficina.findUnique({
-          where: { id: dataParsed.oficinaId }
+        const oficinaExists = await prisma.oficina.findFirst({
+          where: { id: dataParsed.oficinaId, companyId }
         });
         if (oficinaExists) {
           targetOficinaId = dataParsed.oficinaId;
@@ -131,8 +131,8 @@ export const AdvanceController = {
 
       // If the provided one is not a valid Oficina, fall back to the collaborator's associated oficinaId (if valid)
       if (!targetOficinaId && collaborator.oficinaId) {
-        const oficinaExists = await prisma.oficina.findUnique({
-          where: { id: collaborator.oficinaId }
+        const oficinaExists = await prisma.oficina.findFirst({
+          where: { id: collaborator.oficinaId, companyId }
         });
         if (oficinaExists) {
           targetOficinaId = collaborator.oficinaId;
@@ -173,13 +173,23 @@ export const AdvanceController = {
   async updateAdvanceStatus(req: Request, res: Response) {
     try {
       const advanceId = req.params.advanceId as string;
+      const companyId = (req as any).companyId || null;
       const { status } = req.body;
 
       if (!status || !['PENDENTE', 'DESCONTADO_EM_FOLHA'].includes(status)) {
         return res.status(400).json({ error: 'Status inválido. Use PENDENTE ou DESCONTADO_EM_FOLHA' });
       }
 
-      const advance = await prisma.salaryAdvance.update({
+      const advance = await prisma.salaryAdvance.findUnique({
+        where: { id: advanceId },
+        include: { collaborator: true }
+      });
+
+      if (!advance || advance.collaborator.companyId !== companyId) {
+        return res.status(404).json({ error: 'Adiantamento não encontrado' });
+      }
+
+      const updated = await prisma.salaryAdvance.update({
         where: { id: advanceId },
         data: { status },
         include: {
@@ -188,7 +198,7 @@ export const AdvanceController = {
         }
       });
 
-      return res.json(advance);
+      return res.json(updated);
     } catch (error) {
       console.error('Error updating advance status:', error);
       return res.status(500).json({ error: 'Erro ao atualizar status do adiantamento' });
@@ -198,12 +208,14 @@ export const AdvanceController = {
   async deleteAdvance(req: Request, res: Response) {
     try {
       const advanceId = req.params.advanceId as string;
+      const companyId = (req as any).companyId || null;
 
       const advance = await prisma.salaryAdvance.findUnique({
-        where: { id: advanceId }
+        where: { id: advanceId },
+        include: { collaborator: true }
       });
 
-      if (!advance) {
+      if (!advance || advance.collaborator.companyId !== companyId) {
         return res.status(404).json({ error: 'Adiantamento não encontrado' });
       }
 
@@ -232,6 +244,7 @@ export const AdvanceController = {
   async logPdfGeneration(req: Request, res: Response) {
     try {
       const advanceId = req.params.advanceId as string;
+      const companyId = (req as any).companyId || null;
       const { fileName } = req.body;
 
       if (!fileName) {
@@ -239,10 +252,11 @@ export const AdvanceController = {
       }
 
       const advance = await prisma.salaryAdvance.findUnique({
-        where: { id: advanceId }
+        where: { id: advanceId },
+        include: { collaborator: true }
       });
 
-      if (!advance) {
+      if (!advance || advance.collaborator.companyId !== companyId) {
         return res.status(404).json({ error: 'Adiantamento não encontrado' });
       }
 

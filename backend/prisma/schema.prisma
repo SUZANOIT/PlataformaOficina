@@ -55,6 +55,16 @@ model Company {
   parentCompany    Company?  @relation("SubCompanies", fields: [parentCompanyId], references: [id])
   subCompanies     Company[] @relation("SubCompanies")
 
+  // SaaS e Licenciamento
+  planoId          String?            @map("plano_id")
+  plan             Plan?              @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  statusAssinatura String?            @default("Trial") @map("status_assinatura")
+  dataContratacao  DateTime?          @default(now()) @map("data_contratacao")
+  dataVencimento   DateTime?          @map("data_vencimento")
+  subscription     Subscription?
+  moduleLicenses   ModuleLicense[]
+  oficinas         Oficina[]
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
@@ -428,6 +438,9 @@ model Oficina {
   collaborators      Collaborator[]
   quotes             Quote[]
   
+  companyId          String?
+  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -685,4 +698,80 @@ model FiscalAudit {
   details     String   @db.Text
   ipAddress   String?
   createdAt   DateTime @default(now())
+}
+
+model Plan {
+  id             String         @id @default(uuid())
+  nome           String         @unique
+  descricao      String?
+  limiteUsuarios Int            @map("limite_usuarios")
+  limiteOsMes    Int            @map("limite_os_mes")
+  preco          Float
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
+  companies      Company[]
+  subscriptions  Subscription[]
+}
+
+model Module {
+  id             String          @id @default(uuid())
+  nome           String
+  chave          String          @unique
+  descricao      String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
+  moduleLicenses ModuleLicense[]
+}
+
+model Subscription {
+  id              String                @id @default(uuid())
+  companyId       String                @unique
+  company         Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            Plan                  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  status          String                @default("Trial")
+  dataContratacao DateTime              @default(now())
+  dataVencimento  DateTime
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at")
+  payments        Payment[]
+  histories       SubscriptionHistory[]
+}
+
+model ModuleLicense {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([companyId, moduleId])
+}
+
+model Payment {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  valor          Float
+  status         String       @default("PENDENTE")
+  dataPagamento  DateTime?
+  dataVencimento DateTime
+  referenciaMes  String
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+}
+
+model SubscriptionHistory {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  planoAnterior  String?
+  planoNovo      String
+  statusAnterior String?
+  statusNovo     String
+  motivo         String?
+  createdAt      DateTime     @default(now()) @map("created_at")
 }

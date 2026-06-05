@@ -63,6 +63,15 @@ export function Layout() {
     navigate('/login');
   };
 
+  const hasModule = (moduleKey: string) => {
+    if (!user) return true;
+    if (user.companyId === 'mca-padrao-company-uuid-000000000001') return true;
+    if (user.activeModules) {
+      return user.activeModules.includes(moduleKey);
+    }
+    return true;
+  };
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Mobile Menu Backdrop */}
@@ -129,121 +138,130 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos</span>
                 </Link>
-                <Link 
-                  to="/clients" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Users size={16} className="text-muted-foreground" />
-                  <span>Clientes</span>
-                </Link>
-                <Link 
-                  to="/suppliers" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Building size={16} className="text-muted-foreground" />
-                  <span>Fornecedores</span>
-                </Link>
-                <Link 
-                  to="/collaborators" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <UserCheck size={16} className="text-muted-foreground" />
-                  <span>Colaboradores</span>
-                </Link>
-                <Link 
-                  to="/platforms" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Building size={16} className="text-muted-foreground" />
-                  <span>Plataformas de Gestão</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Categoria 2: Gestão Financeira */}
-          <div className="pt-2 border-t border-border/40">
-            <button 
-              onClick={() => setIsFinancialOpen(!isFinancialOpen)}
-              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <DollarSign size={20} className="text-primary" />
-                <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
-              </div>
-              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-            </button>
-            
-            {isFinancialOpen && (
-              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/financial/dashboard" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
-                <Link 
-                  to="/financial/payables" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <TrendingDown size={16} className="text-red-500" />
-                  <span>Contas a Pagar</span>
-                </Link>
-                <Link 
-                  to="/financial/receivables" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <TrendingUp size={16} className="text-emerald-500" />
-                  <span>Contas a Receber</span>
-                </Link>
-                <Link 
-                  to="/financial/approvals" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <CheckSquare size={16} className="text-amber-500" />
-                  <span>Aprovações</span>
-                </Link>
-                <Link 
-                  to="/financial/reports" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <BarChart3 size={16} className="text-blue-500" />
-                  <span>Relatórios</span>
-                </Link>
-                <Link 
-                  to="/financial/categories" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Tag size={16} className="text-violet-500" />
-                  <span>Categorias</span>
-                </Link>
-                {user?.roleAdmin && (
+                {hasModule('clientes') && (
                   <Link 
-                    to="/financial/fiscal-documents" 
+                    to="/clients" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                   >
-                    <FileText size={16} className="text-blue-500" />
-                    <span>Central de Documentos Fiscais</span>
+                    <Users size={16} className="text-muted-foreground" />
+                    <span>Clientes</span>
+                  </Link>
+                )}
+                {hasModule('fornecedores') && (
+                  <Link 
+                    to="/suppliers" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Building size={16} className="text-muted-foreground" />
+                    <span>Fornecedores</span>
+                  </Link>
+                )}
+                {hasModule('colaboradores') && (
+                  <Link 
+                    to="/collaborators" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <UserCheck size={16} className="text-muted-foreground" />
+                    <span>Colaboradores</span>
+                  </Link>
+                )}
+                {hasModule('clientes') && (
+                  <Link 
+                    to="/platforms" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Building size={16} className="text-muted-foreground" />
+                    <span>Plataformas de Gestão</span>
                   </Link>
                 )}
               </div>
             )}
           </div>
+                   {/* Categoria 2: Gestão Financeira */}
+          {hasModule('financeiro') && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsFinancialOpen(!isFinancialOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <DollarSign size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isFinancialOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/financial/dashboard" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                  <Link 
+                    to="/financial/payables" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <TrendingDown size={16} className="text-red-500" />
+                    <span>Contas a Pagar</span>
+                  </Link>
+                  <Link 
+                    to="/financial/receivables" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <TrendingUp size={16} className="text-emerald-500" />
+                    <span>Contas a Receber</span>
+                  </Link>
+                  <Link 
+                    to="/financial/approvals" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <CheckSquare size={16} className="text-amber-500" />
+                    <span>Aprovações</span>
+                  </Link>
+                  <Link 
+                    to="/financial/reports" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <BarChart3 size={16} className="text-blue-500" />
+                    <span>Relatórios</span>
+                  </Link>
+                  <Link 
+                    to="/financial/categories" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Tag size={16} className="text-violet-500" />
+                    <span>Categorias</span>
+                  </Link>
+                  {user?.roleAdmin && (
+                    <Link 
+                      to="/financial/fiscal-documents" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <FileText size={16} className="text-blue-500" />
+                      <span>Central de Documentos Fiscais</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria 2.5: Contabilidade */}
-          {user?.roleContabilidade && (
+          {user?.roleContabilidade && hasModule('fiscal') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
@@ -272,55 +290,57 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Gestão de Frotas */}
-          <div className="pt-2 border-t border-border/40">
-            <button 
-              onClick={() => setIsFleetOpen(!isFleetOpen)}
-              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Truck size={20} className="text-primary" />
-                <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
-              </div>
-              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-            </button>
-            
-            {isFleetOpen && (
-              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/fleet/dashboard" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
-                <Link 
-                  to="/fleet/vehicles" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Truck size={16} className="text-muted-foreground" />
-                  <span>Veículos</span>
-                </Link>
-                <Link 
-                  to="/fleet/preventive" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Calendar size={16} className="text-muted-foreground" />
-                  <span>Preventiva</span>
-                </Link>
-                <Link 
-                  to="/fleet/workshops" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Wrench size={16} className="text-muted-foreground" />
-                  <span>Oficinas</span>
-                </Link>
-              </div>
-            )}
-          </div>
+          {hasModule('frotas') && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsFleetOpen(!isFleetOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isFleetOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/fleet/dashboard" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/vehicles" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Truck size={16} className="text-muted-foreground" />
+                    <span>Veículos</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/preventive" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Calendar size={16} className="text-muted-foreground" />
+                    <span>Preventiva</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/workshops" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Wrench size={16} className="text-muted-foreground" />
+                    <span>Oficinas</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria 3: Configurações & Administração */}
           <div className="pt-2 border-t border-border/40">
@@ -356,6 +376,20 @@ export function Layout() {
               </div>
             )}
           </div>
+
+          {/* Categoria SaaS (Apenas Administrador MCA) */}
+          {user?.roleAdmin && user?.companyId === 'mca-padrao-company-uuid-000000000001' && (
+            <div className="pt-2 border-t border-border/40">
+              <Link 
+                to="/saas-dashboard" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors"
+              >
+                <Building size={20} className="text-primary" />
+                <span>Dashboard SaaS</span>
+              </Link>
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
@@ -419,110 +453,120 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos</span>
                 </Link>
-                <Link 
-                  to="/clients" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Users size={16} className="text-muted-foreground" />
-                  <span>Clientes</span>
-                </Link>
-                <Link 
-                  to="/suppliers" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Building size={16} className="text-muted-foreground" />
-                  <span>Fornecedores</span>
-                </Link>
-                <Link 
-                  to="/collaborators" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <UserCheck size={16} className="text-muted-foreground" />
-                  <span>Colaboradores</span>
-                </Link>
-                <Link 
-                  to="/platforms" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Building size={16} className="text-muted-foreground" />
-                  <span>Plataformas de Gestão</span>
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Categoria 2: Gestão Financeira */}
-          <div className="pt-2 border-t border-border/40">
-            <button 
-              onClick={() => setIsFinancialOpen(!isFinancialOpen)}
-              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <DollarSign size={20} className="text-primary" />
-                <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
-              </div>
-              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-            </button>
-            
-            {isFinancialOpen && (
-              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/financial/dashboard" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
-                <Link 
-                  to="/financial/payables" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <TrendingDown size={16} className="text-red-500" />
-                  <span>Contas a Pagar</span>
-                </Link>
-                <Link 
-                  to="/financial/receivables" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <TrendingUp size={16} className="text-emerald-500" />
-                  <span>Contas a Receber</span>
-                </Link>
-                <Link 
-                  to="/financial/approvals" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <CheckSquare size={16} className="text-amber-500" />
-                  <span>Aprovações</span>
-                </Link>
-                <Link 
-                  to="/financial/reports" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <BarChart3 size={16} className="text-blue-500" />
-                  <span>Relatórios</span>
-                </Link>
-                <Link 
-                  to="/financial/categories" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Tag size={16} className="text-violet-500" />
-                  <span>Categorias</span>
-                </Link>
-                {user?.roleAdmin && (
+                {hasModule('clientes') && (
                   <Link 
-                    to="/financial/fiscal-documents" 
+                    to="/clients" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                   >
-                    <FileText size={16} className="text-blue-500" />
-                    <span>Central de Documentos Fiscais</span>
+                    <Users size={16} className="text-muted-foreground" />
+                    <span>Clientes</span>
+                  </Link>
+                )}
+                {hasModule('fornecedores') && (
+                  <Link 
+                    to="/suppliers" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Building size={16} className="text-muted-foreground" />
+                    <span>Fornecedores</span>
+                  </Link>
+                )}
+                {hasModule('colaboradores') && (
+                  <Link 
+                    to="/collaborators" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <UserCheck size={16} className="text-muted-foreground" />
+                    <span>Colaboradores</span>
+                  </Link>
+                )}
+                {hasModule('clientes') && (
+                  <Link 
+                    to="/platforms" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Building size={16} className="text-muted-foreground" />
+                    <span>Plataformas de Gestão</span>
                   </Link>
                 )}
               </div>
             )}
           </div>
 
+          {/* Categoria 2: Gestão Financeira */}
+          {hasModule('financeiro') && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsFinancialOpen(!isFinancialOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <DollarSign size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão Financeira</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isFinancialOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isFinancialOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/financial/dashboard" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                  <Link 
+                    to="/financial/payables" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <TrendingDown size={16} className="text-red-500" />
+                    <span>Contas a Pagar</span>
+                  </Link>
+                  <Link 
+                    to="/financial/receivables" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <TrendingUp size={16} className="text-emerald-500" />
+                    <span>Contas a Receber</span>
+                  </Link>
+                  <Link 
+                    to="/financial/approvals" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <CheckSquare size={16} className="text-amber-500" />
+                    <span>Aprovações</span>
+                  </Link>
+                  <Link 
+                    to="/financial/reports" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <BarChart3 size={16} className="text-blue-500" />
+                    <span>Relatórios</span>
+                  </Link>
+                  <Link 
+                    to="/financial/categories" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Tag size={16} className="text-violet-500" />
+                    <span>Categorias</span>
+                  </Link>
+                  {user?.roleAdmin && (
+                    <Link 
+                      to="/financial/fiscal-documents" 
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <FileText size={16} className="text-blue-500" />
+                      <span>Central de Documentos Fiscais</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Categoria 2.5: Contabilidade */}
-          {user?.roleContabilidade && (
+          {user?.roleContabilidade && hasModule('fiscal') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
@@ -550,51 +594,53 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Gestão de Frotas */}
-          <div className="pt-2 border-t border-border/40">
-            <button 
-              onClick={() => setIsFleetOpen(!isFleetOpen)}
-              className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Truck size={20} className="text-primary" />
-                <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
-              </div>
-              <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-            </button>
-            
-            {isFleetOpen && (
-              <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/fleet/dashboard" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
-                <Link 
-                  to="/fleet/vehicles" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Truck size={16} className="text-muted-foreground" />
-                  <span>Veículos</span>
-                </Link>
-                <Link 
-                  to="/fleet/preventive" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Calendar size={16} className="text-muted-foreground" />
-                  <span>Preventiva</span>
-                </Link>
-                <Link 
-                  to="/fleet/workshops" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <Wrench size={16} className="text-muted-foreground" />
-                  <span>Oficinas</span>
-                </Link>
-              </div>
-            )}
-          </div>
+          {hasModule('frotas') && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsFleetOpen(!isFleetOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão de Frotas</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isFleetOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isFleetOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/fleet/dashboard" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/vehicles" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Truck size={16} className="text-muted-foreground" />
+                    <span>Veículos</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/preventive" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Calendar size={16} className="text-muted-foreground" />
+                    <span>Preventiva</span>
+                  </Link>
+                  <Link 
+                    to="/fleet/workshops" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Wrench size={16} className="text-muted-foreground" />
+                    <span>Oficinas</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria 3: Configurações & Administração */}
           <div className="pt-2 border-t border-border/40">
@@ -628,6 +674,19 @@ export function Layout() {
               </div>
             )}
           </div>
+
+          {/* Categoria SaaS (Apenas Administrador MCA) */}
+          {user?.roleAdmin && user?.companyId === 'mca-padrao-company-uuid-000000000001' && (
+            <div className="pt-2 border-t border-border/40">
+              <Link 
+                to="/saas-dashboard" 
+                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-secondary text-primary font-semibold text-sm transition-colors"
+              >
+                <Building size={20} className="text-primary" />
+                <span>Dashboard SaaS</span>
+              </Link>
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">

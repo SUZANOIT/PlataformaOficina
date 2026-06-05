@@ -10,6 +10,8 @@ import { fleetController } from './controllers/fleet.controller';
 import { AdvanceController } from './controllers/advance.controller';
 import { FinancialCategoryController } from './controllers/financial-category.controller';
 import { FiscalController } from './controllers/fiscal.controller';
+import { SaaSController } from './controllers/saas.controller';
+import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
 import jwt from 'jsonwebtoken';
 
 const routes = Router();
@@ -38,7 +40,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     }
 
     (req as any).companyId = user.companyId;
-    return next();
+    const { tenantContext } = require('./lib/tenant-context');
+    return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => {
+      return next();
+    });
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
@@ -204,5 +209,14 @@ routes.get('/fiscal/documents/:id/download', FiscalController.downloadIndividual
 routes.post('/fiscal/documents/download-batch', FiscalController.downloadBatch);
 routes.get('/fiscal/audits', FiscalController.listAudits);
 routes.get('/fiscal/dashboard', FiscalController.getDashboard);
+
+// Módulo SaaS Administrador
+routes.use('/saas', authMiddleware, saasAdminMiddleware);
+routes.get('/saas/stats', SaaSController.getAdminStats);
+routes.get('/saas/companies', SaaSController.listCompanies);
+routes.put('/saas/subscriptions', SaaSController.updateSubscription);
+routes.post('/saas/licenses/toggle', SaaSController.toggleModuleLicense);
+routes.get('/saas/plans', SaaSController.listPlans);
+routes.get('/saas/modules', SaaSController.listModules);
 
 export { routes };

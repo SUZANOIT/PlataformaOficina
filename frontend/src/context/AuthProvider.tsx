@@ -4,6 +4,8 @@ import type { UserProfile } from '../utils/auth';
 import { AUTH_EXPIRED_EVENT } from '../services/api';
 import { toast } from 'sonner';
 
+import { api } from '../services/api';
+
 export interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
@@ -51,11 +53,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Validate session on mount
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const storedToken = authStorage.getToken();
       if (storedToken) {
         if (authStorage.isTokenExpired(storedToken)) {
           logout(true);
+        } else {
+          try {
+            const response = await api.get('/auth/me');
+            const latestUser = response.data;
+            authStorage.setUser(latestUser);
+            setUserState(latestUser);
+          } catch (error) {
+            console.error('Failed to sync user session payload:', error);
+          }
         }
       }
       setIsLoading(false);

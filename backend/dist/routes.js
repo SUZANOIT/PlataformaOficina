@@ -16,6 +16,8 @@ const fleet_controller_1 = require("./controllers/fleet.controller");
 const advance_controller_1 = require("./controllers/advance.controller");
 const financial_category_controller_1 = require("./controllers/financial-category.controller");
 const fiscal_controller_1 = require("./controllers/fiscal.controller");
+const saas_controller_1 = require("./controllers/saas.controller");
+const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const routes = (0, express_1.Router)();
 exports.routes = routes;
@@ -38,7 +40,10 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
         }
         req.companyId = user.companyId;
-        return next();
+        const { tenantContext } = require('./lib/tenant-context');
+        return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => {
+            return next();
+        });
     }
     catch (error) {
         if (error.name === 'TokenExpiredError') {
@@ -184,3 +189,11 @@ routes.get('/fiscal/documents/:id/download', fiscal_controller_1.FiscalControlle
 routes.post('/fiscal/documents/download-batch', fiscal_controller_1.FiscalController.downloadBatch);
 routes.get('/fiscal/audits', fiscal_controller_1.FiscalController.listAudits);
 routes.get('/fiscal/dashboard', fiscal_controller_1.FiscalController.getDashboard);
+// Módulo SaaS Administrador
+routes.use('/saas', authMiddleware, saas_admin_middleware_1.saasAdminMiddleware);
+routes.get('/saas/stats', saas_controller_1.SaaSController.getAdminStats);
+routes.get('/saas/companies', saas_controller_1.SaaSController.listCompanies);
+routes.put('/saas/subscriptions', saas_controller_1.SaaSController.updateSubscription);
+routes.post('/saas/licenses/toggle', saas_controller_1.SaaSController.toggleModuleLicense);
+routes.get('/saas/plans', saas_controller_1.SaaSController.listPlans);
+routes.get('/saas/modules', saas_controller_1.SaaSController.listModules);

@@ -28,6 +28,9 @@ import { BreadcrumbProvider } from './context/BreadcrumbContext';
 import { AuthProvider } from './context/AuthProvider';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { SessionExpired } from './pages/SessionExpired';
+import { SaaSDashboard } from './pages/SaaSDashboard';
+import { ModuleGuard } from './components/ModuleGuard';
+import { SaaSAdminGuard } from './components/SaaSAdminGuard';
 
 function App() {
   return (
@@ -47,27 +50,32 @@ function App() {
               <Route path="quotes" element={<QuotesList />} />
               <Route path="users" element={<Users />} />
               <Route path="settings/email" element={<EmailConfig />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="collaborators" element={<Collaborators />} />
-              <Route path="platforms" element={<Platforms />} />
+              
+              {/* Rotas Licenciadas do Módulo Oficina */}
+              <Route path="clients" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><Clients /></ModuleGuard>} />
+              <Route path="suppliers" element={<ModuleGuard moduleKey="fornecedores" moduleName="Fornecedores"><Suppliers /></ModuleGuard>} />
+              <Route path="collaborators" element={<ModuleGuard moduleKey="colaboradores" moduleName="Colaboradores"><Collaborators /></ModuleGuard>} />
+              <Route path="platforms" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><Platforms /></ModuleGuard>} />
               
               {/* Rotas de Gestão Financeira */}
-              <Route path="financial/dashboard" element={<FinancialDashboard />} />
-              <Route path="financial/payables" element={<FinancialPayables />} />
-              <Route path="financial/receivables" element={<FinancialReceivables />} />
-              <Route path="financial/approvals" element={<FinancialApprovals />} />
-              <Route path="financial/reports" element={<FinancialReports />} />
-              <Route path="financial/categories" element={<FinancialCategories />} />
-              <Route path="financial/fiscal-documents" element={<FiscalDocuments />} />
-              <Route path="accounting/fiscal-documents" element={<FiscalDocuments />} />
+              <Route path="financial/dashboard" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialDashboard /></ModuleGuard>} />
+              <Route path="financial/payables" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialPayables /></ModuleGuard>} />
+              <Route path="financial/receivables" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialReceivables /></ModuleGuard>} />
+              <Route path="financial/approvals" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialApprovals /></ModuleGuard>} />
+              <Route path="financial/reports" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialReports /></ModuleGuard>} />
+              <Route path="financial/categories" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialCategories /></ModuleGuard>} />
+              <Route path="financial/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
+              <Route path="accounting/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
 
               {/* Rotas de Gestão de Frotas */}
-              <Route path="fleet/dashboard" element={<FleetDashboard />} />
-              <Route path="fleet/vehicles" element={<FleetVehicles />} />
-              <Route path="fleet/vehicles/:id" element={<VehicleDetails />} />
-              <Route path="fleet/preventive" element={<FleetPreventive />} />
-              <Route path="fleet/workshops" element={<FleetWorkshops />} />
+              <Route path="fleet/dashboard" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetDashboard /></ModuleGuard>} />
+              <Route path="fleet/vehicles" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetVehicles /></ModuleGuard>} />
+              <Route path="fleet/vehicles/:id" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><VehicleDetails /></ModuleGuard>} />
+              <Route path="fleet/preventive" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetPreventive /></ModuleGuard>} />
+              <Route path="fleet/workshops" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetWorkshops /></ModuleGuard>} />
+
+              {/* Rota Administrativa do SaaS (Apenas Platform Admin) */}
+              <Route path="saas-dashboard" element={<SaaSAdminGuard><SaaSDashboard /></SaaSAdminGuard>} />
             </Route>
           </Routes>
           <Toaster position="top-right" richColors />

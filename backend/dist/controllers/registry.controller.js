@@ -57,13 +57,19 @@ exports.RegistryController = {
     async listClients(req, res) {
         try {
             const { search } = req.query;
-            const whereClause = {};
+            const companyId = req.companyId || null;
+            const whereClause = { companyId };
             if (search) {
-                whereClause.OR = [
-                    { nome: { contains: search, mode: 'insensitive' } },
-                    { empresa: { contains: search, mode: 'insensitive' } },
-                    { cnpj: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    { companyId },
+                    {
+                        OR: [
+                            { nome: { contains: search, mode: 'insensitive' } },
+                            { empresa: { contains: search, mode: 'insensitive' } },
+                            { cnpj: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const clients = await prisma_1.prisma.client.findMany({
@@ -89,7 +95,8 @@ exports.RegistryController = {
                         where: {
                             cnpj: {
                                 contains: cleanedCnpj
-                            }
+                            },
+                            companyId
                         }
                     });
                     if (duplicate) {
@@ -99,7 +106,10 @@ exports.RegistryController = {
                 }
             }
             const client = await prisma_1.prisma.client.create({
-                data,
+                data: {
+                    ...data,
+                    companyId
+                },
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_CLIENT', `Created client: ${client.nome} (${client.id})`, 'SUCCESS');
             return res.status(201).json(client);
@@ -118,6 +128,12 @@ exports.RegistryController = {
             const companyId = req.companyId || null;
             const userId = req.userId || null;
             const data = clientSchema.parse(req.body);
+            const existing = await prisma_1.prisma.client.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este cliente.' });
+            }
             if (data.cnpj) {
                 const cleanedCnpj = data.cnpj.replace(/\D/g, '');
                 if (cleanedCnpj) {
@@ -126,7 +142,8 @@ exports.RegistryController = {
                             cnpj: {
                                 contains: cleanedCnpj
                             },
-                            id: { not: id }
+                            id: { not: id },
+                            companyId
                         }
                     });
                     if (duplicate) {
@@ -137,7 +154,10 @@ exports.RegistryController = {
             }
             const client = await prisma_1.prisma.client.update({
                 where: { id },
-                data,
+                data: {
+                    ...data,
+                    companyId
+                },
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_CLIENT', `Updated client: ${client.nome} (${client.id})`, 'SUCCESS');
             return res.json(client);
@@ -153,6 +173,13 @@ exports.RegistryController = {
     async deleteClient(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const existing = await prisma_1.prisma.client.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este cliente.' });
+            }
             await prisma_1.prisma.client.delete({
                 where: { id },
             });
@@ -167,13 +194,19 @@ exports.RegistryController = {
     async listSuppliers(req, res) {
         try {
             const { search } = req.query;
-            const whereClause = {};
+            const companyId = req.companyId || null;
+            const whereClause = { companyId };
             if (search) {
-                whereClause.OR = [
-                    { razaoSocial: { contains: search, mode: 'insensitive' } },
-                    { nomeFantasia: { contains: search, mode: 'insensitive' } },
-                    { cnpj: { contains: search, mode: 'insensitive' } },
-                    { email: { contains: search, mode: 'insensitive' } },
+                whereClause.AND = [
+                    { companyId },
+                    {
+                        OR: [
+                            { razaoSocial: { contains: search, mode: 'insensitive' } },
+                            { nomeFantasia: { contains: search, mode: 'insensitive' } },
+                            { cnpj: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
                 ];
             }
             const suppliers = await prisma_1.prisma.supplier.findMany({
@@ -196,7 +229,8 @@ exports.RegistryController = {
             if (cnpjSemMascara) {
                 const duplicate = await prisma_1.prisma.supplier.findFirst({
                     where: {
-                        cnpjSemMascara
+                        cnpjSemMascara,
+                        companyId
                     }
                 });
                 if (duplicate) {
@@ -208,6 +242,7 @@ exports.RegistryController = {
                 data: {
                     ...data,
                     cnpjSemMascara,
+                    companyId
                 },
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_SUPPLIER', `Created supplier: ${supplier.razaoSocial} (${supplier.id})`, 'SUCCESS');
@@ -227,12 +262,19 @@ exports.RegistryController = {
             const companyId = req.companyId || null;
             const userId = req.userId || null;
             const data = supplierSchema.parse(req.body);
+            const existing = await prisma_1.prisma.supplier.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este fornecedor.' });
+            }
             let cnpjSemMascara = data.cnpj ? data.cnpj.replace(/\D/g, '') : null;
             if (cnpjSemMascara) {
                 const duplicate = await prisma_1.prisma.supplier.findFirst({
                     where: {
                         cnpjSemMascara,
-                        id: { not: id }
+                        id: { not: id },
+                        companyId
                     }
                 });
                 if (duplicate) {
@@ -245,6 +287,7 @@ exports.RegistryController = {
                 data: {
                     ...data,
                     cnpjSemMascara,
+                    companyId
                 },
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_SUPPLIER', `Updated supplier: ${supplier.razaoSocial} (${supplier.id})`, 'SUCCESS');
@@ -261,6 +304,13 @@ exports.RegistryController = {
     async deleteSupplier(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const existing = await prisma_1.prisma.supplier.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este fornecedor.' });
+            }
             await prisma_1.prisma.supplier.delete({
                 where: { id },
             });
@@ -275,35 +325,21 @@ exports.RegistryController = {
     async listCollaborators(req, res) {
         try {
             const { search } = req.query;
-            const userCompanyId = req.companyId || null;
-            const whereClause = {};
-            if (userCompanyId) {
-                whereClause.companyId = userCompanyId;
-            }
+            const companyId = req.companyId || null;
+            const whereClause = { companyId };
             if (search) {
-                if (userCompanyId) {
-                    whereClause.AND = [
-                        { companyId: userCompanyId },
-                        {
-                            OR: [
-                                { nome: { contains: search, mode: 'insensitive' } },
-                                { cpf: { contains: search, mode: 'insensitive' } },
-                                { email: { contains: search, mode: 'insensitive' } },
-                                { cargo: { contains: search, mode: 'insensitive' } },
-                                { departamento: { contains: search, mode: 'insensitive' } },
-                            ]
-                        }
-                    ];
-                }
-                else {
-                    whereClause.OR = [
-                        { nome: { contains: search, mode: 'insensitive' } },
-                        { cpf: { contains: search, mode: 'insensitive' } },
-                        { email: { contains: search, mode: 'insensitive' } },
-                        { cargo: { contains: search, mode: 'insensitive' } },
-                        { departamento: { contains: search, mode: 'insensitive' } },
-                    ];
-                }
+                whereClause.AND = [
+                    { companyId },
+                    {
+                        OR: [
+                            { nome: { contains: search, mode: 'insensitive' } },
+                            { cpf: { contains: search, mode: 'insensitive' } },
+                            { email: { contains: search, mode: 'insensitive' } },
+                            { cargo: { contains: search, mode: 'insensitive' } },
+                            { departamento: { contains: search, mode: 'insensitive' } },
+                        ]
+                    }
+                ];
             }
             const collaborators = await prisma_1.prisma.collaborator.findMany({
                 where: whereClause,
@@ -334,7 +370,8 @@ exports.RegistryController = {
             if (cpfSemMascara) {
                 const duplicate = await prisma_1.prisma.collaborator.findFirst({
                     where: {
-                        cpfSemMascara
+                        cpfSemMascara,
+                        companyId
                     }
                 });
                 if (duplicate) {
@@ -344,8 +381,8 @@ exports.RegistryController = {
             }
             let targetOficinaId = null;
             if (data.oficinaId) {
-                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
-                    where: { id: data.oficinaId }
+                const oficinaExists = await prisma_1.prisma.oficina.findFirst({
+                    where: { id: data.oficinaId, companyId }
                 });
                 if (oficinaExists) {
                     targetOficinaId = data.oficinaId;
@@ -357,7 +394,7 @@ exports.RegistryController = {
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
                     oficinaId: targetOficinaId,
-                    companyId: data.companyId || companyId || null
+                    companyId
                 },
                 include: {
                     oficina: true,
@@ -381,12 +418,19 @@ exports.RegistryController = {
             const companyId = req.companyId || null;
             const userId = req.userId || null;
             const data = collaboratorSchema.parse(req.body);
+            const existing = await prisma_1.prisma.collaborator.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este colaborador.' });
+            }
             let cpfSemMascara = data.cpf ? data.cpf.replace(/\D/g, '') : null;
             if (cpfSemMascara) {
                 const duplicate = await prisma_1.prisma.collaborator.findFirst({
                     where: {
                         cpfSemMascara,
-                        id: { not: id }
+                        id: { not: id },
+                        companyId
                     }
                 });
                 if (duplicate) {
@@ -396,8 +440,8 @@ exports.RegistryController = {
             }
             let targetOficinaId = null;
             if (data.oficinaId) {
-                const oficinaExists = await prisma_1.prisma.oficina.findUnique({
-                    where: { id: data.oficinaId }
+                const oficinaExists = await prisma_1.prisma.oficina.findFirst({
+                    where: { id: data.oficinaId, companyId }
                 });
                 if (oficinaExists) {
                     targetOficinaId = data.oficinaId;
@@ -410,7 +454,7 @@ exports.RegistryController = {
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
                     oficinaId: targetOficinaId,
-                    companyId: data.companyId || companyId || null
+                    companyId
                 },
                 include: {
                     oficina: true,
@@ -431,6 +475,13 @@ exports.RegistryController = {
     async deleteCollaborator(req, res) {
         try {
             const id = req.params.id;
+            const companyId = req.companyId || null;
+            const existing = await prisma_1.prisma.collaborator.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este colaborador.' });
+            }
             await prisma_1.prisma.collaborator.delete({
                 where: { id },
             });

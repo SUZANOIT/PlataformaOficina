@@ -196,6 +196,31 @@ export const AuthController = {
 
       const parsedData = createUserSchema.parse(body);
 
+      // Validar limites de usuários ativos do plano contratado da empresa
+      if (currentCompanyId) {
+        const company = await prisma.company.findUnique({
+          where: { id: currentCompanyId },
+          include: { plan: true }
+        });
+
+        if (company && company.plan) {
+          const activeUsersCount = await prisma.user.count({
+            where: { 
+              companyId: currentCompanyId,
+              status: 'ATIVO'
+            }
+          });
+
+          if (parsedData.status !== 'INACTIVE' && activeUsersCount >= company.plan.limiteUsuarios) {
+            AuditLogger.log(currentUserId, currentCompanyId, 'CREATE_USER', `Blocked creating user due to plan user limit (${company.plan.limiteUsuarios})`, 'ERROR');
+            return res.status(403).json({ 
+              error: `Limite de usuários ativos atingido para o plano ${company.plan.nome} (${company.plan.limiteUsuarios} usuários).`, 
+              code: 'PLAN_LIMIT_REACHED' 
+            });
+          }
+        }
+      }
+
       const userExists = await prisma.user.findUnique({ where: { email: parsedData.email } });
       if (userExists) {
         AuditLogger.log(currentUserId, currentCompanyId, 'CREATE_USER', `Attempted duplicate user email: ${parsedData.email}`, 'DUPLICATE_ATTEMPT');
@@ -265,6 +290,31 @@ export const AuthController = {
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Validar limites de usuários ativos do plano contratado se estiver ativando
+      if (parsedData.status && parsedData.status === 'ACTIVE' && user.status !== 'ATIVO' && currentCompanyId) {
+        const company = await prisma.company.findUnique({
+          where: { id: currentCompanyId },
+          include: { plan: true }
+        });
+
+        if (company && company.plan) {
+          const activeUsersCount = await prisma.user.count({
+            where: { 
+              companyId: currentCompanyId,
+              status: 'ATIVO'
+            }
+          });
+
+          if (activeUsersCount >= company.plan.limiteUsuarios) {
+            AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Blocked activating user due to plan user limit (${company.plan.limiteUsuarios})`, 'ERROR');
+            return res.status(403).json({ 
+              error: `Limite de usuários ativos atingido para o plano ${company.plan.nome} (${company.plan.limiteUsuarios} usuários).`, 
+              code: 'PLAN_LIMIT_REACHED' 
+            });
+          }
+        }
       }
 
       if (parsedData.email !== user.email) {
@@ -379,12 +429,57 @@ export const AuthController = {
           roleContasPagar: true,
           roleContasReceber: true,
           roleContabilidade: true,
-          createdAt: true
+          createdAt: true,
+          companyId: true,
+          company: {
+            include: {
+              plan: true,
+              moduleLicenses: {
+                where: { ativa: true },
+                include: { module: true }
+              }
+            }
+          }
         }
       });
       
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
+      }
+
+      let plano = 'Start';
+      let statusAssinatura = 'Trial';
+      let activeModules: string[] = [];
+      let companyName = '';
+
+      if (user.company) {
+        plano = user.company.plan?.nome || 'Start';
+        statusAssinatura = user.company.statusAssinatura || 'Trial';
+        companyName = user.company.nomeFantasia || user.company.razaoSocial || '';
+
+        // Módulos padrões para cada plano
+        const planModules: Record<string, string[]> = {
+          Start: ['clientes', 'veiculos', 'plataformas', 'ordens_servico', 'orcamentos', 'dashboard_basico'],
+          Professional: [
+            'clientes', 'veiculos', 'plataformas', 'ordens_servico', 'orcamentos', 'dashboard_basico',
+            'contas_receber', 'contas_pagar', 'fluxo_caixa', 'estoque', 'fornecedores', 'xml', 'documentos'
+          ],
+          Business: [
+            'clientes', 'veiculos', 'plataformas', 'ordens_servico', 'orcamentos', 'dashboard_basico',
+            'contas_receber', 'contas_pagar', 'fluxo_caixa', 'estoque', 'fornecedores', 'xml', 'documentos',
+            'emissao_fiscal', 'rede_credenciada', 'rh', 'adiantamentos', 'aprovacao_niveis', 'auditoria'
+          ],
+          Enterprise: [
+            'clientes', 'veiculos', 'plataformas', 'ordens_servico', 'orcamentos', 'dashboard_basico',
+            'contas_receber', 'contas_pagar', 'fluxo_caixa', 'estoque', 'fornecedores', 'xml', 'documentos',
+            'emissao_fiscal', 'rede_credenciada', 'rh', 'adiantamentos', 'aprovacao_niveis', 'auditoria',
+            'multiempresa', 'api', 'bi', 'integracoes', 'whatsapp', 'receitaws', 'fipe'
+          ]
+        };
+
+        const planAllowed = planModules[plano] || [];
+        const licenseAllowed = user.company.moduleLicenses.map(ml => ml.module.chave);
+        activeModules = Array.from(new Set([...planAllowed, ...licenseAllowed]));
       }
       
       return res.json({
@@ -399,6 +494,14 @@ export const AuthController = {
         roleContasReceber: user.roleContasReceber,
         roleContabilidade: user.roleContabilidade,
         createdAt: user.createdAt,
+        companyId: user.companyId,
+        company: user.company ? {
+          id: user.company.id,
+          nome: companyName,
+          plano: plano,
+          statusAssinatura: statusAssinatura,
+          activeModules: activeModules
+        } : null
       });
     } catch (error) {
       console.error('Error in auth.me:', error);

@@ -164,6 +164,35 @@ exports.QuoteController = {
     async create(req, res) {
         try {
             const data = createQuoteSchema.parse(req.body);
+            // Validar limite mensal de Ordens de Serviço (OS) do plano
+            const company = await prisma_1.prisma.company.findUnique({
+                where: { id: data.companyId },
+                include: { plan: true }
+            });
+            if (company && company.plan) {
+                const startOfMonth = new Date();
+                startOfMonth.setDate(1);
+                startOfMonth.setHours(0, 0, 0, 0);
+                const endOfMonth = new Date();
+                endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+                endOfMonth.setDate(0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                const osCount = await prisma_1.prisma.quote.count({
+                    where: {
+                        companyId: data.companyId,
+                        createdAt: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
+                    }
+                });
+                if (osCount >= company.plan.limiteOsMes) {
+                    return res.status(403).json({
+                        error: `Limite mensal de ordens de serviço atingido para o plano ${company.plan.nome} (${company.plan.limiteOsMes} OS/mês).`,
+                        code: 'PLAN_LIMIT_REACHED'
+                    });
+                }
+            }
             if (!data.items || data.items.length === 0) {
                 return res.status(400).json({ error: 'Quote must contain at least one item' });
             }

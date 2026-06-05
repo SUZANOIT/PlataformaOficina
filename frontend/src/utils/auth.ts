@@ -1,9 +1,22 @@
+export interface PlanInfo {
+  id: string;
+  nome: string;
+  limiteUsuarios: number;
+  limiteOsMes: number;
+  preco: number;
+}
+
 export interface UserProfile {
   id: string;
   nome: string;
   email: string;
   role?: string;
   companyId?: string;
+  statusAssinatura?: string;
+  plano?: PlanInfo | null;
+  activeModules?: string[];
+  roleAdmin?: boolean;
+  roleContabilidade?: boolean;
 }
 
 export const TOKEN_KEY = 'token';
