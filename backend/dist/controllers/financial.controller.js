@@ -46,6 +46,8 @@ const createPayableSchema = zod_1.z.object({
 const createReceivableSchema = zod_1.z.object({
     companyId: zod_1.z.string(),
     cliente: zod_1.z.string(),
+    origem_tipo: zod_1.z.string().optional().nullable(),
+    origem_id: zod_1.z.string().optional().nullable(),
     categoria: zod_1.z.string(),
     descricao: zod_1.z.string(),
     valor: zod_1.z.number().positive(),
@@ -693,7 +695,7 @@ exports.FinancialController = {
     // 3. Contas a Receber
     async listReceivables(req, res) {
         try {
-            const { companyId, status, category, search, startDate, endDate, page = 1, limit = 10 } = req.query;
+            const { companyId, status, category, search, startDate, endDate, origemTipo, origemId, page = 1, limit = 10 } = req.query;
             const whereClause = {};
             if (companyId)
                 whereClause.companyId = companyId;
@@ -701,6 +703,10 @@ exports.FinancialController = {
                 whereClause.status = status;
             if (category)
                 whereClause.categoria = category;
+            if (origemTipo)
+                whereClause.origem_tipo = origemTipo;
+            if (origemId)
+                whereClause.origem_id = origemId;
             if (search) {
                 whereClause.OR = [
                     { cliente: { contains: search, mode: 'insensitive' } },
@@ -790,6 +796,8 @@ exports.FinancialController = {
                 data: {
                     companyId: body.companyId,
                     cliente: body.cliente,
+                    origem_tipo: body.origem_tipo,
+                    origem_id: body.origem_id,
                     categoria: body.categoria,
                     descricao: body.descricao,
                     valor: body.valor,
@@ -921,6 +929,8 @@ exports.FinancialController = {
             }
             const updateData = {
                 cliente: updateFields.cliente,
+                origem_tipo: updateFields.origem_tipo,
+                origem_id: updateFields.origem_id,
                 categoria: updateFields.categoria,
                 descricao: updateFields.descricao,
                 valor: updateFields.valor ? Number(updateFields.valor) : undefined,
