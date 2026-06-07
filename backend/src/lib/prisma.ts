@@ -7,7 +7,7 @@ const modelsWithCompanyId = [
   'User', 'Client', 'Supplier', 'Collaborator', 'Vehicle', 'TaxSetting', 
   'EmailConfig', 'Quote', 'FinancialPayable', 'FinancialReceivable', 
   'PlataformaGestao', 'FinancialCategory', 'FiscalDocument', 'Oficina',
-  'Subscription', 'ModuleLicense'
+  'Subscription', 'ModuleLicense', 'AbsenceHistory', 'AbsenceAudit'
 ];
 
 export const prisma = basePrisma.$extends({

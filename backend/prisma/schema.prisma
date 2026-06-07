@@ -520,6 +520,12 @@ model Collaborator {
   status             String   @default("ATIVO") // ATIVO, INATIVO
   observacoes        String?
   
+  // Dados de Desconto por Ausência
+  faltas             Int       @default(0)
+  descontoAusencia   Float     @default(0.0)
+  observacoesFaltas  String?
+  dataUltimaAtualizacao DateTime? @default(now())
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
   advances  SalaryAdvance[]
@@ -974,6 +980,7 @@ model SaaSUser {
   id          String    @id @default(uuid())
   nome        String
   email       String    @unique
+  cpf         String?   @unique
   password    String
   roleId      String?   @map("role_id")
   role        SaaSRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
@@ -1049,5 +1056,35 @@ model SaaSSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("saas_settings")
+}
+
+model AbsenceHistory {
+  id                String       @id @default(uuid())
+  collaboratorId    String
+  collaboratorName  String
+  competencia       String       // e.g. "06/2026"
+  faltas            Int
+  valorDescontado   Float
+  usuarioResponsavel String
+  createdAt         DateTime     @default(now())
+  companyId         String
+
+  @@index([collaboratorId])
+  @@index([companyId])
+}
+
+model AbsenceAudit {
+  id                String       @id @default(uuid())
+  collaboratorId    String
+  collaboratorName  String
+  usuario           String
+  action            String       // e.g. "INCLUSAO_FALTAS", "ALTERACAO_FALTAS", "EXCLUSAO_FALTAS", "ALTERACAO_DESCONTO"
+  valorAnterior     String
+  valorNovo         String
+  createdAt         DateTime     @default(now())
+  companyId         String
+
+  @@index([collaboratorId])
+  @@index([companyId])
 }
 

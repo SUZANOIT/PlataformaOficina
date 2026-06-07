@@ -295,11 +295,12 @@ async function main() {
 
   // 5. Usuários Globais do SaaS
   const usuariosSaaS = [
-    { nome: 'Admin Master', email: 'superadmin@suzanoit.com', role: 'SUPER_ADMIN', senha: 'admin123' },
-    { nome: 'Vendedor Comercial', email: 'comercial@suzanoit.com', role: 'COMERCIAL', senha: 'comercial123' },
-    { nome: 'Financeiro SaaS', email: 'financeiro@suzanoit.com', role: 'FINANCEIRO', senha: 'financeiro123' },
-    { nome: 'Suporte Técnico', email: 'suporte@suzanoit.com', role: 'SUPORTE', senha: 'suporte123' },
-    { nome: 'Implantador Sistema', email: 'implantacao@suzanoit.com', role: 'IMPLANTACAO', senha: 'implantacao123' }
+    { nome: 'Rafael Suzano', email: 'rafael@suzanoit.com', role: 'SUPER_ADMIN', senha: 'admin123', cpf: '33176298862' },
+    { nome: 'Admin Master', email: 'superadmin@suzanoit.com', role: 'SUPER_ADMIN', senha: 'admin123', cpf: '00000000000' },
+    { nome: 'Vendedor Comercial', email: 'comercial@suzanoit.com', role: 'COMERCIAL', senha: 'comercial123', cpf: '11111111111' },
+    { nome: 'Financeiro SaaS', email: 'financeiro@suzanoit.com', role: 'FINANCEIRO', senha: 'financeiro123', cpf: '22222222222' },
+    { nome: 'Suporte Técnico', email: 'suporte@suzanoit.com', role: 'SUPORTE', senha: 'suporte123', cpf: '33333333333' },
+    { nome: 'Implantador Sistema', email: 'implantacao@suzanoit.com', role: 'IMPLANTACAO', senha: 'implantacao123', cpf: '44444444444' }
   ];
 
   for (const u of usuariosSaaS) {
@@ -308,8 +309,8 @@ async function main() {
       const hashedPassword = await bcrypt.hash(u.senha, 10);
       await prisma.saaSUser.upsert({
         where: { email: u.email },
-        update: { nome: u.nome, roleId: role.id, password: hashedPassword },
-        create: { nome: u.nome, email: u.email, password: hashedPassword, roleId: role.id, status: 'ATIVO' }
+        update: { nome: u.nome, roleId: role.id, password: hashedPassword, cpf: u.cpf },
+        create: { nome: u.nome, email: u.email, password: hashedPassword, roleId: role.id, status: 'ATIVO', cpf: u.cpf }
       });
     }
   }

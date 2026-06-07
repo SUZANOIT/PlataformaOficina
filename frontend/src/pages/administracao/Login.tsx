@@ -2,26 +2,45 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSaaSAuth } from '../../hooks/useSaaSAuth';
 import { SaaSAPIService } from '../../services/saas';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { User, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function Login() {
   const { login } = useSaaSAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+      .substring(0, 14);
+  };
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCpf(formatCPF(e.target.value));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error('Informe o e-mail e a senha administrativa.');
+    const cleanCpf = cpf.replace(/\D/g, '');
+    if (!cleanCpf || !password) {
+      toast.error('Informe o CPF e a senha administrativa.');
+      return;
+    }
+
+    if (cleanCpf.length !== 11) {
+      toast.error('CPF inválido. Certifique-se de preencher todos os 11 dígitos.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const data = await SaaSAPIService.login({ email, password });
+      const data = await SaaSAPIService.login({ cpf: cleanCpf, password });
       login(data.token, data.user);
       navigate('/administracao/dashboard');
     } catch (error: any) {
@@ -100,17 +119,17 @@ export function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                E-mail Administrativo
+                CPF Administrativo
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-3.5 text-slate-500">
-                  <Mail size={16} />
+                  <User size={16} />
                 </span>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@suzanoit.com"
+                  type="text"
+                  value={cpf}
+                  onChange={handleCPFChange}
+                  placeholder="000.000.000-00"
                   className="w-full bg-[#090a0c]/80 border border-slate-800/80 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-600 focus:border-[#FF7900] focus:ring-1 focus:ring-[#FF7900] focus:outline-none transition-all"
                   required
                 />
@@ -155,9 +174,9 @@ export function Login() {
 
         {/* Demo credentials hint box */}
         <div className="mt-6 p-4 rounded-xl border border-white/5 bg-[#121316]/30 text-center">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Credenciais de Teste (Seeded)</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Credenciais de Acesso</p>
           <p className="text-[10px] text-slate-400 mt-1">
-            E-mail: <span className="font-mono text-[#FF7900] font-bold">superadmin@suzanoit.com</span> | Senha: <span className="font-mono text-[#FF7900] font-bold">admin123</span>
+            CPF: <span className="font-mono text-[#FF7900] font-bold">331.762.988-62</span> | Senha: <span className="font-mono text-[#FF7900] font-bold">admin123</span>
           </p>
         </div>
       </div>

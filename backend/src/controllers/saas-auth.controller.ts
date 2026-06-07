@@ -5,18 +5,40 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().optional(),
+  cpf: z.string().optional(),
   password: z.string(),
 });
 
 export const SaaSAuthController = {
   async login(req: Request, res: Response) {
     try {
-      const { email, password } = loginSchema.parse(req.body);
+      const { email, cpf, password } = loginSchema.parse(req.body);
 
-      // Encontrar o usuário administrativo no SaaS
-      const saasUser = await prisma.saaSUser.findUnique({
-        where: { email },
+      const cleanEmail = email?.trim().toLowerCase();
+      const cleanCpf = cpf?.replace(/\D/g, '');
+
+      let resolvedCpf = cleanCpf;
+      let resolvedEmail = cleanEmail;
+
+      // Handle CPF passed via email field
+      if (cleanEmail && !cleanEmail.includes('@') && /^\d+$/.test(cleanEmail.replace(/\D/g, ''))) {
+        resolvedCpf = cleanEmail.replace(/\D/g, '');
+        resolvedEmail = undefined;
+      }
+
+      if (!resolvedEmail && !resolvedCpf) {
+        return res.status(400).json({ error: 'Informe o e-mail ou o CPF administrativo.' });
+      }
+
+      // Encontrar o usuário administrativo no SaaS por e-mail ou CPF
+      const saasUser = await prisma.saaSUser.findFirst({
+        where: {
+          OR: [
+            resolvedEmail ? { email: resolvedEmail } : undefined,
+            resolvedCpf ? { cpf: resolvedCpf } : undefined,
+          ].filter(Boolean) as any,
+        },
         include: {
           role: {
             include: {
