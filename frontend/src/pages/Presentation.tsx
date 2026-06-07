@@ -1057,7 +1057,7 @@ export function Presentation() {
                 <div className="lg:col-span-6 space-y-4 text-left">
                   <div className="flex items-center gap-2">
                     <Sparkles className="text-amber-400" size={20} />
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Motor Cognitivo Suzuki-AI</span>
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Motor Cognitivo CMH-AI</span>
                   </div>
                   <h2 className="text-3xl md:text-5xl font-black">INTELIGÊNCIA ARTIFICIAL</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1117,7 +1117,7 @@ export function Presentation() {
 
                       {aiOutput && (
                         <div className="space-y-1.5">
-                          <label className="text-[10px] text-indigo-400 font-bold uppercase block">Retorno do Motor Suzuki-AI:</label>
+                          <label className="text-[10px] text-indigo-400 font-bold uppercase block">Retorno do Motor CMH-AI:</label>
                           <div className="bg-slate-950 p-3 rounded-lg border border-indigo-500/20 text-xs font-mono text-emerald-400 whitespace-pre-line leading-relaxed h-32 overflow-y-auto">
                             {aiOutput}
                           </div>

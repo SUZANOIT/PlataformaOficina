@@ -1,33 +1,122 @@
 import os
+import math
+import random
+from PIL import Image, ImageDraw
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
+def generate_background(width=1920, height=1080, filename="background.png"):
+    # Generate a small gradient image first
+    sw, sh = 192, 108
+    grad = Image.new("RGB", (sw, sh))
+    c_center = (38, 40, 48)  # Slate Gray
+    c_edge = (6, 6, 8)       # Almost Black
+    
+    pixels = []
+    for y in range(sh):
+        for x in range(sw):
+            dx = (x - sw / 2.0) / (sw / 2.0)
+            dy = (y - sh / 2.0) / (sh / 2.0)
+            dist = math.sqrt(dx*dx + dy*dy)
+            factor = max(0.0, min(1.0, dist))
+            
+            r = int(c_center[0] + (c_edge[0] - c_center[0]) * factor)
+            g = int(c_center[1] + (c_edge[1] - c_center[1]) * factor)
+            b = int(c_center[2] + (c_edge[2] - c_center[2]) * factor)
+            pixels.append((r, g, b))
+            
+    grad.putdata(pixels)
+    img = grad.resize((width, height), Image.Resampling.BILINEAR)
+    
+    # Generate fine grain noise
+    noise_sz = 512
+    noise = Image.new("L", (noise_sz, noise_sz))
+    noise_pixels = [128 + random.randint(-8, 8) for _ in range(noise_sz * noise_sz)]
+    noise.putdata(noise_pixels)
+    
+    noise_large = Image.new("L", (width, height))
+    for ty in range(0, height, noise_sz):
+        for tx in range(0, width, noise_sz):
+            noise_large.paste(noise, (tx, ty))
+            
+    noise_rgb = noise_large.convert("RGB")
+    final_img = Image.blend(img, noise_rgb, 0.05)
+    final_img.save(filename, "PNG")
+
+def evaluate_bezier(p0, p1, p2, p3, steps=50):
+    points = []
+    for i in range(steps + 1):
+        t = i / float(steps)
+        x = (1-t)**3 * p0[0] + 3*(1-t)**2 * t * p1[0] + 3*(1-t) * t**2 * p2[0] + t**3 * p3[0]
+        y = (1-t)**3 * p0[1] + 3*(1-t)**2 * t * p1[1] + 3*(1-t) * t**2 * p2[1] + t**3 * p3[1]
+        points.append((x, y))
+    return points
+
+def evaluate_arc(cx, cy, r, start_ang, end_ang, steps=50):
+    points = []
+    for i in range(steps + 1):
+        t = i / float(steps)
+        ang = start_ang + t * (end_ang - start_ang)
+        x = cx + r * math.cos(ang)
+        y = cy + r * math.sin(ang)
+        points.append((x, y))
+    return points
+
+def generate_logo(size=1000, filename="logo.png"):
+    scale = size / 100.0
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    cx, cy = 50.0 * scale, 50.0 * scale
+    r = 27.73 * scale
+    
+    p1_arc = evaluate_arc(cx, cy, r, 2.7022, 5.8348, steps=50)
+    p1_bez = evaluate_bezier((75.0*scale, 38.0*scale), (65.0*scale, 37.0*scale), (44.0*scale, 45.0*scale), (25.0*scale, 62.0*scale), steps=50)
+    p1 = p1_arc + p1_bez
+    draw.polygon(p1, fill=(255, 255, 255, 255))
+    
+    p2_arc = evaluate_arc(cx, cy, r, -0.4402, 2.7022, steps=50)
+    p2_bez = evaluate_bezier((25.0*scale, 62.0*scale), (35.0*scale, 63.0*scale), (56.0*scale, 55.0*scale), (75.0*scale, 38.0*scale), steps=50)
+    p2 = p2_arc + p2_bez
+    draw.polygon(p2, fill=(255, 255, 255, 255))
+    
+    p3_fwd = evaluate_bezier((16.0*scale, 66.0*scale), (36.0*scale, 50.0*scale), (58.0*scale, 36.0*scale), (84.0*scale, 26.0*scale), steps=50)
+    p3_bwd = evaluate_bezier((84.0*scale, 26.0*scale), (64.0*scale, 46.0*scale), (42.0*scale, 60.0*scale), (16.0*scale, 66.0*scale), steps=50)
+    p3 = p3_fwd + p3_bwd
+    draw.polygon(p3, fill=(255, 121, 0, 255))
+    
+    img_resized = img.resize((256, 256), Image.Resampling.LANCZOS)
+    img_resized.save(filename, "PNG")
+
 def create_presentation():
+    # Generate background and logo images first
+    generate_background()
+    generate_logo()
+
     prs = Presentation()
     # Set slide dimensions to widescreen 16:9
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     
     # Theme Colors
-    BG_COLOR = RGBColor(8, 11, 17)        # Slate Dark
-    TEXT_WHITE = RGBColor(248, 250, 252) # Main Text
-    TEXT_MUTED = RGBColor(148, 163, 184) # Muted/Body Text
-    COLOR_INDIGO = RGBColor(99, 102, 241) # Primary Accent
-    COLOR_SKY = RGBColor(56, 189, 248)    # Highlight Accent
-    COLOR_RED = RGBColor(248, 113, 113)   # Warning Accent
-    COLOR_CARD_BG = RGBColor(16, 23, 37)  # Card Background
+    BG_COLOR = RGBColor(10, 10, 12)        # Deep Dark Slate
+    TEXT_WHITE = RGBColor(255, 255, 255)   # Main Text White
+    TEXT_MUTED = RGBColor(161, 161, 170)   # Muted/Body Text (Zinc-400)
+    COLOR_ORANGE = RGBColor(255, 121, 0)   # Suzano IT Orange Accent
+    COLOR_INDIGO = COLOR_ORANGE
+    COLOR_SKY = COLOR_ORANGE
+    COLOR_RED = RGBColor(239, 68, 68)      # Warning Accent
+    COLOR_CARD_BG = RGBColor(18, 19, 22)   # Card Background
     
     # Slide layouts (6 is blank in default template)
     blank_layout = prs.slide_layouts[6]
     
     def set_dark_background(slide):
-        background = slide.background
-        fill = background.fill
-        fill.solid()
-        fill.fore_color.rgb = BG_COLOR
+        # Add the background image shape
+        slide.shapes.add_picture('background.png', 0, 0, prs.slide_width, prs.slide_height)
         
     def add_header(slide, title_text, category_text="PLATAFORMA SAAS"):
         # Category tag
@@ -53,12 +142,12 @@ def create_presentation():
         p_title.font.bold = True
         p_title.font.color.rgb = TEXT_WHITE
         
-    def add_footer(slide, current_page, total_pages=14):
+    def add_footer(slide, current_page, total_pages=15):
         # Footer text
         footer_box = slide.shapes.add_textbox(Inches(0.8), Inches(7.0), Inches(11.7), Inches(0.4))
         footer_tf = footer_box.text_frame
         p_foot = footer_tf.paragraphs[0]
-        p_foot.text = f"SUZANO IT   |   Tecnologia para Oficinas e Frotas                                                                                   Slide {current_page} de {total_pages}"
+        p_foot.text = f"SUZANO IT   |   Tecnologia que move frotas.                                                                                          Slide {current_page} de {total_pages}"
         p_foot.font.name = 'Arial'
         p_foot.font.size = Pt(8.5)
         p_foot.font.color.rgb = TEXT_MUTED
@@ -67,7 +156,7 @@ def create_presentation():
         shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
         shape.fill.solid()
         shape.fill.fore_color.rgb = bg_color
-        shape.line.color.rgb = RGBColor(30, 41, 59) # Slate Border
+        shape.line.color.rgb = RGBColor(45, 45, 50) # Dark gray border
         shape.line.width = Pt(1)
         return shape
 
@@ -77,48 +166,94 @@ def create_presentation():
     slide = prs.slides.add_slide(blank_layout)
     set_dark_background(slide)
     
-    # Glowing decorative block
-    draw_card(slide, Inches(0.8), Inches(2.2), Inches(0.15), Inches(3.2), COLOR_INDIGO)
+    # Center Logo Image
+    slide.shapes.add_picture('logo.png', Inches(2.8), Inches(2.2), Inches(1.6), Inches(1.6))
     
-    # Capa Text Box
-    capa_box = slide.shapes.add_textbox(Inches(1.2), Inches(2.1), Inches(10.5), Inches(4))
-    tf = capa_box.text_frame
-    tf.word_wrap = True
+    # Center Logo Text Box
+    logo_text_box = slide.shapes.add_textbox(Inches(4.7), Inches(2.1), Inches(6.0), Inches(1.8))
+    tf_logo = logo_text_box.text_frame
+    tf_logo.word_wrap = True
+    tf_logo.margin_left = Inches(0)
+    tf_logo.margin_top = Inches(0)
     
-    p_main = tf.paragraphs[0]
-    p_main.text = "SUZANO IT"
-    p_main.font.name = 'Arial'
-    p_main.font.size = Pt(64)
-    p_main.font.bold = True
-    p_main.font.color.rgb = TEXT_WHITE
-    p_main.space_after = Pt(12)
+    p_main = tf_logo.paragraphs[0]
+    p_main.space_after = Pt(0)
     
-    p_slog = tf.add_paragraph()
-    p_slog.text = "Tecnologia Inteligente para Gestão de Oficinas e Frotas"
+    run1 = p_main.add_run()
+    run1.text = "Suzano"
+    run1.font.color.rgb = TEXT_WHITE
+    run1.font.name = 'Arial'
+    run1.font.size = Pt(68)
+    run1.font.bold = True
+    
+    run2 = p_main.add_run()
+    run2.text = " IT"
+    run2.font.color.rgb = COLOR_ORANGE
+    run2.font.name = 'Arial'
+    run2.font.size = Pt(68)
+    run2.font.bold = True
+    
+    # Slogan Centered Below
+    slog_box = slide.shapes.add_textbox(Inches(1.666), Inches(4.3), Inches(10.0), Inches(1.0))
+    tf_slog = slog_box.text_frame
+    tf_slog.word_wrap = True
+    p_slog = tf_slog.paragraphs[0]
+    p_slog.alignment = PP_ALIGN.CENTER
+    p_slog.text = "Tecnologia que move frotas."
     p_slog.font.name = 'Arial'
-    p_slog.font.size = Pt(24)
+    p_slog.font.size = Pt(22)
+    p_slog.font.color.rgb = TEXT_WHITE
     p_slog.font.bold = False
-    p_slog.font.color.rgb = COLOR_SKY
-    p_slog.space_after = Pt(28)
     
-    bullets = [
-        "Plataforma SaaS Multiempresa (Multi-Tenant)",
-        "Inteligência Artificial aplicada ao pós-venda automotivo",
-        "Gestão unificada de ordens de serviço, peças, financeiros e frotas"
-    ]
-    
-    for b in bullets:
-        p_b = tf.add_paragraph()
-        p_b.text = f"•  {b}"
-        p_b.font.name = 'Arial'
-        p_b.font.size = Pt(14)
-        p_b.font.color.rgb = TEXT_MUTED
-        p_b.space_after = Pt(4)
-        
     add_footer(slide, 1)
 
     # ==========================================
-    # SLIDE 2 - QUEM SOMOS
+    # SLIDE 2 - VISÃO GERAL DA PLATAFORMA
+    # ==========================================
+    slide = prs.slides.add_slide(blank_layout)
+    set_dark_background(slide)
+    add_header(slide, "Visão Geral da Plataforma", "Conceito e Integração")
+    
+    overview_intro = slide.shapes.add_textbox(Inches(0.8), Inches(1.7), Inches(11.7), Inches(0.8))
+    tf_intro = overview_intro.text_frame
+    p_intro = tf_intro.paragraphs[0]
+    p_intro.text = "Uma solução robusta desenvolvida para unificar e modernizar todas as etapas operacionais do setor."
+    p_intro.font.name = 'Arial'
+    p_intro.font.size = Pt(18)
+    p_intro.font.color.rgb = TEXT_MUTED
+    
+    # 3 Cards for the 3 main pillars
+    pillars = [
+        ("Multi-Tenant", "Plataforma SaaS multiempresa ideal para redes de oficinas, concessionárias e controle unificado de múltiplas filiais."),
+        ("Inteligência Artificial", "CMH-AI aplicada para faturamento rápido de serviços, laudos inteligentes e pós-venda automotivo de alta precisão."),
+        ("Gestão Unificada", "Controle centralizado de ordens de serviço, estoque de peças, módulos financeiros e gestão preventiva de frotas.")
+    ]
+    
+    left_positions = [0.8, 4.8, 8.8]
+    for i, (title, desc) in enumerate(pillars):
+        draw_card(slide, Inches(left_positions[i]), Inches(2.6), Inches(3.733), Inches(3.8), COLOR_CARD_BG)
+        box = slide.shapes.add_textbox(Inches(left_positions[i] + 0.1), Inches(2.8), Inches(3.533), Inches(3.4))
+        tf_sol = box.text_frame
+        tf_sol.word_wrap = True
+        
+        p_t = tf_sol.paragraphs[0]
+        p_t.text = title
+        p_t.font.name = 'Arial'
+        p_t.font.size = Pt(18)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_ORANGE
+        p_t.space_after = Pt(12)
+        
+        p_d = tf_sol.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = 'Arial'
+        p_d.font.size = Pt(13)
+        p_d.font.color.rgb = TEXT_MUTED
+        
+    add_footer(slide, 2)
+
+    # ==========================================
+    # SLIDE 3 - QUEM SOMOS
     # ==========================================
     slide = prs.slides.add_slide(blank_layout)
     set_dark_background(slide)
@@ -139,7 +274,7 @@ def create_presentation():
     pillars = [
         ("Arquitetura 100% em Nuvem", "Acessível de qualquer lugar, dispensando servidores locais."),
         ("Multiempresa (Multi-Tenant)", "Ideal para redes de oficinas e controle de múltiplas filiais."),
-        ("Inteligência Artificial", "Suzuki-AI aplicada à otimização e produtividade operacional.")
+        ("Inteligência Artificial", "CMH-AI aplicada à otimização e produtividade operacional.")
     ]
     
     top_offset = 2.0
@@ -165,7 +300,7 @@ def create_presentation():
         
         top_offset += 1.6
         
-    add_footer(slide, 2)
+    add_footer(slide, 3)
 
     # ==========================================
     # SLIDE 3 - PROBLEMAS DO MERCADO
@@ -224,7 +359,7 @@ def create_presentation():
     p_warn_body.font.color.rgb = TEXT_MUTED
     p_warn_body.space_after = Pt(14)
     
-    add_footer(slide, 3)
+    add_footer(slide, 4)
 
     # ==========================================
     # SLIDE 4 - NOSSA SOLUÇÃO
@@ -246,7 +381,7 @@ def create_presentation():
         ("Gestão de Oficina", "Ordens de serviço digitais, controle completo de peças, cadastros de clientes e histórico por placa."),
         ("Gestão de Frotas", "Controle inteligente de pneus, consumo de combustível, motoristas e planos de manutenção preventiva."),
         ("Controle Financeiro", "Contas a pagar/receber integradas à operação, DRE estruturado e acompanhamento de fluxo de caixa."),
-        ("Inteligência Artificial", "Modelagem preditiva Suzuki-AI para geração automática de NF-e e diagnósticos de desgaste.")
+        ("Inteligência Artificial", "Modelagem preditiva CMH-AI para geração automática de NF-e e diagnósticos de desgaste.")
     ]
     
     left_positions = [0.8, 3.8, 6.8, 9.8]
@@ -270,7 +405,7 @@ def create_presentation():
         p_d.font.size = Pt(13)
         p_d.font.color.rgb = TEXT_MUTED
         
-    add_footer(slide, 4)
+    add_footer(slide, 5)
 
     # ==========================================
     # SLIDE 5 - GESTÃO DE OFICINA
@@ -328,7 +463,7 @@ def create_presentation():
     p_res_body.font.size = Pt(15)
     p_res_body.font.color.rgb = TEXT_MUTED
     
-    add_footer(slide, 5)
+    add_footer(slide, 6)
 
     # ==========================================
     # SLIDE 6 - GESTÃO DE FROTAS
@@ -386,14 +521,14 @@ def create_presentation():
     p_res_body.font.size = Pt(15)
     p_res_body.font.color.rgb = TEXT_MUTED
     
-    add_footer(slide, 6)
+    add_footer(slide, 7)
 
     # ==========================================
     # SLIDE 7 - INTELIGÊNCIA ARTIFICIAL
     # ==========================================
     slide = prs.slides.add_slide(blank_layout)
     set_dark_background(slide)
-    add_header(slide, "Inteligência Artificial Integrada", "Tecnologia Suzuki-AI")
+    add_header(slide, "Inteligência Artificial Integrada", "Tecnologia CMH-AI")
     
     left_box = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(5.8), Inches(4.8))
     tf_left = left_box.text_frame
@@ -429,7 +564,7 @@ def create_presentation():
     tf_right.word_wrap = True
     
     p_res_head = tf_right.paragraphs[0]
-    p_res_head.text = "EXEMPLO DE USO PRÁTICO (SUZUKI-AI)"
+    p_res_head.text = "EXEMPLO DE USO PRÁTICO (CMH-AI)"
     p_res_head.font.name = 'Arial'
     p_res_head.font.size = Pt(14)
     p_res_head.font.bold = True
@@ -442,7 +577,7 @@ def create_presentation():
     p_res_body.font.size = Pt(13)
     p_res_body.font.color.rgb = TEXT_MUTED
     
-    add_footer(slide, 7)
+    add_footer(slide, 8)
 
     # ==========================================
     # SLIDE 8 - DIFERENCIAIS
@@ -488,7 +623,7 @@ def create_presentation():
         p_d.font.size = Pt(12)
         p_d.font.color.rgb = TEXT_MUTED
         
-    add_footer(slide, 8)
+    add_footer(slide, 9)
 
     # ==========================================
     # SLIDE 9 - MODELO DE NEGÓCIO
@@ -566,7 +701,7 @@ def create_presentation():
             p_f.font.color.rgb = TEXT_MUTED
             p_f.space_after = Pt(6)
             
-    add_footer(slide, 9)
+    add_footer(slide, 10)
 
     # ==========================================
     # SLIDE 10 - MERCADO
@@ -622,7 +757,7 @@ def create_presentation():
     p_res_body.font.size = Pt(15)
     p_res_body.font.color.rgb = TEXT_MUTED
     
-    add_footer(slide, 10)
+    add_footer(slide, 11)
 
     # ==========================================
     # SLIDE 11 - ARQUITETURA
@@ -660,7 +795,7 @@ def create_presentation():
         p_det.font.size = Pt(12)
         p_det.font.color.rgb = TEXT_MUTED
         
-    add_footer(slide, 11)
+    add_footer(slide, 12)
 
     # ==========================================
     # SLIDE 12 - ROADMAP
@@ -711,7 +846,7 @@ def create_presentation():
         p_s.font.size = Pt(11)
         p_s.font.color.rgb = RGBColor(34, 197, 94) if "Concluído" in status else (COLOR_SKY if "Próximo" in status else TEXT_MUTED)
         
-    add_footer(slide, 12)
+    add_footer(slide, 13)
 
     # ==========================================
     # SLIDE 13 - BENEFÍCIOS PARA O CLIENTE
@@ -749,54 +884,76 @@ def create_presentation():
         p_d.font.size = Pt(13)
         p_d.font.color.rgb = TEXT_MUTED
         
-    add_footer(slide, 13)
+    add_footer(slide, 14)
 
     # ==========================================
-    # SLIDE 14 - ENCERRAMENTO
+    # SLIDE 15 - ENCERRAMENTO
     # ==========================================
     slide = prs.slides.add_slide(blank_layout)
     set_dark_background(slide)
     
-    draw_card(slide, Inches(2.0), Inches(1.8), Inches(9.333), Inches(4.2), COLOR_CARD_BG)
+    draw_card(slide, Inches(2.0), Inches(1.5), Inches(9.333), Inches(4.8), COLOR_CARD_BG)
     
-    box = slide.shapes.add_textbox(Inches(2.3), Inches(2.0), Inches(8.733), Inches(3.8))
-    tf = box.text_frame
-    tf.word_wrap = True
+    # Center Logo Image inside the card
+    slide.shapes.add_picture('logo.png', Inches(4.3), Inches(2.0), Inches(1.2), Inches(1.2))
     
-    p_brand = tf.paragraphs[0]
-    p_brand.text = "SUZANO IT"
-    p_brand.alignment = PP_ALIGN.CENTER
-    p_brand.font.name = 'Arial'
-    p_brand.font.size = Pt(40)
-    p_brand.font.bold = True
-    p_brand.font.color.rgb = TEXT_WHITE
-    p_brand.space_after = Pt(8)
+    # Center Logo Text Box inside the card
+    logo_text_box = slide.shapes.add_textbox(Inches(5.7), Inches(1.95), Inches(4.0), Inches(1.3))
+    tf_logo = logo_text_box.text_frame
+    tf_logo.word_wrap = True
+    tf_logo.margin_left = Inches(0)
+    tf_logo.margin_top = Inches(0)
+    p_main = tf_logo.paragraphs[0]
+    p_main.space_after = Pt(0)
     
-    p_slog = tf.add_paragraph()
-    p_slog.text = "Tecnologia Inteligente para Gestão de Oficinas e Frotas"
+    run1 = p_main.add_run()
+    run1.text = "Suzano"
+    run1.font.color.rgb = TEXT_WHITE
+    run1.font.name = 'Arial'
+    run1.font.size = Pt(48)
+    run1.font.bold = True
+    
+    run2 = p_main.add_run()
+    run2.text = " IT"
+    run2.font.color.rgb = COLOR_ORANGE
+    run2.font.name = 'Arial'
+    run2.font.size = Pt(48)
+    run2.font.bold = True
+    
+    # Slogan Centered Below Logo inside the card
+    slog_box = slide.shapes.add_textbox(Inches(2.5), Inches(3.4), Inches(8.333), Inches(0.6))
+    tf_slog = slog_box.text_frame
+    tf_slog.word_wrap = True
+    p_slog = tf_slog.paragraphs[0]
     p_slog.alignment = PP_ALIGN.CENTER
+    p_slog.text = "Tecnologia que move frotas."
     p_slog.font.name = 'Arial'
-    p_slog.font.size = Pt(16)
-    p_slog.font.color.rgb = COLOR_SKY
-    p_slog.space_after = Pt(28)
+    p_slog.font.size = Pt(18)
+    p_slog.font.color.rgb = TEXT_WHITE
+    p_slog.font.bold = False
     
-    p_contact = tf.add_paragraph()
-    p_contact.text = "Website: www.suzanoit.com.br\nE-mail: contato@suzanoit.com.br"
+    # Contact Info centered at bottom of the card
+    contact_box = slide.shapes.add_textbox(Inches(2.5), Inches(4.1), Inches(8.333), Inches(1.2))
+    tf_contact = contact_box.text_frame
+    tf_contact.word_wrap = True
+    
+    p_contact = tf_contact.paragraphs[0]
     p_contact.alignment = PP_ALIGN.CENTER
+    p_contact.text = "Website: www.suzanoit.com.br   |   E-mail: contato@suzanoit.com.br"
     p_contact.font.name = 'Arial'
-    p_contact.font.size = Pt(14)
+    p_contact.font.size = Pt(13)
     p_contact.font.color.rgb = TEXT_MUTED
-    p_contact.space_after = Pt(28)
+    p_contact.space_after = Pt(14)
     
-    p_quote = tf.add_paragraph()
-    p_quote.text = '"Mais controle. Mais produtividade. Mais resultado."'
+    p_quote = tf_contact.add_paragraph()
     p_quote.alignment = PP_ALIGN.CENTER
+    p_quote.text = '"Mais controle. Mais produtividade. Mais resultado."'
     p_quote.font.name = 'Arial'
-    p_quote.font.size = Pt(16)
+    p_quote.font.size = Pt(14)
     p_quote.font.bold = True
-    p_quote.font.color.rgb = COLOR_SKY
+    p_quote.font.color.rgb = COLOR_ORANGE
     
-    add_footer(slide, 14)
+    add_footer(slide, 15)
 
     # Save presentation
     filename = "Apresentacao_Suzano_IT.pptx"
@@ -805,3 +962,4 @@ def create_presentation():
 
 if __name__ == "__main__":
     create_presentation()
+
