@@ -5,15 +5,13 @@ import {
   Plus, 
   Edit3, 
   Copy, 
-  Trash2, 
   CheckCircle, 
   XCircle, 
   X,
   Users,
   Wrench,
   Building,
-  FileText,
-  DollarSign
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 

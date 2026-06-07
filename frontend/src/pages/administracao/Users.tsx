@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
 import { SaaSAPIService } from '../../services/saas';
 import { 
-  Users2, 
   Plus, 
   Edit3, 
   Lock, 
-  Trash2, 
-  Check, 
   X,
-  ShieldAlert,
-  ShieldCheck,
   Mail,
   User,
   Clock

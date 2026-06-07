@@ -2,25 +2,18 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SaaSAPIService } from '../../services/saas';
 import { 
-  Building2, 
   Search, 
-  Filter, 
   Plus, 
   MoreVertical, 
-  Eye, 
   Edit3, 
   Ban, 
-  RefreshCw, 
   FileText, 
   Download, 
   Lock, 
   History,
   Check,
   AlertTriangle,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  TrendingUp
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -180,15 +173,14 @@ export function Tenants() {
 
   const handleStatusChange = async (tenant: any, action: 'block' | 'suspend' | 'reactivate') => {
     try {
-      let updated;
       if (action === 'block') {
-        updated = await SaaSAPIService.blockTenant(tenant.id);
+        await SaaSAPIService.blockTenant(tenant.id);
         toast.warning(`Empresa ${tenant.razaoSocial} bloqueada.`);
       } else if (action === 'suspend') {
-        updated = await SaaSAPIService.suspendTenant(tenant.id);
+        await SaaSAPIService.suspendTenant(tenant.id);
         toast.warning(`Empresa ${tenant.razaoSocial} suspensa.`);
       } else {
-        updated = await SaaSAPIService.reactivateTenant(tenant.id);
+        await SaaSAPIService.reactivateTenant(tenant.id);
         toast.success(`Empresa ${tenant.razaoSocial} reativada.`);
       }
       setIsActionMenuOpen(null);

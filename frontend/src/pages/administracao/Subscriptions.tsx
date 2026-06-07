@@ -2,17 +2,11 @@ import { useState, useEffect } from 'react';
 import { SaaSAPIService } from '../../services/saas';
 import { 
   CreditCard, 
-  Activity, 
   Check, 
   X, 
   Calendar, 
-  AlertOctagon, 
-  FileText, 
   Terminal, 
-  RefreshCw,
-  Building,
-  UserCheck,
-  TrendingUp
+  Building
 } from 'lucide-react';
 import { toast } from 'sonner';
 
