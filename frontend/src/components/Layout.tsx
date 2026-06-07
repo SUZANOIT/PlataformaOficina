@@ -21,7 +21,8 @@ import {
   Calendar,
   UserCheck,
   Tag,
-  CreditCard
+  CreditCard,
+  Presentation
 } from 'lucide-react';
 
 export function Layout() {
@@ -459,6 +460,15 @@ export function Layout() {
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
+          <Link
+            to="/apresentacao"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-primary font-semibold transition-colors text-sm"
+          >
+            <Presentation size={20} />
+            <span>Apresentação Suzano IT</span>
+          </Link>
+          
           <button 
             onClick={() => {
               setIsMobileMenuOpen(false);
@@ -813,6 +823,14 @@ export function Layout() {
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
+          <Link
+            to="/apresentacao"
+            className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-primary font-semibold transition-colors text-sm"
+          >
+            <Presentation size={20} />
+            <span>Apresentação Suzano IT</span>
+          </Link>
+
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors text-sm font-medium"

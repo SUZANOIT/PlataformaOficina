@@ -872,3 +872,182 @@ model SaaSAuditoria {
 
   @@map("saas_auditoria")
 }
+
+model SaaSTenant {
+  id               String   @id @default(uuid())
+  razaoSocial      String   @map("razao_social")
+  nomeFantasia     String?  @map("nome_fantasia")
+  cnpj             String   @unique
+  email            String
+  telefone         String?
+  responsavel      String
+  planoId          String?  @map("plano_id")
+  plan             SaaSPlan? @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  dataContratacao  DateTime @default(now()) @map("data_contratacao")
+  dataVencimento   DateTime? @map("data_vencimento")
+  status           String   @default("Trial") // Ativa, Suspensa, Bloqueada, Trial
+  limiteUsuarios   Int      @default(5) @map("limite_usuarios")
+  limiteVeiculos   Int      @default(100) @map("limite_veiculos")
+  limiteOficinas   Int      @default(3) @map("limite_oficinas")
+  limiteOs         Int      @default(100) @map("limite_os")
+  companyId        String?  @unique @map("company_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  subscriptions    SaaSSubscription[]
+  tenantModules    SaaSTenantModule[]
+
+  @@map("saas_tenants")
+}
+
+model SaaSPlan {
+  id             String   @id @default(uuid())
+  nome           String   @unique
+  descricao      String?
+  valorMensal    Float    @map("valor_mensal")
+  valorAnual     Float    @map("valor_anual")
+  limiteUsuarios Int      @map("limite_usuarios")
+  limiteVeiculos Int      @map("limite_veiculos")
+  limiteOficinas Int      @map("limite_oficinas")
+  limiteOs       Int      @map("limite_os")
+  beneficios     String?  @db.Text
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenants        SaaSTenant[]
+  subscriptions  SaaSSubscription[]
+
+  @@map("saas_plans")
+}
+
+model SaaSSubscription {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  tenant          SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planoId         String    @map("plano_id")
+  plan            SaaSPlan  @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  valor           Float
+  formaPagamento  String    @map("forma_pagamento") // Mercado Pago, Asaas, PagSeguro, Stripe
+  status          String    @default("Ativa") // Ativa, Pendente, Atrasada, Cancelada, Expirada
+  dataInicio      DateTime  @default(now()) @map("data_inicio")
+  dataRenovacao   DateTime  @map("data_renovacao")
+  ultimoPagamento DateTime? @map("ultimo_pagamento")
+  proximoPagamento DateTime? @map("proximo_pagamento")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("saas_subscriptions")
+}
+
+model SaaSModule {
+  id             String             @id @default(uuid())
+  nome           String
+  chave          String             @unique
+  descricao      String?
+  valorAdicional Float              @default(0) @map("valor_adicional")
+  ativo          Boolean            @default(true)
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  tenantModules  SaaSTenantModule[]
+
+  @@map("saas_modules")
+}
+
+model SaaSTenantModule {
+  id                   String     @id @default(uuid())
+  tenantId             String     @map("tenant_id")
+  tenant               SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleId             String     @map("module_id")
+  module               SaaSModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  ativo                Boolean    @default(true)
+  configuracao         String?    @db.Text
+  valorAdicionalCobrado Float      @default(0) @map("valor_adicional_cobrado")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  @@unique([tenantId, moduleId])
+  @@map("saas_tenant_modules")
+}
+
+model SaaSUser {
+  id          String    @id @default(uuid())
+  nome        String
+  email       String    @unique
+  password    String
+  roleId      String?   @map("role_id")
+  role        SaaSRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  status      String    @default("ATIVO") // ATIVO, BLOQUEADO
+  ultimoLogin DateTime? @map("ultimo_login")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("saas_users")
+}
+
+model SaaSRole {
+  id          String           @id @default(uuid())
+  nome        String           @unique
+  descricao   String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  users       SaaSUser[]
+  permissions SaaSRolePermission[]
+
+  @@map("saas_roles")
+}
+
+model SaaSPermission {
+  id          String           @id @default(uuid())
+  nome        String           @unique
+  descricao   String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  roles       SaaSRolePermission[]
+
+  @@map("saas_permissions")
+}
+
+model SaaSRolePermission {
+  roleId       String         @map("role_id")
+  role         SaaSRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String         @map("permission_id")
+  permission   SaaSPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("saas_role_permissions")
+}
+
+model SaaSAuditLog {
+  id        String   @id @default(uuid())
+  usuario   String
+  tenant    String?
+  acao      String
+  detalhes  String?  @db.Text
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("saas_audit_logs")
+}
+
+model SaaSNotification {
+  id        String   @id @default(uuid())
+  titulo    String
+  mensagem  String   @db.Text
+  tipo      String   @default("INFO") // INFO, WARNING, SUCCESS, ERROR
+  lida      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("saas_notifications")
+}
+
+model SaaSSetting {
+  id        String   @id @default(uuid())
+  chave     String   @unique
+  valor     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("saas_settings")
+}
+

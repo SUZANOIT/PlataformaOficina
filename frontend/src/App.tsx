@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -32,6 +32,24 @@ import { SaaSDashboard } from './pages/SaaSDashboard';
 import { ModuleGuard } from './components/ModuleGuard';
 import { SaaSAdminGuard } from './components/SaaSAdminGuard';
 import { MyPlan } from './pages/MyPlan';
+import { Presentation } from './pages/Presentation';
+
+import { SaaSAuthProvider } from './context/SaaSAuthProvider';
+import { SaaSAuthGuard } from './components/SaaSAuthGuard';
+import { SaaSLayout } from './components/SaaSLayout';
+
+import { Login as SaaSLogin } from './pages/administracao/Login';
+import { Dashboard as SaaSDashboardPage } from './pages/administracao/Dashboard';
+import { Tenants } from './pages/administracao/Tenants';
+import { Plans } from './pages/administracao/Plans';
+import { Subscriptions } from './pages/administracao/Subscriptions';
+import { Modules } from './pages/administracao/Modules';
+import { Users as SaaSUsers } from './pages/administracao/Users';
+import { Financial as SaaSFinancial } from './pages/administracao/Financial';
+import { Auditoria } from './pages/administracao/Auditoria';
+import { Notificacoes as SaaSNotificacoes } from './pages/administracao/Notificacoes';
+import { Monitoramento as SaaSMonitoramento } from './pages/administracao/Monitoramento';
+import { Configuracoes as SaaSConfiguracoes } from './pages/administracao/Configuracoes';
 
 function App() {
   return (
@@ -42,6 +60,36 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/session-expired" element={<SessionExpired />} />
+            <Route path="/apresentacao" element={<Presentation />} />
+            <Route path="/presentation" element={<Presentation />} />
+
+            {/* Rotas Independentes da Administração SaaS */}
+            <Route path="/administracao/login" element={
+              <SaaSAuthProvider>
+                <SaaSLogin />
+              </SaaSAuthProvider>
+            } />
+
+            <Route path="/administracao" element={
+              <SaaSAuthProvider>
+                <SaaSAuthGuard>
+                  <SaaSLayout />
+                </SaaSAuthGuard>
+              </SaaSAuthProvider>
+            }>
+              <Route index element={<Navigate to="/administracao/dashboard" replace />} />
+              <Route path="dashboard" element={<SaaSDashboardPage />} />
+              <Route path="empresas" element={<SaaSAuthGuard permission="empresas"><Tenants /></SaaSAuthGuard>} />
+              <Route path="usuarios" element={<SaaSAuthGuard permission="usuarios"><SaaSUsers /></SaaSAuthGuard>} />
+              <Route path="planos" element={<SaaSAuthGuard permission="planos"><Plans /></SaaSAuthGuard>} />
+              <Route path="assinaturas" element={<SaaSAuthGuard permission="assinaturas"><Subscriptions /></SaaSAuthGuard>} />
+              <Route path="modulos" element={<SaaSAuthGuard permission="modulos"><Modules /></SaaSAuthGuard>} />
+              <Route path="financeiro" element={<SaaSAuthGuard permission="financeiro"><SaaSFinancial /></SaaSAuthGuard>} />
+              <Route path="auditoria" element={<SaaSAuthGuard permission="auditoria"><Auditoria /></SaaSAuthGuard>} />
+              <Route path="notificacoes" element={<SaaSAuthGuard permission="configuracoes"><SaaSNotificacoes /></SaaSAuthGuard>} />
+              <Route path="monitoramento" element={<SaaSAuthGuard permission="configuracoes"><SaaSMonitoramento /></SaaSAuthGuard>} />
+              <Route path="configuracoes" element={<SaaSAuthGuard permission="configuracoes"><SaaSConfiguracoes /></SaaSAuthGuard>} />
+            </Route>
             
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />

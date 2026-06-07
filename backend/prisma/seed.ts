@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -201,6 +202,195 @@ async function main() {
   });
 
   console.log(`✅ Orçamentos criados: #${orcamento1.id}, #${orcamento2.id}, #${orcamento3.id}`);
+
+  // ─── SaaS Seed ──────────────────────────────────────────────────────────────
+  console.log('🌱 Iniciando seed do SaaS...');
+
+  // 1. Módulos do Marketplace
+  const modulosSaaS = [
+    { nome: 'Gestão de Oficina', chave: 'oficina', descricao: 'Controle de ordens de serviço, clientes e peças.', valorAdicional: 0 },
+    { nome: 'Gestão de Frota', chave: 'frotas', descricao: 'Gestão preventiva de veículos e controle de frotas.', valorAdicional: 49.90 },
+    { nome: 'Financeiro', chave: 'financeiro', descricao: 'Controle de contas a pagar, receber, caixa e faturamento.', valorAdicional: 29.90 },
+    { nome: 'Relatórios BI', chave: 'bi', descricao: 'Relatórios avançados e gráficos analíticos de desempenho.', valorAdicional: 39.90 },
+    { nome: 'IA para Diagnóstico', chave: 'ia', descricao: 'Inteligência artificial para auxiliar no diagnóstico de falhas.', valorAdicional: 79.90 },
+    { nome: 'Emissão de NF-e', chave: 'fiscal', descricao: 'Emissão automatizada de notas fiscais de serviços (NFS-e).', valorAdicional: 19.90 },
+    { nome: 'Integração FIPE', chave: 'fipe', descricao: 'Consulta em tempo real de preços de veículos na tabela FIPE.', valorAdicional: 9.90 },
+    { nome: 'Integração ReceitaWS', chave: 'receitaws', descricao: 'Preenchimento automático de dados de empresas via Receita Federal.', valorAdicional: 9.90 },
+    { nome: 'API Externa', chave: 'api', descricao: 'Acesso a rotas de API externas para integração com outros sistemas.', valorAdicional: 99.90 },
+    { nome: 'Aplicativo Mobile', chave: 'mobile', descricao: 'Aplicativo exclusivo para mecânicos e clientes finais.', valorAdicional: 59.90 }
+  ];
+
+  for (const m of modulosSaaS) {
+    await prisma.saaSModule.upsert({
+      where: { chave: m.chave },
+      update: { nome: m.nome, descricao: m.descricao, valorAdicional: m.valorAdicional },
+      create: m
+    });
+  }
+
+  // 2. Planos do SaaS
+  const planosSaaS = [
+    { nome: 'Starter', descricao: 'Ideal para oficinas iniciantes.', valorMensal: 99.90, valorAnual: 990.00, limiteUsuarios: 5, limiteVeiculos: 100, limiteOficinas: 1, limiteOs: 100, beneficios: 'Painel Geral, Orçamentos, Clientes básicos.', ativo: true },
+    { nome: 'Professional', descricao: 'Para oficinas em crescimento.', valorMensal: 199.90, valorAnual: 1990.00, limiteUsuarios: 15, limiteVeiculos: 500, limiteOficinas: 3, limiteOs: 500, beneficios: 'Financeiro Completo, Fornecedores, Central Fiscal.', ativo: true },
+    { nome: 'Enterprise', descricao: 'Para grandes redes de oficinas.', valorMensal: 399.90, valorAnual: 3990.00, limiteUsuarios: 999, limiteVeiculos: 99999, limiteOficinas: 99, limiteOs: 99999, beneficios: 'Marketplace de módulos liberado, Multiempresa, WhatsApp, BI.', ativo: true }
+  ];
+
+  for (const p of planosSaaS) {
+    await prisma.saaSPlan.upsert({
+      where: { nome: p.nome },
+      update: { descricao: p.descricao, valorMensal: p.valorMensal, valorAnual: p.valorAnual, limiteUsuarios: p.limiteUsuarios, limiteVeiculos: p.limiteVeiculos, limiteOficinas: p.limiteOficinas, limiteOs: p.limiteOs, beneficios: p.beneficios },
+      create: p
+    });
+  }
+
+  // 3. Permissões de RBAC
+  const permissoesSaaS = [
+    { nome: 'total', descricao: 'Acesso total ao portal administrativo' },
+    { nome: 'empresas', descricao: 'Gestão de Tenants (Empresas)' },
+    { nome: 'planos', descricao: 'Gestão de Planos' },
+    { nome: 'assinaturas', descricao: 'Gestão de Assinaturas' },
+    { nome: 'financeiro', descricao: 'Financeiro SaaS' },
+    { nome: 'usuarios', descricao: 'Gestão de Usuários Globais' },
+    { nome: 'auditoria', descricao: 'Ver logs de Auditoria' },
+    { nome: 'configuracoes', descricao: 'Configurações Globais do SaaS' },
+    { nome: 'modulos', descricao: 'Marketplace de Módulos' }
+  ];
+
+  for (const perm of permissoesSaaS) {
+    await prisma.saaSPermission.upsert({
+      where: { nome: perm.nome },
+      update: { descricao: perm.descricao },
+      create: perm
+    });
+  }
+
+  // 4. Perfis de RBAC (Roles)
+  const perfisSaaS = [
+    { nome: 'SUPER_ADMIN', descricao: 'Acesso irrestrito ao sistema', permissions: ['total'] },
+    { nome: 'COMERCIAL', descricao: 'Equipe de vendas', permissions: ['empresas', 'planos', 'assinaturas'] },
+    { nome: 'FINANCEIRO', descricao: 'Equipe financeira', permissions: ['financeiro', 'assinaturas'] },
+    { nome: 'SUPORTE', descricao: 'Atendimento e suporte ao cliente', permissions: ['empresas', 'usuarios', 'auditoria'] },
+    { nome: 'IMPLANTACAO', descricao: 'Instalação e configuração de tenants', permissions: ['empresas', 'configuracoes', 'modulos'] }
+  ];
+
+  for (const perf of perfisSaaS) {
+    const role = await prisma.saaSRole.upsert({
+      where: { nome: perf.nome },
+      update: { descricao: perf.descricao },
+      create: { nome: perf.nome, descricao: perf.descricao }
+    });
+
+    // Vincular permissões ao perfil
+    for (const permName of perf.permissions) {
+      const perm = await prisma.saaSPermission.findUnique({ where: { nome: permName } });
+      if (perm) {
+        await prisma.saaSRolePermission.upsert({
+          where: { roleId_permissionId: { roleId: role.id, permissionId: perm.id } },
+          update: {},
+          create: { roleId: role.id, permissionId: perm.id }
+        });
+      }
+    }
+  }
+
+  // 5. Usuários Globais do SaaS
+  const usuariosSaaS = [
+    { nome: 'Admin Master', email: 'superadmin@suzanoit.com', role: 'SUPER_ADMIN', senha: 'admin123' },
+    { nome: 'Vendedor Comercial', email: 'comercial@suzanoit.com', role: 'COMERCIAL', senha: 'comercial123' },
+    { nome: 'Financeiro SaaS', email: 'financeiro@suzanoit.com', role: 'FINANCEIRO', senha: 'financeiro123' },
+    { nome: 'Suporte Técnico', email: 'suporte@suzanoit.com', role: 'SUPORTE', senha: 'suporte123' },
+    { nome: 'Implantador Sistema', email: 'implantacao@suzanoit.com', role: 'IMPLANTACAO', senha: 'implantacao123' }
+  ];
+
+  for (const u of usuariosSaaS) {
+    const role = await prisma.saaSRole.findUnique({ where: { nome: u.role } });
+    if (role) {
+      const hashedPassword = await bcrypt.hash(u.senha, 10);
+      await prisma.saaSUser.upsert({
+        where: { email: u.email },
+        update: { nome: u.nome, roleId: role.id, password: hashedPassword },
+        create: { nome: u.nome, email: u.email, password: hashedPassword, roleId: role.id, status: 'ATIVO' }
+      });
+    }
+  }
+
+  // 6. Configurações Iniciais do SaaS
+  const configsIniciais = [
+    { chave: 'nome_plataforma', valor: 'SuzanoIT Gestão de Oficina' },
+    { chave: 'branding', valor: JSON.stringify({ corPrimaria: '#4f46e5', corSecundaria: '#1e1b4b', logo: '' }) },
+    { chave: 'smtp', valor: JSON.stringify({ host: 'smtp.suzanoit.com', port: 587, user: 'alertas@suzanoit.com' }) },
+    { chave: 'trial_days', valor: '30' }
+  ];
+
+  for (const c of configsIniciais) {
+    await prisma.saaSSetting.upsert({
+      where: { chave: c.chave },
+      update: { valor: c.valor },
+      create: c
+    });
+  }
+
+  // 7. Sincronizar as empresas operacionais existentes com a tabela saas_tenants
+  const companies = await prisma.company.findMany();
+  const starterPlan = await prisma.saaSPlan.findUnique({ where: { nome: 'Starter' } });
+  const enterprisePlan = await prisma.saaSPlan.findUnique({ where: { nome: 'Enterprise' } });
+
+  for (const comp of companies) {
+    const planoEscolhido = comp.cnpj === '12.345.678/0001-90' ? starterPlan : enterprisePlan;
+
+    const tenant = await prisma.saaSTenant.upsert({
+      where: { cnpj: comp.cnpj },
+      update: {
+        razaoSocial: comp.razaoSocial,
+        nomeFantasia: comp.nomeFantasia || comp.razaoSocial,
+        email: comp.email || 'contato@oficina.com.br',
+        telefone: comp.telefone || '(11) 99999-9999',
+        responsavel: 'Admin Proprietário',
+        planoId: planoEscolhido?.id,
+        status: 'Ativa',
+        companyId: comp.id
+      },
+      create: {
+        id: comp.id,
+        razaoSocial: comp.razaoSocial,
+        nomeFantasia: comp.nomeFantasia || comp.razaoSocial,
+        cnpj: comp.cnpj,
+        email: comp.email || 'contato@oficina.com.br',
+        telefone: comp.telefone || '(11) 99999-9999',
+        responsavel: 'Admin Proprietário',
+        planoId: planoEscolhido?.id,
+        status: 'Ativa',
+        companyId: comp.id,
+        limiteUsuarios: planoEscolhido?.limiteUsuarios ?? 5,
+        limiteVeiculos: planoEscolhido?.limiteVeiculos ?? 100,
+        limiteOficinas: planoEscolhido?.limiteOficinas ?? 3,
+        limiteOs: planoEscolhido?.limiteOs ?? 100
+      }
+    });
+
+    if (planoEscolhido) {
+      await prisma.saaSSubscription.upsert({
+        where: { id: tenant.id },
+        update: {
+          planoId: planoEscolhido.id,
+          valor: planoEscolhido.valorMensal,
+          status: 'Ativa'
+        },
+        create: {
+          id: tenant.id,
+          tenantId: tenant.id,
+          planoId: planoEscolhido.id,
+          valor: planoEscolhido.valorMensal,
+          formaPagamento: 'Stripe',
+          status: 'Ativa',
+          dataInicio: new Date(),
+          dataRenovacao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        }
+      });
+    }
+  }
+
+  console.log('✅ SaaS Seed concluído!');
   console.log('');
   console.log('🎉 Seed concluído com sucesso!');
   console.log(`   • 2 empresas`);

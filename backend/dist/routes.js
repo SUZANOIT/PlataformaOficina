@@ -20,6 +20,9 @@ const saas_controller_1 = require("./controllers/saas.controller");
 const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const admin_saas_controller_1 = require("./controllers/admin-saas.controller");
 const super_admin_middleware_1 = require("./middlewares/super-admin.middleware");
+const saas_auth_controller_1 = require("./controllers/saas-auth.controller");
+const saas_portal_controller_1 = require("./controllers/saas-portal.controller");
+const saas_auth_middleware_1 = require("./middlewares/saas-auth.middleware");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const routes = (0, express_1.Router)();
 exports.routes = routes;
@@ -253,3 +256,51 @@ routes.post('/api/admin/faturamento/alterar-status', admin_saas_controller_1.Adm
 // Configurações
 routes.get('/api/admin/configuracoes', admin_saas_controller_1.AdminSaaSController.getConfiguracoes);
 routes.post('/api/admin/configuracoes', admin_saas_controller_1.AdminSaaSController.salvarConfiguracoes);
+// ==================================================================
+// NOVAS ROTAS SAAS TOTALMENTE INDEPENDENTES
+// ==================================================================
+// Autenticação Pública do SaaS Admin Portal
+routes.post('/api/saas/auth/login', saas_auth_controller_1.SaaSAuthController.login);
+routes.get('/api/saas/auth/me', saas_auth_middleware_1.saasAuthMiddleware, saas_auth_controller_1.SaaSAuthController.me);
+// Rotas Administrativas Privadas Protegidas por RBAC
+routes.get('/api/saas/admin/dashboard', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.getDashboard);
+// CRUD Tenants (Empresas)
+routes.get('/api/saas/admin/tenants', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.listTenants);
+routes.get('/api/saas/admin/tenants/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.getTenant);
+routes.post('/api/saas/admin/tenants', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.createTenant);
+routes.put('/api/saas/admin/tenants/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.updateTenant);
+routes.post('/api/saas/admin/tenants/block', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.blockTenant);
+routes.post('/api/saas/admin/tenants/suspend', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.suspendTenant);
+routes.post('/api/saas/admin/tenants/reactivate', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.reactivateTenant);
+routes.post('/api/saas/admin/tenants/reset-password', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.resetTenantAdminPassword);
+routes.get('/api/saas/admin/tenants/:id/history', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.getTenantHistory);
+// CRUD Planos
+routes.get('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.listPlans);
+routes.post('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.createPlan);
+routes.put('/api/saas/admin/plans/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.updatePlan);
+routes.post('/api/saas/admin/plans/duplicate', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.duplicatePlan);
+// Assinaturas & Gateway
+routes.get('/api/saas/admin/subscriptions', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('assinaturas'), saas_portal_controller_1.SaaSPortalController.listSubscriptions);
+routes.post('/api/saas/admin/subscriptions/renovate', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('assinaturas'), saas_portal_controller_1.SaaSPortalController.renovateSubscription);
+routes.post('/api/saas/admin/subscriptions/cancel', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('assinaturas'), saas_portal_controller_1.SaaSPortalController.cancelSubscription);
+routes.get('/api/saas/admin/gateway-logs', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('assinaturas'), saas_portal_controller_1.SaaSPortalController.getGatewayLogs);
+// Módulos
+routes.get('/api/saas/admin/modules', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('modulos'), saas_portal_controller_1.SaaSPortalController.listModules);
+routes.post('/api/saas/admin/modules/toggle', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('modulos'), saas_portal_controller_1.SaaSPortalController.toggleTenantModule);
+// Usuários do Portal SaaS & Perfis
+routes.get('/api/saas/admin/users', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.listUsers);
+routes.post('/api/saas/admin/users', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.createUser);
+routes.put('/api/saas/admin/users/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.updateUser);
+routes.post('/api/saas/admin/users/reset-password', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.resetUserPassword);
+routes.get('/api/saas/admin/roles', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.listRoles);
+// Financeiro
+routes.get('/api/saas/admin/financial-stats', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('financeiro'), saas_portal_controller_1.SaaSPortalController.getFinancialStats);
+// Auditoria
+routes.get('/api/saas/admin/audit-logs', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('auditoria'), saas_portal_controller_1.SaaSPortalController.listAuditLogs);
+// Monitoramento & Configurações
+routes.get('/api/saas/admin/telemetry', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.getTelemetry);
+routes.get('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.getSettings);
+routes.post('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.saveSettings);
+// Notificações
+routes.get('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.listNotifications);
+routes.post('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.createNotification);
