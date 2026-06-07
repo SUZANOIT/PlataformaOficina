@@ -12,6 +12,8 @@ import { FinancialCategoryController } from './controllers/financial-category.co
 import { FiscalController } from './controllers/fiscal.controller';
 import { SaaSController } from './controllers/saas.controller';
 import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
+import { AdminSaaSController } from './controllers/admin-saas.controller';
+import { superAdminMiddleware } from './middlewares/super-admin.middleware';
 import jwt from 'jsonwebtoken';
 
 const routes = Router();
@@ -232,6 +234,53 @@ routes.get('/api/empresas/:id', SaaSController.getCompany);
 routes.put('/api/empresas/:id', SaaSController.updateCompany);
 routes.post('/api/empresas/buscar-cnpj', SaaSController.buscarCnpj);
 routes.post('/api/empresas/alterar-plano', SaaSController.updateSubscription);
-routes.post('/api/empresas/acessar-cliente', SaaSController.acessarCliente);
+// Novo Módulo de Administração SaaS Independente (/api/admin/*)
+routes.use('/api/admin', authMiddleware, superAdminMiddleware);
+
+// Dashboard
+routes.get('/api/admin/dashboard', AdminSaaSController.getDashboardStats);
+
+// Empresas
+routes.get('/api/admin/empresas', AdminSaaSController.listEmpresas);
+routes.get('/api/admin/empresas/:id', AdminSaaSController.getEmpresa);
+routes.post('/api/admin/empresas', AdminSaaSController.createEmpresa);
+routes.put('/api/admin/empresas/:id', AdminSaaSController.updateEmpresa);
+routes.delete('/api/admin/empresas/:id', AdminSaaSController.deleteEmpresa);
+routes.post('/api/admin/empresas/suspender', AdminSaaSController.suspenderEmpresa);
+routes.post('/api/admin/empresas/reativar', AdminSaaSController.reativarEmpresa);
+routes.post('/api/admin/empresas/reset-senha-admin', AdminSaaSController.resetSenhaAdmin);
+routes.post('/api/admin/empresas/acessar-tenant', AdminSaaSController.acessarTenant);
+routes.get('/api/admin/empresas/:id/historico', AdminSaaSController.getHistoricoEmpresa);
+
+// Planos
+routes.get('/api/admin/planos', AdminSaaSController.listPlanos);
+routes.get('/api/admin/planos/:id', AdminSaaSController.getPlano);
+routes.post('/api/admin/planos', AdminSaaSController.createPlano);
+routes.put('/api/admin/planos/:id', AdminSaaSController.updatePlano);
+routes.post('/api/admin/planos/duplicar', AdminSaaSController.duplicatePlano);
+
+// Assinaturas
+routes.get('/api/admin/assinaturas', AdminSaaSController.listAssinaturas);
+routes.post('/api/admin/assinaturas/renovar', AdminSaaSController.renovarAssinatura);
+routes.post('/api/admin/assinaturas/cancelar', AdminSaaSController.cancelarAssinatura);
+routes.post('/api/admin/assinaturas/suspender', AdminSaaSController.suspenderAssinatura);
+routes.post('/api/admin/assinaturas/reativar', AdminSaaSController.reativarAssinatura);
+routes.post('/api/admin/assinaturas/gerar-cobranca', AdminSaaSController.gerarCobranca);
+
+// Usuários
+routes.get('/api/admin/usuarios', AdminSaaSController.listUsuarios);
+routes.post('/api/admin/usuarios/bloquear', AdminSaaSController.bloquearUsuario);
+routes.post('/api/admin/usuarios/desbloquear', AdminSaaSController.desbloquearUsuario);
+routes.post('/api/admin/usuarios/redefinir-senha', AdminSaaSController.redefinirSenhaUsuario);
+routes.post('/api/admin/usuarios/alterar-perfil', AdminSaaSController.alterarPerfilUsuario);
+routes.get('/api/admin/usuarios/:email/auditoria', AdminSaaSController.getAuditoriaUsuario);
+
+// Faturamento
+routes.get('/api/admin/faturamento', AdminSaaSController.listFaturamentos);
+routes.post('/api/admin/faturamento/alterar-status', AdminSaaSController.alterarStatusFaturamento);
+
+// Configurações
+routes.get('/api/admin/configuracoes', AdminSaaSController.getConfiguracoes);
+routes.post('/api/admin/configuracoes', AdminSaaSController.salvarConfiguracoes);
 
 export { routes };

@@ -775,3 +775,100 @@ model SubscriptionHistory {
   motivo         String?
   createdAt      DateTime     @default(now()) @map("created_at")
 }
+
+model SaaSEmpresa {
+  id                  String   @id @default(uuid())
+  razaoSocial         String   @map("razao_social")
+  nomeFantasia        String?  @map("nome_fantasia")
+  cnpj                String   @unique
+  email               String?
+  telefone            String?
+  responsavel         String?
+  planoId             String?  @map("plano_id")
+  status              String   @default("ATIVO") // ATIVO, SUSPENSO, INATIVO, INADIMPLENTE
+  dataVencimento      DateTime? @map("data_vencimento")
+  limiteUsuarios      Int      @default(5) @map("limite_usuarios")
+  limiteVeiculos      Int      @default(100) @map("limite_veiculos")
+  limiteOs            Int      @default(100) @map("limite_os")
+  limiteArmazenamento Int      @default(5000) @map("limite_armazenamento") // em MB
+  companyId           String?  @unique @map("company_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("saas_empresas")
+}
+
+model SaaSPlano {
+  id                  String   @id @default(uuid())
+  nome                String   @unique
+  descricao           String?
+  valorMensal         Float    @map("valor_mensal")
+  valorAnual          Float    @map("valor_anual")
+  limiteUsuarios      Int      @map("limite_usuarios")
+  limiteVeiculos      Int      @map("limite_veiculos")
+  limiteOs            Int      @map("limite_os")
+  limiteOrcamentos    Int      @map("limite_orcamentos")
+  limiteArmazenamento Int      @map("limite_armazenamento") // em MB
+  possuiApi           Boolean  @default(false) @map("possui_api")
+  possuiIntegracoes   Boolean  @default(false) @map("possui_integracoes")
+  possuiWhatsapp      Boolean  @default(false) @map("possui_whatsapp")
+  possuiBi            Boolean  @default(false) @map("possui_bi")
+  ativo               Boolean  @default(true)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("saas_planos")
+}
+
+model SaaSAssinatura {
+  id              String    @id @default(uuid())
+  empresaId       String    @map("empresa_id")
+  planoId         String    @map("plano_id")
+  valor           Float
+  status          String    @default("ATIVA") @map("status") // ATIVA, SUSPENSA, CANCELADA, INADIMPLENTE
+  dataContratacao DateTime  @default(now()) @map("data_contratacao")
+  dataVencimento  DateTime  @map("data_vencimento")
+  ultimoPagamento DateTime? @map("ultimo_pagamento")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("saas_assinaturas")
+}
+
+model SaaSFaturamento {
+  id            String    @id @default(uuid())
+  empresaId     String    @map("empresa_id")
+  planoId       String    @map("plano_id")
+  valor         Float
+  competencia   String
+  dataPagamento DateTime? @map("data_pagamento")
+  status        String    @default("PENDENTE") // PAGO, PENDENTE, ATRASADO, CANCELADO
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("saas_faturamento")
+}
+
+model SaaSConfiguracao {
+  id        String   @id @default(uuid())
+  chave     String   @unique
+  valor     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("saas_configuracoes")
+}
+
+model SaaSAuditoria {
+  id              String   @id @default(uuid())
+  usuario         String
+  tenant          String?
+  ip              String?
+  dataHora        DateTime @default(now()) @map("data_hora")
+  acao            String
+  modulo          String
+  registroAfetado String?  @map("registro_affected")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("saas_auditoria")
+}

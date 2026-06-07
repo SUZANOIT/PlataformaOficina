@@ -249,6 +249,57 @@ export function SaaSDashboard() {
     }
   };
 
+  // CNPJ Query (Edit Modal)
+  const handleBuscarCnpjEditar = async () => {
+    if (!editCnpj || editCnpj.replace(/\D/g, '').length !== 14) {
+      toast.error('Informe um CNPJ válido de 14 dígitos para buscar.');
+      return;
+    }
+    
+    setIsSearchingCnpj(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/empresas/buscar-cnpj', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ cnpj: editCnpj })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEditRazaoSocial(data.razaoSocial || editRazaoSocial);
+        setEditNomeFantasia(data.nomeFantasia || editNomeFantasia);
+        if (data.email) setEditEmail(data.email || editEmail);
+        if (data.telefone) setEditTelefone(data.telefone || editTelefone);
+        
+        let fullAddress = '';
+        if (data.logradouro) fullAddress += data.logradouro;
+        if (data.numero) fullAddress += `, ${data.numero}`;
+        if (data.bairro) fullAddress += ` - ${data.bairro}`;
+        if (data.cidade) fullAddress += ` - ${data.cidade}`;
+        if (data.estado) fullAddress += `/${data.estado}`;
+        if (data.cep) fullAddress += ` (CEP: ${data.cep})`;
+        
+        if (fullAddress) {
+          setEditEndereco(fullAddress);
+        }
+        
+        toast.success('Dados do CNPJ importados com sucesso!');
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Erro ao buscar dados do CNPJ.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro de rede ao buscar CNPJ.');
+    } finally {
+      setIsSearchingCnpj(false);
+    }
+  };
+
   // CEP Query
   const handleBuscarCep = async () => {
     const cleanCep = wizardData.cep.replace(/\D/g, '');
@@ -1584,13 +1635,23 @@ export function SaaSDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">CNPJ</label>
-                  <input 
-                    type="text" 
-                    value={editCnpj}
-                    onChange={(e) => setEditCnpj(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-border bg-muted/20 rounded-xl text-xs outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={editCnpj}
+                      onChange={(e) => setEditCnpj(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 border border-border bg-muted/20 rounded-xl text-xs outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleBuscarCnpjEditar}
+                      disabled={isSearchingCnpj}
+                      className="px-3 bg-primary text-primary-foreground hover:bg-primary/95 text-[10px] font-bold rounded-xl transition flex items-center justify-center shrink-0"
+                    >
+                      {isSearchingCnpj ? 'Buscando...' : 'Buscar CNPJ'}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">E-mail Principal</label>
