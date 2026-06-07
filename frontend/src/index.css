@@ -74,3 +74,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
