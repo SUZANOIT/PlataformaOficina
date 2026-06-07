@@ -260,7 +260,18 @@ export function Presentation() {
           buttonSecondary: "bg-[#1d1d22] hover:bg-[#27272e] border-[#c4a45a]/30 text-[#f4edd2]",
           progressBg: "bg-neutral-800",
           progressFill: "bg-[#c4a45a]",
-          accentGlow: "shadow-[#c4a45a]/10"
+          accentGlow: "shadow-[#c4a45a]/10",
+          borderAccent: "border-[#c4a45a]/25",
+          accentBorderSolid: "border-[#c4a45a]",
+          accentBgSolid: "bg-[#c4a45a]",
+          activeTabBg: "bg-[#c4a45a]",
+          disabledButton: "bg-[#c4a45a]/20 text-[#c4a45a] border border-[#c4a45a]/30",
+          accentSlider: "accent-[#c4a45a]",
+          recommendedCard: "bg-[#c4a45a]/10 border-2 border-[#c4a45a]/30",
+          recommendedBadge: "bg-[#c4a45a]/20 text-[#f4edd2]",
+          infoCard: "bg-[#c4a45a]/10 border border-[#c4a45a]/20",
+          roadmapActiveBg: "bg-[#c4a45a]",
+          thumbnailActive: "bg-[#c4a45a]/20 border-[#c4a45a] text-[#f4edd2]"
         };
       case 'light':
         return {
@@ -273,21 +284,43 @@ export function Presentation() {
           buttonSecondary: "bg-[#f1f5f9] hover:bg-[#e2e8f0] border-[#cbd5e1] text-[#334155]",
           progressBg: "bg-slate-200",
           progressFill: "bg-[#0284c7]",
-          accentGlow: "shadow-sky-500/5"
+          accentGlow: "shadow-sky-500/5",
+          borderAccent: "border-sky-500/25",
+          accentBorderSolid: "border-sky-500",
+          accentBgSolid: "bg-sky-500",
+          activeTabBg: "bg-[#0284c7]",
+          disabledButton: "bg-[#0284c7]/20 text-[#0284c7] border border-[#0284c7]/30",
+          accentSlider: "accent-sky-500",
+          recommendedCard: "bg-sky-500/10 border-2 border-sky-500/30",
+          recommendedBadge: "bg-sky-500/20 text-sky-700",
+          infoCard: "bg-sky-500/10 border border-sky-500/20",
+          roadmapActiveBg: "bg-sky-500",
+          thumbnailActive: "bg-sky-500/20 border-sky-500 text-slate-900"
         };
       case 'dark':
       default:
         return {
-          bg: "bg-[#080b11] text-[#f8fafc]",
-          card: "bg-[#101725]/80 border-[#1e293b] text-[#f8fafc]",
-          primaryText: "text-[#6366f1]",
-          accentText: "text-[#38bdf8]",
-          badge: "bg-[#6366f1]/10 border-[#4f46e5]/30 text-[#818cf8]",
-          button: "bg-[#6366f1] hover:bg-[#4f46e5] text-white",
-          buttonSecondary: "bg-[#141d2e] hover:bg-[#1e293b] border-[#334155] text-[#e2e8f0]",
-          progressBg: "bg-slate-800",
-          progressFill: "bg-[#6366f1]",
-          accentGlow: "shadow-indigo-500/10"
+          bg: "bg-[#0c0d12] text-[#f8fafc] bg-[url('/background.png')] bg-cover bg-center",
+          card: "bg-[#111317]/95 border-[#2d2d32] text-[#f8fafc] shadow-2xl backdrop-blur-md",
+          primaryText: "text-[#ff7900]",
+          accentText: "text-[#ff9433]",
+          badge: "bg-[#ff7900]/10 border-[#ff7900]/30 text-[#ff9433]",
+          button: "bg-[#ff7900] hover:bg-[#e06a00] text-white font-semibold",
+          buttonSecondary: "bg-[#1c1d22] hover:bg-[#282a30] border-[#383a42] text-[#e2e8f0]",
+          progressBg: "bg-neutral-800",
+          progressFill: "bg-[#ff7900]",
+          accentGlow: "shadow-[#ff7900]/10",
+          borderAccent: "border-[#ff7900]/25",
+          accentBorderSolid: "border-[#ff7900]",
+          accentBgSolid: "bg-[#ff7900]",
+          activeTabBg: "bg-[#ff7900]",
+          disabledButton: "bg-[#ff7900]/20 text-[#ff9433] border border-[#ff7900]/30",
+          accentSlider: "accent-[#ff7900]",
+          recommendedCard: "bg-[#ff7900]/10 border-2 border-[#ff7900]/30",
+          recommendedBadge: "bg-[#ff7900]/20 text-[#ff9433]",
+          infoCard: "bg-[#ff7900]/10 border border-[#ff7900]/20",
+          roadmapActiveBg: "bg-[#ff7900]",
+          thumbnailActive: "bg-[#ff7900]/20 border-[#ff7900] text-white"
         };
     }
   };
@@ -578,8 +611,8 @@ export function Presentation() {
       {/* Decorative Background Glowing Dots for Premium Aesthetic (Dark modes only) */}
       {theme !== 'light' && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-          <div className={`absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-15 mix-blend-screen transition-colors duration-1000 ${theme === 'gold' ? 'bg-[#c4a45a]' : 'bg-indigo-600'}`} />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-10 mix-blend-screen bg-cyan-500" />
+          <div className={`absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-15 mix-blend-screen transition-colors duration-1000 ${theme === 'gold' ? 'bg-[#c4a45a]' : 'bg-[#ff7900]'}`} />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full blur-[100px] opacity-10 mix-blend-screen bg-[#ff9433]/5" />
         </div>
       )}
 
@@ -592,8 +625,8 @@ export function Presentation() {
           </Link>
           <div className="h-6 w-px bg-white/10" />
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-wider text-primary-gradient bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              SUZANO IT
+            <span className={`text-sm font-black tracking-wider ${theme === 'dark' ? 'text-white' : theme === 'gold' ? 'text-[#f4edd2]' : 'text-slate-800'}`}>
+              SUZANO <span className={style.primaryText}>IT</span>
             </span>
             <span className="text-[10px] text-muted-foreground/80 tracking-widest hidden md:inline">PLATAFORMA SAAS</span>
           </div>
@@ -629,9 +662,9 @@ export function Presentation() {
           <div className="flex items-center bg-black/20 p-0.5 rounded-lg border border-white/5">
             <button 
               onClick={() => setTheme('dark')} 
-              className={`px-2 py-1 rounded text-xs transition-all ${theme === 'dark' ? 'bg-[#6366f1]/20 text-white border border-[#6366f1]/40 font-bold' : 'text-slate-400 hover:text-white'}`}
+              className={`px-2 py-1 rounded text-xs transition-all ${theme === 'dark' ? 'bg-[#ff7900]/20 text-[#ff7900] border border-[#ff7900]/40 font-bold' : 'text-slate-400 hover:text-white'}`}
             >
-              Slate
+              Suzano IT
             </button>
             <button 
               onClick={() => setTheme('gold')} 
@@ -703,83 +736,21 @@ export function Presentation() {
             
             {/* SLIDE 1 - CAPA */}
             {currentSlide === 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center h-full">
-                <div className="lg:col-span-7 space-y-6 text-left">
-                  <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-none">
-                    SUZANO <span className={style.primaryText}>IT</span>
+              <div className="flex flex-col items-center justify-center text-center h-full py-10 space-y-6 md:space-y-8 select-none">
+                <div className="flex items-center justify-center gap-6 md:gap-8 animate-fade-in">
+                  <img 
+                    src="/logo.png" 
+                    alt="Suzano IT Logo" 
+                    className="w-20 h-20 md:w-28 md:h-28 drop-shadow-[0_10px_20px_rgba(255,121,0,0.15)] object-contain" 
+                  />
+                  <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none font-outfit text-white">
+                    Suzano <span className="text-[#ff7900]">IT</span>
                   </h1>
-                  <p className="text-xl md:text-2xl text-muted-foreground font-light leading-relaxed">
-                    Tecnologia Inteligente para Gestão de Oficinas e Frotas
-                  </p>
-                  <div className="space-y-3 pt-4 border-t border-white/5">
-                    {[
-                      "Plataforma SaaS Multiempresa (Multi-Tenant) integrada",
-                      "Inteligência Artificial aplicada ao diagnóstico e operação",
-                      "Gestão completa do ciclo de manutenção de oficinas e frotas",
-                      "Automação de processos fiscais e controle financeiro avançado"
-                    ].map((bullet, idx) => (
-                      <div key={idx} className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <div className={`p-1 rounded-full ${style.badge}`}>
-                          <Check size={12} className={style.primaryText} />
-                        </div>
-                        <span>{bullet}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
                 
-                {/* Visual Premium Simulator */}
-                <div className="lg:col-span-5 relative flex justify-center">
-                  <div className={`w-full max-w-md p-6 rounded-xl border bg-black/45 ${style.accentGlow} border-white/5 backdrop-blur-md relative overflow-hidden space-y-4`}>
-                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                      <div className="flex gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">suzanoit_dashboard.exe</span>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Simulated Chart Metrics */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 text-center">
-                          <span className="text-[10px] text-muted-foreground block">Disponibilidade</span>
-                          <span className={`text-xl font-bold ${style.accentText}`}>98.6%</span>
-                        </div>
-                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 text-center">
-                          <span className="text-[10px] text-muted-foreground block">Margem Média</span>
-                          <span className="text-xl font-bold text-emerald-400">+22.4%</span>
-                        </div>
-                      </div>
-
-                      {/* Mock Chart Area */}
-                      <div className="h-32 bg-white/5 rounded-lg border border-white/5 relative p-3 flex flex-col justify-between">
-                        <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                          <span>Monitoramento de Custos</span>
-                          <span className="text-emerald-400 flex items-center gap-0.5"><TrendingUp size={10} /> -15% Desperdício</span>
-                        </div>
-                        <div className="flex items-end gap-1.5 h-20 pt-2 w-full justify-between">
-                          {[30, 45, 35, 60, 50, 75, 90, 85, 110, 95].map((height, i) => (
-                            <div 
-                              key={i} 
-                              className={`w-full ${i === 8 ? 'bg-indigo-500' : 'bg-slate-700/60'} rounded-t-sm transition-all duration-1000`}
-                              style={{ height: `${height * 0.7}%` }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Bottom Alert */}
-                      <div className="flex items-center justify-between text-xs bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg">
-                        <span className="flex items-center gap-1.5 text-indigo-300">
-                          <Cpu size={12} className="animate-pulse" /> IA Operacional
-                        </span>
-                        <span className="font-bold text-[10px] text-slate-300">OTIMIZANDO AGORA</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-xl md:text-3xl text-white font-medium tracking-wide max-w-2xl leading-relaxed opacity-95">
+                  Tecnologia que move frotas.
+                </p>
               </div>
             )}
 
@@ -936,7 +907,7 @@ export function Presentation() {
                   <div className="bg-white/5 border border-white/5 rounded-xl p-5 space-y-4">
                     <span className="text-[10px] text-muted-foreground font-mono block">Ciclo de Atendimento Automatizado</span>
                     
-                    <div className="relative pl-6 space-y-4 border-l border-indigo-500/25 ml-2 text-left">
+                    <div className={`relative pl-6 space-y-4 ${style.borderAccent} ml-2 text-left`}>
                       {[
                         { title: "1. Recepção & Checklist", desc: "Abertura rápida da OS via Tablet com fotos e sintomas." },
                         { title: "2. Orçamento & Peças", desc: "Consulta automática de preços e margens operacionais." },
@@ -944,8 +915,8 @@ export function Presentation() {
                         { title: "4. Execução & Fechamento", desc: "Mecânico atualiza status e sistema emite NF-e com 1 clique." }
                       ].map((step, idx) => (
                         <div key={idx} className="relative">
-                          <div className="absolute -left-8 top-1.5 w-4 h-4 rounded-full bg-slate-900 border-2 border-indigo-500 flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                          <div className={`absolute -left-8 top-1.5 w-4 h-4 rounded-full bg-slate-900 border-2 ${style.accentBorderSolid} flex items-center justify-center`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${style.accentBgSolid}`} />
                           </div>
                           <h5 className="text-xs font-bold">{step.title}</h5>
                           <p className="text-[10px] text-muted-foreground">{step.desc}</p>
@@ -1017,7 +988,7 @@ export function Presentation() {
                           <span className="font-bold">24 / 25 Veículos</span>
                         </div>
                         <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-indigo-500 w-[96%]" />
+                          <div className={`h-full ${style.progressFill} w-[96%]`} />
                         </div>
                       </div>
 
@@ -1056,8 +1027,8 @@ export function Presentation() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center h-full">
                 <div className="lg:col-span-6 space-y-4 text-left">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="text-amber-400" size={20} />
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Motor Cognitivo CMH-AI</span>
+                    <Sparkles className={style.primaryText} size={20} />
+                    <span className={`text-xs font-bold ${style.primaryText} uppercase tracking-wider`}>Motor Cognitivo CMH-AI</span>
                   </div>
                   <h2 className="text-3xl md:text-5xl font-black">INTELIGÊNCIA ARTIFICIAL</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1066,12 +1037,12 @@ export function Presentation() {
                   
                   <div className="space-y-3 pt-2">
                     {[
-                      "Geração de descrição de serviços para NF-e a partir de notas de rascunho.",
+                      "Geração de descrição de serviços para NF-e a partir de descrição informal.",
                       "Análise de histórico de manutenção para sugerir serviços correlatos.",
                       "Predição de vida útil de componentes críticos (Freios, pneus)."
                     ].map((feature, i) => (
                       <div key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                        <div className={`w-1.5 h-1.5 rounded-full ${style.accentBgSolid} mt-1.5 shrink-0`} />
                         <span>{feature}</span>
                       </div>
                     ))}
@@ -1082,7 +1053,7 @@ export function Presentation() {
                 <div className="lg:col-span-6">
                   <div className="bg-slate-900/60 border border-white/10 rounded-xl p-5 space-y-4 text-left relative">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                      <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
+                      <span className={`text-xs font-bold ${style.primaryText} flex items-center gap-1.5`}>
                         <Cpu size={14} className="animate-pulse" /> Simulador de IA Integrado
                       </span>
                       <div className="flex gap-1">
@@ -1090,7 +1061,7 @@ export function Presentation() {
                           <button
                             key={type}
                             onClick={() => setAiType(type)}
-                            className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-all ${aiType === type ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}
+                            className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-all ${aiType === type ? `${style.activeTabBg} text-white` : 'bg-white/5 text-slate-400 hover:text-white'}`}
                           >
                             {type === 'nfe' ? 'NF-e Descrição' : type === 'fault' ? 'Falha Preditiva' : 'Sugestão Peças'}
                           </button>
@@ -1109,7 +1080,7 @@ export function Presentation() {
                       <button
                         onClick={runAiSimulation}
                         disabled={isAiGenerating}
-                        className={`w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${isAiGenerating ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : style.button}`}
+                        className={`w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${isAiGenerating ? style.disabledButton : style.button}`}
                       >
                         <Sparkles size={14} />
                         {isAiGenerating ? 'Processando Modelagem...' : 'Executar Análise por IA'}
@@ -1117,8 +1088,8 @@ export function Presentation() {
 
                       {aiOutput && (
                         <div className="space-y-1.5">
-                          <label className="text-[10px] text-indigo-400 font-bold uppercase block">Retorno do Motor CMH-AI:</label>
-                          <div className="bg-slate-950 p-3 rounded-lg border border-indigo-500/20 text-xs font-mono text-emerald-400 whitespace-pre-line leading-relaxed h-32 overflow-y-auto">
+                          <label className={`text-[10px] ${style.primaryText} font-bold uppercase block`}>Retorno do Motor CMH-AI:</label>
+                          <div className={`bg-slate-950 p-3 rounded-lg border ${style.borderAccent} text-xs font-mono ${style.primaryText} whitespace-pre-line leading-relaxed h-32 overflow-y-auto`}>
                             {aiOutput}
                           </div>
                         </div>
@@ -1148,10 +1119,10 @@ export function Presentation() {
                   ].map((diff, i) => (
                     <div key={i} className="p-4 bg-white/5 border border-white/5 hover:border-white/10 rounded-xl text-left space-y-2 transition-all">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-500/20">
+                        <span className={`text-[10px] ${style.badge} font-bold px-2 py-0.5 rounded border`}>
                           {diff.value}
                         </span>
-                        <Check size={14} className="text-indigo-400" />
+                        <Check size={14} className={style.primaryText} />
                       </div>
                       <h4 className="font-bold text-xs">{diff.label}</h4>
                       <p className="text-[10px] text-muted-foreground leading-relaxed">{diff.desc}</p>
@@ -1176,7 +1147,7 @@ export function Presentation() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground font-semibold">Volume de Ordens de Serviço / Mês:</span>
-                        <span className="font-bold text-indigo-400">{workOrders} OS</span>
+                        <span className={`font-bold ${style.primaryText}`}>{workOrders} OS</span>
                       </div>
                       <input 
                         type="range" 
@@ -1184,7 +1155,7 @@ export function Presentation() {
                         max="800" 
                         value={workOrders} 
                         onChange={(e) => setWorkOrders(Number(e.target.value))}
-                        className="w-full accent-indigo-500 cursor-pointer"
+                        className={`w-full ${style.accentSlider} cursor-pointer`}
                       />
                     </div>
 
@@ -1192,7 +1163,7 @@ export function Presentation() {
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground font-semibold">Tamanho da Frota Ativa:</span>
-                        <span className="font-bold text-indigo-400">{fleetSize} Veículos</span>
+                        <span className={`font-bold ${style.primaryText}`}>{fleetSize} Veículos</span>
                       </div>
                       <input 
                         type="range" 
@@ -1200,7 +1171,7 @@ export function Presentation() {
                         max="300" 
                         value={fleetSize} 
                         onChange={(e) => setFleetSize(Number(e.target.value))}
-                        className="w-full accent-indigo-500 cursor-pointer"
+                        className={`w-full ${style.accentSlider} cursor-pointer`}
                       />
                     </div>
                   </div>
@@ -1210,7 +1181,7 @@ export function Presentation() {
                 <div className="lg:col-span-6">
                   <div className="bg-slate-900/60 border border-white/10 rounded-xl p-5 space-y-4 text-left">
                     <div className="border-b border-white/5 pb-2.5 flex justify-between items-center">
-                      <span className="text-xs font-bold text-indigo-400 flex items-center gap-1">
+                      <span className={`text-xs font-bold ${style.primaryText} flex items-center gap-1`}>
                         <Calculator size={14} /> Recomendação & Economia Estimada
                       </span>
                       <span className="text-[10px] text-muted-foreground font-mono">Simulador Financeiro</span>
@@ -1219,27 +1190,27 @@ export function Presentation() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-3 bg-white/5 border border-white/5 rounded-lg text-center">
                         <span className="text-[10px] text-muted-foreground block uppercase">Tempo Poupado</span>
-                        <span className="text-xl font-bold text-slate-100 flex items-center justify-center gap-1">
-                          <Clock size={16} className="text-indigo-400" /> {hoursSaved}h/mês
+                        <span className={`text-xl font-bold ${style.primaryText} flex items-center justify-center gap-1`}>
+                          <Clock size={16} /> {hoursSaved}h/mês
                         </span>
                       </div>
                       <div className="p-3 bg-white/5 border border-white/5 rounded-lg text-center">
                         <span className="text-[10px] text-muted-foreground block uppercase">Economia Gerada</span>
-                        <span className="text-xl font-bold text-emerald-400 flex items-center justify-center gap-0.5">
+                        <span className={`text-xl font-bold ${style.primaryText} flex items-center justify-center gap-0.5`}>
                           R$ {estimatedSavings.toLocaleString()}
                         </span>
                       </div>
                     </div>
 
                     {/* Highlight Recommended Tier */}
-                    <div className="p-4 bg-indigo-500/10 border-2 border-indigo-500/30 rounded-xl flex items-center justify-between">
+                    <div className={`p-4 ${style.recommendedCard} rounded-xl flex items-center justify-between`}>
                       <div>
-                        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded uppercase">Plano Ideal</span>
+                        <span className={`text-[9px] ${style.recommendedBadge} font-bold px-2 py-0.5 rounded uppercase`}>Plano Ideal</span>
                         <h4 className="text-lg font-black mt-1 text-slate-100">{recommendedPlan.name}</h4>
                         <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{recommendedPlan.desc}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xl font-black text-indigo-300">{recommendedPlan.price}</span>
+                        <span className={`text-xl font-black ${style.primaryText}`}>{recommendedPlan.price}</span>
                         <span className="text-[9px] block text-slate-400">Recorrência Mensal</span>
                       </div>
                     </div>
@@ -1269,7 +1240,7 @@ export function Presentation() {
                         <h4 className="font-bold text-xs">{target.label}</h4>
                         <p className="text-[10px] text-muted-foreground leading-relaxed">{target.desc}</p>
                       </div>
-                      <span className="text-[9px] font-bold text-indigo-300 mt-2 block font-mono">
+                      <span className={`text-[9px] font-bold ${style.primaryText} mt-2 block font-mono`}>
                         {target.count}
                       </span>
                     </div>
@@ -1296,7 +1267,7 @@ export function Presentation() {
                       { l: "DevOps", v: "Containers Docker para isolamento e deploy elástico." },
                     ].map((item, idx) => (
                       <div key={idx} className="text-xs">
-                        <span className="font-bold text-indigo-300">{item.l}:</span>{' '}
+                        <span className={`font-bold ${style.primaryText}`}>{item.l}:</span>{' '}
                         <span className="text-muted-foreground">{item.v}</span>
                       </div>
                     ))}
@@ -1321,7 +1292,7 @@ export function Presentation() {
 
                       {/* Node 2 */}
                       <div className="w-full md:w-32 p-3 bg-white/5 border border-white/10 rounded-lg text-center relative z-10 flex flex-col items-center">
-                        <Cpu size={20} className="text-indigo-400 mb-1" />
+                        <Cpu size={20} className={`${style.primaryText} mb-1`} />
                         <span className="text-xs font-bold block text-slate-100">GATEWAY</span>
                         <span className="text-[8px] text-slate-400">Security & JWT</span>
                       </div>
@@ -1345,8 +1316,8 @@ export function Presentation() {
                       </div>
                     </div>
 
-                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-center">
-                      <span className="text-[10px] text-indigo-300 block font-mono">Mecanismo Isolado Logic Tenant para LGPD e Segurança Global</span>
+                    <div className={`p-3 ${style.infoCard} rounded-lg text-center`}>
+                      <span className={`text-[10px] ${style.primaryText} block font-mono`}>Mecanismo Isolado Logic Tenant para LGPD e Segurança Global</span>
                     </div>
                   </div>
                 </div>
@@ -1371,7 +1342,7 @@ export function Presentation() {
                       { title: "Fase 2", desc: "Gestão de Frota", status: "Concluído", c: "bg-emerald-500" },
                       { title: "Fase 3", desc: "Integração NF-e", status: "Concluído", c: "bg-emerald-500" },
                       { title: "Fase 4", desc: "Inteligência Artificial", status: "Concluído", c: "bg-emerald-500" },
-                      { title: "Fase 5", desc: "Aplicativo Mobile", status: "Próximo", c: "bg-indigo-500 animate-pulse" },
+                      { title: "Fase 5", desc: "Aplicativo Mobile", status: "Próximo", c: style.roadmapActiveBg + ' animate-pulse' },
                       { title: "Fase 6", desc: "Marketplace de Serviços", status: "Futuro", c: "bg-slate-700" },
                       { title: "Fase 7", desc: "BI Avançado & Analytics", status: "Futuro", c: "bg-slate-700" }
                     ].map((step, idx) => (
@@ -1384,7 +1355,7 @@ export function Presentation() {
                         <div className="md:mt-2">
                           <span className="text-[10px] text-muted-foreground uppercase font-bold block">{step.title}</span>
                           <span className="text-xs font-bold block text-slate-200 leading-tight mt-0.5">{step.desc}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase inline-block mt-1 ${idx < 4 ? 'bg-emerald-500/10 text-emerald-300' : idx === 4 ? 'bg-indigo-500/10 text-indigo-300' : 'bg-slate-800 text-slate-400'}`}>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase inline-block mt-1 ${idx < 4 ? 'bg-emerald-500/10 text-emerald-300' : idx === 4 ? style.recommendedBadge : 'bg-slate-800 text-slate-400'}`}>
                             {step.status}
                           </span>
                         </div>
@@ -1407,11 +1378,11 @@ export function Presentation() {
                   {[
                     { label: "Redução de Custos", desc: "Controle preventivo evita quebras de veículos e ociosidade de motoristas.", icon: <TrendingUp className="text-emerald-400" /> },
                     { label: "Organização Operacional", desc: "Processo digital padronizado do agendamento ao faturamento.", icon: <CheckCircle2 className="text-blue-400" /> },
-                    { label: "Decisão Ágil com BI", desc: "Métricas consolidadas de CPK, ticket médio e lucratividade imediata.", icon: <BarChart3 className="text-indigo-400" /> },
+                    { label: "Decisão Ágil com BI", desc: "Métricas consolidadas de CPK, ticket médio e lucratividade imediata.", icon: <BarChart3 className={style.primaryText} /> },
                     { label: "Segurança de TI", desc: "Software multi-tenant de alta confiabilidade em conformidade com LGPD.", icon: <ShieldCheck className="text-cyan-400" /> }
                   ].map((benefit, i) => (
                     <div key={i} className="p-5 bg-white/5 border border-white/5 rounded-xl text-center space-y-3 transition-all hover:bg-white/10">
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-indigo-400">
+                      <div className={`w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto ${style.primaryText}`}>
                         {benefit.icon}
                       </div>
                       <h4 className="font-bold text-sm text-slate-100">{benefit.label}</h4>
@@ -1435,17 +1406,17 @@ export function Presentation() {
                   </p>
                 </div>
 
-                <div className="p-6 bg-white/5 border border-white/5 rounded-xl max-w-md mx-auto space-y-3 text-left">
+                <div className="p-6 bg-[#111317]/50 border border-white/10 rounded-xl max-w-md mx-auto space-y-3 text-left">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Globe size={16} className="text-indigo-400" />
+                    <Globe size={16} className={style.primaryText} />
                     <span>Website: <strong>www.suzanoit.com.br</strong></span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Mail size={16} className="text-indigo-400" />
+                    <Mail size={16} className={style.primaryText} />
                     <span>E-mail: <strong>contato@suzanoit.com.br</strong></span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Award size={16} className="text-indigo-400" />
+                    <Award size={16} className={style.primaryText} />
                     <span>Slogan: <strong>"Mais controle. Mais produtividade. Mais resultado."</strong></span>
                   </div>
                 </div>
@@ -1519,9 +1490,9 @@ export function Presentation() {
                     setCurrentSlide(idx);
                     setShowThumbnails(false);
                   }}
-                  className={`p-2.5 rounded-lg text-left transition-all border ${currentSlide === idx ? 'bg-indigo-500/20 border-indigo-500 text-white' : 'bg-black/30 border-white/5 text-slate-400 hover:border-white/10 hover:text-slate-200'}`}
+                  className={`p-2.5 rounded-lg text-left transition-all border ${currentSlide === idx ? style.thumbnailActive : 'bg-black/30 border-white/5 text-slate-400 hover:border-white/10 hover:text-slate-200'}`}
                 >
-                  <span className="text-[10px] font-mono text-indigo-400 block mb-0.5">SLIDE {slide.id}</span>
+                  <span className={`text-[10px] font-mono ${style.primaryText} block mb-0.5`}>SLIDE {slide.id}</span>
                   <span className="text-[11px] font-bold block truncate leading-tight">{slide.title}</span>
                 </button>
               ))}
