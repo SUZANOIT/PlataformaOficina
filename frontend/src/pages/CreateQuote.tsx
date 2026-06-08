@@ -246,7 +246,9 @@ export function CreateQuote() {
             valorUnitario: !isEditing && cloneId
               ? Math.round(Number(i.valorUnitario) * 1.1985 * 100) / 100
               : Number(i.valorUnitario),
-            tipo: i.tipo || 'Peça'
+            tipo: i.tipo || 'Peça',
+            codigoPeca: i.codigoPeca || '',
+            tipoPeca: i.tipoPeca || '',
           }))
         };
         
@@ -414,8 +416,14 @@ ${bankingText}`;
     }
   }, [watchCompanyId, workshops, companies, setValue]);
 
+  const isInitialStatusEffect = useRef(true);
+
   // Generate description when status is changed to 'Aguardando Pagamento' or 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
+    if (isInitialStatusEffect.current) {
+      isInitialStatusEffect.current = false;
+      return;
+    }
     if (watchStatus === 'Aguardando Pagamento' || watchStatus === 'Emitir Nota Fiscal') {
       const { hasBanking } = handleGenerateInvoiceDescription();
       if (!hasBanking) {
