@@ -80,6 +80,64 @@ const createQuoteSchema = zod_1.z.object({
     total: zod_1.z.number(),
     status: zod_1.z.string().optional().default("Aguardando Aprovação"),
 });
+async function resolveClientForQuote(clientData, existingClient) {
+    const normalizedCnpj = clientData.cnpj ? clientData.cnpj.trim().replace(/\D/g, '') : '';
+    const normalizedEmail = clientData.email ? clientData.email.trim().toLowerCase() : '';
+    const normalizedNome = clientData.nome.trim();
+    if (existingClient) {
+        const existingCnpj = existingClient.cnpj ? existingClient.cnpj.trim().replace(/\D/g, '') : '';
+        const existingEmail = existingClient.email ? existingClient.email.trim().toLowerCase() : '';
+        const existingNome = existingClient.nome.trim().toLowerCase();
+        const isSameClient = (normalizedCnpj && existingCnpj && normalizedCnpj === existingCnpj) ||
+            (normalizedEmail && existingEmail && normalizedEmail === existingEmail) ||
+            existingNome === normalizedNome.toLowerCase();
+        if (isSameClient) {
+            return prisma_1.prisma.client.update({
+                where: { id: existingClient.id },
+                data: clientData,
+            });
+        }
+    }
+    let client;
+    if (normalizedCnpj && normalizedCnpj.length === 14) {
+        client = await prisma_1.prisma.client.findFirst({
+            where: {
+                cnpj: {
+                    contains: normalizedCnpj
+                }
+            }
+        });
+    }
+    if (!client && normalizedEmail) {
+        client = await prisma_1.prisma.client.findFirst({
+            where: {
+                email: {
+                    equals: normalizedEmail,
+                    mode: 'insensitive'
+                }
+            }
+        });
+    }
+    if (!client) {
+        client = await prisma_1.prisma.client.findFirst({
+            where: {
+                nome: {
+                    equals: normalizedNome,
+                    mode: 'insensitive'
+                }
+            }
+        });
+    }
+    if (client) {
+        return prisma_1.prisma.client.update({
+            where: { id: client.id },
+            data: clientData,
+        });
+    }
+    return prisma_1.prisma.client.create({
+        data: clientData,
+    });
+}
 exports.QuoteController = {
     async list(req, res) {
         try {
@@ -445,53 +503,7 @@ exports.QuoteController = {
             if (!existingQuote) {
                 return res.status(404).json({ error: 'Quote not found' });
             }
-            // Prevenir duplicação de cliente e evitar sobrescrever registros compartilhados
-            let client;
-            const normalizedCnpj = data.client.cnpj ? data.client.cnpj.trim().replace(/\D/g, '') : '';
-            const normalizedEmail = data.client.email ? data.client.email.trim().toLowerCase() : '';
-            const normalizedNome = data.client.nome.trim();
-            if (normalizedCnpj && normalizedCnpj.length === 14) {
-                client = await prisma_1.prisma.client.findFirst({
-                    where: {
-                        cnpj: {
-                            contains: normalizedCnpj
-                        }
-                    }
-                });
-            }
-            if (!client && normalizedEmail) {
-                client = await prisma_1.prisma.client.findFirst({
-                    where: {
-                        email: {
-                            equals: normalizedEmail,
-                            mode: 'insensitive'
-                        }
-                    }
-                });
-            }
-            if (!client) {
-                client = await prisma_1.prisma.client.findFirst({
-                    where: {
-                        nome: {
-                            equals: normalizedNome,
-                            mode: 'insensitive'
-                        }
-                    }
-                });
-            }
-            if (client) {
-                // Atualiza os dados do cliente existente para mantê-lo atualizado
-                client = await prisma_1.prisma.client.update({
-                    where: { id: client.id },
-                    data: data.client,
-                });
-            }
-            else {
-                // Cria um novo cliente se realmente não existir
-                client = await prisma_1.prisma.client.create({
-                    data: data.client,
-                });
-            }
+            const client = await resolveClientForQuote(data.client, existingQuote.client);
             // Resolve or create vehicle
             let veiculoId = null;
             if (data.veiculoPlaca && data.veiculoPlaca.trim() !== '') {
@@ -552,59 +564,90 @@ exports.QuoteController = {
                     veiculoId = newVehicle.id;
                 }
             }
-            // Update quote & items (delete old, create new)
-            const quote = await prisma_1.prisma.quote.update({
-                where: { id },
-                data: {
-                    companyId: data.companyId,
-                    clientId: client.id,
-                    condicaoPagamento: data.condicaoPagamento,
-                    parcelas: data.parcelas,
-                    valorParcela: data.valorParcela,
-                    validade: data.validade,
-                    garantia: data.garantia,
-                    prazoExecucao: data.prazoExecucao,
-                    observacao: data.observacao,
-                    veiculoMarca: data.veiculoMarca,
-                    veiculoModelo: data.veiculoModelo,
-                    veiculoAno: data.veiculoAno,
-                    veiculoPlaca: data.veiculoPlaca,
-                    veiculoPrefixo: data.veiculoPrefixo,
-                    veiculoAnoFabricacao: data.veiculoAnoFabricacao,
-                    veiculoAnoModelo: data.veiculoAnoModelo,
-                    veiculoChassi: data.veiculoChassi,
-                    veiculoRenavam: data.veiculoRenavam,
-                    veiculoFrota: data.veiculoFrota,
-                    veiculoSubfrota: data.veiculoSubfrota,
-                    veiculoHodometro: data.veiculoHodometro,
-                    veiculoTipo: data.veiculoTipo,
-                    veiculoId: veiculoId,
-                    plataformaGestaoId: data.plataformaGestaoId || null,
-                    osExterna: data.osExterna,
-                    oficinaId: data.oficinaId || null,
-                    notaFiscalDescricao: data.notaFiscalDescricao || null,
-                    subtotal: data.subtotal,
-                    total: data.total,
-                    status: data.status,
-                    items: {
-                        deleteMany: {},
-                        create: data.items,
+            // Update quote & items (delete old, create new) in transaction
+            const quoteItems = data.items.map(item => ({
+                descricao: item.descricao,
+                quantidade: item.quantidade,
+                valorUnitario: item.valorUnitario,
+                valorTotal: item.valorTotal,
+                tipo: item.tipo,
+                codigoPeca: item.codigoPeca,
+                tipoPeca: item.tipoPeca,
+            }));
+            let quote = await prisma_1.prisma.$transaction(async (tx) => {
+                const updatedQuote = await tx.quote.update({
+                    where: { id },
+                    data: {
+                        clientId: client.id,
+                        condicaoPagamento: data.condicaoPagamento,
+                        parcelas: data.parcelas,
+                        valorParcela: data.valorParcela,
+                        validade: data.validade,
+                        garantia: data.garantia,
+                        prazoExecucao: data.prazoExecucao,
+                        observacao: data.observacao,
+                        veiculoMarca: data.veiculoMarca,
+                        veiculoModelo: data.veiculoModelo,
+                        veiculoAno: data.veiculoAno,
+                        veiculoPlaca: data.veiculoPlaca,
+                        veiculoPrefixo: data.veiculoPrefixo,
+                        veiculoAnoFabricacao: data.veiculoAnoFabricacao,
+                        veiculoAnoModelo: data.veiculoAnoModelo,
+                        veiculoChassi: data.veiculoChassi,
+                        veiculoRenavam: data.veiculoRenavam,
+                        veiculoFrota: data.veiculoFrota,
+                        veiculoSubfrota: data.veiculoSubfrota,
+                        veiculoHodometro: data.veiculoHodometro,
+                        veiculoTipo: data.veiculoTipo,
+                        veiculoId: veiculoId,
+                        plataformaGestaoId: data.plataformaGestaoId || null,
+                        osExterna: data.osExterna,
+                        oficinaId: data.oficinaId || null,
+                        notaFiscalDescricao: data.notaFiscalDescricao || null,
+                        subtotal: data.subtotal,
+                        total: data.total,
+                        status: data.status,
+                        items: {
+                            deleteMany: {},
+                            create: quoteItems,
+                        }
+                    },
+                    include: {
+                        items: true,
+                        client: true,
+                        company: true,
+                        plataformaGestao: true,
+                        oficina: true
                     }
-                },
-                include: {
-                    items: true,
-                    client: true,
-                    company: true,
-                    plataformaGestao: true,
-                    oficina: true
-                }
+                });
+                return updatedQuote;
             });
+            if (data.companyId && data.companyId !== existingQuote.companyId) {
+                const targetCompany = await prisma_1.basePrisma.company.findUnique({
+                    where: { id: data.companyId }
+                });
+                if (!targetCompany) {
+                    return res.status(400).json({ error: 'Invalid companyId: company not found' });
+                }
+                quote = await prisma_1.basePrisma.quote.update({
+                    where: { id },
+                    data: { companyId: data.companyId },
+                    include: {
+                        items: true,
+                        client: true,
+                        company: true,
+                        plataformaGestao: true,
+                        oficina: true
+                    }
+                });
+            }
             console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
+            const userId = req.userId || 'SYSTEM';
+            const companyId = req.companyId || data.companyId;
+            audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_QUOTE', `Orçamento #${quote.numeroOrcamento} atualizado por ${userId}`, 'SUCCESS');
             // Audit log for added/updated parts
             const parts = data.items.filter(item => item.tipo === 'Peça');
             if (parts.length > 0) {
-                const userId = req.userId || 'SYSTEM';
-                const companyId = req.companyId || data.companyId;
                 parts.forEach(part => {
                     audit_logger_1.AuditLogger.log(userId, companyId, 'ADD_PART', `Peça atualizada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`, 'SUCCESS');
                 });

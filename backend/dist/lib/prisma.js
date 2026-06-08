@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.prisma = void 0;
+exports.basePrisma = exports.prisma = void 0;
 const client_1 = require("@prisma/client");
 const tenant_context_1 = require("./tenant-context");
 const basePrisma = new client_1.PrismaClient();
+exports.basePrisma = basePrisma;
 const modelsWithCompanyId = [
     'User', 'Client', 'Supplier', 'Collaborator', 'Vehicle', 'TaxSetting',
     'EmailConfig', 'Quote', 'FinancialPayable', 'FinancialReceivable',
