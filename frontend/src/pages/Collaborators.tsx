@@ -1400,7 +1400,7 @@ export function Collaborators() {
       {/* MODAL PRINCIPAL: CADASTRO/EDIÇÃO DE COLABORADOR */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+          <div className="bg-card border border-border w-[95%] max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
               <div className="flex items-center gap-2">
                 <User className="text-primary" size={22} />
@@ -1443,7 +1443,7 @@ export function Collaborators() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
               
               {/* ABA 1: DADOS PESSOAIS */}
               <div className={activeModalTab === 'pessoais' ? 'block space-y-4' : 'hidden'}>
@@ -1616,7 +1616,7 @@ export function Collaborators() {
       {/* MODAL DE GESTÃO DE ADIANTAMENTOS SALARIAIS (POR COLABORADOR) */}
       {isAdvanceModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+          <div className="bg-card border border-border w-[95%] max-w-4xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
               <div className="flex items-center gap-2">
                 <Coins className="text-emerald-500 animate-pulse" size={22} />
@@ -1637,7 +1637,7 @@ export function Collaborators() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto scrollbar-thin">
               {/* Employee Summary Card */}
               <div className="bg-gradient-to-r from-muted/65 to-muted/25 border border-border p-5 rounded-2xl flex flex-wrap gap-8 justify-between items-center text-sm shadow-inner">
                 <div className="space-y-1">
@@ -1811,7 +1811,7 @@ export function Collaborators() {
                     <p className="text-xs">Nenhum adiantamento salarial registrado para este colaborador.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto scrollbar-thin">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-muted/65 border-b border-border text-muted-foreground font-semibold">
@@ -1942,7 +1942,7 @@ export function Collaborators() {
       {/* MODAL GERAL: CADASTRO DE NOVO ADIANTAMENTO (ABERTO DA ABA ADIANTAMENTOS) */}
       {isGeneralAdvanceOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+          <div className="bg-card border border-border w-[95%] max-w-3xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
               <div className="flex items-center gap-2">
                 <Coins className="text-emerald-500" size={22} />
@@ -1958,7 +1958,7 @@ export function Collaborators() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveGeneralAdvance} className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
+            <form onSubmit={handleSaveGeneralAdvance} className="p-6 space-y-6 flex-1 overflow-y-auto scrollbar-thin">
               {/* Colaborador Dropdown */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground block">Selecione o Colaborador <span className="text-red-500">*</span></label>

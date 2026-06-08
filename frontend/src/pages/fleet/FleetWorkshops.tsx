@@ -328,15 +328,15 @@ export default function FleetWorkshops() {
       {/* Creation & Edition Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-[95%] max-w-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center shrink-0">
               <h2 className="text-lg font-bold">{editingWorkshopId ? 'Editar Oficina' : 'Cadastrar Oficina'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white/85 hover:text-white transition text-2xl font-semibold leading-none">
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 flex-1 overflow-y-auto scrollbar-thin">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Coluna 1: Dados Gerais */}
                 <div className="space-y-4">

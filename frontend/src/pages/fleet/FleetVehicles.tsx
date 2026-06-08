@@ -593,7 +593,7 @@ export default function FleetVehicles() {
             </span>
           </div>
 
-          <div className="p-4 flex-1 overflow-y-auto max-h-[600px] space-y-2">
+          <div className="p-4 flex-1 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)] space-y-2">
             {treeLoading && treeClients.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400 space-y-2">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
@@ -767,7 +767,7 @@ export default function FleetVehicles() {
               </div>
 
               {/* Tab Display Panel Container */}
-              <div className="p-6 flex-1 overflow-y-auto max-h-[500px]">
+              <div className="p-6 flex-1">
 
                 {/* TAB 1: INFO CADASTRAL */}
                 {detailsTab === 'info' && (
@@ -840,7 +840,7 @@ export default function FleetVehicles() {
                         <p className="text-xs">Nenhum orçamento pendente encontrado para este veículo.</p>
                       </div>
                     ) : (
-                      <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                      <div className="w-full overflow-x-auto scrollbar-thin rounded-xl border border-gray-200 dark:border-gray-700">
                         <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                           <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                             <tr>
@@ -883,7 +883,7 @@ export default function FleetVehicles() {
                         <p className="text-xs">Nenhuma ordem de serviço vinculada encontrada para este veículo.</p>
                       </div>
                     ) : (
-                      <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                      <div className="w-full overflow-x-auto scrollbar-thin rounded-xl border border-gray-200 dark:border-gray-700">
                         <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                           <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                             <tr>
@@ -993,7 +993,7 @@ export default function FleetVehicles() {
                           </span>
                         </div>
 
-                        <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                        <div className="w-full overflow-x-auto scrollbar-thin rounded-xl border border-gray-200 dark:border-gray-700">
                           <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                             <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                               <tr>
@@ -1137,7 +1137,7 @@ export default function FleetVehicles() {
                                 Nenhuma receita ou despesa registrada para o veículo.
                               </div>
                             ) : (
-                              <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                              <div className="w-full overflow-x-auto scrollbar-thin rounded-xl border border-gray-200 dark:border-gray-700">
                                 <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                                   <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                                     <tr>
@@ -1191,7 +1191,7 @@ export default function FleetVehicles() {
       {/* Creation & Edition Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-[95%] max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
             <div className="p-6 bg-indigo-650 text-white flex justify-between items-center">
@@ -1233,7 +1233,7 @@ export default function FleetVehicles() {
             </div>
 
             {/* Modal Form Content */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
               
               {/* TAB 1: IDENTIFICATION */}
               {activeTab === 'geral' && (

@@ -29,6 +29,8 @@ const createUserSchema = zod_1.z.object({
     roleContasPagar: zod_1.z.boolean().optional().default(false),
     roleContasReceber: zod_1.z.boolean().optional().default(false),
     roleContabilidade: zod_1.z.boolean().optional().default(false),
+    roleRh: zod_1.z.boolean().optional().default(false),
+    roleColaborador: zod_1.z.boolean().optional().default(false),
 });
 const updateUserSchema = zod_1.z.object({
     name: zod_1.z.string().min(3),
@@ -40,6 +42,8 @@ const updateUserSchema = zod_1.z.object({
     roleContasPagar: zod_1.z.boolean().optional(),
     roleContasReceber: zod_1.z.boolean().optional(),
     roleContabilidade: zod_1.z.boolean().optional(),
+    roleRh: zod_1.z.boolean().optional(),
+    roleColaborador: zod_1.z.boolean().optional(),
 });
 exports.AuthController = {
     async register(req, res) {
@@ -108,6 +112,8 @@ exports.AuthController = {
                     roleContasPagar: user.roleContasPagar,
                     roleContasReceber: user.roleContasReceber,
                     roleContabilidade: user.roleContabilidade,
+                    roleRh: user.roleRh,
+                    roleColaborador: user.roleColaborador,
                 },
                 token,
             });
@@ -143,6 +149,8 @@ exports.AuthController = {
                     roleContasPagar: true,
                     roleContasReceber: true,
                     roleContabilidade: true,
+                    roleRh: true,
+                    roleColaborador: true,
                     createdAt: true
                 },
                 orderBy: { createdAt: 'desc' }
@@ -158,6 +166,8 @@ exports.AuthController = {
                 roleContasPagar: user.roleContasPagar,
                 roleContasReceber: user.roleContasReceber,
                 roleContabilidade: user.roleContabilidade,
+                roleRh: user.roleRh,
+                roleColaborador: user.roleColaborador,
                 createdAt: user.createdAt,
             }));
             return res.json(mappedUsers);
@@ -223,6 +233,8 @@ exports.AuthController = {
                     roleContasPagar: parsedData.roleContasPagar,
                     roleContasReceber: parsedData.roleContasReceber,
                     roleContabilidade: parsedData.roleContabilidade,
+                    roleRh: parsedData.roleRh,
+                    roleColaborador: parsedData.roleColaborador,
                     companyId: currentCompanyId
                 },
             });
@@ -238,6 +250,8 @@ exports.AuthController = {
                 roleContasPagar: user.roleContasPagar,
                 roleContasReceber: user.roleContasReceber,
                 roleContabilidade: user.roleContabilidade,
+                roleRh: user.roleRh,
+                roleColaborador: user.roleColaborador,
                 createdAt: user.createdAt
             });
         }
@@ -317,6 +331,10 @@ exports.AuthController = {
                 updateData.roleContasReceber = parsedData.roleContasReceber;
             if (parsedData.roleContabilidade !== undefined)
                 updateData.roleContabilidade = parsedData.roleContabilidade;
+            if (parsedData.roleRh !== undefined)
+                updateData.roleRh = parsedData.roleRh;
+            if (parsedData.roleColaborador !== undefined)
+                updateData.roleColaborador = parsedData.roleColaborador;
             if (parsedData.password && parsedData.password.length >= 6) {
                 updateData.password = await bcrypt_1.default.hash(parsedData.password, 10);
             }
@@ -336,6 +354,8 @@ exports.AuthController = {
                 roleContasPagar: updatedUser.roleContasPagar,
                 roleContasReceber: updatedUser.roleContasReceber,
                 roleContabilidade: updatedUser.roleContabilidade,
+                roleRh: updatedUser.roleRh,
+                roleColaborador: updatedUser.roleColaborador,
                 createdAt: updatedUser.createdAt
             });
         }
@@ -401,6 +421,8 @@ exports.AuthController = {
                     roleContasPagar: true,
                     roleContasReceber: true,
                     roleContabilidade: true,
+                    roleRh: true,
+                    roleColaborador: true,
                     createdAt: true,
                     companyId: true,
                     company: {
@@ -480,6 +502,8 @@ exports.AuthController = {
                 roleContasPagar: user.roleContasPagar,
                 roleContasReceber: user.roleContasReceber,
                 roleContabilidade: user.roleContabilidade,
+                roleRh: user.roleRh,
+                roleColaborador: user.roleColaborador,
                 createdAt: user.createdAt,
                 companyId: user.companyId,
                 company: user.company ? {

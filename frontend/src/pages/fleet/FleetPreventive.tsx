@@ -447,15 +447,15 @@ export default function FleetPreventive() {
       {/* Motor Oil Change Modal */}
       {isMotorModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg shadow-xl overflow-hidden">
-            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-[95%] max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center shrink-0">
               <h2 className="text-lg font-bold">Registrar Troca de Óleo do Motor</h2>
               <button onClick={() => setIsMotorModalOpen(false)} className="text-white/85 hover:text-white transition">
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleCreateMotorChange} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleCreateMotorChange} className="p-6 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Proprietário (Cliente)</label>
                 <select
@@ -619,15 +619,15 @@ export default function FleetPreventive() {
       {/* Gear Oil Change Modal */}
       {isGearModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg shadow-xl overflow-hidden">
-            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-[95%] max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center shrink-0">
               <h2 className="text-lg font-bold">Registrar Troca de Óleo do Câmbio</h2>
               <button onClick={() => setIsGearModalOpen(false)} className="text-white/85 hover:text-white transition">
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleCreateGearChange} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleCreateGearChange} className="p-6 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-gray-600 dark:text-gray-400">Proprietário (Cliente)</label>
                 <select

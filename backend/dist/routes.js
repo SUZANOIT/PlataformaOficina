@@ -14,9 +14,13 @@ const registry_controller_1 = require("./controllers/registry.controller");
 const platform_controller_1 = require("./controllers/platform.controller");
 const fleet_controller_1 = require("./controllers/fleet.controller");
 const advance_controller_1 = require("./controllers/advance.controller");
+const absence_controller_1 = require("./controllers/absence.controller");
 const financial_category_controller_1 = require("./controllers/financial-category.controller");
 const fiscal_controller_1 = require("./controllers/fiscal.controller");
 const saas_controller_1 = require("./controllers/saas.controller");
+const product_controller_1 = require("./controllers/product.controller");
+const tax_controller_1 = require("./controllers/tax.controller");
+const nfe_controller_1 = require("./controllers/nfe.controller");
 const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const admin_saas_controller_1 = require("./controllers/admin-saas.controller");
 const super_admin_middleware_1 = require("./middlewares/super-admin.middleware");
@@ -126,6 +130,16 @@ routes.get('/registry/platforms', platform_controller_1.PlatformController.list)
 routes.post('/registry/platforms', platform_controller_1.PlatformController.create);
 routes.put('/registry/platforms/:id', platform_controller_1.PlatformController.update);
 routes.delete('/registry/platforms/:id', platform_controller_1.PlatformController.delete);
+// RH - Gestão de Faltas e Fechamento
+routes.use('/rh', authMiddleware);
+routes.get('/rh/absences', absence_controller_1.AbsenceController.listAbsences);
+routes.post('/rh/absences', absence_controller_1.AbsenceController.createAbsence);
+routes.put('/rh/absences/:id', absence_controller_1.AbsenceController.updateAbsence);
+routes.delete('/rh/absences/:id', absence_controller_1.AbsenceController.deleteAbsence);
+routes.get('/rh/closing', absence_controller_1.AbsenceController.getMonthlyClosing);
+routes.post('/rh/closing', absence_controller_1.AbsenceController.closeMonth);
+routes.get('/rh/dashboard', absence_controller_1.AbsenceController.getDashboardStats);
+routes.get('/rh/audit-logs', absence_controller_1.AbsenceController.listAuditLogs);
 // Dashboard
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);
@@ -199,6 +213,32 @@ routes.get('/fiscal/documents/:id/download', fiscal_controller_1.FiscalControlle
 routes.post('/fiscal/documents/download-batch', fiscal_controller_1.FiscalController.downloadBatch);
 routes.get('/fiscal/audits', fiscal_controller_1.FiscalController.listAudits);
 routes.get('/fiscal/dashboard', fiscal_controller_1.FiscalController.getDashboard);
+// Módulo Contabilidade - Regras de Tributação
+routes.get('/fiscal/tributacao/municipal', tax_controller_1.TaxController.listMunicipal);
+routes.post('/fiscal/tributacao/municipal', tax_controller_1.TaxController.createMunicipal);
+routes.put('/fiscal/tributacao/municipal/:id', tax_controller_1.TaxController.updateMunicipal);
+routes.delete('/fiscal/tributacao/municipal/:id', tax_controller_1.TaxController.deleteMunicipal);
+routes.get('/fiscal/tributacao/estadual', tax_controller_1.TaxController.listEstadual);
+routes.post('/fiscal/tributacao/estadual', tax_controller_1.TaxController.createEstadual);
+routes.put('/fiscal/tributacao/estadual/:id', tax_controller_1.TaxController.updateEstadual);
+routes.delete('/fiscal/tributacao/estadual/:id', tax_controller_1.TaxController.deleteEstadual);
+routes.get('/fiscal/tributacao/federal', tax_controller_1.TaxController.listFederal);
+routes.post('/fiscal/tributacao/federal', tax_controller_1.TaxController.createFederal);
+routes.put('/fiscal/tributacao/federal/:id', tax_controller_1.TaxController.updateFederal);
+routes.delete('/fiscal/tributacao/federal/:id', tax_controller_1.TaxController.deleteFederal);
+// Módulo Contabilidade - Importação de Notas Fiscais de Entrada
+routes.get('/fiscal/nfe', nfe_controller_1.NfeController.list);
+routes.get('/fiscal/nfe/:id', nfe_controller_1.NfeController.getOne);
+routes.post('/fiscal/nfe/upload', nfe_controller_1.NfeController.upload);
+routes.post('/fiscal/nfe/confirm', nfe_controller_1.NfeController.confirm);
+routes.post('/fiscal/nfe/:id/cancel', nfe_controller_1.NfeController.cancel);
+// Módulo de Cadastro de Produtos
+routes.use('/products', authMiddleware);
+routes.get('/products', product_controller_1.ProductController.list);
+routes.get('/products/:id', product_controller_1.ProductController.getOne);
+routes.post('/products', product_controller_1.ProductController.create);
+routes.put('/products/:id', product_controller_1.ProductController.update);
+routes.delete('/products/:id', product_controller_1.ProductController.delete);
 // Módulo SaaS Administrador
 routes.use('/saas', authMiddleware, saas_admin_middleware_1.saasAdminMiddleware);
 routes.get('/saas/stats', saas_controller_1.SaaSController.getAdminStats);

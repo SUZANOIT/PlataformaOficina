@@ -1129,7 +1129,7 @@ ${bankingText}`;
             </div>
           ) : (
             /* Visualização em Tabela para Desktop e Tablet */
-            <div className="overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
+            <div className="overflow-x-auto scrollbar-thin relative rounded-md border border-border">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
                   <tr className="border-b border-border text-muted-foreground text-sm">
@@ -1452,7 +1452,7 @@ ${bankingText}`;
       {isVehicleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div 
-            className="w-full max-w-4xl bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            className="w-[95%] max-w-4xl bg-card border border-border rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
             role="dialog"
             aria-modal="true"
           >
@@ -1468,7 +1468,7 @@ ${bankingText}`;
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Marca</label>

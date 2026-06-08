@@ -6,5 +6,5 @@
 > backend@1.0.0 start
 > node dist/server.js
 
-◇ injected env (3) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (3) from .env // tip: ⌘ override existing { override: true }
 Server is running on port 3333

@@ -47,6 +47,8 @@ const collaboratorSchema = zod_1.z.object({
     departamento: zod_1.z.string().optional().nullable(),
     dataAdmissao: zod_1.z.string().optional().nullable(),
     salario: zod_1.z.number().optional().nullable(),
+    cargaHoraria: zod_1.z.number().optional().nullable(),
+    valorHora: zod_1.z.number().optional().nullable(),
     status: zod_1.z.string().default('ATIVO'),
     observacoes: zod_1.z.string().optional().nullable(),
     oficinaId: zod_1.z.string().optional().nullable(),
@@ -388,13 +390,18 @@ exports.RegistryController = {
                     targetOficinaId = data.oficinaId;
                 }
             }
+            let valorHora = null;
+            if (data.salario && data.cargaHoraria && data.cargaHoraria > 0) {
+                valorHora = data.salario / data.cargaHoraria;
+            }
             const collaborator = await prisma_1.prisma.collaborator.create({
                 data: {
                     ...data,
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
                     oficinaId: targetOficinaId,
-                    companyId
+                    companyId,
+                    valorHora
                 },
                 include: {
                     oficina: true,
@@ -447,6 +454,10 @@ exports.RegistryController = {
                     targetOficinaId = data.oficinaId;
                 }
             }
+            let valorHora = null;
+            if (data.salario && data.cargaHoraria && data.cargaHoraria > 0) {
+                valorHora = data.salario / data.cargaHoraria;
+            }
             const collaborator = await prisma_1.prisma.collaborator.update({
                 where: { id },
                 data: {
@@ -454,7 +465,8 @@ exports.RegistryController = {
                     cpfSemMascara,
                     dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
                     oficinaId: targetOficinaId,
-                    companyId
+                    companyId,
+                    valorHora
                 },
                 include: {
                     oficina: true,

@@ -8,6 +8,7 @@ const createAdvanceSchema = zod_1.z.object({
     formaPagamento: zod_1.z.string(),
     observacoes: zod_1.z.string().optional().nullable(),
     data: zod_1.z.string().optional().nullable(),
+    paymentDate: zod_1.z.string(),
     oficinaId: zod_1.z.string().optional().nullable(),
 });
 exports.AdvanceController = {
@@ -52,6 +53,52 @@ exports.AdvanceController = {
             if (!collaborator) {
                 return res.status(404).json({ error: 'Colaborador não encontrado' });
             }
+            if (collaborator.status === 'INATIVO') {
+                return res.status(400).json({ error: 'Não é permitido registrar adiantamentos para colaboradores inativos.' });
+            }
+            // Calculate available balance for the month of the advance
+            const advanceDate = dataParsed.data ? new Date(dataParsed.data) : new Date();
+            const paymentDateObj = new Date(dataParsed.paymentDate);
+            const competencyMonth = paymentDateObj.getUTCMonth();
+            const competencyYear = paymentDateObj.getUTCFullYear();
+            const payrollCompetency = `${String(competencyMonth + 1).padStart(2, '0')}/${competencyYear}`;
+            const startOfMonth = new Date(Date.UTC(competencyYear, competencyMonth, 1));
+            const endOfMonth = new Date(Date.UTC(competencyYear, competencyMonth + 1, 0, 23, 59, 59, 999));
+            const currentMonthAdvances = await prisma_1.prisma.salaryAdvance.findMany({
+                where: {
+                    collaboratorId,
+                    OR: [
+                        { payroll_competency: payrollCompetency },
+                        {
+                            data: {
+                                gte: startOfMonth,
+                                lte: endOfMonth
+                            },
+                            payroll_competency: null
+                        }
+                    ]
+                }
+            });
+            const totalAdvancesCurrentMonth = currentMonthAdvances.reduce((sum, adv) => sum + adv.valor, 0);
+            const unexcusedAbsences = await prisma_1.prisma.employeeAbsence.findMany({
+                where: {
+                    collaboratorId,
+                    tipo: 'NAO_JUSTIFICADA',
+                    dataFalta: {
+                        gte: startOfMonth,
+                        lte: endOfMonth
+                    }
+                }
+            });
+            const unexcusedDays = unexcusedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
+            const baseSalary = collaborator.salario || 0;
+            const totalDiscountsCurrentMonth = unexcusedDays * (baseSalary / 30);
+            const availableBalance = Math.max(0, baseSalary - totalAdvancesCurrentMonth - totalDiscountsCurrentMonth);
+            if (dataParsed.valor > availableBalance) {
+                return res.status(400).json({
+                    error: `O valor do adiantamento (R$ ${dataParsed.valor.toFixed(2)}) excede o saldo disponível para o mês (R$ ${availableBalance.toFixed(2)}).`
+                });
+            }
             // Fetch logged-in user name
             const userId = req.userId;
             const user = await prisma_1.prisma.user.findUnique({
@@ -65,7 +112,6 @@ exports.AdvanceController = {
             const todayStr = new Date().toISOString().substring(0, 10).replace(/-/g, '');
             const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
             const numeroComprovante = `ADV-${todayStr}-${randomHex}`;
-            const advanceDate = dataParsed.data ? new Date(dataParsed.data) : new Date();
             // 1. Auto-create Corresponding FinancialPayable (Contas a Pagar)
             const payable = await prisma_1.prisma.financialPayable.create({
                 data: {
@@ -130,7 +176,10 @@ exports.AdvanceController = {
                     valor: dataParsed.valor,
                     formaPagamento: dataParsed.formaPagamento,
                     status: 'PENDENTE',
+                    discount_status: 'PENDENTE',
                     data: advanceDate,
+                    payment_date: paymentDateObj,
+                    payroll_competency: payrollCompetency,
                     responsavel: responsavel,
                     observacoes: dataParsed.observacoes || null,
                     numeroComprovante,
@@ -157,9 +206,12 @@ exports.AdvanceController = {
         try {
             const advanceId = req.params.advanceId;
             const companyId = req.companyId || null;
+            const userId = req.userId;
+            const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
+            const userNome = user?.name || 'Sistema';
             const { status } = req.body;
-            if (!status || !['PENDENTE', 'DESCONTADO_EM_FOLHA'].includes(status)) {
-                return res.status(400).json({ error: 'Status inválido. Use PENDENTE ou DESCONTADO_EM_FOLHA' });
+            if (!status || !['PENDENTE', 'APROVADO', 'REPROVADO', 'DESCONTADO_EM_FOLHA'].includes(status)) {
+                return res.status(400).json({ error: 'Status inválido. Use PENDENTE, APROVADO, REPROVADO ou DESCONTADO_EM_FOLHA' });
             }
             const advance = await prisma_1.prisma.salaryAdvance.findUnique({
                 where: { id: advanceId },
@@ -172,8 +224,28 @@ exports.AdvanceController = {
                 where: { id: advanceId },
                 data: { status },
                 include: {
-                    pdfs: true,
+                    pdfs: {
+                        orderBy: { generatedAt: 'desc' }
+                    },
                     payable: true
+                }
+            });
+            let auditAction = 'ALTERACAO_STATUS_ADIANTAMENTO';
+            if (status === 'APROVADO') {
+                auditAction = 'APROVACAO_ADIANTAMENTO';
+            }
+            else if (status === 'REPROVADO') {
+                auditAction = 'REPROVACAO_ADIANTAMENTO';
+            }
+            await prisma_1.prisma.absenceAudit.create({
+                data: {
+                    collaboratorId: advance.collaboratorId,
+                    collaboratorName: advance.collaborator.nome,
+                    usuario: userNome,
+                    action: auditAction,
+                    valorAnterior: `Status: ${advance.status}, Valor: R$ ${advance.valor.toFixed(2)}`,
+                    valorNovo: `Status: ${status}, Valor: R$ ${advance.valor.toFixed(2)}`,
+                    companyId: companyId || '',
                 }
             });
             return res.json(updated);
@@ -205,6 +277,20 @@ exports.AdvanceController = {
                     console.warn('Linked payable not found or already deleted:', e);
                 }
             }
+            const userId = req.userId;
+            const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
+            const responsavel = user?.name || 'Sistema';
+            await prisma_1.prisma.absenceAudit.create({
+                data: {
+                    collaboratorId: advance.collaboratorId,
+                    collaboratorName: advance.collaborator.nome,
+                    usuario: responsavel,
+                    action: 'CANCELAMENTO_ADIANTAMENTO',
+                    valorAnterior: advance.valor.toString(),
+                    valorNovo: '0',
+                    companyId: companyId
+                }
+            });
             await prisma_1.prisma.salaryAdvance.delete({
                 where: { id: advanceId }
             });
