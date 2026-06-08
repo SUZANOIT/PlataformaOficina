@@ -218,6 +218,7 @@ export const AdvanceController = {
       const userId = (req as any).userId;
       const user = await prisma.user.findUnique({ where: { id: userId } });
       const userNome = user?.name || 'Sistema';
+      const { status } = req.body;
 
       if (!status || !['PENDENTE', 'APROVADO', 'REPROVADO', 'DESCONTADO_EM_FOLHA'].includes(status)) {
         return res.status(400).json({ error: 'Status inválido. Use PENDENTE, APROVADO, REPROVADO ou DESCONTADO_EM_FOLHA' });
