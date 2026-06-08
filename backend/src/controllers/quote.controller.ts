@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma, basePrisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
 
@@ -79,6 +79,78 @@ const createQuoteSchema = z.object({
   total: z.number(),
   status: z.string().optional().default("Aguardando Aprovação"),
 });
+
+async function resolveClientForQuote(
+  clientData: z.infer<typeof createQuoteSchema>['client'],
+  existingClient?: { id: string; nome: string; cnpj?: string | null; email?: string | null } | null
+) {
+  const normalizedCnpj = clientData.cnpj ? clientData.cnpj.trim().replace(/\D/g, '') : '';
+  const normalizedEmail = clientData.email ? clientData.email.trim().toLowerCase() : '';
+  const normalizedNome = clientData.nome.trim();
+
+  if (existingClient) {
+    const existingCnpj = existingClient.cnpj ? existingClient.cnpj.trim().replace(/\D/g, '') : '';
+    const existingEmail = existingClient.email ? existingClient.email.trim().toLowerCase() : '';
+    const existingNome = existingClient.nome.trim().toLowerCase();
+
+    const isSameClient =
+      (normalizedCnpj && existingCnpj && normalizedCnpj === existingCnpj) ||
+      (normalizedEmail && existingEmail && normalizedEmail === existingEmail) ||
+      existingNome === normalizedNome.toLowerCase();
+
+    if (isSameClient) {
+      return prisma.client.update({
+        where: { id: existingClient.id },
+        data: clientData,
+      });
+    }
+  }
+
+  let client;
+
+  if (normalizedCnpj && normalizedCnpj.length === 14) {
+    client = await prisma.client.findFirst({
+      where: {
+        cnpj: {
+          contains: normalizedCnpj
+        }
+      }
+    });
+  }
+
+  if (!client && normalizedEmail) {
+    client = await prisma.client.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive'
+        }
+      }
+    });
+  }
+
+  if (!client) {
+    client = await prisma.client.findFirst({
+      where: {
+        nome: {
+          equals: normalizedNome,
+          mode: 'insensitive'
+        }
+      }
+    });
+  }
+
+  if (client) {
+    return prisma.client.update({
+      where: { id: client.id },
+      data: clientData,
+    });
+  }
+
+  return prisma.client.create({
+    data: clientData,
+  });
+}
 
 export const QuoteController = {
   async list(req: Request, res: Response) {
@@ -485,57 +557,7 @@ export const QuoteController = {
         return res.status(404).json({ error: 'Quote not found' });
       }
 
-      // Prevenir duplicação de cliente e evitar sobrescrever registros compartilhados
-      let client;
-      
-      const normalizedCnpj = data.client.cnpj ? data.client.cnpj.trim().replace(/\D/g, '') : '';
-      const normalizedEmail = data.client.email ? data.client.email.trim().toLowerCase() : '';
-      const normalizedNome = data.client.nome.trim();
-
-      if (normalizedCnpj && normalizedCnpj.length === 14) {
-        client = await prisma.client.findFirst({
-          where: {
-            cnpj: {
-              contains: normalizedCnpj
-            }
-          }
-        });
-      }
-
-      if (!client && normalizedEmail) {
-        client = await prisma.client.findFirst({
-          where: {
-            email: {
-              equals: normalizedEmail,
-              mode: 'insensitive'
-            }
-          }
-        });
-      }
-
-      if (!client) {
-        client = await prisma.client.findFirst({
-          where: {
-            nome: {
-              equals: normalizedNome,
-              mode: 'insensitive'
-            }
-          }
-        });
-      }
-
-      if (client) {
-        // Atualiza os dados do cliente existente para mantê-lo atualizado
-        client = await prisma.client.update({
-          where: { id: client.id },
-          data: data.client,
-        });
-      } else {
-        // Cria um novo cliente se realmente não existir
-        client = await prisma.client.create({
-          data: data.client,
-        });
-      }
+      const client = await resolveClientForQuote(data.client, existingQuote.client);
 
       // Resolve or create vehicle
       let veiculoId: string | null = null;
