@@ -81,7 +81,7 @@ export const AdvanceController = {
       });
       const totalAdvancesCurrentMonth = currentMonthAdvances.reduce((sum, adv) => sum + adv.valor, 0);
 
-      const unexcusedCount = await prisma.employeeAbsence.count({
+      const unexcusedAbsences = await prisma.employeeAbsence.findMany({
         where: {
           collaboratorId,
           tipo: 'NAO_JUSTIFICADA',
@@ -91,8 +91,9 @@ export const AdvanceController = {
           }
         }
       });
+      const unexcusedDays = unexcusedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
       const baseSalary = collaborator.salario || 0;
-      const totalDiscountsCurrentMonth = unexcusedCount * (baseSalary / 30);
+      const totalDiscountsCurrentMonth = unexcusedDays * (baseSalary / 30);
       const availableBalance = Math.max(0, baseSalary - totalAdvancesCurrentMonth - totalDiscountsCurrentMonth);
 
       if (dataParsed.valor > availableBalance) {

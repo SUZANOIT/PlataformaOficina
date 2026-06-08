@@ -1105,6 +1105,8 @@ model EmployeeAbsence {
   collaborator    Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
   dataFalta       DateTime     @map("data_falta")
   tipo            String       // JUSTIFICADA, NAO_JUSTIFICADA
+  diasFalta       Int          @default(1) @map("dias_falta")
+  motivo          String?      @map("motivo")
   observacao      String?
   fileName        String?      @map("file_name")
   fileType        String?      @map("file_type")

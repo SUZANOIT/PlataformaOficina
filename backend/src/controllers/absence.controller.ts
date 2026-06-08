@@ -13,6 +13,8 @@ const createAbsenceSchema = z.object({
   collaboratorId: z.string(),
   dataFalta: z.string(), // YYYY-MM-DD
   tipo: z.enum(['JUSTIFICADA', 'NAO_JUSTIFICADA']),
+  diasFalta: z.number().int().positive().default(1),
+  motivo: z.string().optional().nullable(),
   observacao: z.string().optional().nullable(),
   fileName: z.string().optional().nullable(),
   fileType: z.string().optional().nullable(),
@@ -22,6 +24,8 @@ const createAbsenceSchema = z.object({
 const updateAbsenceSchema = z.object({
   dataFalta: z.string(), // YYYY-MM-DD
   tipo: z.enum(['JUSTIFICADA', 'NAO_JUSTIFICADA']),
+  diasFalta: z.number().int().positive().default(1),
+  motivo: z.string().optional().nullable(),
   observacao: z.string().optional().nullable(),
   fileName: z.string().optional().nullable(),
   fileType: z.string().optional().nullable(),
@@ -40,7 +44,7 @@ async function recalculateCollaboratorAbsences(collaboratorId: string) {
   });
 
   const baseSalary = collaborator.salario || 0;
-  const totalFaltas = absences.length;
+  const totalFaltas = absences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
   const totalDesconto = totalFaltas * (baseSalary / 30);
 
   await prisma.collaborator.update({
@@ -135,6 +139,8 @@ export const AbsenceController = {
           collaboratorId: body.collaboratorId,
           dataFalta: parsedDate,
           tipo: body.tipo,
+          diasFalta: body.diasFalta,
+          motivo: body.motivo,
           observacao: body.observacao,
           fileName: body.fileName,
           fileType: body.fileType,
@@ -154,7 +160,7 @@ export const AbsenceController = {
 
       // Save Audit Log
       const baseSalary = collaborator.salario || 0;
-      const calculatedDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+      const calculatedDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (body.diasFalta * (baseSalary / 30)) : 0;
       
       await prisma.absenceAudit.create({
         data: {
@@ -163,12 +169,12 @@ export const AbsenceController = {
           usuario: user.name,
           action: 'INCLUSAO_FALTAS',
           valorAnterior: 'Nenhuma falta registrada nesta data',
-          valorNovo: `Data: ${body.dataFalta}, Tipo: ${body.tipo}, Desconto: R$ ${calculatedDiscount.toFixed(2)}`,
+          valorNovo: `Data: ${body.dataFalta}, Dias: ${body.diasFalta}, Motivo: ${body.motivo || 'N/A'}, Tipo: ${body.tipo}, Desconto: R$ ${calculatedDiscount.toFixed(2)}`,
           companyId: companyId || '',
         },
       });
 
-      AuditLogger.log(userId, companyId, 'CREATE_ABSENCE', `Created absence for collaborator: ${collaborator.nome} (${collaborator.id}), date: ${body.dataFalta}, type: ${body.tipo}`, 'SUCCESS');
+      AuditLogger.log(userId, companyId, 'CREATE_ABSENCE', `Created absence for collaborator: ${collaborator.nome} (${collaborator.id}), date: ${body.dataFalta}, type: ${body.tipo}, days: ${body.diasFalta}`, 'SUCCESS');
 
       return res.status(201).json(absence);
     } catch (error) {
@@ -209,6 +215,8 @@ export const AbsenceController = {
         data: {
           dataFalta: parsedDate,
           tipo: body.tipo,
+          diasFalta: body.diasFalta,
+          motivo: body.motivo,
           observacao: body.observacao,
           fileName: body.fileName,
           fileType: body.fileType,
@@ -224,8 +232,8 @@ export const AbsenceController = {
 
       // Save Audit Log
       const baseSalary = existingAbsence.collaborator.salario || 0;
-      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
-      const newDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? ((existingAbsence.diasFalta || 1) * (baseSalary / 30)) : 0;
+      const newDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (body.diasFalta * (baseSalary / 30)) : 0;
 
       await prisma.absenceAudit.create({
         data: {
@@ -233,13 +241,13 @@ export const AbsenceController = {
           collaboratorName: existingAbsence.collaborator.nome,
           usuario: user.name,
           action: 'ALTERACAO_FALTAS',
-          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
-          valorNovo: `Data: ${body.dataFalta}, Tipo: ${body.tipo}, Desconto: R$ ${newDiscount.toFixed(2)}`,
+          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Dias: ${existingAbsence.diasFalta || 1}, Motivo: ${existingAbsence.motivo || 'N/A'}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
+          valorNovo: `Data: ${body.dataFalta}, Dias: ${body.diasFalta}, Motivo: ${body.motivo || 'N/A'}, Tipo: ${body.tipo}, Desconto: R$ ${newDiscount.toFixed(2)}`,
           companyId: companyId || '',
         },
       });
 
-      AuditLogger.log(userId, companyId, 'UPDATE_ABSENCE', `Updated absence id: ${id} for collaborator: ${existingAbsence.collaborator.nome}, new date: ${body.dataFalta}, new type: ${body.tipo}`, 'SUCCESS');
+      AuditLogger.log(userId, companyId, 'UPDATE_ABSENCE', `Updated absence id: ${id} for collaborator: ${existingAbsence.collaborator.nome}, new date: ${body.dataFalta}, new type: ${body.tipo}, days: ${body.diasFalta}`, 'SUCCESS');
 
       return res.json(updated);
     } catch (error) {
@@ -280,7 +288,7 @@ export const AbsenceController = {
 
       // Save Audit Log
       const baseSalary = existingAbsence.collaborator.salario || 0;
-      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? ((existingAbsence.diasFalta || 1) * (baseSalary / 30)) : 0;
 
       await prisma.absenceAudit.create({
         data: {
@@ -288,7 +296,7 @@ export const AbsenceController = {
           collaboratorName: existingAbsence.collaborator.nome,
           usuario: user.name,
           action: 'EXCLUSAO_FALTAS',
-          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
+          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Dias: ${existingAbsence.diasFalta || 1}, Motivo: ${existingAbsence.motivo || 'N/A'}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
           valorNovo: 'Registro de falta excluído',
           companyId: companyId || '',
         },
@@ -375,8 +383,8 @@ export const AbsenceController = {
         const unexcusedAbsences = collab.absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA');
         const justifiedAbsences = collab.absences.filter((a) => a.tipo === 'JUSTIFICADA');
         
-        const totalFaltasNaoJustificadas = unexcusedAbsences.length;
-        const totalFaltasJustificadas = justifiedAbsences.length;
+        const totalFaltasNaoJustificadas = unexcusedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
+        const totalFaltasJustificadas = justifiedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
 
         // Calculate unexcused discounts
         const totalDescontoFaltas = totalFaltasNaoJustificadas * (baseSalary / 30);
@@ -414,7 +422,7 @@ export const AbsenceController = {
     }
   },
 
-  // 6. Close Month (Freeze closing data into history)
+  // 6. Close Month (Freeze closing data into history & generate FinancialPayables)
   async closeMonth(req: Request, res: Response) {
     try {
       const companyId = (req as any).companyId || null;
@@ -450,6 +458,14 @@ export const AbsenceController = {
               },
             },
           },
+          advances: {
+            where: {
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+            },
+          },
         },
       });
 
@@ -461,21 +477,61 @@ export const AbsenceController = {
         },
       });
 
-      const historyToCreate = collaborators.map((collab) => {
-        const baseSalary = collab.salario || 0;
-        const unexcusedCount = collab.absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA').length;
-        const totalDesconto = unexcusedCount * (baseSalary / 30);
+      const historyToCreate = [];
+      const fifthOfSubsequentMonth = new Date(Date.UTC(y, m, 5)); // 5th of next month
 
-        return {
+      for (const collab of collaborators) {
+        const baseSalary = collab.salario || 0;
+        const unexcusedDays = collab.absences
+          .filter((a) => a.tipo === 'NAO_JUSTIFICADA')
+          .reduce((sum, a) => sum + (a.diasFalta || 1), 0);
+        const totalDesconto = unexcusedDays * (baseSalary / 30);
+        const totalAdiantamentos = collab.advances.reduce((sum, adv) => sum + adv.valor, 0);
+        const saldoLiquidoProjetado = Math.max(0, baseSalary - totalDesconto - totalAdiantamentos);
+
+        historyToCreate.push({
           collaboratorId: collab.id,
           collaboratorName: collab.nome,
           competencia: competencyStr,
-          faltas: unexcusedCount,
+          faltas: unexcusedDays,
           valorDescontado: totalDesconto,
           usuarioResponsavel: user.name,
           companyId: companyId || '',
-        };
-      });
+        });
+
+        // Generate accounts payable record in the financial module
+        if (saldoLiquidoProjetado > 0) {
+          const descFind = `Folha de Pagamento - Ref: ${competencyStr}`;
+          const existingPayable = await prisma.financialPayable.findFirst({
+            where: {
+              companyId: companyId || '',
+              fornecedor: collab.nome,
+              categoria: 'Folha de Pagamento',
+              descricao: {
+                contains: descFind,
+              },
+            },
+          });
+
+          if (!existingPayable) {
+            await prisma.financialPayable.create({
+              data: {
+                companyId: companyId || '',
+                fornecedor: collab.nome,
+                categoria: 'Folha de Pagamento',
+                centroCusto: 'Recursos Humanos',
+                descricao: `Folha de Pagamento - ${collab.nome} - Ref: ${competencyStr}`,
+                valor: saldoLiquidoProjetado,
+                dataEmissao: new Date(),
+                vencimento: fifthOfSubsequentMonth,
+                formaPagamento: 'TRANSFERÊNCIA',
+                responsavel: user.name,
+                status: 'PENDENTE',
+              },
+            });
+          }
+        }
+      }
 
       if (historyToCreate.length > 0) {
         await prisma.absenceHistory.createMany({
@@ -562,13 +618,14 @@ export const AbsenceController = {
       const unexcused = absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA');
       const justified = absences.filter((a) => a.tipo === 'JUSTIFICADA');
 
-      const totalUnexcusedCount = unexcused.length;
-      const totalJustifiedCount = justified.length;
+      const totalUnexcusedCount = unexcused.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
+      const totalJustifiedCount = justified.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
 
       // Calculate total discount
       const totalDiscount = unexcused.reduce((sum, a) => {
         const base = a.collaborator.salario || 0;
-        return sum + (base / 30);
+        const days = a.diasFalta || 1;
+        return sum + (days * (base / 30));
       }, 0);
 
       const totalAdvancesAmount = advances.reduce((sum, a) => sum + a.valor, 0);
@@ -577,7 +634,7 @@ export const AbsenceController = {
       const departmentDistribution: Record<string, number> = {};
       absences.forEach((a) => {
         const dept = a.collaborator.departamento || 'Não Informado';
-        departmentDistribution[dept] = (departmentDistribution[dept] || 0) + 1;
+        departmentDistribution[dept] = (departmentDistribution[dept] || 0) + (a.diasFalta || 1);
       });
 
       // Top 5 employees with most absences
@@ -591,7 +648,7 @@ export const AbsenceController = {
             cargo: a.collaborator.cargo || 'Não informado',
           };
         }
-        collaboratorAbsencesCounts[id].count++;
+        collaboratorAbsencesCounts[id].count += (a.diasFalta || 1);
       });
 
       const topCollaborators = Object.values(collaboratorAbsencesCounts)
@@ -623,9 +680,9 @@ export const AbsenceController = {
         const date = new Date(a.dataFalta);
         const label = `${monthsStr[date.getMonth()]}/${date.getFullYear()}`;
         if (trendData[label]) {
-          trendData[label].total++;
+          trendData[label].total += (a.diasFalta || 1);
           if (a.tipo === 'NAO_JUSTIFICADA') {
-            trendData[label].unexcused++;
+            trendData[label].unexcused += (a.diasFalta || 1);
           }
         }
       });
