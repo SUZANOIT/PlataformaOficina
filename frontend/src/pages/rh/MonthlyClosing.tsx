@@ -227,9 +227,9 @@ export function MonthlyClosing() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total de Descontos Faltas</p>
-              <h3 className="text-2xl font-bold mt-0.5 text-red-500">
-                R$ {closingData.totals.descontos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
+              <span className="text-2xl font-black mt-1.5 text-red-500">
+                R$ {(closingData?.totals?.descontos || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
 
@@ -239,9 +239,9 @@ export function MonthlyClosing() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Adiantamentos Concedidos</p>
-              <h3 className="text-2xl font-bold mt-0.5 text-amber-500">
-                R$ {closingData.totals.adiantamentos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
+              <span className="text-2xl font-black mt-1.5 text-amber-500">
+                R$ {(closingData?.totals?.adiantamentos || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
 
@@ -251,9 +251,9 @@ export function MonthlyClosing() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Saldo Líquido a Pagar</p>
-              <h3 className="text-2xl font-bold mt-0.5 text-emerald-500">
-                R$ {closingData.totals.saldos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
+              <span className="text-2xl font-black mt-1.5 text-blue-400">
+                R$ {(closingData?.totals?.salarios || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
@@ -304,13 +304,13 @@ export function MonthlyClosing() {
                       )}
                     </td>
                     <td className="p-4 text-rose-500 font-medium">
-                      R$ {item.faltasDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(item.faltasDesconto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-4 text-amber-500 font-medium">
-                      R$ {item.adiantamentos.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(item.adiantamentos || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-4 font-extrabold text-emerald-500">
-                      R$ {item.saldoLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(item.saldoLiquido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="p-4 text-right">
                       <button
@@ -409,24 +409,24 @@ export function MonthlyClosing() {
               <div className="bg-secondary/10 border border-border/60 rounded-2xl p-5 space-y-3">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fórmula de Cálculo do Saldo</h4>
                 <div className="grid grid-cols-4 gap-2 text-center items-center">
-                  <div className="bg-card border border-border/40 p-2.5 rounded-xl">
-                    <span className="text-[10px] text-muted-foreground block uppercase font-medium">Salário Base</span>
-                    <span className="font-bold text-foreground text-xs sm:text-sm">R$ {detailItem.salario.toLocaleString('pt-BR')}</span>
+                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
+                    <span className="text-muted-foreground text-xs sm:text-sm">Salário Base</span>
+                    <span className="font-bold text-foreground text-xs sm:text-sm">R$ {(detailItem?.salario || 0).toLocaleString('pt-BR')}</span>
                   </div>
                   <div className="text-muted-foreground font-semibold text-lg">-</div>
-                  <div className="bg-card border border-border/40 p-2.5 rounded-xl">
-                    <span className="text-[10px] text-muted-foreground block uppercase font-medium">Desconto Faltas</span>
-                    <span className="font-bold text-red-500 text-xs sm:text-sm">R$ {detailItem.faltasDesconto.toLocaleString('pt-BR')}</span>
+                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
+                    <span className="text-muted-foreground text-xs sm:text-sm flex items-center gap-1.5"><TrendingDown size={14} className="text-red-500"/> Desconto Faltas ({detailItem?.faltasCount || 0} dias)</span>
+                    <span className="font-bold text-red-500 text-xs sm:text-sm">R$ {(detailItem?.faltasDesconto || 0).toLocaleString('pt-BR')}</span>
                   </div>
                   <div className="text-muted-foreground font-semibold text-lg">-</div>
-                  <div className="bg-card border border-border/40 p-2.5 rounded-xl">
-                    <span className="text-[10px] text-muted-foreground block uppercase font-medium">Adiantamentos</span>
-                    <span className="font-bold text-amber-500 text-xs sm:text-sm">R$ {detailItem.adiantamentos.toLocaleString('pt-BR')}</span>
+                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
+                    <span className="text-muted-foreground text-xs sm:text-sm flex items-center gap-1.5"><Calendar size={14} className="text-amber-500"/> Adiantamentos</span>
+                    <span className="font-bold text-amber-500 text-xs sm:text-sm">R$ {(detailItem?.adiantamentos || 0).toLocaleString('pt-BR')}</span>
                   </div>
                   <div className="text-muted-foreground font-semibold text-lg">=</div>
-                  <div className="bg-card border border-primary/20 p-2.5 rounded-xl col-span-2">
-                    <span className="text-[10px] text-primary block uppercase font-extrabold">Saldo Líquido</span>
-                    <span className="font-black text-emerald-500 text-sm sm:text-base">R$ {detailItem.saldoLiquido.toLocaleString('pt-BR')}</span>
+                  <div className="flex justify-between items-center py-3 bg-secondary/20 -mx-4 px-4 border-y border-border/60">
+                    <span className="font-bold text-foreground text-sm sm:text-base">Saldo Líquido Projetado</span>
+                    <span className="font-black text-emerald-500 text-sm sm:text-base">R$ {(detailItem?.saldoLiquido || 0).toLocaleString('pt-BR')}</span>
                   </div>
                 </div>
               </div>
@@ -496,9 +496,8 @@ export function MonthlyClosing() {
                                 <td className="p-2 font-bold">
                                   {new Date(a.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                 </td>
-                                <td className="p-2">{a.formaPagamento}</td>
                                 <td className="p-2 text-right font-bold text-foreground">
-                                  R$ {a.valor.toLocaleString('pt-BR')}
+                                  R$ {(a.valor || 0).toLocaleString('pt-BR')}
                                 </td>
                               </tr>
                             ))}

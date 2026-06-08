@@ -320,12 +320,8 @@ export const AbsenceController = {
 
       const { month, year } = req.query as any;
 
-      if (!month || !year) {
-        return res.status(400).json({ error: 'Mês e Ano são obrigatórios.' });
-      }
-
-      const m = parseInt(month);
-      const y = parseInt(year);
+      const m = month ? parseInt(month) : (new Date().getMonth() + 1);
+      const y = year ? parseInt(year) : new Date().getFullYear();
 
       const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
       const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
@@ -337,7 +333,11 @@ export const AbsenceController = {
           where: { email: user.email, companyId },
         });
         if (!collaborator) {
-          return res.json([]);
+          return res.json({
+            items: [],
+            totals: { salarios: 0, descontos: 0, adiantamentos: 0, saldos: 0 },
+            status: 'ABERTO'
+          });
         }
         collaboratorWhere.id = collaborator.id;
       }
@@ -374,48 +374,55 @@ export const AbsenceController = {
         },
       });
 
-      const historyMap = new Map(historyRecords.map((hr) => [hr.collaboratorId, hr]));
+      const isClosed = historyRecords.length > 0;
 
-      const closingData = collaborators.map((collab) => {
+      let totalSalarios = 0;
+      let totalDescontos = 0;
+      let totalAdiantamentos = 0;
+      let totalSaldos = 0;
+
+      const items = collaborators.map((collab) => {
         const baseSalary = collab.salario || 0;
         
-        // Count unexcused and justified absences
+        // Count unexcused absences
         const unexcusedAbsences = collab.absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA');
-        const justifiedAbsences = collab.absences.filter((a) => a.tipo === 'JUSTIFICADA');
-        
         const totalFaltasNaoJustificadas = unexcusedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
-        const totalFaltasJustificadas = justifiedAbsences.reduce((sum, a) => sum + (a.diasFalta || 1), 0);
 
         // Calculate unexcused discounts
         const totalDescontoFaltas = totalFaltasNaoJustificadas * (baseSalary / 30);
 
         // Sum advances for the month
-        const totalAdiantamentos = collab.advances.reduce((sum, adv) => sum + adv.valor, 0);
+        const totalAdiantamentosCollab = collab.advances.reduce((sum, adv) => sum + adv.valor, 0);
 
         // Net projected salary
-        const salarioLiquidoProjetado = Math.max(0, baseSalary - totalDescontoFaltas - totalAdiantamentos);
+        const salarioLiquidoProjetado = Math.max(0, baseSalary - totalDescontoFaltas - totalAdiantamentosCollab);
 
-        const closedRecord = historyMap.get(collab.id);
+        totalSalarios += baseSalary;
+        totalDescontos += totalDescontoFaltas;
+        totalAdiantamentos += totalAdiantamentosCollab;
+        totalSaldos += salarioLiquidoProjetado;
 
         return {
           collaboratorId: collab.id,
           nome: collab.nome,
-          cargo: collab.cargo || 'Não informado',
-          departamento: collab.departamento || 'Não informado',
-          statusCollab: collab.status,
-          salarioBase: baseSalary,
-          faltasNaoJustificadas: totalFaltasNaoJustificadas,
-          faltasJustificadas: totalFaltasJustificadas,
-          valorDescontadoFaltas: totalDescontoFaltas,
-          valorAdiantamentos: totalAdiantamentos,
-          salarioLiquidoProjetado,
-          isClosed: !!closedRecord,
-          closedDate: closedRecord?.createdAt || null,
-          closedBy: closedRecord?.usuarioResponsavel || null,
+          salario: baseSalary,
+          faltasCount: totalFaltasNaoJustificadas,
+          faltasDesconto: totalDescontoFaltas,
+          adiantamentos: totalAdiantamentosCollab,
+          saldoLiquido: salarioLiquidoProjetado,
         };
       });
 
-      return res.json(closingData);
+      return res.json({
+        items,
+        totals: {
+          salarios: totalSalarios,
+          descontos: totalDescontos,
+          adiantamentos: totalAdiantamentos,
+          saldos: totalSaldos
+        },
+        status: isClosed ? 'FECHADO' : 'ABERTO'
+      });
     } catch (error) {
       console.error('Error getting monthly closing:', error);
       return res.status(500).json({ error: 'Erro ao gerar fechamento mensal.' });
@@ -582,12 +589,8 @@ export const AbsenceController = {
       const companyId = (req as any).companyId || null;
       const { month, year } = req.query as any;
 
-      if (!month || !year) {
-        return res.status(400).json({ error: 'Mês e Ano são obrigatórios.' });
-      }
-
-      const m = parseInt(month);
-      const y = parseInt(year);
+      const m = month ? parseInt(month) : (new Date().getMonth() + 1);
+      const y = year ? parseInt(year) : new Date().getFullYear();
 
       const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
       const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));

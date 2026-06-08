@@ -36,10 +36,12 @@ interface Absence {
   };
   dataFalta: string;
   tipo: 'JUSTIFICADA' | 'NAO_JUSTIFICADA';
+  diasFalta: number;
+  motivo: string | null;
   observacao: string | null;
   anexoUrl: string | null;
   anexoNome: string | null;
-  usuarioResponsavel: string;
+  responsavelNome: string;
   createdAt: string;
 }
 
@@ -73,6 +75,8 @@ export function AbsenceControl() {
   const [formCollabId, setFormCollabId] = useState('');
   const [formDataFalta, setFormDataFalta] = useState(new Date().toISOString().substring(0, 10));
   const [formTipo, setFormTipo] = useState<'JUSTIFICADA' | 'NAO_JUSTIFICADA'>('NAO_JUSTIFICADA');
+  const [formDiasFalta, setFormDiasFalta] = useState<number>(1);
+  const [formMotivo, setFormMotivo] = useState<string>('');
   const [formObservacao, setFormObservacao] = useState('');
   
   // Attachment variables
@@ -121,7 +125,16 @@ export function AbsenceControl() {
 
       // Fetch dashboard metrics
       const statsRes = await api.get('/rh/dashboard');
-      setStats(statsRes.data);
+      if (statsRes.data && statsRes.data.kpis) {
+        setStats({
+          total: (statsRes.data.kpis.totalUnexcusedCount || 0) + (statsRes.data.kpis.totalJustifiedCount || 0),
+          justified: statsRes.data.kpis.totalJustifiedCount || 0,
+          unexcused: statsRes.data.kpis.totalUnexcusedCount || 0,
+          financialImpact: statsRes.data.kpis.totalDiscount || 0
+        });
+      } else if (statsRes.data && statsRes.data.total !== undefined) {
+        setStats(statsRes.data); // In case backend changes format
+      }
     } catch (error) {
       console.error('Error fetching data', error);
       toast.error('Erro ao carregar dados do módulo de faltas.');
@@ -177,6 +190,8 @@ export function AbsenceControl() {
     setFormCollabId('');
     setFormDataFalta(new Date().toISOString().substring(0, 10));
     setFormTipo('NAO_JUSTIFICADA');
+    setFormDiasFalta(1);
+    setFormMotivo('');
     setFormObservacao('');
     setFileBase64('');
     setFileName('');
@@ -189,6 +204,8 @@ export function AbsenceControl() {
     setFormCollabId(absence.collaboratorId);
     setFormDataFalta(new Date(absence.dataFalta).toISOString().substring(0, 10));
     setFormTipo(absence.tipo);
+    setFormDiasFalta(absence.diasFalta || 1);
+    setFormMotivo(absence.motivo || '');
     setFormObservacao(absence.observacao || '');
     setFileBase64('');
     setFileName('');
@@ -207,8 +224,10 @@ export function AbsenceControl() {
       setSubmitting(true);
       const payload: any = {
         collaboratorId: formCollabId,
-        dataFalta: new Date(formDataFalta).toISOString(),
+        dataFalta: formDataFalta,
         tipo: formTipo,
+        diasFalta: formDiasFalta,
+        motivo: formMotivo,
         observacao: formObservacao,
       };
 
@@ -380,7 +399,7 @@ export function AbsenceControl() {
           <div>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Impacto Financeiro</p>
             <h3 className="text-2xl font-bold mt-0.5 text-amber-500">
-              R$ {stats.financialImpact.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              R$ {(stats?.financialImpact || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
           </div>
         </div>
@@ -463,7 +482,9 @@ export function AbsenceControl() {
                 <tr className="border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase bg-secondary/10">
                   <th className="p-4">Colaborador</th>
                   <th className="p-4">Data da Falta</th>
+                  <th className="p-4 text-center">Dias</th>
                   <th className="p-4">Tipo</th>
+                  <th className="p-4">Motivo</th>
                   <th className="p-4">Observação</th>
                   <th className="p-4">Comprovante / Atestado</th>
                   <th className="p-4">Responsável</th>
@@ -479,6 +500,9 @@ export function AbsenceControl() {
                     <td className="p-4">
                       {new Date(abs.dataFalta).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                     </td>
+                    <td className="p-4 text-center font-bold">
+                      {abs.diasFalta || 1}
+                    </td>
                     <td className="p-4">
                       {abs.tipo === 'JUSTIFICADA' ? (
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
@@ -489,6 +513,9 @@ export function AbsenceControl() {
                           Não Justificada
                         </span>
                       )}
+                    </td>
+                    <td className="p-4 font-medium text-foreground">
+                      {abs.motivo || <span className="opacity-40">-</span>}
                     </td>
                     <td className="p-4 max-w-xs truncate text-muted-foreground" title={abs.observacao || ''}>
                       {abs.observacao || <span className="italic opacity-40">Nenhuma</span>}
@@ -508,7 +535,7 @@ export function AbsenceControl() {
                     </td>
                     <td className="p-4 text-xs">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-muted-foreground">{abs.usuarioResponsavel}</span>
+                        <span className="font-semibold text-muted-foreground">{abs.responsavelNome}</span>
                         <span className="text-[10px] opacity-65">{new Date(abs.createdAt).toLocaleString('pt-BR')}</span>
                       </div>
                     </td>
@@ -572,7 +599,7 @@ export function AbsenceControl() {
                   <option value="">Selecione o Colaborador...</option>
                   {collaborators.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nome} (Salário: R$ {c.salario.toLocaleString('pt-BR')})
+                      {c.nome} (Salário: R$ {(c.salario || 0).toLocaleString('pt-BR')})
                     </option>
                   ))}
                 </select>
@@ -599,8 +626,31 @@ export function AbsenceControl() {
                     required
                   >
                     <option value="NAO_JUSTIFICADA">Não Justificada (Desconto)</option>
-                    <option value="JUSTIFICADA">Justificada (Sem Desconto)</option>
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Quantidade de Dias</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formDiasFalta}
+                    onChange={(e) => setFormDiasFalta(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-secondary/20 border border-border/70 rounded-xl py-2 px-3 focus:outline-none focus:border-primary transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Motivo Principal</label>
+                  <input
+                    type="text"
+                    value={formMotivo}
+                    onChange={(e) => setFormMotivo(e.target.value)}
+                    placeholder="Ex: Médico, Particular, Suspensão..."
+                    className="w-full bg-secondary/20 border border-border/70 rounded-xl py-2 px-3 focus:outline-none focus:border-primary transition"
+                  />
                 </div>
               </div>
 
