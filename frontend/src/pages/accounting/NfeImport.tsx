@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign, Percent } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
 
@@ -19,7 +19,6 @@ export function NfeImport() {
   const [gerarContasPagar, setGerarContasPagar] = useState(true);
 
   // Tax lookup options (to link new products)
-  const [municipalTaxes, setMunicipalTaxes] = useState<any[]>([]);
   const [estadualTaxes, setEstadualTaxes] = useState<any[]>([]);
   const [federalTaxes, setFederalTaxes] = useState<any[]>([]);
 
@@ -43,13 +42,11 @@ export function NfeImport() {
 
   const fetchTaxes = async () => {
     try {
-      const [munRes, estRes, fedRes] = await Promise.all([
-        fetch('/fiscal/tributacao/municipal', { headers: { 'Authorization': `Bearer ${token}` } }),
+      const [estRes, fedRes] = await Promise.all([
         fetch('/fiscal/tributacao/estadual', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/fiscal/tributacao/federal', { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
 
-      if (munRes.ok) setMunicipalTaxes(await munRes.json());
       if (estRes.ok) setEstadualTaxes(await estRes.json());
       if (fedRes.ok) setFederalTaxes(await fedRes.json());
     } catch (error) {
