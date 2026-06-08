@@ -259,53 +259,53 @@ export function Suppliers() {
 
       {/* Listagem Desktop */}
       <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium">Razão Social / Nome Fantasia</th>
-                <th className="p-4 font-medium">Documento</th>
-                <th className="p-4 font-medium">Contato</th>
-                <th className="p-4 font-medium">Localização</th>
-                <th className="p-4 font-medium">Ações</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Razão Social / Nome Fantasia</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Documento</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Contato</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-3/12">Localização</th>
+                <th className="p-4 font-medium w-4/12 lg:w-1/12 text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredSuppliers.map((supplier) => (
                 <tr key={supplier.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <td className="p-4 truncate">
+                    <div className="flex items-center gap-3 truncate">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                         {supplier.razaoSocial.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="font-semibold text-foreground">{supplier.razaoSocial}</div>
-                        {supplier.nomeFantasia && <div className="text-xs text-muted-foreground flex items-center gap-1"><Building size={12} /> {supplier.nomeFantasia}</div>}
+                      <div className="truncate">
+                        <div className="font-semibold text-foreground truncate">{supplier.razaoSocial}</div>
+                        {supplier.nomeFantasia && <div className="text-xs text-muted-foreground flex items-center gap-1 truncate"><Building className="shrink-0" size={12} /> <span className="truncate">{supplier.nomeFantasia}</span></div>}
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-foreground">
+                  <td className="p-4 text-sm text-foreground hidden lg:table-cell truncate">
                     {supplier.cnpj ? (
-                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border">{supplier.cnpj}</span>
+                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border truncate">{supplier.cnpj}</span>
                     ) : (
                       <span className="text-muted-foreground text-xs italic">Não informado</span>
                     )}
                   </td>
-                  <td className="p-4 text-xs space-y-1">
-                    {supplier.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail size={12} /> {supplier.email}</div>}
-                    {supplier.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={12} /> {supplier.telefone}</div>}
+                  <td className="p-4 text-xs space-y-1 truncate">
+                    {supplier.email && <div className="flex items-center gap-1 text-muted-foreground truncate"><Mail className="shrink-0" size={12} /> <span className="truncate">{supplier.email}</span></div>}
+                    {supplier.telefone && <div className="flex items-center gap-1 text-muted-foreground truncate"><Phone className="shrink-0" size={12} /> <span className="truncate">{supplier.telefone}</span></div>}
                   </td>
-                  <td className="p-4 text-xs">
+                  <td className="p-4 text-xs hidden xl:table-cell truncate">
                     {supplier.cidade ? (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <MapPin size={12} /> {supplier.cidade} - {supplier.estado || ''}
+                      <div className="flex items-center gap-1 text-muted-foreground truncate">
+                        <MapPin className="shrink-0" size={12} /> <span className="truncate">{supplier.cidade} - {supplier.estado || ''}</span>
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic">-</span>
                     )}
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-center lg:justify-start">
                       <button 
                         onClick={() => handleOpenEditModal(supplier)}
                         className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"

@@ -221,38 +221,42 @@ export function Financial() {
             <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Acompanhamento dos vencimentos de assinaturas de clientes</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse table-fixed break-words">
               <thead>
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="pb-3">Código</th>
-                  <th className="pb-3">Cliente / Plano</th>
-                  <th className="pb-3">Forma</th>
-                  <th className="pb-3 text-right">Valor</th>
-                  <th className="pb-3 text-center">Vencimento</th>
-                  <th className="pb-3 text-center">Status</th>
+                  <th className="pb-3 hidden md:table-cell w-2/12">Código</th>
+                  <th className="pb-3 w-5/12 sm:w-4/12 md:w-4/12">Cliente / Plano</th>
+                  <th className="pb-3 hidden sm:table-cell w-2/12 md:w-1/12">Forma</th>
+                  <th className="pb-3 text-right w-4/12 sm:w-3/12 md:w-2/12">Valor</th>
+                  <th className="pb-3 text-center hidden lg:table-cell w-2/12">Vencimento</th>
+                  <th className="pb-3 text-center w-3/12 sm:w-3/12 md:w-1/12">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-xs">
                 {data.faturamentos.map((f) => (
                   <tr key={f.id} className="hover:bg-slate-800/10">
-                    <td className="py-3 font-mono font-bold text-slate-400">{f.id}</td>
-                    <td className="py-3">
-                      <div className="font-bold text-slate-200">{f.tenant}</div>
-                      <div className="text-[9px] text-indigo-400 font-extrabold">{f.plano}</div>
-                    </td>
-                    <td className="py-3 text-slate-400 font-semibold">{f.formaPagamento}</td>
-                    <td className="py-3 text-right font-mono font-bold text-white">
-                      {formatCurrency(f.valor)}
-                    </td>
-                    <td className="py-3 text-center text-slate-400">
-                      <div className="flex items-center justify-center gap-1 text-[11px]">
-                        <Calendar size={12} className="text-slate-500" />
-                        <span>{new Date(f.dataVencimento).toLocaleDateString('pt-BR')}</span>
+                    <td className="py-3 font-mono font-bold text-slate-400 hidden md:table-cell truncate">{f.id}</td>
+                    <td className="py-3 truncate">
+                      <div className="font-bold text-slate-200 truncate">{f.tenant}</div>
+                      <div className="text-[9px] text-indigo-400 font-extrabold truncate">{f.plano}</div>
+                      <div className="lg:hidden text-[9px] text-slate-500 font-semibold flex items-center gap-1 mt-1 truncate">
+                        <Calendar size={10} className="shrink-0" />
+                        <span className="truncate">{new Date(f.dataVencimento).toLocaleDateString('pt-BR')}</span>
                       </div>
                     </td>
-                    <td className="py-3 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${getStatusBadge(f.status)}`}>
+                    <td className="py-3 text-slate-400 font-semibold hidden sm:table-cell truncate">{f.formaPagamento}</td>
+                    <td className="py-3 text-right font-mono font-bold text-white truncate">
+                      {formatCurrency(f.valor)}
+                    </td>
+                    <td className="py-3 text-center text-slate-400 hidden lg:table-cell truncate">
+                      <div className="flex items-center justify-center gap-1 text-[11px] truncate">
+                        <Calendar size={12} className="text-slate-500 shrink-0" />
+                        <span className="truncate">{new Date(f.dataVencimento).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 text-center truncate">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${getStatusBadge(f.status)} truncate block w-fit mx-auto`}>
                         {f.status}
                       </span>
                     </td>

@@ -157,44 +157,47 @@ export function Auditoria() {
             Nenhum registro de auditoria localizado com estes filtros.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse table-fixed break-words">
               <thead>
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-4">Data e Hora</th>
-                  <th className="p-4">Usuário SaaS</th>
-                  <th className="p-4">Ação Realizada</th>
-                  <th className="p-4">Detalhes da Ação</th>
-                  <th className="p-4">IP / Origem</th>
+                  <th className="p-4 w-4/12 sm:w-2/12">Data e Hora</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 lg:w-3/12">Usuário SaaS</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 lg:w-2/12">Ação Realizada</th>
+                  <th className="p-4 hidden sm:table-cell sm:w-4/12 lg:w-4/12">Detalhes da Ação</th>
+                  <th className="p-4 hidden lg:table-cell lg:w-1/12">IP / Origem</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850 text-xs font-mono">
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-800/10">
-                    <td className="p-4 text-slate-400">
-                      <div className="flex items-center gap-1.5 text-[11px]">
+                    <td className="p-4 text-slate-400 truncate">
+                      <div className="flex items-center gap-1.5 text-[11px] truncate">
                         <Calendar size={12} className="text-slate-500 shrink-0" />
-                        <span>{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                        <span className="truncate">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-slate-300 font-bold">
-                      <div className="flex items-center gap-2">
+                    <td className="p-4 text-slate-300 font-bold truncate">
+                      <div className="flex items-center gap-2 truncate">
                         <User size={13} className="text-indigo-400 shrink-0" />
-                        <span>{log.usuario}</span>
+                        <span className="truncate">{log.usuario}</span>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className="inline-block bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800 text-[10px] font-extrabold text-indigo-400">
+                    <td className="p-4 truncate">
+                      <span className="inline-block bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800 text-[10px] font-extrabold text-indigo-400 truncate block w-fit">
                         {log.acao}
                       </span>
+                      <div className="sm:hidden mt-1 text-slate-300 font-sans font-medium text-[10px] truncate leading-relaxed">
+                        {log.detalhes}
+                      </div>
                     </td>
-                    <td className="p-4 text-slate-300 font-sans font-medium text-[11px] leading-relaxed max-w-sm break-words">
-                      {log.detalhes}
+                    <td className="p-4 text-slate-300 font-sans font-medium text-[11px] leading-relaxed hidden sm:table-cell truncate">
+                      <div className="truncate" title={log.detalhes}>{log.detalhes}</div>
                     </td>
-                    <td className="p-4 text-slate-500 font-bold">
-                      <div className="flex items-center gap-1.5">
+                    <td className="p-4 text-slate-500 font-bold hidden lg:table-cell truncate">
+                      <div className="flex items-center gap-1.5 truncate">
                         <Network size={12} className="text-slate-600 shrink-0" />
-                        <span>{log.ip}</span>
+                        <span className="truncate">{log.ip}</span>
                       </div>
                     </td>
                   </tr>

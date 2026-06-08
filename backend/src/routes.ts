@@ -12,6 +12,10 @@ import { AbsenceController } from './controllers/absence.controller';
 import { FinancialCategoryController } from './controllers/financial-category.controller';
 import { FiscalController } from './controllers/fiscal.controller';
 import { SaaSController } from './controllers/saas.controller';
+import { ProductController } from './controllers/product.controller';
+import { TaxController } from './controllers/tax.controller';
+import { NfeController } from './controllers/nfe.controller';
+
 import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
 import { AdminSaaSController } from './controllers/admin-saas.controller';
 import { superAdminMiddleware } from './middlewares/super-admin.middleware';
@@ -231,6 +235,38 @@ routes.get('/fiscal/documents/:id/download', FiscalController.downloadIndividual
 routes.post('/fiscal/documents/download-batch', FiscalController.downloadBatch);
 routes.get('/fiscal/audits', FiscalController.listAudits);
 routes.get('/fiscal/dashboard', FiscalController.getDashboard);
+
+// Módulo Contabilidade - Regras de Tributação
+routes.get('/fiscal/tributacao/municipal', TaxController.listMunicipal);
+routes.post('/fiscal/tributacao/municipal', TaxController.createMunicipal);
+routes.put('/fiscal/tributacao/municipal/:id', TaxController.updateMunicipal);
+routes.delete('/fiscal/tributacao/municipal/:id', TaxController.deleteMunicipal);
+
+routes.get('/fiscal/tributacao/estadual', TaxController.listEstadual);
+routes.post('/fiscal/tributacao/estadual', TaxController.createEstadual);
+routes.put('/fiscal/tributacao/estadual/:id', TaxController.updateEstadual);
+routes.delete('/fiscal/tributacao/estadual/:id', TaxController.deleteEstadual);
+
+routes.get('/fiscal/tributacao/federal', TaxController.listFederal);
+routes.post('/fiscal/tributacao/federal', TaxController.createFederal);
+routes.put('/fiscal/tributacao/federal/:id', TaxController.updateFederal);
+routes.delete('/fiscal/tributacao/federal/:id', TaxController.deleteFederal);
+
+// Módulo Contabilidade - Importação de Notas Fiscais de Entrada
+routes.get('/fiscal/nfe', NfeController.list);
+routes.get('/fiscal/nfe/:id', NfeController.getOne);
+routes.post('/fiscal/nfe/upload', NfeController.upload);
+routes.post('/fiscal/nfe/confirm', NfeController.confirm);
+routes.post('/fiscal/nfe/:id/cancel', NfeController.cancel);
+
+// Módulo de Cadastro de Produtos
+routes.use('/products', authMiddleware);
+routes.get('/products', ProductController.list);
+routes.get('/products/:id', ProductController.getOne);
+routes.post('/products', ProductController.create);
+routes.put('/products/:id', ProductController.update);
+routes.delete('/products/:id', ProductController.delete);
+
 
 // Módulo SaaS Administrador
 routes.use('/saas', authMiddleware, saasAdminMiddleware);

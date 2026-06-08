@@ -7,6 +7,7 @@ const createAdvanceSchema = z.object({
   formaPagamento: z.string(),
   observacoes: z.string().optional().nullable(),
   data: z.string().optional().nullable(),
+  paymentDate: z.string(),
   oficinaId: z.string().optional().nullable(),
 });
 
@@ -65,18 +66,27 @@ export const AdvanceController = {
 
       // Calculate available balance for the month of the advance
       const advanceDate = dataParsed.data ? new Date(dataParsed.data) : new Date();
-      const month = advanceDate.getUTCMonth();
-      const year = advanceDate.getUTCFullYear();
-      const startOfMonth = new Date(Date.UTC(year, month, 1));
-      const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+      const paymentDateObj = new Date(dataParsed.paymentDate);
+      const competencyMonth = paymentDateObj.getUTCMonth();
+      const competencyYear = paymentDateObj.getUTCFullYear();
+      const payrollCompetency = `${String(competencyMonth + 1).padStart(2, '0')}/${competencyYear}`;
+
+      const startOfMonth = new Date(Date.UTC(competencyYear, competencyMonth, 1));
+      const endOfMonth = new Date(Date.UTC(competencyYear, competencyMonth + 1, 0, 23, 59, 59, 999));
 
       const currentMonthAdvances = await prisma.salaryAdvance.findMany({
         where: {
           collaboratorId,
-          data: {
-            gte: startOfMonth,
-            lte: endOfMonth
-          }
+          OR: [
+            { payroll_competency: payrollCompetency },
+            { 
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth
+              },
+              payroll_competency: null
+            }
+          ]
         }
       });
       const totalAdvancesCurrentMonth = currentMonthAdvances.reduce((sum, adv) => sum + adv.valor, 0);
@@ -187,7 +197,10 @@ export const AdvanceController = {
           valor: dataParsed.valor,
           formaPagamento: dataParsed.formaPagamento,
           status: 'PENDENTE',
+          discount_status: 'PENDENTE',
           data: advanceDate,
+          payment_date: paymentDateObj,
+          payroll_competency: payrollCompetency,
           responsavel: responsavel,
           observacoes: dataParsed.observacoes || null,
           numeroComprovante,
@@ -294,6 +307,22 @@ export const AdvanceController = {
           console.warn('Linked payable not found or already deleted:', e);
         }
       }
+
+      const userId = (req as any).userId;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const responsavel = user?.name || 'Sistema';
+
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: advance.collaboratorId,
+          collaboratorName: advance.collaborator.nome,
+          usuario: responsavel,
+          action: 'CANCELAMENTO_ADIANTAMENTO',
+          valorAnterior: advance.valor.toString(),
+          valorNovo: '0',
+          companyId: companyId
+        }
+      });
 
       await prisma.salaryAdvance.delete({
         where: { id: advanceId }

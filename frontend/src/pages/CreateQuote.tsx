@@ -7,6 +7,7 @@ import { quoteService } from '../services/quoteService';
 import { platformService } from '../services/platformService';
 import { QuotePdfTemplate } from '../components/QuotePdfTemplate';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
+import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 
 type QuoteFormValues = {
   companyId: string;
@@ -67,15 +68,7 @@ const condicoesPagamento = [
   'À vista', '7 dias', '14 dias', '21 dias', '28 dias', '30 dias', '45 dias', '60 dias', 'Parcelado'
 ];
 
-const statusOptions = [
-  'Aguardando Aprovação',
-  'Aprovado',
-  'Aguardando Pagamento',
-  'Emitir Nota Fiscal',
-  'Cobertura',
-  'Pago',
-  'Cancelado'
-];
+// Statuses are imported from constants.ts
 
 export function CreateQuote() {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -551,10 +544,15 @@ ${bankingText}`;
       
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {isViewing ? 'Visualizar Orçamento' : isEditing ? 'Editar Orçamento' : cloneId ? 'Clonar Orçamento' : 'Novo Orçamento'}
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <span>{isViewing ? 'Visualizar Orçamento' : isEditing ? 'Editar Orçamento' : cloneId ? 'Clonar Orçamento' : 'Novo Orçamento'}</span>
+            {(isViewing || isEditing) && numeroOrcamento && (
+              <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-lg border border-primary/20">
+                OS Nº: {new Date().getFullYear()}-{numeroOrcamento.toString().padStart(6, '0')}
+              </span>
+            )}
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mt-1">
             {isViewing ? 'Visualização dos detalhes do orçamento.' : isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
           </p>
         </div>
@@ -1308,7 +1306,7 @@ ${bankingText}`;
                 disabled={isViewing}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
               >
-                {statusOptions.map(st => (
+                {QUOTE_STATUS_OPTIONS.map(st => (
                   <option key={st} value={st}>{st}</option>
                 ))}
               </select>

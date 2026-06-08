@@ -842,38 +842,38 @@ export function SaaSDashboard() {
 
               {/* Grid Client list */}
               <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                <div className="w-full">
+                  <table className="w-full text-left text-xs table-fixed break-words">
                     <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
                       <tr>
-                        <th className="p-4">Código / Razão Social</th>
-                        <th className="p-4">CNPJ</th>
-                        <th className="p-4">Plano</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4 text-center">Usuários</th>
-                        <th className="p-4">Vencimento</th>
-                        <th className="p-4 text-right">Ações</th>
+                        <th className="p-4 w-4/12 md:w-3/12">Código / Razão Social</th>
+                        <th className="p-4 hidden md:table-cell w-2/12">CNPJ</th>
+                        <th className="p-4 w-2/12 md:w-2/12">Plano</th>
+                        <th className="p-4 w-2/12">Status</th>
+                        <th className="p-4 text-center hidden lg:table-cell w-1/12">Usuários</th>
+                        <th className="p-4 hidden lg:table-cell w-1/12">Vencimento</th>
+                        <th className="p-4 text-right w-4/12 md:w-2/12 lg:w-1/12">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
                       {filteredCompanies.map(company => (
                         <tr key={company.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="p-4">
-                            <div className="font-bold text-foreground">
+                          <td className="p-4 truncate">
+                            <div className="font-bold text-foreground truncate">
                               {company.nomeFantasia || company.razaoSocial}
                             </div>
                             <div className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate max-w-[200px]">
                               {company.id}
                             </div>
                           </td>
-                          <td className="p-4 font-mono">{company.cnpj}</td>
-                          <td className="p-4">
-                            <span className="font-semibold text-foreground">
+                          <td className="p-4 font-mono hidden md:table-cell truncate">{company.cnpj}</td>
+                          <td className="p-4 truncate">
+                            <span className="font-semibold text-foreground truncate">
                               {company.plan?.nome || 'MCA SUPER'}
                             </span>
                           </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide ${
+                          <td className="p-4 truncate">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide truncate max-w-full ${
                               company.statusAssinatura === 'Ativo' ? 'bg-emerald-500/10 text-emerald-600' :
                               company.statusAssinatura === 'Trial' ? 'bg-sky-500/10 text-sky-600' :
                               company.statusAssinatura === 'Suspenso' ? 'bg-rose-500/10 text-rose-600' :
@@ -882,14 +882,14 @@ export function SaaSDashboard() {
                               {company.statusAssinatura}
                             </span>
                           </td>
-                          <td className="p-4 text-center font-mono">
+                          <td className="p-4 text-center font-mono hidden lg:table-cell truncate">
                             <span className="font-bold text-foreground">{company.activeUsersCount ?? 1}</span>
                             <span className="text-muted-foreground">/{company.plan?.limiteUsuarios ?? '∞'}</span>
                           </td>
-                          <td className="p-4">
+                          <td className="p-4 hidden lg:table-cell truncate">
                             {company.dataVencimento ? new Date(company.dataVencimento).toLocaleDateString('pt-BR') : 'N/A'}
                           </td>
-                          <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                          <td className="p-4 text-right space-x-1.5 whitespace-nowrap truncate">
                             <button
                               onClick={() => handleOpenView(company)}
                               className="px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground font-semibold rounded-md transition text-[10px]"

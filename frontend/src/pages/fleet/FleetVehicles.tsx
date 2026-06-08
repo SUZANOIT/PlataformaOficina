@@ -840,28 +840,28 @@ export default function FleetVehicles() {
                         <p className="text-xs">Nenhum orçamento pendente encontrado para este veículo.</p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                        <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300">
+                      <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                        <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                           <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                             <tr>
-                              <th className="p-3">Nº Orc</th>
-                              <th className="p-3">Data</th>
-                              <th className="p-3">Itens</th>
-                              <th className="p-3 text-right">Valor Total</th>
-                              <th className="p-3 text-center">Status</th>
+                              <th className="p-3 w-3/12 md:w-2/12">Nº Orc</th>
+                              <th className="p-3 w-2/12 hidden md:table-cell">Data</th>
+                              <th className="p-3 w-5/12 md:w-3/12">Itens</th>
+                              <th className="p-3 w-2/12 text-right hidden sm:table-cell">Valor Total</th>
+                              <th className="p-3 w-4/12 md:w-3/12 text-center">Status</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {vehicleDetails.orcamentos.map((q: any) => (
                               <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">#{q.numeroOrcamento}</td>
-                                <td className="p-3 font-medium">{new Date(q.createdAt).toLocaleDateString('pt-BR')}</td>
-                                <td className="p-3 font-medium truncate max-w-xs" title={q.items.map((i: any) => i.descricao).join(', ')}>
+                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{q.numeroOrcamento}</td>
+                                <td className="p-3 font-medium hidden md:table-cell truncate">{new Date(q.createdAt).toLocaleDateString('pt-BR')}</td>
+                                <td className="p-3 font-medium truncate" title={q.items.map((i: any) => i.descricao).join(', ')}>
                                   {q.items.length} {q.items.length === 1 ? 'item' : 'itens'} ({q.items.map((i: any) => i.descricao).slice(0, 2).join(', ')}...)
                                 </td>
-                                <td className="p-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(q.total)}</td>
-                                <td className="p-3 text-center">
-                                  <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase">
+                                <td className="p-3 text-right font-bold text-gray-900 dark:text-white hidden sm:table-cell truncate">{formatCurrency(q.total)}</td>
+                                <td className="p-3 text-center truncate">
+                                  <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase truncate block w-fit mx-auto">
                                     {q.status}
                                   </span>
                                 </td>
@@ -883,28 +883,28 @@ export default function FleetVehicles() {
                         <p className="text-xs">Nenhuma ordem de serviço vinculada encontrada para este veículo.</p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                        <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300">
+                      <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                        <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                           <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                             <tr>
-                              <th className="p-3">OS / Orc</th>
-                              <th className="p-3">Ref Externa</th>
-                              <th className="p-3">Data</th>
-                              <th className="p-3">Prazo Execução</th>
-                              <th className="p-3 text-right">Total</th>
-                              <th className="p-3 text-center">Status</th>
+                              <th className="p-3 w-3/12 md:w-2/12">OS / Orc</th>
+                              <th className="p-3 w-2/12 hidden md:table-cell">Ref Externa</th>
+                              <th className="p-3 w-2/12 hidden sm:table-cell">Data</th>
+                              <th className="p-3 w-2/12 hidden lg:table-cell">Prazo Execução</th>
+                              <th className="p-3 w-4/12 md:w-2/12 text-right">Total</th>
+                              <th className="p-3 w-5/12 md:w-2/12 text-center">Status</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {vehicleDetails.ordensServico.map((os: any) => (
                               <tr key={os.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">#{os.numeroOrcamento}</td>
-                                <td className="p-3 font-bold text-gray-500 dark:text-gray-400">{os.osExterna || '—'}</td>
-                                <td className="p-3 font-medium">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</td>
-                                <td className="p-3 font-medium text-gray-500">{os.prazoExecucao || '—'}</td>
-                                <td className="p-3 text-right font-black text-gray-900 dark:text-white">{formatCurrency(os.total)}</td>
-                                <td className="p-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{os.numeroOrcamento}</td>
+                                <td className="p-3 font-bold text-gray-500 dark:text-gray-400 hidden md:table-cell truncate">{os.osExterna || '—'}</td>
+                                <td className="p-3 font-medium hidden sm:table-cell truncate">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</td>
+                                <td className="p-3 font-medium text-gray-500 hidden lg:table-cell truncate">{os.prazoExecucao || '—'}</td>
+                                <td className="p-3 text-right font-black text-gray-900 dark:text-white truncate">{formatCurrency(os.total)}</td>
+                                <td className="p-3 text-center truncate">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase truncate block w-fit mx-auto ${
                                     os.status === 'Pago' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                                   }`}>
                                     {os.status}
@@ -993,25 +993,25 @@ export default function FleetVehicles() {
                           </span>
                         </div>
 
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                          <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300">
+                        <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                          <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                             <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                               <tr>
-                                <th className="p-3">Descrição da Peça</th>
-                                <th className="p-3 text-center">Quantidade</th>
-                                <th className="p-3 text-right">Valor Unitário</th>
-                                <th className="p-3 text-right">Valor Total</th>
-                                <th className="p-3">Orc / OS Origem</th>
+                                <th className="p-3 w-5/12 md:w-4/12">Descrição da Peça</th>
+                                <th className="p-3 w-2/12 text-center hidden md:table-cell">Quantidade</th>
+                                <th className="p-3 w-2/12 text-right hidden sm:table-cell">Valor Unitário</th>
+                                <th className="p-3 w-4/12 md:w-2/12 text-right">Valor Total</th>
+                                <th className="p-3 w-3/12 md:w-2/12 truncate">Orc / OS Origem</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                               {vehicleDetails.pecas.map((p: any, idx: number) => (
                                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                  <td className="p-3 font-semibold text-gray-800 dark:text-white">{p.descricao}</td>
-                                  <td className="p-3 text-center font-bold text-gray-500">{p.quantidade}</td>
-                                  <td className="p-3 text-right font-medium">{formatCurrency(p.valorUnitario)}</td>
-                                  <td className="p-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(p.valorTotal)}</td>
-                                  <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">#{p.numeroOrcamento}</td>
+                                  <td className="p-3 font-semibold text-gray-800 dark:text-white truncate">{p.descricao}</td>
+                                  <td className="p-3 text-center font-bold text-gray-500 hidden md:table-cell truncate">{p.quantidade}</td>
+                                  <td className="p-3 text-right font-medium hidden sm:table-cell truncate">{formatCurrency(p.valorUnitario)}</td>
+                                  <td className="p-3 text-right font-bold text-gray-900 dark:text-white truncate">{formatCurrency(p.valorTotal)}</td>
+                                  <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{p.numeroOrcamento}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1137,32 +1137,32 @@ export default function FleetVehicles() {
                                 Nenhuma receita ou despesa registrada para o veículo.
                               </div>
                             ) : (
-                              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                                <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300">
+                              <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700">
+                                <table className="w-full text-xs text-left text-gray-600 dark:text-gray-300 table-fixed break-words">
                                   <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 uppercase font-extrabold text-[10px]">
                                     <tr>
-                                      <th className="p-3">Data</th>
-                                      <th className="p-3">Descrição / Lançamento</th>
-                                      <th className="p-3">Categoria</th>
-                                      <th className="p-3 text-right">Valor</th>
-                                      <th className="p-3 text-center">Situação</th>
+                                      <th className="p-3 w-2/12 hidden sm:table-cell">Data</th>
+                                      <th className="p-3 w-6/12 md:w-5/12">Descrição / Lançamento</th>
+                                      <th className="p-3 w-2/12 hidden md:table-cell">Categoria</th>
+                                      <th className="p-3 w-3/12 md:w-2/12 text-right">Valor</th>
+                                      <th className="p-3 w-3/12 md:w-1/12 text-center hidden lg:table-cell">Situação</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {vehicleDetails.financeiro.map((fin: any, idx: number) => (
                                       <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                        <td className="p-3 font-medium">{new Date(fin.vencimento).toLocaleDateString('pt-BR')}</td>
-                                        <td className="p-3 font-bold text-gray-800 dark:text-white">
+                                        <td className="p-3 font-medium hidden sm:table-cell truncate">{new Date(fin.vencimento).toLocaleDateString('pt-BR')}</td>
+                                        <td className="p-3 font-bold text-gray-800 dark:text-white truncate">
                                           {fin.tipo === 'RECEITA' ? 'Receita OS ' : fin.tipo === 'DESPESA' ? 'Despesa Lançamento ' : 'Custo Manutenção '}
                                           {fin.numero ? `#${fin.numero}` : ''}
-                                          <span className="font-semibold block text-[10px] text-gray-400 font-normal mt-0.5">{fin.descricao}</span>
+                                          <span className="font-semibold block text-[10px] text-gray-400 font-normal mt-0.5 truncate">{fin.descricao}</span>
                                         </td>
-                                        <td className="p-3 font-semibold text-gray-500">{fin.tipo}</td>
-                                        <td className={`p-3 text-right font-black ${fin.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        <td className="p-3 font-semibold text-gray-500 hidden md:table-cell truncate">{fin.tipo}</td>
+                                        <td className={`p-3 text-right font-black truncate ${fin.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
                                           {fin.tipo === 'RECEITA' ? '+' : '-'}{formatCurrency(fin.valor)}
                                         </td>
-                                        <td className="p-3 text-center">
-                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                                        <td className="p-3 text-center hidden lg:table-cell truncate">
+                                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase truncate block w-fit mx-auto ${
                                             fin.status === 'RECEBIDA' || fin.status === 'PAGA' || fin.status === 'PAGO'
                                               ? 'bg-green-100 text-green-805 dark:bg-green-950/30 dark:text-green-400' 
                                               : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'

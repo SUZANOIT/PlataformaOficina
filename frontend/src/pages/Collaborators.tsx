@@ -14,6 +14,7 @@ export function Collaborators() {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState<'pessoais' | 'trabalhistas' | 'observacoes'>('pessoais');
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -29,6 +30,7 @@ export function Collaborators() {
   const [advanceValor, setAdvanceValor] = useState('');
   const [advanceFormaPagamento, setAdvanceFormaPagamento] = useState('PIX');
   const [advanceData, setAdvanceData] = useState(new Date().toISOString().substring(0, 10));
+  const [advancePaymentDate, setAdvancePaymentDate] = useState(new Date().toISOString().substring(0, 10));
   const [advanceObservacoes, setAdvanceObservacoes] = useState('');
   const [savingAdvance, setSavingAdvance] = useState(false);
 
@@ -38,6 +40,7 @@ export function Collaborators() {
   const [generalAdvanceValor, setGeneralAdvanceValor] = useState('');
   const [generalAdvanceFormaPagamento, setGeneralAdvanceFormaPagamento] = useState('PIX');
   const [generalAdvanceData, setGeneralAdvanceData] = useState(new Date().toISOString().substring(0, 10));
+  const [generalAdvancePaymentDate, setGeneralAdvancePaymentDate] = useState(new Date().toISOString().substring(0, 10));
   const [generalAdvanceObservacoes, setGeneralAdvanceObservacoes] = useState('');
   const [savingGeneralAdvance, setSavingGeneralAdvance] = useState(false);
   const [selectedFormCollab, setSelectedFormCollab] = useState<any>(null);
@@ -163,6 +166,7 @@ export function Collaborators() {
         valor: parseFloat(advanceValor),
         formaPagamento: advanceFormaPagamento,
         data: advanceData ? new Date(advanceData).toISOString() : null,
+        paymentDate: advancePaymentDate ? new Date(advancePaymentDate).toISOString() : new Date().toISOString(),
         observacoes: advanceObservacoes || null,
         oficinaId: currentCollabForAdvance?.companyId || null
       };
@@ -184,6 +188,7 @@ export function Collaborators() {
         setAdvanceValor('');
         setAdvanceFormaPagamento('PIX');
         setAdvanceData(new Date().toISOString().substring(0, 10));
+        setAdvancePaymentDate(new Date().toISOString().substring(0, 10));
         setAdvanceObservacoes('');
         setIsCreateAdvanceFormOpen(false);
 
@@ -223,6 +228,7 @@ export function Collaborators() {
         valor: parseFloat(generalAdvanceValor),
         formaPagamento: generalAdvanceFormaPagamento,
         data: generalAdvanceData ? new Date(generalAdvanceData).toISOString() : null,
+        paymentDate: generalAdvancePaymentDate ? new Date(generalAdvancePaymentDate).toISOString() : new Date().toISOString(),
         observacoes: generalAdvanceObservacoes || null,
         oficinaId: selectedFormCollab?.companyId || null
       };
@@ -245,6 +251,7 @@ export function Collaborators() {
         setGeneralAdvanceValor('');
         setGeneralAdvanceFormaPagamento('PIX');
         setGeneralAdvanceData(new Date().toISOString().substring(0, 10));
+        setGeneralAdvancePaymentDate(new Date().toISOString().substring(0, 10));
         setGeneralAdvanceObservacoes('');
         setIsGeneralAdvanceOpen(false);
 
@@ -442,6 +449,7 @@ export function Collaborators() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedCollaborator(null);
+    setActiveModalTab('pessoais');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -611,7 +619,7 @@ export function Collaborators() {
   // General CSV export
   const handleExportCSV = () => {
     let csvContent = "\uFEFF"; // UTF-8 BOM
-    csvContent += "Empresa;CNPJ;Colaborador;Cargo;Salário Base;Data Adiantamento;Comprovante;Valor;Forma Pagamento;Status\n";
+    csvContent += "Empresa;CNPJ;Colaborador;Cargo;Salário Base;Data Adiantamento;Data Pagamento;Competência;Comprovante;Valor;Forma Pagamento;Status Desconto\n";
     
     collaborators.forEach(col => {
       const company = col.company || companies.find(c => c.id === col.companyId);
@@ -620,7 +628,9 @@ export function Collaborators() {
       
       if (col.advances && col.advances.length > 0) {
         col.advances.forEach((adv: any) => {
-          csvContent += `"${companyName}";"${companyCnpj}";"${col.nome}";"${col.cargo || ''}";"${col.salario || 0}";"${new Date(adv.data).toLocaleDateString('pt-BR')}";"${adv.numeroComprovante}";"${adv.valor}";"${adv.formaPagamento}";"${adv.status === 'DESCONTADO_EM_FOLHA' ? 'Descontado' : 'Pendente'}"\n`;
+          const paymentDateStr = adv.payment_date ? new Date(adv.payment_date).toLocaleDateString('pt-BR') : '';
+          const competencyStr = adv.payroll_competency || '';
+          csvContent += `"${companyName}";"${companyCnpj}";"${col.nome}";"${col.cargo || ''}";"${col.salario || 0}";"${new Date(adv.data).toLocaleDateString('pt-BR')}";"${paymentDateStr}";"${competencyStr}";"${adv.numeroComprovante}";"${adv.valor}";"${adv.formaPagamento}";"${adv.discount_status || (adv.status === 'DESCONTADO_EM_FOLHA' ? 'DESCONTADO' : 'PENDENTE')}"\n`;
         });
       }
     });
@@ -787,17 +797,17 @@ export function Collaborators() {
 
           {/* Listagem Desktop */}
           <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="w-full">
+              <table className="w-full text-left border-collapse table-fixed break-words">
                 <thead>
                   <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                    <th className="p-4 font-medium">Nome / Cargo</th>
-                    <th className="p-4 font-medium">Empresa</th>
-                    <th className="p-4 font-medium">CPF</th>
-                    <th className="p-4 font-medium">Contato</th>
-                    <th className="p-4 font-medium">Admissão / Salário</th>
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium">Ações</th>
+                    <th className="p-4 font-medium w-3/12">Nome / Cargo</th>
+                    <th className="p-4 font-medium w-2/12 hidden lg:table-cell">Empresa</th>
+                    <th className="p-4 font-medium w-2/12">CPF</th>
+                    <th className="p-4 font-medium w-2/12 hidden lg:table-cell">Contato</th>
+                    <th className="p-4 font-medium w-2/12 hidden xl:table-cell">Admissão / Salário</th>
+                    <th className="p-4 font-medium w-1/12">Status</th>
+                    <th className="p-4 font-medium w-2/12">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -819,8 +829,8 @@ export function Collaborators() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <div className="text-xs font-bold text-foreground">
+                      <td className="p-4 hidden lg:table-cell">
+                        <div className="text-xs font-bold text-foreground truncate">
                           {collab.company?.razaoSocial || 'Não Vinculada'}
                         </div>
                         {collab.company?.cnpj && (
@@ -829,20 +839,20 @@ export function Collaborators() {
                           </div>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-foreground">
+                      <td className="p-4 text-sm text-foreground truncate">
                         {collab.cpf ? (
                           <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border">{collab.cpf}</span>
                         ) : (
                           <span className="text-muted-foreground text-xs italic">Não informado</span>
                         )}
                       </td>
-                      <td className="p-4 text-xs space-y-1">
-                        {collab.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail size={12} /> {collab.email}</div>}
-                        {collab.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={12} /> {collab.telefone}</div>}
+                      <td className="p-4 text-xs space-y-1 hidden lg:table-cell truncate">
+                        {collab.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail size={12} className="shrink-0" /> <span className="truncate">{collab.email}</span></div>}
+                        {collab.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={12} className="shrink-0" /> {collab.telefone}</div>}
                       </td>
-                      <td className="p-4 text-xs space-y-1">
-                        {collab.dataAdmissao && <div className="flex items-center gap-1 text-muted-foreground"><Calendar size={12} /> Admissão: {new Date(collab.dataAdmissao).toLocaleDateString('pt-BR')}</div>}
-                        {collab.salario !== null && collab.salario !== undefined && <div className="flex items-center gap-1 text-emerald-600 font-bold"><DollarSign size={12} /> {formatCurrency(collab.salario)}</div>}
+                      <td className="p-4 text-xs space-y-1 hidden xl:table-cell truncate">
+                        {collab.dataAdmissao && <div className="flex items-center gap-1 text-muted-foreground"><Calendar size={12} className="shrink-0" /> Admissão: {new Date(collab.dataAdmissao).toLocaleDateString('pt-BR')}</div>}
+                        {collab.salario !== null && collab.salario !== undefined && <div className="flex items-center gap-1 text-emerald-600 font-bold"><DollarSign size={12} className="shrink-0" /> {formatCurrency(collab.salario)}</div>}
                       </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
@@ -1047,20 +1057,20 @@ export function Collaborators() {
 
           {/* Grid Principal Modificada */}
           <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="w-full">
+              <table className="w-full text-left border-collapse text-xs table-fixed break-words">
                 <thead>
                   <tr className="bg-muted/50 border-b border-border text-muted-foreground font-bold text-xs">
-                    <th className="p-4">Empresa</th>
-                    <th className="p-4">CNPJ da Empresa</th>
-                    <th className="p-4">Colaborador</th>
-                    <th className="p-4">Cargo</th>
-                    <th className="p-4">Salário Base</th>
-                    <th className="p-4">Total Adiantado ({months.find(m => m.value === filterMonth)?.label})</th>
-                    <th className="p-4">Saldo Disponível</th>
-                    <th className="p-4">Último Adiantamento</th>
-                    <th className="p-4">Status Colab.</th>
-                    <th className="p-4 text-center">Ações</th>
+                    <th className="p-4 hidden lg:table-cell w-2/12">Empresa</th>
+                    <th className="p-4 hidden xl:table-cell w-1/12">CNPJ</th>
+                    <th className="p-4 w-3/12">Colaborador</th>
+                    <th className="p-4 hidden md:table-cell w-1/12">Cargo</th>
+                    <th className="p-4 hidden xl:table-cell w-1/12">Salário Base</th>
+                    <th className="p-4 w-2/12">Adiantado ({months.find(m => m.value === filterMonth)?.label})</th>
+                    <th className="p-4 w-2/12">Saldo Disponível</th>
+                    <th className="p-4 hidden lg:table-cell w-2/12">Último Adiantamento</th>
+                    <th className="p-4 hidden xl:table-cell w-1/12">Status</th>
+                    <th className="p-4 text-center w-1/12">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1071,47 +1081,47 @@ export function Collaborators() {
                     
                     return (
                       <tr key={collab.id} className="border-b border-border/60 hover:bg-muted/15 transition-colors">
-                        <td className="p-4 font-bold text-foreground">
+                        <td className="p-4 font-bold text-foreground hidden lg:table-cell truncate">
                           {collab.company?.razaoSocial || 'Não Vinculada'}
                         </td>
-                        <td className="p-4 font-mono text-[10px] text-muted-foreground">
+                        <td className="p-4 font-mono text-[10px] text-muted-foreground hidden xl:table-cell truncate">
                           {collab.company?.cnpj || '—'}
                         </td>
-                        <td className="p-4 font-bold text-foreground">
+                        <td className="p-4 font-bold text-foreground truncate">
                           {collab.nome}
                         </td>
-                        <td className="p-4 text-muted-foreground">
+                        <td className="p-4 text-muted-foreground hidden md:table-cell truncate">
                           {collab.cargo || '—'}
                         </td>
-                        <td className="p-4 font-semibold text-foreground">
+                        <td className="p-4 font-semibold text-foreground hidden xl:table-cell truncate">
                           {collab.salario ? formatCurrency(collab.salario) : '—'}
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black truncate block w-full text-center ${
                             monthTotal > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                           }`}>
                             {formatCurrency(monthTotal)}
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black truncate block w-full text-center ${
                             saldoDisponivel > 0 ? 'bg-indigo-500/10 text-indigo-600' : 'bg-red-500/10 text-red-500'
                           }`}>
                             {formatCurrency(saldoDisponivel)}
                           </span>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4 hidden lg:table-cell truncate">
                           {latestAdvance ? (
                             <div className="flex flex-col">
-                              <span className="font-semibold text-foreground">{formatCurrency(latestAdvance.valor)}</span>
-                              <span className="text-[10px] text-slate-400">{new Date(latestAdvance.data).toLocaleDateString('pt-BR')}</span>
+                              <span className="font-semibold text-foreground truncate">{formatCurrency(latestAdvance.valor)}</span>
+                              <span className="text-[10px] text-slate-400 truncate">{new Date(latestAdvance.data).toLocaleDateString('pt-BR')}</span>
                             </div>
                           ) : (
                             <span className="text-slate-400 italic">Nenhum</span>
                           )}
                         </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
+                        <td className="p-4 hidden xl:table-cell">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider block text-center truncate ${
                             collab.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'
                           }`}>
                             {collab.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
@@ -1405,68 +1415,94 @@ export function Collaborators() {
                 <X size={20} />
               </button>
             </div>
+            {/* Tabs do Modal */}
+            <div className="flex border-b border-border px-6 mt-2">
+              <button
+                onClick={() => setActiveModalTab('pessoais')}
+                className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                  activeModalTab === 'pessoais' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Dados Pessoais
+              </button>
+              <button
+                onClick={() => setActiveModalTab('trabalhistas')}
+                className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                  activeModalTab === 'trabalhistas' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Dados Trabalhistas
+              </button>
+              <button
+                onClick={() => setActiveModalTab('observacoes')}
+                className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                  activeModalTab === 'observacoes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Observações
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
               
-              {/* Informações Básicas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Nome Completo <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
-                  />
+              {/* ABA 1: DADOS PESSOAIS */}
+              <div className={activeModalTab === 'pessoais' ? 'block space-y-4' : 'hidden'}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Nome Completo <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">CPF</label>
+                    <input
+                      type="text"
+                      placeholder="000.000.000-00"
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm font-mono"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">CPF</label>
-                  <input
-                    type="text"
-                    placeholder="000.000.000-00"
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm font-mono"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">E-mail</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Telefone</label>
+                    <input
+                      type="text"
+                      value={telefone}
+                      onChange={(e) => setTelefone(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">WhatsApp</label>
+                    <input
+                      type="text"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Contatos */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">E-mail</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Telefone</label>
-                  <input
-                    type="text"
-                    value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">WhatsApp</label>
-                  <input
-                    type="text"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Informações Profissionais */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Informações de Contrato e Cargo</h4>
-                
+              {/* ABA 2: DADOS TRABALHISTAS */}
+              <div className={activeModalTab === 'trabalhistas' ? 'block space-y-4' : 'hidden'}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-foreground">Cargo / Função</label>
@@ -1524,7 +1560,6 @@ export function Collaborators() {
                   </div>
                 </div>
 
-                {/* Empresa Vinculada */}
                 <div className="space-y-1 mt-3">
                   <label className="text-xs font-semibold text-foreground">Empresa Vinculada *</label>
                   <select
@@ -1543,15 +1578,17 @@ export function Collaborators() {
                 </div>
               </div>
 
-              {/* Observações */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">Observações</label>
-                <textarea
-                  value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
-                  placeholder="Informações adicionais, observações sobre o perfil ou contratação..."
-                  className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm h-20 resize-none"
-                />
+              {/* ABA 3: OBSERVAÇÕES */}
+              <div className={activeModalTab === 'observacoes' ? 'block space-y-4' : 'hidden'}>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Observações Adicionais</label>
+                  <textarea
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Informações adicionais, observações sobre o perfil ou contratação..."
+                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm h-32 resize-none"
+                  />
+                </div>
               </div>
 
               {/* Botões */}
@@ -1714,6 +1751,19 @@ export function Collaborators() {
                         className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Data de Pagamento *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={advancePaymentDate}
+                        onChange={(e) => setAdvancePaymentDate(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500 text-foreground"
+                        title="Usada para determinar a competência de desconto na folha salarial"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -1765,7 +1815,7 @@ export function Collaborators() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-muted/65 border-b border-border text-muted-foreground font-semibold">
-                          <th className="py-4 px-5 font-bold">Emissão / Comprovante</th>
+                          <th className="py-4 px-5 font-bold">Datas / Comprovante</th>
                           <th className="py-4 px-5 font-bold">Valor</th>
                           <th className="py-4 px-5 font-bold">Forma de Pagamento</th>
                           <th className="py-4 px-5 font-bold">Oficina</th>
@@ -1778,15 +1828,23 @@ export function Collaborators() {
                         {advances.map((adv) => (
                           <tr key={adv.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                             <td className="py-3.5 px-5">
-                              <div className="flex items-center gap-2">
-                                <Calendar size={13} className="text-muted-foreground" />
-                                <span className="font-bold text-foreground text-xs">
-                                  {new Date(adv.data).toLocaleDateString('pt-BR')}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-muted-foreground font-semibold text-[10px] w-14">Emissão:</span>
+                                  <span className="font-bold text-foreground">{new Date(adv.data).toLocaleDateString('pt-BR')}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-muted-foreground font-semibold text-[10px] w-14">Pagamento:</span>
+                                  <span className="font-bold text-emerald-600">{adv.payment_date ? new Date(adv.payment_date).toLocaleDateString('pt-BR') : '—'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-muted-foreground font-semibold text-[10px] w-14">Comp:</span>
+                                  <span className="font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{adv.payroll_competency || '—'}</span>
+                                </div>
+                                <span className="inline-block bg-muted/80 border border-border/80 px-2 py-0.5 rounded text-[10px] text-muted-foreground font-mono font-semibold tracking-tight mt-1 w-fit">
+                                  {adv.numeroComprovante}
                                 </span>
                               </div>
-                              <span className="inline-block bg-muted/80 border border-border/80 px-2 py-0.5 rounded text-[10px] text-muted-foreground font-mono font-semibold tracking-tight mt-1.5">
-                                {adv.numeroComprovante}
-                              </span>
                             </td>
                             <td className="py-3.5 px-5 font-sans">
                               <span className="inline-block bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1 rounded-lg text-emerald-600 font-extrabold text-xs">
@@ -2037,6 +2095,19 @@ export function Collaborators() {
                       value={generalAdvanceData}
                       onChange={(e) => setGeneralAdvanceData(e.target.value)}
                       className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500 text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                      Data de Pagamento *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={generalAdvancePaymentDate}
+                      onChange={(e) => setGeneralAdvancePaymentDate(e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500 text-foreground"
+                      title="Usada para determinar a competência de desconto na folha salarial"
                     />
                   </div>
                 </div>

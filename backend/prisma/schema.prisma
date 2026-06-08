@@ -85,6 +85,13 @@ model Company {
   fiscalDocuments      FiscalDocument[]
   absences             EmployeeAbsence[]
 
+  products             Product[]
+  nfeImports           NfeImport[]
+  tributacoesMunicipais TributacaoMunicipal[]
+  tributacoesEstaduais  TributacaoEstadual[]
+  tributacoesFederais   TributacaoFederal[]
+
+
   @@index([cnpj])
   @@index([parentCompanyId])
 }
@@ -361,8 +368,11 @@ model Supplier {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
+  nfeImports NfeImport[]
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
 
   @@index([cnpj])
   @@index([companyId])
@@ -650,12 +660,21 @@ model SalaryAdvance {
   oficinaId         String?
   oficina           Oficina?           @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
   
+  // Payment and Discount Control Fields
+  payment_date       DateTime?
+  payroll_competency String?
+  discount_status    String             @default("PENDENTE") // PENDENTE, DESCONTADO, CANCELADO
+  discounted_at      DateTime?
+  discounted_by      String?
+
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   @@index([collaboratorId])
   @@index([payableId])
   @@index([oficinaId])
+  @@index([payroll_competency])
+  @@index([discount_status])
 }
 
 model SalaryAdvancePdf {
@@ -1127,5 +1146,213 @@ model EmployeeAbsence {
   @@index([oficinaId])
   @@map("employee_absences")
 }
+
+model Product {
+  id                    String              @id @default(uuid())
+  codigo                String?
+  codigoBarras          String?
+  descricao             String
+  unidade               String?
+  valorCusto            Float               @default(0.0)
+  custoMedio            Float               @default(0.0)
+  quantidadeEstoque     Float               @default(0.0)
+  ncm                   String?
+  cest                  String?
+  cfopEntrada           String?
+  
+  tributacaoMunicipalId String?
+  tributacaoMunicipal   TributacaoMunicipal? @relation(fields: [tributacaoMunicipalId], references: [id], onDelete: SetNull)
+  
+  tributacaoEstadualId  String?
+  tributacaoEstadual    TributacaoEstadual?  @relation(fields: [tributacaoEstadualId], references: [id], onDelete: SetNull)
+  
+  tributacaoFederalId   String?
+  tributacaoFederal     TributacaoFederal?   @relation(fields: [tributacaoFederalId], references: [id], onDelete: SetNull)
+  
+  companyId             String
+  company               Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  movements             StockMovement[]
+  nfeItems              NfeItem[]
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([companyId])
+  @@index([tributacaoMunicipalId])
+  @@index([tributacaoEstadualId])
+  @@index([tributacaoFederalId])
+}
+
+model TributacaoMunicipal {
+  id                 String    @id @default(uuid())
+  codigo             String
+  descricao          String
+  municipio          String?
+  codigoServico      String?
+  aliquotaIss        Float?
+  retencaoIss        Boolean   @default(false)
+  situacaoTributaria String?
+  status             String    @default("ATIVO")
+  
+  companyId          String
+  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  products           Product[]
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([companyId, codigo])
+  @@index([companyId])
+}
+
+model TributacaoEstadual {
+  id                 String    @id @default(uuid())
+  codigo             String
+  descricao          String
+  uf                 String?
+  cfop               String?
+  cstIcms            String?
+  csosn              String?
+  aliquotaIcms       Float?
+  fcp                Float?
+  difal              Float?
+  observacao         String?
+  status             String    @default("ATIVO")
+  
+  companyId          String
+  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  products           Product[]
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([companyId, codigo])
+  @@index([companyId])
+}
+
+model TributacaoFederal {
+  id                 String    @id @default(uuid())
+  codigo             String
+  descricao          String
+  cstPis             String?
+  cstCofins          String?
+  cstIpi             String?
+  aliquotaPis        Float?
+  aliquotaCofins     Float?
+  aliquotaIpi        Float?
+  naturezaReceita    String?
+  status             String    @default("ATIVO")
+  
+  companyId          String
+  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  products           Product[]
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([companyId, codigo])
+  @@index([companyId])
+}
+
+model StockMovement {
+  id              String   @id @default(uuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tipo            String   // ENTRADA, SAIDA
+  quantidade      Float
+  valorUnitario   Float
+  valorTotal      Float
+  origem          String   // IMPORTACAO_NFE, AJUSTE_MANUAL, VENDA, etc.
+  documentoOrigem String?  // ID ou número da NF-e
+  userId          String?
+  createdAt       DateTime @default(now())
+
+  @@index([productId])
+}
+
+model NfeImport {
+  id               String    @id @default(uuid())
+  chaveAcesso      String    @unique
+  numeroNf         String
+  serie            String?
+  dataEmissao      DateTime
+  dataEntrada      DateTime  @default(now())
+  naturezaOperacao String?
+  valorProdutos    Float
+  valorFrete       Float     @default(0.0)
+  valorSeguro      Float     @default(0.0)
+  valorDesconto    Float     @default(0.0)
+  valorTotal       Float
+  xmlOriginal      String    @db.Text
+  status           String    @default("IMPORTADO") // IMPORTADO, CANCELADO
+  
+  supplierId       String
+  supplier         Supplier  @relation(fields: [supplierId], references: [id])
+  
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  items            NfeItem[]
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([supplierId])
+}
+
+model NfeItem {
+  id                  String     @id @default(uuid())
+  nfeImportId         String
+  nfeImport           NfeImport  @relation(fields: [nfeImportId], references: [id], onDelete: Cascade)
+  
+  productId           String?
+  product             Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  codigoProduto       String
+  codigoBarras        String?
+  descricao           String
+  ncm                 String?
+  cest                String?
+  cfop                String?
+  unidade             String?
+  quantidade          Float
+  valorUnitario       Float
+  valorTotal          Float
+  
+  // Impostos
+  icmsCst             String?
+  icmsCsosn           String?
+  icmsBaseCalculo     Float?
+  icmsAliquota        Float?
+  icmsValor           Float?
+  
+  ipiCst              String?
+  ipiBaseCalculo      Float?
+  ipiAliquota         Float?
+  ipiValor            Float?
+  
+  pisCst              String?
+  pisBaseCalculo      Float?
+  pisAliquota         Float?
+  pisValor            Float?
+  
+  cofinsCst           String?
+  cofinsBaseCalculo   Float?
+  cofinsAliquota      Float?
+  cofinsValor         Float?
+  
+  issCodigoServico    String?
+  issAliquota         Float?
+  issValor            Float?
+
+  @@index([nfeImportId])
+  @@index([productId])
+}
+
 
 

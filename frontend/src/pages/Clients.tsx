@@ -291,58 +291,58 @@ export function Clients() {
 
       {/* Listagem Desktop/Tablet */}
       <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium">Nome / Empresa</th>
-                <th className="p-4 font-medium">Documento</th>
-                <th className="p-4 font-medium">Contato</th>
-                <th className="p-4 font-medium">Localização</th>
-                <th className="p-4 font-medium">Ações</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Nome / Empresa</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Documento</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Contato</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-3/12">Localização</th>
+                <th className="p-4 font-medium w-4/12 lg:w-1/12 text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredClients.map((client) => (
                 <tr key={client.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <td className="p-4 truncate">
+                    <div className="flex items-center gap-3 truncate">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                         {client.nome.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="font-semibold text-foreground">{client.nome}</div>
-                        {client.empresa && <div className="text-xs text-muted-foreground flex items-center gap-1"><Building size={12} /> {client.empresa}</div>}
+                      <div className="truncate">
+                        <div className="font-semibold text-foreground truncate">{client.nome}</div>
+                        {client.empresa && <div className="text-xs text-muted-foreground flex items-center gap-1 truncate"><Building className="shrink-0" size={12} /> <span className="truncate">{client.empresa}</span></div>}
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-foreground">
+                  <td className="p-4 text-sm text-foreground hidden lg:table-cell truncate">
                     {client.cnpj ? (
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-0.5 truncate">
                         <span className="text-[9px] text-muted-foreground font-black uppercase">
                           {client.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}
                         </span>
-                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border w-fit">{client.cnpj}</span>
+                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border w-fit truncate">{client.cnpj}</span>
                       </div>
                     ) : (
                       <span className="text-muted-foreground text-xs italic">Não informado</span>
                     )}
                   </td>
-                  <td className="p-4 text-xs space-y-1">
-                    {client.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail size={12} /> {client.email}</div>}
-                    {client.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={12} /> {client.telefone}</div>}
+                  <td className="p-4 text-xs space-y-1 truncate">
+                    {client.email && <div className="flex items-center gap-1 text-muted-foreground truncate"><Mail className="shrink-0" size={12} /> <span className="truncate">{client.email}</span></div>}
+                    {client.telefone && <div className="flex items-center gap-1 text-muted-foreground truncate"><Phone className="shrink-0" size={12} /> <span className="truncate">{client.telefone}</span></div>}
                   </td>
-                  <td className="p-4 text-xs">
+                  <td className="p-4 text-xs hidden xl:table-cell truncate">
                     {client.cidade ? (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <MapPin size={12} /> {client.cidade} - {client.estado || ''}
+                      <div className="flex items-center gap-1 text-muted-foreground truncate">
+                        <MapPin className="shrink-0" size={12} /> <span className="truncate">{client.cidade} - {client.estado || ''}</span>
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic">-</span>
                     )}
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-center lg:justify-start">
                       <button 
                         onClick={() => handleOpenEditModal(client)}
                         className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"

@@ -2,6 +2,7 @@ import { Edit, Copy, Trash2, Search, Filter, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 
 export function QuotesList() {
   const [stats, setStats] = useState<any>(null);
@@ -192,13 +193,9 @@ export function QuotesList() {
                 className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
               >
                 <option value="all">Todos os Status</option>
-                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                <option value="Aprovado">Aprovado</option>
-                <option value="Aguardando Pagamento">Aguardando Pagamento</option>
-                <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
-                <option value="Cobertura">Cobertura</option>
-                <option value="Pago">Pago</option>
-                <option value="Cancelado">Cancelado</option>
+                {QUOTE_STATUS_OPTIONS.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
             </div>
 
@@ -224,30 +221,30 @@ export function QuotesList() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium">Nº</th>
-                <th className="p-4 font-medium">Empresa Emitente</th>
-                <th className="p-4 font-medium">Cliente</th>
-                <th className="p-4 font-medium">Data</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium">Valor Total</th>
-                <th className="p-4 font-medium">Ações</th>
+                <th className="p-4 font-medium w-1/12">Nº</th>
+                <th className="p-4 font-medium hidden md:table-cell w-2/12">Empresa Emitente</th>
+                <th className="p-4 font-medium w-3/12">Cliente</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Data</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-1/12">Status</th>
+                <th className="p-4 font-medium w-2/12">Valor Total</th>
+                <th className="p-4 font-medium w-1/12 text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
               {paginatedQuotes.map((quote: any) => (
                 <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-semibold text-primary">
+                  <td className="p-4 font-semibold text-primary truncate">
                     #{String(quote.numeroOrcamento).padStart(5, '0')}
                   </td>
-                  <td className="p-4 font-medium text-muted-foreground truncate max-w-[200px]" title={quote.company?.razaoSocial}>
+                  <td className="p-4 font-medium text-muted-foreground truncate hidden md:table-cell" title={quote.company?.razaoSocial}>
                     {quote.company?.razaoSocial || 'N/A'}
                   </td>
-                  <td className="p-4">
-                    <div className="font-semibold text-foreground">{quote.client?.nome}</div>
+                  <td className="p-4 truncate">
+                    <div className="font-semibold text-foreground truncate">{quote.client?.nome}</div>
                     {(quote.veiculoModelo || quote.veiculoPlaca) && (
                       <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
                         {quote.veiculoPlaca && (
@@ -255,15 +252,15 @@ export function QuotesList() {
                             {quote.veiculoPlaca}
                           </span>
                         )}
-                        {quote.veiculoModelo && <span>{quote.veiculoModelo}</span>}
+                        {quote.veiculoModelo && <span className="truncate">{quote.veiculoModelo}</span>}
                       </div>
                     )}
                   </td>
-                  <td className="p-4 text-muted-foreground text-sm">
+                  <td className="p-4 text-muted-foreground text-sm hidden lg:table-cell truncate">
                     {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="p-4 text-sm">
-                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                  <td className="p-4 text-sm hidden xl:table-cell">
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
                       (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                       quote.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
@@ -276,10 +273,10 @@ export function QuotesList() {
                       {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
                   </td>
-                  <td className="p-4 font-bold text-emerald-600 text-sm">
+                  <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
                   </td>
-                  <td className="p-4 flex gap-2">
+                  <td className="p-4 flex gap-1 justify-center lg:justify-start">
                     <button 
                       onClick={() => navigate(`/quotes/view/${quote.id}`)}
                       className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"

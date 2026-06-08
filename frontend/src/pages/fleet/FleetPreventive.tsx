@@ -335,17 +335,17 @@ export default function FleetPreventive() {
       ) : activeTab === 'motor' ? (
         /* MOTOR OIL LIST */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse text-sm table-fixed break-words">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 font-bold uppercase tracking-wider text-xs border-b border-gray-100 dark:border-gray-700">
-                  <th className="p-4">Veículo / Placa</th>
-                  <th className="p-4">KM Troca</th>
-                  <th className="p-4">Óleo Utilizado</th>
-                  <th className="p-4">Próxima Troca</th>
-                  <th className="p-4">Oficina / Responsável</th>
-                  <th className="p-4">Valor</th>
-                  <th className="p-4">Status</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Veículo / Placa</th>
+                  <th className="p-4 hidden md:table-cell w-2/12 lg:w-1/12">KM Troca</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Óleo Utilizado</th>
+                  <th className="p-4 hidden sm:table-cell w-3/12 md:w-2/12">Próxima Troca</th>
+                  <th className="p-4 hidden lg:table-cell w-2/12">Oficina / Responsável</th>
+                  <th className="p-4 hidden lg:table-cell w-1/12">Valor</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 md:w-2/12 text-center md:text-left">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -358,23 +358,23 @@ export default function FleetPreventive() {
                     const status = getOilChangeStatus(m.veiculo.kmAtual, m.proximaTrocaKm, m.proximaTrocaData);
                     return (
                       <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
-                        <td className="p-4 font-bold text-gray-800 dark:text-white">
-                          <span className="block">{m.veiculo.marca} {m.veiculo.modelo}</span>
-                          <span className="text-xs text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded font-black mt-0.5 inline-block">{m.veiculo.placa}</span>
+                        <td className="p-4 font-bold text-gray-800 dark:text-white truncate">
+                          <span className="block truncate">{m.veiculo.marca} {m.veiculo.modelo}</span>
+                          <span className="text-xs text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded font-black mt-0.5 inline-block truncate">{m.veiculo.placa}</span>
                         </td>
-                        <td className="p-4 font-semibold">{m.kmTroca.toLocaleString('pt-BR')} KM</td>
-                        <td className="p-4 text-gray-600 dark:text-gray-400">
-                          <span className="block font-semibold">{m.tipoOleo || '—'}</span>
-                          <span className="text-xs text-gray-400">{m.quantidade ? `${m.quantidade} Litros` : ''}</span>
+                        <td className="p-4 font-semibold hidden md:table-cell truncate">{m.kmTroca.toLocaleString('pt-BR')} KM</td>
+                        <td className="p-4 text-gray-600 dark:text-gray-400 truncate">
+                          <span className="block font-semibold truncate">{m.tipoOleo || '—'}</span>
+                          <span className="text-xs text-gray-400 truncate">{m.quantidade ? `${m.quantidade} L` : ''}</span>
                         </td>
-                        <td className="p-4">
-                          <span className="block font-bold">{m.proximaTrocaKm.toLocaleString('pt-BR')} KM</span>
-                          <span className="text-xs text-gray-400">{new Date(m.proximaTrocaData).toLocaleDateString('pt-BR')}</span>
+                        <td className="p-4 hidden sm:table-cell truncate">
+                          <span className="block font-bold truncate">{m.proximaTrocaKm.toLocaleString('pt-BR')} KM</span>
+                          <span className="text-xs text-gray-400 truncate">{new Date(m.proximaTrocaData).toLocaleDateString('pt-BR')}</span>
                         </td>
-                        <td className="p-4 text-gray-600 dark:text-gray-400 font-medium">{m.oficina?.nome || '—'}</td>
-                        <td className="p-4 font-bold text-gray-800 dark:text-white">{formatCurrency(m.valor)}</td>
-                        <td className="p-4">
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${status.color}`}>
+                        <td className="p-4 text-gray-600 dark:text-gray-400 font-medium hidden lg:table-cell truncate">{m.oficina?.nome || '—'}</td>
+                        <td className="p-4 font-bold text-gray-800 dark:text-white hidden lg:table-cell truncate">{formatCurrency(m.valor)}</td>
+                        <td className="p-4 text-center md:text-left truncate">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase truncate block w-fit mx-auto md:mx-0 ${status.color}`}>
                             {status.label}
                           </span>
                         </td>
@@ -389,18 +389,18 @@ export default function FleetPreventive() {
       ) : (
         /* GEAR OIL LIST */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse text-sm table-fixed break-words">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 font-bold uppercase tracking-wider text-xs border-b border-gray-100 dark:border-gray-700">
-                  <th className="p-4">Veículo / Placa</th>
-                  <th className="p-4">Tipo Câmbio</th>
-                  <th className="p-4">KM Troca</th>
-                  <th className="p-4">Óleo Utilizado</th>
-                  <th className="p-4">Próxima Troca</th>
-                  <th className="p-4">Oficina / Responsável</th>
-                  <th className="p-4">Valor</th>
-                  <th className="p-4">Status</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Veículo / Placa</th>
+                  <th className="p-4 hidden lg:table-cell w-1/12">Câmbio</th>
+                  <th className="p-4 hidden md:table-cell w-2/12 lg:w-1/12">KM Troca</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Óleo Utilizado</th>
+                  <th className="p-4 hidden sm:table-cell w-3/12 md:w-2/12">Próxima Troca</th>
+                  <th className="p-4 hidden lg:table-cell w-2/12">Oficina</th>
+                  <th className="p-4 hidden xl:table-cell w-1/12">Valor</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 md:w-2/12 text-center md:text-left">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -413,24 +413,24 @@ export default function FleetPreventive() {
                     const status = getOilChangeStatus(g.veiculo.kmAtual, g.proximaTrocaKm, g.proximaTrocaData);
                     return (
                       <tr key={g.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
-                        <td className="p-4 font-bold text-gray-800 dark:text-white">
-                          <span className="block">{g.veiculo.marca} {g.veiculo.modelo}</span>
-                          <span className="text-xs text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded font-black mt-0.5 inline-block">{g.veiculo.placa}</span>
+                        <td className="p-4 font-bold text-gray-800 dark:text-white truncate">
+                          <span className="block truncate">{g.veiculo.marca} {g.veiculo.modelo}</span>
+                          <span className="text-xs text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded font-black mt-0.5 inline-block truncate">{g.veiculo.placa}</span>
                         </td>
-                        <td className="p-4 font-bold text-indigo-700 dark:text-indigo-400 text-xs uppercase">{g.tipoCambio}</td>
-                        <td className="p-4 font-semibold">{g.kmTroca.toLocaleString('pt-BR')} KM</td>
-                        <td className="p-4 text-gray-600 dark:text-gray-400">
-                          <span className="block font-semibold">{g.oleoUtilizado || '—'}</span>
-                          <span className="text-xs text-gray-400">{g.quantidade ? `${g.quantidade} Litros` : ''}</span>
+                        <td className="p-4 font-bold text-indigo-700 dark:text-indigo-400 text-xs uppercase hidden lg:table-cell truncate">{g.tipoCambio}</td>
+                        <td className="p-4 font-semibold hidden md:table-cell truncate">{g.kmTroca.toLocaleString('pt-BR')} KM</td>
+                        <td className="p-4 text-gray-600 dark:text-gray-400 truncate">
+                          <span className="block font-semibold truncate">{g.oleoUtilizado || '—'}</span>
+                          <span className="text-xs text-gray-400 truncate">{g.quantidade ? `${g.quantidade} L` : ''}</span>
                         </td>
-                        <td className="p-4">
-                          <span className="block font-bold">{g.proximaTrocaKm.toLocaleString('pt-BR')} KM</span>
-                          <span className="text-xs text-gray-400">{new Date(g.proximaTrocaData).toLocaleDateString('pt-BR')}</span>
+                        <td className="p-4 hidden sm:table-cell truncate">
+                          <span className="block font-bold truncate">{g.proximaTrocaKm.toLocaleString('pt-BR')} KM</span>
+                          <span className="text-xs text-gray-400 truncate">{new Date(g.proximaTrocaData).toLocaleDateString('pt-BR')}</span>
                         </td>
-                        <td className="p-4 text-gray-600 dark:text-gray-400 font-medium">{g.oficina?.nome || '—'}</td>
-                        <td className="p-4 font-bold text-gray-800 dark:text-white">{formatCurrency(g.valor)}</td>
-                        <td className="p-4">
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${status.color}`}>
+                        <td className="p-4 text-gray-600 dark:text-gray-400 font-medium hidden lg:table-cell truncate">{g.oficina?.nome || '—'}</td>
+                        <td className="p-4 font-bold text-gray-800 dark:text-white hidden xl:table-cell truncate">{formatCurrency(g.valor)}</td>
+                        <td className="p-4 text-center md:text-left truncate">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase truncate block w-fit mx-auto md:mx-0 ${status.color}`}>
                             {status.label}
                           </span>
                         </td>

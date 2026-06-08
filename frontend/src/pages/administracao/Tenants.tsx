@@ -339,66 +339,71 @@ export function Tenants() {
             Nenhuma empresa cadastrada no SaaS com os filtros selecionados.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse table-fixed break-words">
               <thead>
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-4">Razão Social / CNPJ</th>
-                  <th className="p-4">Responsável / Telefone</th>
-                  <th className="p-4">Plano / Vencimento</th>
-                  <th className="p-4">Uso de Recursos</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="p-4 w-5/12 sm:w-3/12 lg:w-3/12">Razão Social / CNPJ</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 lg:w-2/12">Responsável</th>
+                  <th className="p-4 hidden md:table-cell w-2/12">Plano / Vencimento</th>
+                  <th className="p-4 hidden lg:table-cell w-2/12">Uso de Recursos</th>
+                  <th className="p-4 hidden sm:table-cell w-2/12 lg:w-1/12">Status</th>
+                  <th className="p-4 w-3/12 sm:w-2/12 lg:w-2/12 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850 text-xs">
                 {tenants.map((tenant) => (
                   <tr key={tenant.id} className="hover:bg-slate-800/10">
-                    <td className="p-4 font-bold text-slate-200">
-                      <div>{tenant.razaoSocial}</div>
-                      <div className="text-[10px] text-slate-500 font-semibold">{tenant.nomeFantasia || '-'}</div>
-                      <div className="text-[9px] font-mono text-slate-500 mt-0.5">{tenant.cnpj}</div>
+                    <td className="p-4 font-bold text-slate-200 truncate">
+                      <div className="truncate">{tenant.razaoSocial}</div>
+                      <div className="text-[10px] text-slate-500 font-semibold truncate">{tenant.nomeFantasia || '-'}</div>
+                      <div className="text-[9px] font-mono text-slate-500 mt-0.5 truncate">{tenant.cnpj}</div>
+                      <div className="sm:hidden mt-1">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${getStatusBadge(tenant.status)} truncate block w-fit`}>
+                          {tenant.status}
+                        </span>
+                      </div>
                     </td>
-                    <td className="p-4 text-slate-400 font-semibold">
-                      <div>{tenant.responsavel}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{tenant.telefone || tenant.email}</div>
+                    <td className="p-4 text-slate-400 font-semibold truncate">
+                      <div className="truncate">{tenant.responsavel}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 truncate">{tenant.telefone || tenant.email}</div>
                     </td>
-                    <td className="p-4">
-                      <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-extrabold">
+                    <td className="p-4 hidden md:table-cell truncate">
+                      <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-extrabold truncate max-w-full">
                         {tenant.plan?.nome || 'Nenhum'}
                       </span>
-                      <div className="text-[10px] text-slate-500 mt-1 font-medium">
+                      <div className="text-[10px] text-slate-500 mt-1 font-medium truncate">
                         Renovação: {tenant.dataVencimento ? new Date(tenant.dataVencimento).toLocaleDateString('pt-BR') : 'Sem data'}
                       </div>
                     </td>
-                    <td className="p-4 text-slate-400">
-                      <div className="grid grid-cols-2 gap-x-2 text-[10px] font-medium">
-                        <span>Usuários: <strong className="text-slate-200">{tenant.usersCount}/{tenant.limiteUsuarios}</strong></span>
-                        <span>Veículos: <strong className="text-slate-200">{tenant.vehiclesCount}/{tenant.limiteVeiculos}</strong></span>
-                        <span>Oficinas: <strong className="text-slate-200">{tenant.workshopsCount}/{tenant.limiteOficinas}</strong></span>
-                        <span>O.S: <strong className="text-slate-200">{tenant.osCount}/{tenant.limiteOs}</strong></span>
+                    <td className="p-4 text-slate-400 hidden lg:table-cell">
+                      <div className="grid grid-cols-2 gap-x-2 text-[10px] font-medium truncate">
+                        <span className="truncate">Usuários: <strong className="text-slate-200">{tenant.usersCount}/{tenant.limiteUsuarios}</strong></span>
+                        <span className="truncate">Veículos: <strong className="text-slate-200">{tenant.vehiclesCount}/{tenant.limiteVeiculos}</strong></span>
+                        <span className="truncate">Oficinas: <strong className="text-slate-200">{tenant.workshopsCount}/{tenant.limiteOficinas}</strong></span>
+                        <span className="truncate">O.S: <strong className="text-slate-200">{tenant.osCount}/{tenant.limiteOs}</strong></span>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusBadge(tenant.status)}`}>
+                    <td className="p-4 hidden sm:table-cell truncate">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusBadge(tenant.status)} truncate block w-fit`}>
                         {tenant.status}
                       </span>
                     </td>
                     <td className="p-4 text-center relative">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap sm:flex-nowrap">
                         <button
                           onClick={() => {
                             setSelectedTenant(tenant);
                             setIsEditOpen(true);
                           }}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0"
                           title="Editar Cadastro"
                         >
                           <Edit3 size={13} />
                         </button>
                         <button
                           onClick={() => handleOpenHistory(tenant)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0"
                           title="Histórico / Auditoria"
                         >
                           <History size={13} />
@@ -408,7 +413,7 @@ export function Tenants() {
                         <div className="relative">
                           <button
                             onClick={() => setIsActionMenuOpen(isActionMenuOpen === tenant.id ? null : tenant.id)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0"
                           >
                             <MoreVertical size={13} />
                           </button>
@@ -424,8 +429,8 @@ export function Tenants() {
                                   }}
                                   className="flex items-center gap-2.5 w-full px-3 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-lg transition"
                                 >
-                                  <Lock size={12} className="text-slate-500" />
-                                  <span>Resetar Senha</span>
+                                  <Lock size={12} className="text-slate-500 shrink-0" />
+                                  <span className="truncate">Resetar Senha</span>
                                 </button>
                               </div>
 
@@ -435,8 +440,8 @@ export function Tenants() {
                                     onClick={() => handleStatusChange(tenant, 'reactivate')}
                                     className="flex items-center gap-2.5 w-full px-3 py-2 text-[11px] font-semibold text-emerald-400 hover:bg-slate-800 hover:text-emerald-300 rounded-lg transition"
                                   >
-                                    <Check size={12} />
-                                    <span>Reativar Empresa</span>
+                                    <Check size={12} className="shrink-0" />
+                                    <span className="truncate">Reativar Empresa</span>
                                   </button>
                                 )}
                                 {tenant.status !== 'Suspensa' && (
@@ -444,8 +449,8 @@ export function Tenants() {
                                     onClick={() => handleStatusChange(tenant, 'suspend')}
                                     className="flex items-center gap-2.5 w-full px-3 py-2 text-[11px] font-semibold text-amber-400 hover:bg-slate-800 hover:text-amber-300 rounded-lg transition"
                                   >
-                                    <AlertTriangle size={12} />
-                                    <span>Suspender</span>
+                                    <AlertTriangle size={12} className="shrink-0" />
+                                    <span className="truncate">Suspender</span>
                                   </button>
                                 )}
                                 {tenant.status !== 'Bloqueada' && (
@@ -453,8 +458,8 @@ export function Tenants() {
                                     onClick={() => handleStatusChange(tenant, 'block')}
                                     className="flex items-center gap-2.5 w-full px-3 py-2 text-[11px] font-semibold text-rose-400 hover:bg-slate-800 hover:text-rose-300 rounded-lg transition"
                                   >
-                                    <Ban size={12} />
-                                    <span>Bloquear Empresa</span>
+                                    <Ban size={12} className="shrink-0" />
+                                    <span className="truncate">Bloquear Empresa</span>
                                   </button>
                                 )}
                               </div>

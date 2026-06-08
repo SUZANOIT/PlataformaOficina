@@ -467,10 +467,16 @@ export const AbsenceController = {
           },
           advances: {
             where: {
-              data: {
-                gte: startOfMonth,
-                lte: endOfMonth,
-              },
+              OR: [
+                { payroll_competency: competencyStr },
+                {
+                  data: {
+                    gte: startOfMonth,
+                    lte: endOfMonth,
+                  },
+                  payroll_competency: null
+                }
+              ]
             },
           },
         },
@@ -550,14 +556,23 @@ export const AbsenceController = {
       await prisma.salaryAdvance.updateMany({
         where: {
           collaborator: { companyId },
-          data: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
+          OR: [
+            { payroll_competency: competencyStr },
+            {
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+              payroll_competency: null
+            }
+          ],
           status: 'PENDENTE',
         },
         data: {
           status: 'DESCONTADO_EM_FOLHA',
+          discount_status: 'DESCONTADO',
+          discounted_at: new Date(),
+          discounted_by: user.name
         },
       });
 
@@ -608,13 +623,20 @@ export const AbsenceController = {
         },
       });
 
+      const competencyStr = `${String(m).padStart(2, '0')}/${y}`;
       const advances = await prisma.salaryAdvance.findMany({
         where: {
           collaborator: { companyId },
-          data: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
+          OR: [
+            { payroll_competency: competencyStr },
+            {
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+              payroll_competency: null
+            }
+          ]
         },
       });
 

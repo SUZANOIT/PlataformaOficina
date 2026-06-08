@@ -269,65 +269,73 @@ export function FinancialApprovals() {
             <span>🎉 Excelente! Fila de aprovação vazia no momento.</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
+          <div className="w-full">
+            <table className="w-full border-collapse text-left text-sm table-fixed break-words">
               <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
                 <tr>
-                  <th className="p-4">Tipo</th>
-                  <th className="p-4">Empresa</th>
-                  <th className="p-4">Beneficiário/Pagador</th>
-                  <th className="p-4">Descrição/Categoria</th>
-                  <th className="p-4 text-right">Valor</th>
-                  <th className="p-4">Vencimento</th>
-                  <th className="p-4 text-center">Autorização Rápida</th>
+                  <th className="p-4 hidden md:table-cell w-1/12">Tipo</th>
+                  <th className="p-4 hidden lg:table-cell w-2/12">Empresa</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Beneficiário / Pagador</th>
+                  <th className="p-4 w-4/12 md:w-3/12 lg:w-2/12">Descrição / Categoria</th>
+                  <th className="p-4 hidden sm:table-cell w-2/12 lg:w-1/12 text-right">Valor</th>
+                  <th className="p-4 hidden md:table-cell w-2/12">Vencimento</th>
+                  <th className="p-4 w-4/12 sm:w-6/12 md:w-4/12 lg:w-2/12 text-center">Autorização Rápida</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {filteredItems.map((item) => (
                   <tr key={`${item.type}-${item.id}`} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4">
+                    <td className="p-4 hidden md:table-cell truncate">
                       {item.type === 'PAGAR' ? (
-                        <div className="flex items-center gap-1.5 text-xs font-black text-red-500 uppercase tracking-wider bg-red-500/10 px-2 py-0.5 rounded-full w-fit">
-                          <TrendingDown size={12} /> Pagar
+                        <div className="flex items-center gap-1.5 text-xs font-black text-red-500 uppercase tracking-wider bg-red-500/10 px-2 py-0.5 rounded-full w-fit truncate">
+                          <TrendingDown size={12} className="shrink-0" /> <span className="truncate">Pagar</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-500 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full w-fit">
-                          <TrendingUp size={12} /> Receber
+                        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-500 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full w-fit truncate">
+                          <TrendingUp size={12} className="shrink-0" /> <span className="truncate">Receber</span>
                         </div>
                       )}
                     </td>
-                    <td className="p-4 font-semibold text-foreground">{item.companyName}</td>
-                    <td className="p-4 font-medium text-foreground">{item.party}</td>
-                    <td className="p-4 text-muted-foreground">
-                      <div className="flex flex-col">
-                        <span>{item.descricao}</span>
-                        <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold mt-0.5">{item.categoria}</span>
+                    <td className="p-4 font-semibold text-foreground truncate hidden lg:table-cell">{item.companyName}</td>
+                    <td className="p-4 font-medium text-foreground truncate">
+                      <div className="flex flex-col truncate">
+                        <span className="truncate">{item.party}</span>
+                        {/* Tipo mobile fallback */}
+                        <span className={`text-[10px] font-bold uppercase tracking-wider md:hidden ${item.type === 'PAGAR' ? 'text-red-500' : 'text-emerald-500'}`}>
+                          {item.type === 'PAGAR' ? 'A Pagar' : 'A Receber'}
+                        </span>
                       </div>
                     </td>
-                    <td className={`p-4 text-right font-black ${item.type === 'PAGAR' ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <td className="p-4 text-muted-foreground truncate">
+                      <div className="flex flex-col truncate">
+                        <span className="truncate">{item.descricao}</span>
+                        <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold mt-0.5 truncate">{item.categoria}</span>
+                      </div>
+                    </td>
+                    <td className={`p-4 text-right font-black hidden sm:table-cell truncate ${item.type === 'PAGAR' ? 'text-red-500' : 'text-emerald-500'}`}>
                       {formatCurrency(item.valor)}
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        <Calendar size={13} className="text-muted-foreground" />
-                        {formatDate(item.vencimento)}
+                    <td className="p-4 hidden md:table-cell truncate">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground truncate">
+                        <Calendar size={13} className="text-muted-foreground shrink-0" />
+                        <span className="truncate">{formatDate(item.vencimento)}</span>
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex flex-col xl:flex-row items-center justify-center gap-2">
                         <button 
                           onClick={() => handleWorkflowAction(item, 'APPROVE')}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+                          className="flex items-center justify-center gap-1 px-2 py-1 xl:px-2.5 xl:py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors shadow-xs w-full xl:w-auto truncate"
                           title="Aprovar lançamento"
                         >
-                          <Check size={13} /> Aprovar
+                          <Check size={13} className="shrink-0" /> <span className="truncate">Aprovar</span>
                         </button>
                         <button 
                           onClick={() => handleWorkflowAction(item, 'REJECT')}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+                          className="flex items-center justify-center gap-1 px-2 py-1 xl:px-2.5 xl:py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors shadow-xs w-full xl:w-auto truncate"
                           title="Reprovar lançamento"
                         >
-                          <X size={13} /> Reprovar
+                          <X size={13} className="shrink-0" /> <span className="truncate">Reprovar</span>
                         </button>
                       </div>
                     </td>

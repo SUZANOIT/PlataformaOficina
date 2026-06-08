@@ -162,52 +162,55 @@ export function Users() {
             Nenhum usuário administrativo cadastrado.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full">
+            <table className="w-full text-left border-collapse table-fixed break-words">
               <thead>
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/20">
-                  <th className="p-4">Nome / Usuário</th>
-                  <th className="p-4">E-mail</th>
-                  <th className="p-4">Perfil (RBAC)</th>
-                  <th className="p-4">Último Login</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="p-4 w-5/12 sm:w-4/12 lg:w-3/12">Nome / Usuário</th>
+                  <th className="p-4 hidden sm:table-cell w-3/12 lg:w-3/12">E-mail</th>
+                  <th className="p-4 w-4/12 sm:w-3/12 lg:w-2/12">Perfil (RBAC)</th>
+                  <th className="p-4 hidden md:table-cell w-2/12">Último Login</th>
+                  <th className="p-4 hidden lg:table-cell w-1/12">Status</th>
+                  <th className="p-4 w-3/12 sm:w-2/12 lg:w-1/12 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850 text-xs">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-800/10">
-                    <td className="p-4 font-bold text-slate-200">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400">
+                    <td className="p-4 font-bold text-slate-200 truncate">
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className="h-7 w-7 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 shrink-0">
                           <User size={14} />
                         </div>
-                        <span>{u.nome}</span>
+                        <div className="flex flex-col truncate">
+                          <span className="truncate">{u.nome}</span>
+                          <span className="sm:hidden text-[9px] text-slate-400 font-medium truncate mt-0.5">{u.email}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="p-4 text-slate-400 font-semibold">
-                      <div className="flex items-center gap-1.5">
-                        <Mail size={13} className="text-slate-500" />
-                        <span>{u.email}</span>
+                    <td className="p-4 text-slate-400 font-semibold hidden sm:table-cell truncate">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail size={13} className="text-slate-500 shrink-0" />
+                        <span className="truncate">{u.email}</span>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${getRoleColor(u.role)}`}>
+                    <td className="p-4 truncate">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${getRoleColor(u.role)} truncate block w-fit`}>
                         {u.role}
                       </span>
                     </td>
-                    <td className="p-4 text-slate-400">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={13} className="text-slate-500" />
-                        <span>{u.ultimoLogin ? new Date(u.ultimoLogin).toLocaleString('pt-BR') : 'Nunca acessou'}</span>
+                    <td className="p-4 text-slate-400 hidden md:table-cell truncate">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Clock size={13} className="text-slate-500 shrink-0" />
+                        <span className="truncate">{u.ultimoLogin ? new Date(u.ultimoLogin).toLocaleString('pt-BR') : 'Nunca acessou'}</span>
                       </div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 hidden lg:table-cell truncate">
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                         u.status === 'ATIVO' 
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                           : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
+                      } truncate block w-fit`}>
                         {u.status}
                       </span>
                     </td>
@@ -218,7 +221,7 @@ export function Users() {
                             setSelectedUser(u);
                             setIsEditOpen(true);
                           }}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0"
                           title="Editar Cadastro"
                         >
                           <Edit3 size={13} />
@@ -228,7 +231,7 @@ export function Users() {
                             setSelectedUser(u);
                             setIsResetOpen(true);
                           }}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-350 hover:text-white transition"
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-350 hover:text-white transition shrink-0"
                           title="Resetar Senha"
                         >
                           <Lock size={13} />

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { GlobalBreadcrumbs } from '../components/GlobalBreadcrumbs';
+import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 
 function SoldModalBreadcrumb() {
   useBreadcrumbs([{ label: 'Detalhamento de Vendas' }]);
@@ -325,7 +326,7 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Valores Totais em R$</span>
             </div>
 
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
               <div className="h-64 flex items-end justify-between gap-3 pt-16 px-2 min-w-[500px] sm:min-w-0">
                 {Object.entries(statusTotals).map(([status, totalValue]) => {
                   const pct = (totalValue / maxVal) * 100;
@@ -388,7 +389,7 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Valores de Orçamentos Aprovados por Mês</span>
             </div>
 
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
               <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
                 {monthlyApprovedTotals.map((totalValue, index) => {
                   const monthName = monthNames[index];
@@ -439,7 +440,7 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground font-medium">Comparativo Mensal (Orçamentos Aprovados)</span>
             </div>
 
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
               <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
                 {monthNames.map((monthName, index) => {
                   const partsVal = monthlyPecasTotals[index];
@@ -578,12 +579,9 @@ export function Dashboard() {
                 className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
               >
                 <option value="all">Todos os Status</option>
-                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                <option value="Aprovado">Aprovado</option>
-                <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
-                <option value="Cobertura">Cobertura</option>
-                <option value="Pago">Pago</option>
-                <option value="Cancelado">Cancelado</option>
+                {QUOTE_STATUS_OPTIONS.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
             </div>
 
@@ -609,30 +607,30 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium">Nº</th>
-                <th className="p-4 font-medium">Empresa Emitente</th>
-                <th className="p-4 font-medium">Cliente</th>
-                <th className="p-4 font-medium">Data</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium">Valor Total</th>
-                <th className="p-4 font-medium">Ações</th>
+                <th className="p-4 font-medium w-1/12">Nº</th>
+                <th className="p-4 font-medium hidden md:table-cell w-2/12">Empresa Emitente</th>
+                <th className="p-4 font-medium w-3/12">Cliente</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Data</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-1/12">Status</th>
+                <th className="p-4 font-medium w-2/12">Valor Total</th>
+                <th className="p-4 font-medium w-1/12">Ações</th>
               </tr>
             </thead>
             <tbody>
               {paginatedQuotes.map((quote: any) => (
                 <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-semibold text-primary">
+                  <td className="p-4 font-semibold text-primary truncate">
                     #{String(quote.numeroOrcamento).padStart(5, '0')}
                   </td>
-                  <td className="p-4 font-medium text-muted-foreground truncate max-w-[200px]" title={quote.company?.razaoSocial}>
+                  <td className="p-4 font-medium text-muted-foreground truncate hidden md:table-cell" title={quote.company?.razaoSocial}>
                     {quote.company?.razaoSocial || 'N/A'}
                   </td>
-                  <td className="p-4">
-                    <div className="font-semibold text-foreground">{quote.client?.nome}</div>
+                  <td className="p-4 truncate">
+                    <div className="font-semibold text-foreground truncate">{quote.client?.nome}</div>
                     {(quote.veiculoModelo || quote.veiculoPlaca) && (
                       <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
                         {quote.veiculoPlaca && (
@@ -640,17 +638,18 @@ export function Dashboard() {
                             {quote.veiculoPlaca}
                           </span>
                         )}
-                        {quote.veiculoModelo && <span>{quote.veiculoModelo}</span>}
+                        {quote.veiculoModelo && <span className="truncate">{quote.veiculoModelo}</span>}
                       </div>
                     )}
                   </td>
-                  <td className="p-4 text-muted-foreground text-sm">
+                  <td className="p-4 text-muted-foreground text-sm hidden lg:table-cell truncate">
                     {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="p-4 text-sm">
-                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                  <td className="p-4 text-sm hidden xl:table-cell">
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
                       (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
                       quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                      quote.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
                       quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
                       quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
                       quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
@@ -660,10 +659,10 @@ export function Dashboard() {
                       {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
                   </td>
-                  <td className="p-4 font-bold text-emerald-600 text-sm">
+                  <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
                   </td>
-                  <td className="p-4 flex gap-2">
+                  <td className="p-4 flex gap-1">
                     <button 
                       onClick={() => navigate(`/quotes/view/${quote.id}`)}
                       className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
@@ -834,14 +833,14 @@ export function Dashboard() {
               <div className="space-y-3 pt-2">
                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Detalhamento por Empresa Emitente</h4>
                 <div className="border border-border rounded-xl overflow-hidden bg-muted/5">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                  <div className="w-full">
+                    <table className="w-full text-left border-collapse table-fixed break-words">
                       <thead>
                         <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground font-semibold">
-                          <th className="p-4">Empresa</th>
-                          <th className="p-4 text-center">Qtd. Orçamentos</th>
-                          <th className="p-4 text-right">Total Vendido</th>
-                          <th className="p-4 text-center w-40">Participação (%)</th>
+                          <th className="p-4 w-4/12">Empresa</th>
+                          <th className="p-4 text-center w-2/12 hidden sm:table-cell">Qtd. Orçamentos</th>
+                          <th className="p-4 text-right w-4/12 sm:w-3/12">Total Vendido</th>
+                          <th className="p-4 text-center w-4/12 sm:w-3/12">Participação (%)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border text-sm">
@@ -857,24 +856,24 @@ export function Dashboard() {
                                 onClick={() => setSelectedCompanyId(isCurrentFilter ? 'all' : c.companyId)}
                                 title="Clique para filtrar o dashboard por esta empresa"
                               >
-                                <td className="p-4 font-medium text-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Building className="text-muted-foreground" size={14} />
-                                    <span>{c.companyName}</span>
-                                    {isCurrentFilter && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">Filtro Ativo</span>}
+                                <td className="p-4 font-medium text-foreground truncate">
+                                  <div className="flex items-center gap-2 truncate">
+                                    <Building className="text-muted-foreground shrink-0" size={14} />
+                                    <span className="truncate">{c.companyName}</span>
+                                    {isCurrentFilter && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold hidden sm:inline-block">Filtro</span>}
                                   </div>
                                 </td>
-                                <td className="p-4 text-center text-foreground font-semibold">{c.quotesCount}</td>
-                                <td className="p-4 text-right font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(c.totalSold)}</td>
+                                <td className="p-4 text-center text-foreground font-semibold hidden sm:table-cell">{c.quotesCount}</td>
+                                <td className="p-4 text-right font-black text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(c.totalSold)}</td>
                                 <td className="p-4">
                                   <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-muted dark:bg-muted/20 h-2 rounded-full overflow-hidden">
+                                    <div className="flex-1 bg-muted dark:bg-muted/20 h-2 rounded-full overflow-hidden hidden sm:block">
                                       <div 
                                         className="bg-emerald-500 h-2 rounded-full" 
                                         style={{ width: `${pct}%` }}
                                       ></div>
                                     </div>
-                                    <span className="text-xs font-bold text-foreground w-10 text-right">{pct.toFixed(0)}%</span>
+                                    <span className="text-xs font-bold text-foreground w-full sm:w-10 text-center sm:text-right truncate">{pct.toFixed(0)}%</span>
                                   </div>
                                 </td>
                               </tr>

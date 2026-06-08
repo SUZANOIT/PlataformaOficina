@@ -105,6 +105,11 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             <h1 className={`text-4xl font-extrabold ${isCurio ? 'text-indigo-950' : 'text-slate-900'} tracking-tight uppercase`}>
               ORÇAMENTO {data.numeroOrcamento ? `#${data.numeroOrcamento}` : ''}
             </h1>
+            {data.numeroOrcamento && (
+              <p className={`text-[15px] font-extrabold ${isCurio ? 'text-indigo-700' : 'text-slate-700'} mt-1.5 uppercase tracking-wide`}>
+                OS Nº: {new Date(data.createdAt || Date.now()).getFullYear()}-{data.numeroOrcamento.toString().padStart(6, '0')}
+              </p>
+            )}
             <p className="text-sm text-slate-500 mt-1.5 font-medium">Data de Emissão: {dataAtual}</p>
             {data.osExterna && (
               <p className="text-[12px] font-bold text-indigo-600 mt-1 uppercase">

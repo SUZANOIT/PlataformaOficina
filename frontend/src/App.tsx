@@ -35,6 +35,12 @@ import { MyPlan } from './pages/MyPlan';
 import { Presentation } from './pages/Presentation';
 import { AbsenceControl } from './pages/rh/AbsenceControl';
 import { MonthlyClosing } from './pages/rh/MonthlyClosing';
+import { Products } from './pages/Products';
+import { NfeImport } from './pages/accounting/NfeImport';
+import { MunicipalTaxes } from './pages/accounting/taxes/MunicipalTaxes';
+import { EstadualTaxes } from './pages/accounting/taxes/EstadualTaxes';
+import { FederalTaxes } from './pages/accounting/taxes/FederalTaxes';
+
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
 import { SaaSAuthGuard } from './components/SaaSAuthGuard';
@@ -118,6 +124,12 @@ function App() {
               <Route path="financial/categories" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialCategories /></ModuleGuard>} />
               <Route path="financial/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
               <Route path="accounting/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
+              <Route path="products" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Products /></ModuleGuard>} />
+              <Route path="accounting/nfe-import" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><NfeImport /></ModuleGuard>} />
+              <Route path="accounting/taxes/municipal" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><MunicipalTaxes /></ModuleGuard>} />
+              <Route path="accounting/taxes/estadual" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><EstadualTaxes /></ModuleGuard>} />
+              <Route path="accounting/taxes/federal" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FederalTaxes /></ModuleGuard>} />
+
 
               {/* Rotas de Gestão de Frotas */}
               <Route path="fleet/dashboard" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetDashboard /></ModuleGuard>} />

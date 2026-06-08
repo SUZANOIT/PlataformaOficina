@@ -728,28 +728,28 @@ export function FinancialReceivables() {
             <span>Nenhuma receita localizada com estes filtros.</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
+          <div className="w-full">
+            <table className="w-full border-collapse text-left text-sm table-fixed break-words">
               <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
                 <tr>
-                  <th className="p-4">Empresa</th>
-                  <th className="p-4">Origem</th>
-                  <th className="p-4">Descrição</th>
-                  <th className="p-4 text-right">Valor</th>
-                  <th className="p-4">Vencimento</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Comp.</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="p-4 hidden md:table-cell w-2/12">Empresa</th>
+                  <th className="p-4 w-5/12 md:w-3/12 lg:w-2/12">Origem</th>
+                  <th className="p-4 hidden lg:table-cell w-2/12">Descrição</th>
+                  <th className="p-4 w-3/12 md:w-2/12 lg:w-1/12 text-right">Valor</th>
+                  <th className="p-4 hidden sm:table-cell w-3/12 md:w-2/12 lg:w-2/12">Vencimento</th>
+                  <th className="p-4 hidden lg:table-cell w-1/12">Status</th>
+                  <th className="p-4 hidden xl:table-cell w-1/12">Comp.</th>
+                  <th className="p-4 w-4/12 md:w-2/12 lg:w-1/12 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {receivables.map((r) => (
                   <tr key={r.id} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4 font-semibold text-foreground truncate max-w-[140px]">
+                    <td className="p-4 font-semibold text-foreground truncate hidden md:table-cell">
                       {r.company?.nomeFantasia || r.company?.razaoSocial}
                     </td>
-                    <td className="p-4 font-medium text-foreground">
-                      <div className="flex items-center gap-1.5">
+                    <td className="p-4 font-medium text-foreground truncate">
+                      <div className="flex items-center gap-1.5 truncate">
                         {(r as any).origem_tipo && (
                           <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase shrink-0 ${
                             (r as any).origem_tipo === 'CLIENTE'
@@ -759,52 +759,56 @@ export function FinancialReceivables() {
                             {(r as any).origem_tipo === 'CLIENTE' ? 'Cliente' : 'Plataforma'}
                           </span>
                         )}
-                        <span className="truncate max-w-[180px]">{r.cliente}</span>
+                        <span className="truncate">{r.cliente}</span>
                       </div>
                       {r.quote && (
-                        <div className="text-[10px] text-primary font-bold flex items-center gap-1 mt-0.5" title="Orçamento vinculado">
-                          📋 Ref. Orçamento #{r.quote.numeroOrcamento}
+                        <div className="text-[10px] text-primary font-bold flex items-center gap-1 mt-0.5 truncate" title="Orçamento vinculado">
+                          <span className="truncate">📋 Ref. Orçamento #{r.quote.numeroOrcamento}</span>
                         </div>
                       )}
                     </td>
-                    <td className="p-4 text-muted-foreground">{r.descricao}</td>
-                    <td className="p-4 text-right font-extrabold text-foreground">{formatCurrency(r.valor)}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        <Calendar size={13} className="text-muted-foreground" />
-                        {formatDate(r.vencimento)}
+                    <td className="p-4 text-muted-foreground truncate hidden lg:table-cell">{r.descricao}</td>
+                    <td className="p-4 text-right font-extrabold text-foreground truncate">{formatCurrency(r.valor)}</td>
+                    <td className="p-4 hidden sm:table-cell truncate">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground truncate">
+                        <Calendar size={13} className="text-muted-foreground shrink-0" />
+                        <span className="truncate">{formatDate(r.vencimento)}</span>
                       </div>
                     </td>
-                    <td className="p-4">{getStatusBadge(r.status)}</td>
-                    <td className="p-4">
+                    <td className="p-4 hidden lg:table-cell truncate">
+                      <div className="truncate w-fit">
+                        {getStatusBadge(r.status)}
+                      </div>
+                    </td>
+                    <td className="p-4 hidden xl:table-cell truncate">
                       {r.attachments && r.attachments.length > 0 ? (
-                        <div className="flex items-center text-primary" title={`${r.attachments.length} anexo(s)`}>
-                          <Paperclip size={14} />
-                          <span className="text-[10px] font-bold ml-0.5">{r.attachments.length}</span>
+                        <div className="flex items-center text-primary truncate" title={`${r.attachments.length} anexo(s)`}>
+                          <Paperclip size={14} className="shrink-0" />
+                          <span className="text-[10px] font-bold ml-0.5 truncate">{r.attachments.length}</span>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/30">-</span>
+                        <span className="text-muted-foreground/30 truncate">-</span>
                       )}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-1">
                         <button 
                           onClick={() => handleViewDetails(r)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
                           title="Ver detalhes"
                         >
                           <Eye size={15} />
                         </button>
                         <button 
                           onClick={() => handleEditOpen(r)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
                           title="Editar"
                         >
                           <Edit size={15} />
                         </button>
                         <button 
                           onClick={() => handleDelete(r)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
                           title="Excluir"
                         >
                           <Trash2 size={15} />

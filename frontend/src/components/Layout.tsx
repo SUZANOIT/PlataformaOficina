@@ -21,7 +21,9 @@ import {
   Calendar,
   UserCheck,
   Tag,
-  CreditCard
+  CreditCard,
+  Package,
+  Percent
 } from 'lucide-react';
 
 export function Layout() {
@@ -170,6 +172,16 @@ export function Layout() {
                     <span>Plataformas de Gestão</span>
                   </Link>
                 )}
+                {hasModule('fiscal') && (
+                  <Link 
+                    to="/products" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Package size={16} className="text-muted-foreground" />
+                    <span>Produtos</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -275,6 +287,38 @@ export function Layout() {
                   >
                     <FileText size={16} className="text-blue-500" />
                     <span>Documentos Fiscais</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/nfe-import" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-emerald-500" />
+                    <span>Notas Fiscais de Entrada</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/municipal" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-amber-500" />
+                    <span>Tributação Municipal</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/estadual" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-orange-500" />
+                    <span>Tributação Estadual</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/federal" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-red-500" />
+                    <span>Tributação Federal</span>
                   </Link>
                 </div>
               )}
@@ -519,6 +563,15 @@ export function Layout() {
                     <span>Plataformas de Gestão</span>
                   </Link>
                 )}
+                {hasModule('fiscal') && (
+                  <Link 
+                    to="/products" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Package size={16} className="text-muted-foreground" />
+                    <span>Produtos</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -617,6 +670,34 @@ export function Layout() {
                   >
                     <FileText size={16} className="text-blue-500" />
                     <span>Documentos Fiscais</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/nfe-import" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-emerald-500" />
+                    <span>Notas Fiscais de Entrada</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/municipal" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-amber-500" />
+                    <span>Tributação Municipal</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/estadual" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-orange-500" />
+                    <span>Tributação Estadual</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/taxes/federal" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Percent size={16} className="text-red-500" />
+                    <span>Tributação Federal</span>
                   </Link>
                 </div>
               )}

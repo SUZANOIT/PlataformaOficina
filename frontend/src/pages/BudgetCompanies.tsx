@@ -279,50 +279,50 @@ export function BudgetCompanies() {
 
       {/* Listagem Desktop */}
       <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full">
+          <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium">Nome / Razão Social</th>
-                <th className="p-4 font-medium">CNPJ / I.E.</th>
-                <th className="p-4 font-medium">Contato</th>
-                <th className="p-4 font-medium">Regime</th>
-                <th className="p-4 font-medium">Ações</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Nome / Razão Social</th>
+                <th className="p-4 font-medium hidden md:table-cell w-2/12">CNPJ / I.E.</th>
+                <th className="p-4 font-medium w-4/12 lg:w-3/12">Contato</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Regime</th>
+                <th className="p-4 font-medium w-4/12 lg:w-2/12 text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredCompanies.map((comp) => (
                 <tr key={comp.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
+                  <td className="p-4 truncate">
+                    <div className="flex items-center gap-3 truncate">
                       {comp.logo ? (
-                        <img src={comp.logo} alt="Logo" className="w-9 h-9 rounded-full object-cover border border-border" />
+                        <img src={comp.logo} alt="Logo" className="w-9 h-9 rounded-full object-cover border border-border shrink-0" />
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                           {comp.razaoSocial.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <div>
-                        <div className="font-semibold text-foreground">{comp.razaoSocial}</div>
-                        {comp.nomeFantasia && <div className="text-xs text-muted-foreground">{comp.nomeFantasia}</div>}
+                      <div className="truncate">
+                        <div className="font-semibold text-foreground truncate">{comp.razaoSocial}</div>
+                        {comp.nomeFantasia && <div className="text-xs text-muted-foreground truncate">{comp.nomeFantasia}</div>}
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-xs space-y-1">
-                    <div>CNPJ: <span className="font-mono bg-muted px-1.5 py-0.5 rounded border border-border">{comp.cnpj}</span></div>
-                    {comp.inscricaoEstadual && <div className="text-muted-foreground">I.E.: {comp.inscricaoEstadual}</div>}
+                  <td className="p-4 text-xs space-y-1 hidden md:table-cell truncate">
+                    <div className="truncate">CNPJ: <span className="font-mono bg-muted px-1.5 py-0.5 rounded border border-border truncate">{comp.cnpj}</span></div>
+                    {comp.inscricaoEstadual && <div className="text-muted-foreground truncate">I.E.: {comp.inscricaoEstadual}</div>}
                   </td>
-                  <td className="p-4 text-xs space-y-1">
-                    {comp.email && <div className="flex items-center gap-1 text-muted-foreground"><Mail size={12} /> {comp.email}</div>}
-                    {comp.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={12} /> {comp.telefone}</div>}
+                  <td className="p-4 text-xs space-y-1 truncate">
+                    {comp.email && <div className="flex items-center gap-1 text-muted-foreground truncate"><Mail className="shrink-0" size={12} /> <span className="truncate">{comp.email}</span></div>}
+                    {comp.telefone && <div className="flex items-center gap-1 text-muted-foreground truncate"><Phone className="shrink-0" size={12} /> <span className="truncate">{comp.telefone}</span></div>}
                   </td>
-                  <td className="p-4">
-                    <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
+                  <td className="p-4 hidden lg:table-cell truncate">
+                    <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold truncate block w-fit">
                       {comp.regimeTributario || 'Simples Nacional'}
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-center lg:justify-start">
                       <button
                         onClick={() => handleOpenEditModal(comp)}
                         className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"

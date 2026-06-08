@@ -435,15 +435,15 @@ export function Users() {
         <>
           {/* Desktop Table View */}
           <div className="hidden md:block bg-card/60 backdrop-blur-md border border-border/60 rounded-2xl shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="w-full">
+              <table className="w-full text-left border-collapse table-fixed break-words">
                 <thead>
                   <tr className="bg-muted/40 border-b border-border/75 text-muted-foreground text-xs uppercase tracking-wider">
-                    <th className="p-4 font-semibold">Usuário</th>
-                    <th className="p-4 font-semibold">Status</th>
-                    <th className="p-4 font-semibold">Níveis de Acesso</th>
-                    <th className="p-4 font-semibold">Criado em</th>
-                    <th className="p-4 font-semibold text-right">Ações</th>
+                    <th className="p-4 font-semibold w-4/12 lg:w-3/12">Usuário</th>
+                    <th className="p-4 font-semibold w-2/12 hidden md:table-cell">Status</th>
+                    <th className="p-4 font-semibold w-4/12 lg:w-4/12">Níveis de Acesso</th>
+                    <th className="p-4 font-semibold hidden xl:table-cell w-2/12">Criado em</th>
+                    <th className="p-4 font-semibold w-2/12 lg:w-1/12 text-center lg:text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50 text-sm">
@@ -452,75 +452,77 @@ export function Users() {
                     const name = user.nome || user.name || '';
                     return (
                       <tr key={user.id} className="hover:bg-muted/15 transition-colors">
-                        <td className="p-4 font-medium flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm shrink-0`}>
-                            {name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-foreground font-bold truncate">{name}</span>
-                            <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                        <td className="p-4 font-medium truncate">
+                          <div className="flex items-center gap-3 truncate">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm shrink-0`}>
+                              {name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col min-w-0 truncate">
+                              <span className="text-foreground font-bold truncate">{name}</span>
+                              <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                            </div>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4 hidden md:table-cell truncate">
                           {user.status === 'ACTIVE' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              Ativo
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 truncate">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="truncate">Ativo</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                              Inativo
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-500/10 text-slate-500 border border-slate-500/20 truncate">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                              <span className="truncate">Inativo</span>
                             </span>
                           )}
                         </td>
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1.5 max-w-sm">
                             {user.roleAdmin && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 dark:border-indigo-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 dark:border-indigo-500/10 truncate">
                                 Admin
                               </span>
                             )}
                             {user.roleOrcamentista && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 dark:border-amber-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 dark:border-amber-500/10 truncate">
                                 Orçamentista
                               </span>
                             )}
                             {user.roleContasPagar && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-rose-500/10 text-rose-500 border border-rose-500/20 dark:border-rose-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-rose-500/10 text-rose-500 border border-rose-500/20 dark:border-rose-500/10 truncate">
                                 C. Pagar
                               </span>
                             )}
                             {user.roleContasReceber && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:border-emerald-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:border-emerald-500/10 truncate">
                                 C. Receber
                               </span>
                             )}
                             {user.roleContabilidade && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-violet-500/10 text-violet-500 border border-violet-500/20 dark:border-violet-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-violet-500/10 text-violet-500 border border-violet-500/20 dark:border-violet-500/10 truncate">
                                 Contabilidade
                               </span>
                             )}
                             {user.roleRh && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 dark:border-blue-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 dark:border-blue-500/10 truncate">
                                 RH
                               </span>
                             )}
                             {user.roleColaborador && (
-                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-teal-500/10 text-teal-500 border border-teal-500/20 dark:border-teal-500/10">
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-teal-500/10 text-teal-500 border border-teal-500/20 dark:border-teal-500/10 truncate">
                                 Colaborador
                               </span>
                             )}
                             {!user.roleAdmin && !user.roleOrcamentista && !user.roleContasPagar && !user.roleContasReceber && !user.roleContabilidade && !user.roleRh && !user.roleColaborador && (
-                              <span className="text-xs text-muted-foreground italic">Nenhum</span>
+                              <span className="text-xs text-muted-foreground italic truncate">Nenhum</span>
                             )}
                           </div>
                         </td>
-                        <td className="p-4 text-muted-foreground text-xs">
+                        <td className="p-4 text-muted-foreground text-xs hidden xl:table-cell truncate">
                           {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="p-4 text-right">
-                          <div className="flex gap-2 justify-end">
+                        <td className="p-4">
+                          <div className="flex gap-2 justify-center lg:justify-end">
                             <button 
                               onClick={() => handleOpenEditModal(user)}
                               className="p-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg transition-all"
