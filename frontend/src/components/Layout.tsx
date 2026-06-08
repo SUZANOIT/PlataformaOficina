@@ -160,16 +160,6 @@ export function Layout() {
                     <span>Fornecedores</span>
                   </Link>
                 )}
-                {hasModule('colaboradores') && (
-                  <Link 
-                    to="/collaborators" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <UserCheck size={16} className="text-muted-foreground" />
-                    <span>Colaboradores</span>
-                  </Link>
-                )}
                 {hasModule('clientes') && (
                   <Link 
                     to="/platforms" 
@@ -307,6 +297,16 @@ export function Layout() {
               
               {isRhOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  {hasModule('colaboradores') && (
+                    <Link 
+                      to="/collaborators" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <UserCheck size={16} className="text-muted-foreground" />
+                      <span>Colaboradores</span>
+                    </Link>
+                  )}
                   {(user?.roleAdmin || user?.roleRh || user?.roleColaborador) && (
                     <Link 
                       to="/rh/absences" 
@@ -314,7 +314,7 @@ export function Layout() {
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <Calendar size={16} className="text-blue-500" />
-                      <span>Controle de Faltas</span>
+                      <span>Controle de Ausências</span>
                     </Link>
                   )}
                   {(user?.roleAdmin || user?.roleRh || user?.roleContasPagar || user?.roleContasReceber) && (
@@ -324,7 +324,7 @@ export function Layout() {
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <CheckSquare size={16} className="text-green-500" />
-                      <span>Fechamento Mensal</span>
+                      <span>Folha de Descontos</span>
                     </Link>
                   )}
                 </div>
@@ -510,15 +510,6 @@ export function Layout() {
                     <span>Fornecedores</span>
                   </Link>
                 )}
-                {hasModule('colaboradores') && (
-                  <Link 
-                    to="/collaborators" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <UserCheck size={16} className="text-muted-foreground" />
-                    <span>Colaboradores</span>
-                  </Link>
-                )}
                 {hasModule('clientes') && (
                   <Link 
                     to="/platforms" 
@@ -648,24 +639,31 @@ export function Layout() {
               
               {isRhOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  {hasModule('colaboradores') && (
+                    <Link 
+                      to="/collaborators" 
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <UserCheck size={16} className="text-muted-foreground" />
+                      <span>Colaboradores</span>
+                    </Link>
+                  )}
                   {(user?.roleAdmin || user?.roleRh || user?.roleColaborador) && (
                     <Link 
                       to="/rh/absences" 
-                      onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <Calendar size={16} className="text-blue-500" />
-                      <span>Controle de Faltas</span>
+                      <span>Controle de Ausências</span>
                     </Link>
                   )}
                   {(user?.roleAdmin || user?.roleRh || user?.roleContasPagar || user?.roleContasReceber) && (
                     <Link 
                       to="/rh/closing" 
-                      onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <CheckSquare size={16} className="text-green-500" />
-                      <span>Fechamento Mensal</span>
+                      <span>Folha de Descontos</span>
                     </Link>
                   )}
                 </div>
