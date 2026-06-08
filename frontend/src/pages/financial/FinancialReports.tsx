@@ -50,6 +50,8 @@ export function FinancialReports() {
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [selectedQuoteDetail, setSelectedQuoteDetail] = useState<any | null>(null);
   const [linkedPayables, setLinkedPayables] = useState<any[]>([]);
+  const [filterPartCode, setFilterPartCode] = useState('');
+  const [filterPartType, setFilterPartType] = useState('');
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -291,6 +293,24 @@ export function FinancialReports() {
       csvContent += line + '\r\n';
     });
 
+    const filteredItems = getFilteredItems();
+    if (filteredItems.length > 0) {
+      csvContent += '\r\nPeças do Orçamento (Filtro aplicado)\r\n';
+      csvContent += 'Código da Peça;Tipo da Peça;Descrição;Quantidade;Valor Unitário;Total\r\n';
+      filteredItems.forEach((item: any) => {
+        const itemTotal = (item.quantidade || 0) * (item.valorUnitario || 0);
+        const line = [
+          item.codigoPeca || '-',
+          item.tipoPeca || '-',
+          item.descricao.replace(/;/g, ','),
+          item.quantidade,
+          item.valorUnitario.toFixed(2).replace('.', ','),
+          itemTotal.toFixed(2).replace('.', ',')
+        ].join(';');
+        csvContent += line + '\r\n';
+      });
+    }
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -304,6 +324,23 @@ export function FinancialReports() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const getFilteredItems = () => {
+    if (!selectedQuoteDetail || !selectedQuoteDetail.items) return [];
+    return selectedQuoteDetail.items.filter((item: any) => {
+      if ((item.tipo || 'Peça') !== 'Peça') return false;
+      if (filterPartCode) {
+        const cleanCode = filterPartCode.trim().toLowerCase();
+        if (!item.codigoPeca || !item.codigoPeca.toLowerCase().includes(cleanCode)) {
+          return false;
+        }
+      }
+      if (filterPartType && item.tipoPeca !== filterPartType) {
+        return false;
+      }
+      return true;
+    });
   };
 
   const formatCurrency = (val: number) => {
@@ -493,22 +530,61 @@ export function FinancialReports() {
 
       {/* Toolbar de Filtros por Orçamento */}
       {reportTab === 'BUDGET' && (
-        <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-3 no-print">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase">Selecione o Orçamento Aprovado</label>
-            <select
-              value={selectedQuoteId}
-              onChange={(e) => setSelectedQuoteId(e.target.value)}
-              className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
-            >
-              <option value="">Selecione um orçamento...</option>
-              {approvedQuotes.map(q => (
-                <option key={q.id} value={q.id}>
-                  Orçamento #{q.numeroOrcamento} - Cliente: {q.client?.nome || q.client || 'Sem Cliente'} (Saldo: {formatCurrency(q.saldoDisponivel)})
-                </option>
-              ))}
-            </select>
+        <div className="space-y-3">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-3 no-print">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Selecione o Orçamento Aprovado</label>
+              <select
+                value={selectedQuoteId}
+                onChange={(e) => setSelectedQuoteId(e.target.value)}
+                className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full"
+              >
+                <option value="">Selecione um orçamento...</option>
+                {approvedQuotes.map(q => (
+                  <option key={q.id} value={q.id}>
+                    Orçamento #{q.numeroOrcamento} - Cliente: {q.client?.nome || q.client || 'Sem Cliente'} (Saldo: {formatCurrency(q.saldoDisponivel)})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {selectedQuoteDetail && (
+            <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Código da Peça</label>
+                <input
+                  type="text"
+                  value={filterPartCode}
+                  onChange={(e) => setFilterPartCode(e.target.value)}
+                  placeholder="Ex: 12345-ABC"
+                  className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Tipo da Peça</label>
+                <select
+                  value={filterPartType}
+                  onChange={(e) => setFilterPartType(e.target.value)}
+                  className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                >
+                  <option value="">Todos os tipos</option>
+                  <option value="Genuína">Genuína</option>
+                  <option value="Original">Original</option>
+                  <option value="Paralela">Paralela</option>
+                  <option value="Remanufaturada">Remanufaturada</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => { setFilterPartCode(''); setFilterPartType(''); }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-secondary text-sm rounded-lg text-foreground font-semibold hover:bg-muted transition-colors"
+                >
+                  Limpar Filtros de Peças
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -765,6 +841,48 @@ export function FinancialReports() {
                         <tr>
                           <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
                             Nenhum lançamento de Contas a Pagar vinculado a este orçamento.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Listagem de Peças */}
+                <div className="pt-6 border-t border-border/60 mt-6">
+                  <h3 className="text-xs font-black uppercase text-muted-foreground tracking-wider mb-4 flex items-center gap-1.5">
+                    <FileText size={15} /> Peças Registradas no Orçamento
+                  </h3>
+                  
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-muted/40 border-b border-border/80 font-bold uppercase text-[9px] text-muted-foreground">
+                        <th className="p-2.5">Código da Peça</th>
+                        <th className="p-2.5">Tipo da Peça</th>
+                        <th className="p-2.5">Descrição</th>
+                        <th className="p-2.5 text-center">Quantidade</th>
+                        <th className="p-2.5 text-right">Valor Unitário</th>
+                        <th className="p-2.5 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredItems().map((item: any, idx: number) => {
+                        const totalItem = (item.quantidade || 0) * (item.valorUnitario || 0);
+                        return (
+                          <tr key={idx} className="border-b border-border/40 hover:bg-secondary/10 transition-colors">
+                            <td className="p-2.5 font-bold text-foreground">{item.codigoPeca || '-'}</td>
+                            <td className="p-2.5 text-muted-foreground">{item.tipoPeca || '-'}</td>
+                            <td className="p-2.5 font-medium text-foreground">{item.descricao}</td>
+                            <td className="p-2.5 text-center">{item.quantidade}</td>
+                            <td className="p-2.5 text-right">{formatCurrency(item.valorUnitario)}</td>
+                            <td className="p-2.5 text-right font-bold text-foreground">{formatCurrency(totalItem)}</td>
+                          </tr>
+                        );
+                      })}
+                      {getFilteredItems().length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
+                            Nenhuma peça encontrada para os filtros aplicados neste orçamento.
                           </td>
                         </tr>
                       )}

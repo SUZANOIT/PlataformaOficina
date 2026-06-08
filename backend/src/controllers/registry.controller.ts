@@ -48,6 +48,8 @@ const collaboratorSchema = z.object({
   departamento: z.string().optional().nullable(),
   dataAdmissao: z.string().optional().nullable(),
   salario: z.number().optional().nullable(),
+  cargaHoraria: z.number().optional().nullable(),
+  valorHora: z.number().optional().nullable(),
   status: z.string().default('ATIVO'),
   observacoes: z.string().optional().nullable(),
   oficinaId: z.string().optional().nullable(),
@@ -415,13 +417,19 @@ export const RegistryController = {
         }
       }
 
+      let valorHora: number | null = null;
+      if (data.salario && data.cargaHoraria && data.cargaHoraria > 0) {
+        valorHora = data.salario / data.cargaHoraria;
+      }
+
       const collaborator = await prisma.collaborator.create({
         data: {
           ...data,
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
           oficinaId: targetOficinaId,
-          companyId
+          companyId,
+          valorHora
         },
         include: {
           oficina: true,
@@ -479,6 +487,11 @@ export const RegistryController = {
         }
       }
 
+      let valorHora: number | null = null;
+      if (data.salario && data.cargaHoraria && data.cargaHoraria > 0) {
+        valorHora = data.salario / data.cargaHoraria;
+      }
+
       const collaborator = await prisma.collaborator.update({
         where: { id },
         data: {
@@ -486,7 +499,8 @@ export const RegistryController = {
           cpfSemMascara,
           dataAdmissao: data.dataAdmissao ? new Date(data.dataAdmissao) : null,
           oficinaId: targetOficinaId,
-          companyId
+          companyId,
+          valorHora
         },
         include: {
           oficina: true,

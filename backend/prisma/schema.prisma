@@ -24,6 +24,8 @@ model User {
   roleContasPagar   Boolean @default(false)
   roleContasReceber Boolean @default(false)
   roleContabilidade Boolean @default(false)
+  roleRh           Boolean @default(false)
+  roleColaborador  Boolean @default(false)
   
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
@@ -81,6 +83,7 @@ model Company {
   plataformasGestao    PlataformaGestao[]
   financialCategories  FinancialCategory[]
   fiscalDocuments      FiscalDocument[]
+  absences             EmployeeAbsence[]
 
   @@index([cnpj])
   @@index([parentCompanyId])
@@ -199,6 +202,9 @@ model QuoteItem {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  codigoPeca    String?  @map("codigo_peca") @db.VarChar(100)
+  tipoPeca      String?  @map("tipo_peca") @db.VarChar(30)
 
   @@index([quoteId])
 }
@@ -437,6 +443,7 @@ model Oficina {
   salaryAdvances     SalaryAdvance[]
   collaborators      Collaborator[]
   quotes             Quote[]
+  absences           EmployeeAbsence[]
   
   companyId          String?
   company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -531,6 +538,10 @@ model Collaborator {
   advances  SalaryAdvance[]
   oficinaId String?
   oficina   Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+  absences  EmployeeAbsence[]
+  
+  cargaHoraria       Float?
+  valorHora          Float?
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -1087,4 +1098,32 @@ model AbsenceAudit {
   @@index([collaboratorId])
   @@index([companyId])
 }
+
+model EmployeeAbsence {
+  id              String       @id @default(uuid())
+  collaboratorId  String       @map("collaborator_id")
+  collaborator    Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  dataFalta       DateTime     @map("data_falta")
+  tipo            String       // JUSTIFICADA, NAO_JUSTIFICADA
+  observacao      String?
+  fileName        String?      @map("file_name")
+  fileType        String?      @map("file_type")
+  fileUrl         String?      @map("file_url") @db.Text
+  responsavelId   String?      @map("responsavel_id")
+  responsavelNome String       @map("responsavel_nome")
+  
+  companyId       String?      @map("company_id")
+  company         Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  oficinaId       String?      @map("oficina_id")
+  oficina         Oficina?     @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@index([collaboratorId])
+  @@index([companyId])
+  @@index([oficinaId])
+  @@map("employee_absences")
+}
+
 

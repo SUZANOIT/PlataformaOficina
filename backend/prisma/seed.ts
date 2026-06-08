@@ -9,26 +9,28 @@ async function main() {
   // ─── Empresas ────────────────────────────────────────────────────────────────
 
   const empresa1 = await prisma.company.upsert({
-    where: { cnpj: '12.345.678/0001-90' },
+    where: { cnpj: '11.934.124/0001-60' },
     update: {},
     create: {
-      razaoSocial: 'Curio Serviços Automotivos Ltda',
+      id: 'c6d1edb2-d2d7-4f69-bbfc-d231860318e1',
+      razaoSocial: 'Curio Serviços Automotivos LTDA',
       nomeFantasia: 'Curio Serviços Automotivos',
-      cnpj: '12.345.678/0001-90',
-      cnpjSemMascara: '12345678000190',
-      inscricaoEstadual: '123.456.789.000',
+      cnpj: '11.934.124/0001-60',
+      cnpjSemMascara: '11934124000160',
+      inscricaoEstadual: '138.678.246.118',
     },
   });
 
   const empresa2 = await prisma.company.upsert({
-    where: { cnpj: '98.765.432/0001-10' },
+    where: { cnpj: '30.021.766/0001-13' },
     update: {},
     create: {
-      razaoSocial: 'Mca Comércio Automotivo Ltda',
+      id: 'mca-padrao-company-uuid-000000000001',
+      razaoSocial: 'Mca Comércio Automotivo LTDA',
       nomeFantasia: 'Mca Comércio Automotivo',
-      cnpj: '98.765.432/0001-10',
-      cnpjSemMascara: '98765432000110',
-      inscricaoEstadual: '987.654.321.000',
+      cnpj: '30.021.766/0001-13',
+      cnpjSemMascara: '30021766000113',
+      inscricaoEstadual: '',
     },
   });
 
@@ -337,7 +339,7 @@ async function main() {
   const enterprisePlan = await prisma.saaSPlan.findUnique({ where: { nome: 'Enterprise' } });
 
   for (const comp of companies) {
-    const planoEscolhido = comp.cnpj === '12.345.678/0001-90' ? starterPlan : enterprisePlan;
+    const planoEscolhido = comp.cnpj === '11.934.124/0001-60' ? starterPlan : enterprisePlan;
 
     const tenant = await prisma.saaSTenant.upsert({
       where: { cnpj: comp.cnpj },

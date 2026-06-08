@@ -8,6 +8,7 @@ import { RegistryController } from './controllers/registry.controller';
 import { PlatformController } from './controllers/platform.controller';
 import { fleetController } from './controllers/fleet.controller';
 import { AdvanceController } from './controllers/advance.controller';
+import { AbsenceController } from './controllers/absence.controller';
 import { FinancialCategoryController } from './controllers/financial-category.controller';
 import { FiscalController } from './controllers/fiscal.controller';
 import { SaaSController } from './controllers/saas.controller';
@@ -134,6 +135,17 @@ routes.get('/registry/platforms', PlatformController.list);
 routes.post('/registry/platforms', PlatformController.create);
 routes.put('/registry/platforms/:id', PlatformController.update);
 routes.delete('/registry/platforms/:id', PlatformController.delete);
+
+// RH - Gestão de Faltas e Fechamento
+routes.use('/rh', authMiddleware);
+routes.get('/rh/absences', AbsenceController.listAbsences);
+routes.post('/rh/absences', AbsenceController.createAbsence);
+routes.put('/rh/absences/:id', AbsenceController.updateAbsence);
+routes.delete('/rh/absences/:id', AbsenceController.deleteAbsence);
+routes.get('/rh/closing', AbsenceController.getMonthlyClosing);
+routes.post('/rh/closing', AbsenceController.closeMonth);
+routes.get('/rh/dashboard', AbsenceController.getDashboardStats);
+routes.get('/rh/audit-logs', AbsenceController.listAuditLogs);
 
 
 // Dashboard

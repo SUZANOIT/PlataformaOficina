@@ -40,6 +40,8 @@ type QuoteFormValues = {
     quantidade: number;
     valorUnitario: number;
     tipo: 'Peça' | 'Mão de Obra';
+    codigoPeca?: string;
+    tipoPeca?: string;
   }[];
   observacao?: string;
   veiculoMarca?: string;
@@ -55,6 +57,8 @@ type QuoteFormValues = {
   veiculoSubfrota?: string;
   veiculoHodometro?: string;
   veiculoTipo?: string;
+  plataformaGestao?: any;
+  oficina?: any;
   oficinaId?: string;
   notaFiscalDescricao?: string;
 };
@@ -469,13 +473,30 @@ ${bankingText}`;
 
   const onSubmit = async (data: QuoteFormValues) => {
     try {
+      // Validação frontend de obrigatoriedade de peças
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        if (item.tipo === 'Peça') {
+          if (!item.codigoPeca || item.codigoPeca.trim() === '') {
+            toast.error(`O Código da Peça é obrigatório no Item #${i + 1}`);
+            return;
+          }
+          if (!item.tipoPeca || item.tipoPeca.trim() === '') {
+            toast.error(`O Tipo da Peça é obrigatório no Item #${i + 1}`);
+            return;
+          }
+        }
+      }
+
       const payload = {
         ...data,
         items: data.items.map(item => ({
            ...item,
            quantidade: Number(item.quantidade),
            valorUnitario: Number(item.valorUnitario),
-           valorTotal: Number(item.quantidade) * Number(item.valorUnitario)
+           valorTotal: Number(item.quantidade) * Number(item.valorUnitario),
+           codigoPeca: item.tipo === 'Peça' ? item.codigoPeca : null,
+           tipoPeca: item.tipo === 'Peça' ? item.tipoPeca : null,
         })),
         subtotal,
         total
@@ -1002,7 +1023,18 @@ ${bankingText}`;
                 return (
                   <div key={field.id} className="bg-muted/5 border border-border p-4 rounded-xl space-y-3 relative">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-primary uppercase tracking-wider">Item #{index + 1}</span>
+                        {watchItems[index]?.tipo === 'Peça' && (
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                            watchItems[index]?.codigoPeca?.trim() && watchItems[index]?.tipoPeca
+                              ? 'bg-emerald-500/10 text-emerald-500'
+                              : 'bg-amber-500/10 text-amber-500 animate-pulse'
+                          }`}>
+                            {watchItems[index]?.codigoPeca?.trim() && watchItems[index]?.tipoPeca ? '✓ OK' : '⚠ Incompleto'}
+                          </span>
+                        )}
+                      </div>
                       {!isViewing && (
                         <button 
                           type="button" 
@@ -1028,6 +1060,34 @@ ${bankingText}`;
                         </select>
                       </div>
                       
+                      {watchItems[index]?.tipo === 'Peça' && (
+                        <>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-muted-foreground">Código da Peça</label>
+                            <input 
+                              {...register(`items.${index}.codigoPeca`)}
+                              disabled={isViewing}
+                              className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                              placeholder="Cód. Peça"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-muted-foreground">Tipo da Peça</label>
+                            <select
+                              {...register(`items.${index}.tipoPeca`)}
+                              disabled={isViewing}
+                              className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                            >
+                              <option value="">Selecione...</option>
+                              <option value="Genuína">Genuína</option>
+                              <option value="Original">Original</option>
+                              <option value="Paralela">Paralela</option>
+                              <option value="Remanufaturada">Remanufaturada</option>
+                            </select>
+                          </div>
+                        </>
+                      )}
+
                       <div className="col-span-2 space-y-1">
                         <label className="text-xs font-semibold text-muted-foreground">Descrição</label>
                         <input 
@@ -1072,14 +1132,16 @@ ${bankingText}`;
           ) : (
             /* Visualização em Tabela para Desktop e Tablet */
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto relative rounded-md border border-border">
-              <table className="w-full text-left border-collapse min-w-[600px]">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur shadow-sm">
                   <tr className="border-b border-border text-muted-foreground text-sm">
-                    <th className="p-3 font-medium w-[15%]">Tipo</th>
-                    <th className="p-3 font-medium w-[35%]">Descrição do Item</th>
-                    <th className="p-3 font-medium w-[12%]">Qtd</th>
-                    <th className="p-3 font-medium w-[18%]">Valor Unit. (R$)</th>
-                    <th className="p-3 font-medium w-[15%]">Total</th>
+                    <th className="p-3 font-medium w-[10%]">Tipo</th>
+                    <th className="p-3 font-medium w-[15%]">Código</th>
+                    <th className="p-3 font-medium w-[15%]">Tipo Peça</th>
+                    <th className="p-3 font-medium w-[24%]">Descrição do Item</th>
+                    <th className="p-3 font-medium w-[8%]">Qtd</th>
+                    <th className="p-3 font-medium w-[12%]">Valor Unit. (R$)</th>
+                    <th className="p-3 font-medium w-[11%]">Total</th>
                     {!isViewing && <th className="p-3 font-medium w-[5%]"></th>}
                   </tr>
                 </thead>
@@ -1088,6 +1150,7 @@ ${bankingText}`;
                     const qty = Number(watchItems[index]?.quantidade || 0);
                     const price = Number(watchItems[index]?.valorUnitario || 0);
                     const lineTotal = qty * price;
+                    const itemTipo = watchItems[index]?.tipo;
 
                     return (
                       <tr key={field.id} className="border-b border-border hover:bg-muted/10 transition-colors">
@@ -1102,12 +1165,58 @@ ${bankingText}`;
                           </select>
                         </td>
                         <td className="p-2">
-                          <input 
-                            {...register(`items.${index}.descricao`)}
-                            disabled={isViewing}
-                            className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
-                            placeholder="Descrição do serviço/produto"
-                          />
+                          {itemTipo === 'Peça' ? (
+                            <div className="flex flex-col gap-1">
+                              <input 
+                                {...register(`items.${index}.codigoPeca`)}
+                                disabled={isViewing}
+                                className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                                placeholder="Cód. Peça"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic px-3">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          {itemTipo === 'Peça' ? (
+                            <div className="flex flex-col gap-1">
+                              <select
+                                {...register(`items.${index}.tipoPeca`)}
+                                disabled={isViewing}
+                                className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                              >
+                                <option value="">Selecione...</option>
+                                <option value="Genuína">Genuína</option>
+                                <option value="Original">Original</option>
+                                <option value="Paralela">Paralela</option>
+                                <option value="Remanufaturada">Remanufaturada</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic px-3">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex flex-col gap-1">
+                            <input 
+                              {...register(`items.${index}.descricao`)}
+                              disabled={isViewing}
+                              className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm"
+                              placeholder="Descrição do serviço/produto"
+                            />
+                            {itemTipo === 'Peça' && (
+                              <div className="flex justify-start">
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold mt-0.5 ${
+                                  watchItems[index]?.codigoPeca?.trim() && watchItems[index]?.tipoPeca
+                                    ? 'bg-emerald-500/10 text-emerald-500'
+                                    : 'bg-amber-500/10 text-amber-500 animate-pulse'
+                                }`}>
+                                  {watchItems[index]?.codigoPeca?.trim() && watchItems[index]?.tipoPeca ? '✓ Peça Completa' : '⚠ Código/Tipo Incompleto'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2">
                           <input 
@@ -1153,7 +1262,7 @@ ${bankingText}`;
             {!isViewing && (
               <button 
                 type="button"
-                onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' })}
+                onClick={() => append({ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça', codigoPeca: '', tipoPeca: '' })}
                 className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm text-primary font-medium hover:bg-primary/10 rounded-lg transition-colors border border-primary/10 md:border-transparent"
               >
                 <Plus size={16} /> Adicionar Item

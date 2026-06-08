@@ -1,0 +1,672 @@
+import { Request, Response } from 'express';
+import { prisma } from '../lib/prisma';
+import { z } from 'zod';
+import { AuditLogger } from '../utils/audit.logger';
+
+// Parse date string (YYYY-MM-DD) as UTC to avoid timezone shift
+function parseLocalDate(val: string): Date {
+  const [year, month, day] = val.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+const createAbsenceSchema = z.object({
+  collaboratorId: z.string(),
+  dataFalta: z.string(), // YYYY-MM-DD
+  tipo: z.enum(['JUSTIFICADA', 'NAO_JUSTIFICADA']),
+  observacao: z.string().optional().nullable(),
+  fileName: z.string().optional().nullable(),
+  fileType: z.string().optional().nullable(),
+  fileUrl: z.string().optional().nullable(),
+});
+
+const updateAbsenceSchema = z.object({
+  dataFalta: z.string(), // YYYY-MM-DD
+  tipo: z.enum(['JUSTIFICADA', 'NAO_JUSTIFICADA']),
+  observacao: z.string().optional().nullable(),
+  fileName: z.string().optional().nullable(),
+  fileType: z.string().optional().nullable(),
+  fileUrl: z.string().optional().nullable(),
+});
+
+// Helper to recalculate employee accumulated absences cache
+async function recalculateCollaboratorAbsences(collaboratorId: string) {
+  const collaborator = await prisma.collaborator.findUnique({
+    where: { id: collaboratorId },
+  });
+  if (!collaborator) return;
+
+  const absences = await prisma.employeeAbsence.findMany({
+    where: { collaboratorId, tipo: 'NAO_JUSTIFICADA' },
+  });
+
+  const baseSalary = collaborator.salario || 0;
+  const totalFaltas = absences.length;
+  const totalDesconto = totalFaltas * (baseSalary / 30);
+
+  await prisma.collaborator.update({
+    where: { id: collaboratorId },
+    data: {
+      faltas: totalFaltas,
+      descontoAusencia: totalDesconto,
+      dataUltimaAtualizacao: new Date(),
+    },
+  });
+}
+
+export const AbsenceController = {
+  // 1. List Absences
+  async listAbsences(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      const { startDate, endDate, collaboratorId, tipo } = req.query as any;
+
+      const whereClause: any = { companyId };
+
+      if (user?.roleColaborador) {
+        const collaborator = await prisma.collaborator.findFirst({
+          where: { email: user.email, companyId },
+        });
+        if (!collaborator) {
+          return res.json([]);
+        }
+        whereClause.collaboratorId = collaborator.id;
+      } else if (collaboratorId) {
+        whereClause.collaboratorId = collaboratorId;
+      }
+
+      if (tipo) {
+        whereClause.tipo = tipo;
+      }
+
+      if (startDate || endDate) {
+        whereClause.dataFalta = {};
+        if (startDate) {
+          whereClause.dataFalta.gte = parseLocalDate(startDate);
+        }
+        if (endDate) {
+          const end = parseLocalDate(endDate);
+          end.setUTCHours(23, 59, 59, 999);
+          whereClause.dataFalta.lte = end;
+        }
+      }
+
+      const absences = await prisma.employeeAbsence.findMany({
+        where: whereClause,
+        include: {
+          collaborator: true,
+        },
+        orderBy: { dataFalta: 'desc' },
+      });
+
+      return res.json(absences);
+    } catch (error) {
+      console.error('Error listing absences:', error);
+      return res.status(500).json({ error: 'Erro ao listar faltas.' });
+    }
+  },
+
+  // 2. Create Absence
+  async createAbsence(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem registrar faltas.' });
+      }
+
+      const body = createAbsenceSchema.parse(req.body);
+
+      const collaborator = await prisma.collaborator.findFirst({
+        where: { id: body.collaboratorId, companyId },
+      });
+      if (!collaborator) {
+        return res.status(404).json({ error: 'Colaborador não encontrado.' });
+      }
+
+      const parsedDate = parseLocalDate(body.dataFalta);
+
+      const absence = await prisma.employeeAbsence.create({
+        data: {
+          collaboratorId: body.collaboratorId,
+          dataFalta: parsedDate,
+          tipo: body.tipo,
+          observacao: body.observacao,
+          fileName: body.fileName,
+          fileType: body.fileType,
+          fileUrl: body.fileUrl,
+          responsavelId: userId,
+          responsavelNome: user.name,
+          companyId,
+          oficinaId: collaborator.oficinaId,
+        },
+        include: {
+          collaborator: true,
+        },
+      });
+
+      // Recalculate collaborator cache values
+      await recalculateCollaboratorAbsences(body.collaboratorId);
+
+      // Save Audit Log
+      const baseSalary = collaborator.salario || 0;
+      const calculatedDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+      
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: collaborator.id,
+          collaboratorName: collaborator.nome,
+          usuario: user.name,
+          action: 'INCLUSAO_FALTAS',
+          valorAnterior: 'Nenhuma falta registrada nesta data',
+          valorNovo: `Data: ${body.dataFalta}, Tipo: ${body.tipo}, Desconto: R$ ${calculatedDiscount.toFixed(2)}`,
+          companyId: companyId || '',
+        },
+      });
+
+      AuditLogger.log(userId, companyId, 'CREATE_ABSENCE', `Created absence for collaborator: ${collaborator.nome} (${collaborator.id}), date: ${body.dataFalta}, type: ${body.tipo}`, 'SUCCESS');
+
+      return res.status(201).json(absence);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues });
+      }
+      console.error('Error creating absence:', error);
+      return res.status(500).json({ error: 'Erro ao cadastrar falta.' });
+    }
+  },
+
+  // 3. Update Absence
+  async updateAbsence(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem alterar faltas.' });
+      }
+
+      const body = updateAbsenceSchema.parse(req.body);
+
+      const existingAbsence = await prisma.employeeAbsence.findFirst({
+        where: { id, companyId },
+        include: { collaborator: true },
+      });
+      if (!existingAbsence) {
+        return res.status(404).json({ error: 'Registro de falta não encontrado.' });
+      }
+
+      const parsedDate = parseLocalDate(body.dataFalta);
+
+      const updated = await prisma.employeeAbsence.update({
+        where: { id },
+        data: {
+          dataFalta: parsedDate,
+          tipo: body.tipo,
+          observacao: body.observacao,
+          fileName: body.fileName,
+          fileType: body.fileType,
+          fileUrl: body.fileUrl,
+        },
+        include: {
+          collaborator: true,
+        },
+      });
+
+      // Recalculate collaborator cache values
+      await recalculateCollaboratorAbsences(existingAbsence.collaboratorId);
+
+      // Save Audit Log
+      const baseSalary = existingAbsence.collaborator.salario || 0;
+      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+      const newDiscount = body.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: existingAbsence.collaborator.id,
+          collaboratorName: existingAbsence.collaborator.nome,
+          usuario: user.name,
+          action: 'ALTERACAO_FALTAS',
+          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
+          valorNovo: `Data: ${body.dataFalta}, Tipo: ${body.tipo}, Desconto: R$ ${newDiscount.toFixed(2)}`,
+          companyId: companyId || '',
+        },
+      });
+
+      AuditLogger.log(userId, companyId, 'UPDATE_ABSENCE', `Updated absence id: ${id} for collaborator: ${existingAbsence.collaborator.nome}, new date: ${body.dataFalta}, new type: ${body.tipo}`, 'SUCCESS');
+
+      return res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues });
+      }
+      console.error('Error updating absence:', error);
+      return res.status(500).json({ error: 'Erro ao editar falta.' });
+    }
+  },
+
+  // 4. Delete Absence
+  async deleteAbsence(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem excluir faltas.' });
+      }
+
+      const existingAbsence = await prisma.employeeAbsence.findFirst({
+        where: { id, companyId },
+        include: { collaborator: true },
+      });
+      if (!existingAbsence) {
+        return res.status(404).json({ error: 'Registro de falta não encontrado.' });
+      }
+
+      await prisma.employeeAbsence.delete({
+        where: { id },
+      });
+
+      // Recalculate collaborator cache values
+      await recalculateCollaboratorAbsences(existingAbsence.collaboratorId);
+
+      // Save Audit Log
+      const baseSalary = existingAbsence.collaborator.salario || 0;
+      const oldDiscount = existingAbsence.tipo === 'NAO_JUSTIFICADA' ? (baseSalary / 30) : 0;
+
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: existingAbsence.collaborator.id,
+          collaboratorName: existingAbsence.collaborator.nome,
+          usuario: user.name,
+          action: 'EXCLUSAO_FALTAS',
+          valorAnterior: `Data: ${existingAbsence.dataFalta.toISOString().substring(0, 10)}, Tipo: ${existingAbsence.tipo}, Desconto: R$ ${oldDiscount.toFixed(2)}`,
+          valorNovo: 'Registro de falta excluído',
+          companyId: companyId || '',
+        },
+      });
+
+      AuditLogger.log(userId, companyId, 'DELETE_ABSENCE', `Deleted absence id: ${id} for collaborator: ${existingAbsence.collaborator.nome}`, 'SUCCESS');
+
+      return res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting absence:', error);
+      return res.status(500).json({ error: 'Erro ao excluir falta.' });
+    }
+  },
+
+  // 5. Monthly Closing (Calculations)
+  async getMonthlyClosing(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      const { month, year } = req.query as any;
+
+      if (!month || !year) {
+        return res.status(400).json({ error: 'Mês e Ano são obrigatórios.' });
+      }
+
+      const m = parseInt(month);
+      const y = parseInt(year);
+
+      const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
+      const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+      const collaboratorWhere: any = { companyId };
+
+      if (user?.roleColaborador) {
+        const collaborator = await prisma.collaborator.findFirst({
+          where: { email: user.email, companyId },
+        });
+        if (!collaborator) {
+          return res.json([]);
+        }
+        collaboratorWhere.id = collaborator.id;
+      }
+
+      const collaborators = await prisma.collaborator.findMany({
+        where: collaboratorWhere,
+        include: {
+          absences: {
+            where: {
+              dataFalta: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+            },
+          },
+          advances: {
+            where: {
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+            },
+          },
+        },
+        orderBy: { nome: 'asc' },
+      });
+
+      const competencyStr = `${String(m).padStart(2, '0')}/${y}`;
+
+      const historyRecords = await prisma.absenceHistory.findMany({
+        where: {
+          companyId: companyId || '',
+          competencia: competencyStr,
+        },
+      });
+
+      const historyMap = new Map(historyRecords.map((hr) => [hr.collaboratorId, hr]));
+
+      const closingData = collaborators.map((collab) => {
+        const baseSalary = collab.salario || 0;
+        
+        // Count unexcused and justified absences
+        const unexcusedAbsences = collab.absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA');
+        const justifiedAbsences = collab.absences.filter((a) => a.tipo === 'JUSTIFICADA');
+        
+        const totalFaltasNaoJustificadas = unexcusedAbsences.length;
+        const totalFaltasJustificadas = justifiedAbsences.length;
+
+        // Calculate unexcused discounts
+        const totalDescontoFaltas = totalFaltasNaoJustificadas * (baseSalary / 30);
+
+        // Sum advances for the month
+        const totalAdiantamentos = collab.advances.reduce((sum, adv) => sum + adv.valor, 0);
+
+        // Net projected salary
+        const salarioLiquidoProjetado = Math.max(0, baseSalary - totalDescontoFaltas - totalAdiantamentos);
+
+        const closedRecord = historyMap.get(collab.id);
+
+        return {
+          collaboratorId: collab.id,
+          nome: collab.nome,
+          cargo: collab.cargo || 'Não informado',
+          departamento: collab.departamento || 'Não informado',
+          statusCollab: collab.status,
+          salarioBase: baseSalary,
+          faltasNaoJustificadas: totalFaltasNaoJustificadas,
+          faltasJustificadas: totalFaltasJustificadas,
+          valorDescontadoFaltas: totalDescontoFaltas,
+          valorAdiantamentos: totalAdiantamentos,
+          salarioLiquidoProjetado,
+          isClosed: !!closedRecord,
+          closedDate: closedRecord?.createdAt || null,
+          closedBy: closedRecord?.usuarioResponsavel || null,
+        };
+      });
+
+      return res.json(closingData);
+    } catch (error) {
+      console.error('Error getting monthly closing:', error);
+      return res.status(500).json({ error: 'Erro ao gerar fechamento mensal.' });
+    }
+  },
+
+  // 6. Close Month (Freeze closing data into history)
+  async closeMonth(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem fechar o mês.' });
+      }
+
+      const { month, year } = req.body;
+
+      if (!month || !year) {
+        return res.status(400).json({ error: 'Mês e Ano são obrigatórios.' });
+      }
+
+      const m = parseInt(month);
+      const y = parseInt(year);
+      const competencyStr = `${String(m).padStart(2, '0')}/${y}`;
+
+      const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
+      const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+      // Fetch collaborators
+      const collaborators = await prisma.collaborator.findMany({
+        where: { companyId },
+        include: {
+          absences: {
+            where: {
+              dataFalta: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+            },
+          },
+        },
+      });
+
+      // Clear existing records for this competency to allow re-closing/updates
+      await prisma.absenceHistory.deleteMany({
+        where: {
+          companyId: companyId || '',
+          competencia: competencyStr,
+        },
+      });
+
+      const historyToCreate = collaborators.map((collab) => {
+        const baseSalary = collab.salario || 0;
+        const unexcusedCount = collab.absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA').length;
+        const totalDesconto = unexcusedCount * (baseSalary / 30);
+
+        return {
+          collaboratorId: collab.id,
+          collaboratorName: collab.nome,
+          competencia: competencyStr,
+          faltas: unexcusedCount,
+          valorDescontado: totalDesconto,
+          usuarioResponsavel: user.name,
+          companyId: companyId || '',
+        };
+      });
+
+      if (historyToCreate.length > 0) {
+        await prisma.absenceHistory.createMany({
+          data: historyToCreate,
+        });
+      }
+
+      // Automatically mark all salary advances in that month as DESCONTADO_EM_FOLHA
+      await prisma.salaryAdvance.updateMany({
+        where: {
+          collaborator: { companyId },
+          data: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          status: 'PENDENTE',
+        },
+        data: {
+          status: 'DESCONTADO_EM_FOLHA',
+        },
+      });
+
+      // Save Audit Log
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: 'COMPANY_LEVEL',
+          collaboratorName: 'TODOS COLABORADORES',
+          usuario: user.name,
+          action: 'FECHAMENTO_MENSAL',
+          valorAnterior: 'Aberto',
+          valorNovo: `Fechado Competência ${competencyStr}`,
+          companyId: companyId || '',
+        },
+      });
+
+      AuditLogger.log(userId, companyId, 'CLOSE_MONTH', `Closed month for competency: ${competencyStr}`, 'SUCCESS');
+
+      return res.json({ success: true, message: `Competência ${competencyStr} fechada com sucesso.` });
+    } catch (error) {
+      console.error('Error closing month:', error);
+      return res.status(500).json({ error: 'Erro ao fechar mês.' });
+    }
+  },
+
+  // 7. Dashboard Stats
+  async getDashboardStats(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const { month, year } = req.query as any;
+
+      if (!month || !year) {
+        return res.status(400).json({ error: 'Mês e Ano são obrigatórios.' });
+      }
+
+      const m = parseInt(month);
+      const y = parseInt(year);
+
+      const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
+      const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+      const absences = await prisma.employeeAbsence.findMany({
+        where: {
+          companyId,
+          dataFalta: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        include: {
+          collaborator: true,
+        },
+      });
+
+      const advances = await prisma.salaryAdvance.findMany({
+        where: {
+          collaborator: { companyId },
+          data: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      const unexcused = absences.filter((a) => a.tipo === 'NAO_JUSTIFICADA');
+      const justified = absences.filter((a) => a.tipo === 'JUSTIFICADA');
+
+      const totalUnexcusedCount = unexcused.length;
+      const totalJustifiedCount = justified.length;
+
+      // Calculate total discount
+      const totalDiscount = unexcused.reduce((sum, a) => {
+        const base = a.collaborator.salario || 0;
+        return sum + (base / 30);
+      }, 0);
+
+      const totalAdvancesAmount = advances.reduce((sum, a) => sum + a.valor, 0);
+
+      // Distribution by department
+      const departmentDistribution: Record<string, number> = {};
+      absences.forEach((a) => {
+        const dept = a.collaborator.departamento || 'Não Informado';
+        departmentDistribution[dept] = (departmentDistribution[dept] || 0) + 1;
+      });
+
+      // Top 5 employees with most absences
+      const collaboratorAbsencesCounts: Record<string, { nome: string; count: number; cargo: string }> = {};
+      absences.forEach((a) => {
+        const id = a.collaboratorId;
+        if (!collaboratorAbsencesCounts[id]) {
+          collaboratorAbsencesCounts[id] = {
+            nome: a.collaborator.nome,
+            count: 0,
+            cargo: a.collaborator.cargo || 'Não informado',
+          };
+        }
+        collaboratorAbsencesCounts[id].count++;
+      });
+
+      const topCollaborators = Object.values(collaboratorAbsencesCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      // Monthly Trend (last 6 months)
+      const trendData: Record<string, { unexcused: number; total: number }> = {};
+      const monthsStr = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(y, m - 1 - i, 1);
+        const label = `${monthsStr[d.getMonth()]}/${d.getFullYear()}`;
+        trendData[label] = { unexcused: 0, total: 0 };
+      }
+
+      const sixMonthsAgo = new Date(y, m - 1 - 5, 1);
+      const historicalAbsences = await prisma.employeeAbsence.findMany({
+        where: {
+          companyId,
+          dataFalta: {
+            gte: sixMonthsAgo,
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      historicalAbsences.forEach((a) => {
+        const date = new Date(a.dataFalta);
+        const label = `${monthsStr[date.getMonth()]}/${date.getFullYear()}`;
+        if (trendData[label]) {
+          trendData[label].total++;
+          if (a.tipo === 'NAO_JUSTIFICADA') {
+            trendData[label].unexcused++;
+          }
+        }
+      });
+
+      return res.json({
+        kpis: {
+          totalUnexcusedCount,
+          totalJustifiedCount,
+          totalDiscount,
+          totalAdvancesAmount,
+        },
+        departmentDistribution,
+        topCollaborators,
+        trend: trendData,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      return res.status(500).json({ error: 'Erro ao carregar estatísticas do dashboard.' });
+    }
+  },
+
+  // 8. List Audit Logs
+  async listAuditLogs(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId;
+      
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem visualizar logs de auditoria.' });
+      }
+
+      const audits = await prisma.absenceAudit.findMany({
+        where: { companyId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return res.json(audits);
+    } catch (error) {
+      console.error('Error fetching audits:', error);
+      return res.status(500).json({ error: 'Erro ao buscar logs de auditoria.' });
+    }
+  },
+};

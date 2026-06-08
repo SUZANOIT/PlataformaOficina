@@ -304,10 +304,12 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             </h3>
             
             <div className={`flex ${isCurio ? 'bg-indigo-50/50 text-indigo-950 border-y border-indigo-200' : 'bg-slate-900 text-white'} text-[9px] font-bold uppercase tracking-wider rounded-t-md`}>
-              <div className="py-1.5 px-3 text-left" style={{ width: '50%' }}>Descrição do Produto</div>
-              <div className="py-1.5 px-3 text-center" style={{ width: '10%' }}>Qtd</div>
-              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Valor Unit.</div>
-              <div className="py-1.5 px-3 text-right" style={{ width: '20%' }}>Total</div>
+              <div className="py-1.5 px-3 text-left" style={{ width: '35%' }}>Descrição do Produto</div>
+              <div className="py-1.5 px-3 text-left" style={{ width: '15%' }}>Código</div>
+              <div className="py-1.5 px-3 text-left" style={{ width: '15%' }}>Tipo</div>
+              <div className="py-1.5 px-3 text-center" style={{ width: '8%' }}>Qtd</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '13%' }}>Valor Unit.</div>
+              <div className="py-1.5 px-3 text-right" style={{ width: '14%' }}>Total</div>
             </div>
 
             <div className={`border-x border-b ${isCurio ? 'border-indigo-100' : 'border-slate-200'} rounded-b-md overflow-hidden shadow-sm`}>
@@ -319,16 +321,22 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                      key={index} 
                      className={`flex border-b border-slate-100 text-[11px] last:border-b-0 ${isCurio ? 'odd:bg-indigo-50/10 even:bg-white' : 'odd:bg-slate-50/50 even:bg-white'} avoid-page-break`} 
                    >
-                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap font-medium text-slate-800" style={{ width: '50%' }}>
+                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap font-medium text-slate-800" style={{ width: '35%' }}>
                        {item.descricao}
                      </div>
-                     <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '10%' }}>
+                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap text-slate-600 font-medium" style={{ width: '15%' }}>
+                       {item.codigoPeca || '-'}
+                     </div>
+                     <div className="py-1 px-3 text-left break-words whitespace-pre-wrap text-slate-600 font-medium" style={{ width: '15%' }}>
+                       {item.tipoPeca || '-'}
+                     </div>
+                     <div className="py-1 px-3 text-center text-slate-600 font-medium" style={{ width: '8%' }}>
                        {q}
                      </div>
-                     <div className="py-1 px-3 text-right text-slate-600 font-medium" style={{ width: '20%' }}>
+                     <div className="py-1 px-3 text-right text-slate-600 font-medium" style={{ width: '13%' }}>
                        {formatCurrency(vu)}
                      </div>
-                     <div className={`py-1 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '20%' }}>
+                     <div className={`py-1 px-3 text-right ${isCurio ? 'text-indigo-950' : 'text-slate-900'} font-semibold`} style={{ width: '14%' }}>
                        {formatCurrency(q * vu)}
                      </div>
                    </div>

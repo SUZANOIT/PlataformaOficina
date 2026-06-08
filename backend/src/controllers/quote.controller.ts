@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import { AuditLogger } from '../utils/audit.logger';
 
 const createQuoteSchema = z.object({
   companyId: z.string(),
@@ -51,7 +52,29 @@ const createQuoteSchema = z.object({
     valorUnitario: z.number(),
     valorTotal: z.number(),
     tipo: z.string().optional().default("Peça"),
-  })),
+    codigoPeca: z.string().max(100).nullish(),
+    tipoPeca: z.string().nullish(),
+  })).superRefine((items, ctx) => {
+    items.forEach((item, index) => {
+      if (item.tipo === 'Peça') {
+        if (!item.codigoPeca || item.codigoPeca.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Código da peça é obrigatório para itens do tipo Peça',
+            path: [index, 'codigoPeca']
+          });
+        }
+        const validTipos = ['Genuína', 'Original', 'Paralela', 'Remanufaturada'];
+        if (!item.tipoPeca || !validTipos.includes(item.tipoPeca)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Tipo da peça deve ser Genuína, Original, Paralela ou Remanufaturada',
+            path: [index, 'tipoPeca']
+          });
+        }
+      }
+    });
+  }),
   subtotal: z.number(),
   total: z.number(),
   status: z.string().optional().default("Aguardando Aprovação"),
@@ -375,6 +398,23 @@ export const QuoteController = {
       });
 
       console.log(`Quote created: #${quote.numeroOrcamento} for client ${client.nome} (id=${quote.id})`);
+
+      // Audit log for added parts
+      const parts = data.items.filter(item => item.tipo === 'Peça');
+      if (parts.length > 0) {
+        const userId = (req as any).userId || 'SYSTEM';
+        const companyId = (req as any).companyId || data.companyId;
+        parts.forEach(part => {
+          AuditLogger.log(
+            userId,
+            companyId,
+            'ADD_PART',
+            `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`,
+            'SUCCESS'
+          );
+        });
+      }
+
       return res.status(201).json(quote);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -610,6 +650,23 @@ export const QuoteController = {
       });
 
       console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
+
+      // Audit log for added/updated parts
+      const parts = data.items.filter(item => item.tipo === 'Peça');
+      if (parts.length > 0) {
+        const userId = (req as any).userId || 'SYSTEM';
+        const companyId = (req as any).companyId || data.companyId;
+        parts.forEach(part => {
+          AuditLogger.log(
+            userId,
+            companyId,
+            'ADD_PART',
+            `Peça atualizada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`,
+            'SUCCESS'
+          );
+        });
+      }
+
       return res.json(quote);
     } catch (error) {
       if (error instanceof z.ZodError) {

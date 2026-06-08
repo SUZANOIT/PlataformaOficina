@@ -59,6 +59,48 @@ export const AdvanceController = {
         return res.status(404).json({ error: 'Colaborador não encontrado' });
       }
 
+      if (collaborator.status === 'INATIVO') {
+        return res.status(400).json({ error: 'Não é permitido registrar adiantamentos para colaboradores inativos.' });
+      }
+
+      // Calculate available balance for the month of the advance
+      const advanceDate = dataParsed.data ? new Date(dataParsed.data) : new Date();
+      const month = advanceDate.getUTCMonth();
+      const year = advanceDate.getUTCFullYear();
+      const startOfMonth = new Date(Date.UTC(year, month, 1));
+      const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+
+      const currentMonthAdvances = await prisma.salaryAdvance.findMany({
+        where: {
+          collaboratorId,
+          data: {
+            gte: startOfMonth,
+            lte: endOfMonth
+          }
+        }
+      });
+      const totalAdvancesCurrentMonth = currentMonthAdvances.reduce((sum, adv) => sum + adv.valor, 0);
+
+      const unexcusedCount = await prisma.employeeAbsence.count({
+        where: {
+          collaboratorId,
+          tipo: 'NAO_JUSTIFICADA',
+          dataFalta: {
+            gte: startOfMonth,
+            lte: endOfMonth
+          }
+        }
+      });
+      const baseSalary = collaborator.salario || 0;
+      const totalDiscountsCurrentMonth = unexcusedCount * (baseSalary / 30);
+      const availableBalance = Math.max(0, baseSalary - totalAdvancesCurrentMonth - totalDiscountsCurrentMonth);
+
+      if (dataParsed.valor > availableBalance) {
+        return res.status(400).json({
+          error: `O valor do adiantamento (R$ ${dataParsed.valor.toFixed(2)}) excede o saldo disponível para o mês (R$ ${availableBalance.toFixed(2)}).`
+        });
+      }
+
       // Fetch logged-in user name
       const userId = (req as any).userId;
       const user = await prisma.user.findUnique({
@@ -74,8 +116,6 @@ export const AdvanceController = {
       const todayStr = new Date().toISOString().substring(0, 10).replace(/-/g, '');
       const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
       const numeroComprovante = `ADV-${todayStr}-${randomHex}`;
-
-      const advanceDate = dataParsed.data ? new Date(dataParsed.data) : new Date();
 
       // 1. Auto-create Corresponding FinancialPayable (Contas a Pagar)
       const payable = await prisma.financialPayable.create({
@@ -174,10 +214,12 @@ export const AdvanceController = {
     try {
       const advanceId = req.params.advanceId as string;
       const companyId = (req as any).companyId || null;
-      const { status } = req.body;
+      const userId = (req as any).userId;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const userNome = user?.name || 'Sistema';
 
-      if (!status || !['PENDENTE', 'DESCONTADO_EM_FOLHA'].includes(status)) {
-        return res.status(400).json({ error: 'Status inválido. Use PENDENTE ou DESCONTADO_EM_FOLHA' });
+      if (!status || !['PENDENTE', 'APROVADO', 'REPROVADO', 'DESCONTADO_EM_FOLHA'].includes(status)) {
+        return res.status(400).json({ error: 'Status inválido. Use PENDENTE, APROVADO, REPROVADO ou DESCONTADO_EM_FOLHA' });
       }
 
       const advance = await prisma.salaryAdvance.findUnique({
@@ -193,8 +235,29 @@ export const AdvanceController = {
         where: { id: advanceId },
         data: { status },
         include: {
-          pdfs: true,
+          pdfs: {
+            orderBy: { generatedAt: 'desc' }
+          },
           payable: true
+        }
+      });
+
+      let auditAction = 'ALTERACAO_STATUS_ADIANTAMENTO';
+      if (status === 'APROVADO') {
+        auditAction = 'APROVACAO_ADIANTAMENTO';
+      } else if (status === 'REPROVADO') {
+        auditAction = 'REPROVACAO_ADIANTAMENTO';
+      }
+
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: advance.collaboratorId,
+          collaboratorName: advance.collaborator.nome,
+          usuario: userNome,
+          action: auditAction,
+          valorAnterior: `Status: ${advance.status}, Valor: R$ ${advance.valor.toFixed(2)}`,
+          valorNovo: `Status: ${status}, Valor: R$ ${advance.valor.toFixed(2)}`,
+          companyId: companyId || '',
         }
       });
 

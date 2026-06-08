@@ -27,6 +27,8 @@ const createUserSchema = z.object({
   roleContasPagar: z.boolean().optional().default(false),
   roleContasReceber: z.boolean().optional().default(false),
   roleContabilidade: z.boolean().optional().default(false),
+  roleRh: z.boolean().optional().default(false),
+  roleColaborador: z.boolean().optional().default(false),
 });
 
 const updateUserSchema = z.object({
@@ -39,6 +41,8 @@ const updateUserSchema = z.object({
   roleContasPagar: z.boolean().optional(),
   roleContasReceber: z.boolean().optional(),
   roleContabilidade: z.boolean().optional(),
+  roleRh: z.boolean().optional(),
+  roleColaborador: z.boolean().optional(),
 });
 
 export const AuthController = {
@@ -116,6 +120,8 @@ export const AuthController = {
           roleContasPagar: user.roleContasPagar,
           roleContasReceber: user.roleContasReceber,
           roleContabilidade: user.roleContabilidade,
+          roleRh: user.roleRh,
+          roleColaborador: user.roleColaborador,
         },
         token,
       });
@@ -152,6 +158,8 @@ export const AuthController = {
           roleContasPagar: true,
           roleContasReceber: true,
           roleContabilidade: true,
+          roleRh: true,
+          roleColaborador: true,
           createdAt: true
         },
         orderBy: { createdAt: 'desc' }
@@ -168,6 +176,8 @@ export const AuthController = {
         roleContasPagar: user.roleContasPagar,
         roleContasReceber: user.roleContasReceber,
         roleContabilidade: user.roleContabilidade,
+        roleRh: user.roleRh,
+        roleColaborador: user.roleColaborador,
         createdAt: user.createdAt,
       }));
 
@@ -240,6 +250,8 @@ export const AuthController = {
           roleContasPagar: parsedData.roleContasPagar,
           roleContasReceber: parsedData.roleContasReceber,
           roleContabilidade: parsedData.roleContabilidade,
+          roleRh: parsedData.roleRh,
+          roleColaborador: parsedData.roleColaborador,
           companyId: currentCompanyId
         },
       });
@@ -257,6 +269,8 @@ export const AuthController = {
         roleContasPagar: user.roleContasPagar,
         roleContasReceber: user.roleContasReceber,
         roleContabilidade: user.roleContabilidade,
+        roleRh: user.roleRh,
+        roleColaborador: user.roleColaborador,
         createdAt: user.createdAt
       });
     } catch (error) {
@@ -338,6 +352,8 @@ export const AuthController = {
       if (parsedData.roleContasPagar !== undefined) updateData.roleContasPagar = parsedData.roleContasPagar;
       if (parsedData.roleContasReceber !== undefined) updateData.roleContasReceber = parsedData.roleContasReceber;
       if (parsedData.roleContabilidade !== undefined) updateData.roleContabilidade = parsedData.roleContabilidade;
+      if (parsedData.roleRh !== undefined) updateData.roleRh = parsedData.roleRh;
+      if (parsedData.roleColaborador !== undefined) updateData.roleColaborador = parsedData.roleColaborador;
 
       if (parsedData.password && parsedData.password.length >= 6) {
         updateData.password = await bcrypt.hash(parsedData.password, 10);
@@ -361,6 +377,8 @@ export const AuthController = {
         roleContasPagar: updatedUser.roleContasPagar,
         roleContasReceber: updatedUser.roleContasReceber,
         roleContabilidade: updatedUser.roleContabilidade,
+        roleRh: updatedUser.roleRh,
+        roleColaborador: updatedUser.roleColaborador,
         createdAt: updatedUser.createdAt
       });
     } catch (error) {
@@ -429,6 +447,8 @@ export const AuthController = {
           roleContasPagar: true,
           roleContasReceber: true,
           roleContabilidade: true,
+          roleRh: true,
+          roleColaborador: true,
           createdAt: true,
           companyId: true,
           company: {
@@ -514,11 +534,13 @@ export const AuthController = {
         status: user.status === 'ATIVO' ? 'ACTIVE' : 'INACTIVE',
         roleAdmin: user.roleAdmin,
         roleOrcamentista: user.roleOrcamentista,
-        roleContasPagar: user.roleContasPagar,
-        roleContasReceber: user.roleContasReceber,
-        roleContabilidade: user.roleContabilidade,
-        createdAt: user.createdAt,
-        companyId: user.companyId,
+         roleContasPagar: user.roleContasPagar,
+         roleContasReceber: user.roleContasReceber,
+         roleContabilidade: user.roleContabilidade,
+         roleRh: user.roleRh,
+         roleColaborador: user.roleColaborador,
+         createdAt: user.createdAt,
+         companyId: user.companyId,
         company: user.company ? {
           id: user.company.id,
           nome: companyName,

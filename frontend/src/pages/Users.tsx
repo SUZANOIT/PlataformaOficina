@@ -23,6 +23,7 @@ import {
   Users as UsersIcon,
   ShieldCheck,
   CheckCircle,
+  UserCheck,
   XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,6 +41,8 @@ interface UserFormValues {
   roleContasPagar: boolean;
   roleContasReceber: boolean;
   roleContabilidade: boolean;
+  roleRh: boolean;
+  roleColaborador: boolean;
 }
 
 // Helper to get custom gradient background based on user name
@@ -69,6 +72,8 @@ const getFormSchema = (isEdit: boolean) => {
     roleContasPagar: z.boolean().default(false),
     roleContasReceber: z.boolean().default(false),
     roleContabilidade: z.boolean().default(false),
+    roleRh: z.boolean().default(false),
+    roleColaborador: z.boolean().default(false),
   });
 };
 
@@ -106,6 +111,8 @@ export function Users() {
       roleContasPagar: false,
       roleContasReceber: false,
       roleContabilidade: false,
+      roleRh: false,
+      roleColaborador: false,
     }
   });
 
@@ -139,6 +146,8 @@ export function Users() {
         roleContasPagar: !!selectedUser.roleContasPagar,
         roleContasReceber: !!selectedUser.roleContasReceber,
         roleContabilidade: !!selectedUser.roleContabilidade,
+        roleRh: !!selectedUser.roleRh,
+        roleColaborador: !!selectedUser.roleColaborador,
       });
     } else {
       reset({
@@ -151,6 +160,8 @@ export function Users() {
         roleContasPagar: false,
         roleContasReceber: false,
         roleContabilidade: false,
+        roleRh: false,
+        roleColaborador: false,
       });
     }
     setShowPassword(false);
@@ -182,6 +193,8 @@ export function Users() {
         roleContasPagar: data.roleContasPagar,
         roleContasReceber: data.roleContasReceber,
         roleContabilidade: data.roleContabilidade,
+        roleRh: data.roleRh,
+        roleColaborador: data.roleColaborador,
       };
 
       if (data.senha && data.senha.trim() !== '') {
@@ -283,6 +296,20 @@ export function Users() {
       description: 'Acesso a relatórios de auditoria, DRE financeiro e dados fiscais.',
       icon: BarChart3,
       color: 'text-violet-500 bg-violet-500/10 border-violet-500/20 dark:border-violet-500/10',
+    },
+    {
+      key: 'roleRh' as const,
+      title: 'Recursos Humanos',
+      description: 'Gestão de faltas, justificativas, atestados e fechamento mensal de folha.',
+      icon: UserCheck,
+      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20 dark:border-blue-500/10',
+    },
+    {
+      key: 'roleColaborador' as const,
+      title: 'Colaborador',
+      description: 'Acesso restrito para consulta aos próprios dados de adiantamentos e faltas.',
+      icon: UserIcon,
+      color: 'text-teal-500 bg-teal-500/10 border-teal-500/20 dark:border-teal-500/10',
     },
   ];
 
@@ -474,7 +501,17 @@ export function Users() {
                                 Contabilidade
                               </span>
                             )}
-                            {!user.roleAdmin && !user.roleOrcamentista && !user.roleContasPagar && !user.roleContasReceber && !user.roleContabilidade && (
+                            {user.roleRh && (
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 dark:border-blue-500/10">
+                                RH
+                              </span>
+                            )}
+                            {user.roleColaborador && (
+                              <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-teal-500/10 text-teal-500 border border-teal-500/20 dark:border-teal-500/10">
+                                Colaborador
+                              </span>
+                            )}
+                            {!user.roleAdmin && !user.roleOrcamentista && !user.roleContasPagar && !user.roleContasReceber && !user.roleContabilidade && !user.roleRh && !user.roleColaborador && (
                               <span className="text-xs text-muted-foreground italic">Nenhum</span>
                             )}
                           </div>
@@ -551,7 +588,9 @@ export function Users() {
                       {user.roleContasPagar && <span className="px-1.5 py-0.5 text-[10px] rounded bg-rose-500/10 text-rose-500 font-semibold border border-rose-500/10">C. Pagar</span>}
                       {user.roleContasReceber && <span className="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/10 text-emerald-500 font-semibold border border-emerald-500/10">C. Receber</span>}
                       {user.roleContabilidade && <span className="px-1.5 py-0.5 text-[10px] rounded bg-violet-500/10 text-violet-500 font-semibold border border-violet-500/10">Contabilidade</span>}
-                      {!user.roleAdmin && !user.roleOrcamentista && !user.roleContasPagar && !user.roleContasReceber && !user.roleContabilidade && (
+                      {user.roleRh && <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-500/10 text-blue-500 font-semibold border border-blue-500/10">RH</span>}
+                      {user.roleColaborador && <span className="px-1.5 py-0.5 text-[10px] rounded bg-teal-500/10 text-teal-500 font-semibold border border-teal-500/10">Colaborador</span>}
+                      {!user.roleAdmin && !user.roleOrcamentista && !user.roleContasPagar && !user.roleContasReceber && !user.roleContabilidade && !user.roleRh && !user.roleColaborador && (
                         <span className="text-xs text-muted-foreground italic">Nenhum</span>
                       )}
                     </div>

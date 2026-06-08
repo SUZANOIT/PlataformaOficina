@@ -32,6 +32,7 @@ export function Layout() {
   const [isContabilidadeOpen, setIsContabilidadeOpen] = useState(true);
   const [isFleetOpen, setIsFleetOpen] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isRhOpen, setIsRhOpen] = useState(true);
   const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
@@ -285,6 +286,47 @@ export function Layout() {
                     <FileText size={16} className="text-blue-500" />
                     <span>Documentos Fiscais</span>
                   </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Categoria 2.7: Recursos Humanos */}
+          {hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsRhOpen(!isRhOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <UserCheck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Recursos Humanos</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isRhOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isRhOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  {(user?.roleAdmin || user?.roleRh || user?.roleColaborador) && (
+                    <Link 
+                      to="/rh/absences" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Calendar size={16} className="text-blue-500" />
+                      <span>Controle de Faltas</span>
+                    </Link>
+                  )}
+                  {(user?.roleAdmin || user?.roleRh || user?.roleContasPagar || user?.roleContasReceber) && (
+                    <Link 
+                      to="/rh/closing" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <CheckSquare size={16} className="text-green-500" />
+                      <span>Fechamento Mensal</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -585,6 +627,47 @@ export function Layout() {
                     <FileText size={16} className="text-blue-500" />
                     <span>Documentos Fiscais</span>
                   </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Categoria 2.7: Recursos Humanos */}
+          {hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
+            <div className="pt-2 border-t border-border/40">
+              <button 
+                onClick={() => setIsRhOpen(!isRhOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <UserCheck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Recursos Humanos</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isRhOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isRhOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  {(user?.roleAdmin || user?.roleRh || user?.roleColaborador) && (
+                    <Link 
+                      to="/rh/absences" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Calendar size={16} className="text-blue-500" />
+                      <span>Controle de Faltas</span>
+                    </Link>
+                  )}
+                  {(user?.roleAdmin || user?.roleRh || user?.roleContasPagar || user?.roleContasReceber) && (
+                    <Link 
+                      to="/rh/closing" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <CheckSquare size={16} className="text-green-500" />
+                      <span>Fechamento Mensal</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

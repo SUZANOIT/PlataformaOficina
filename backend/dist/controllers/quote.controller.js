@@ -4,6 +4,7 @@ exports.QuoteController = void 0;
 const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
+const audit_logger_1 = require("../utils/audit.logger");
 const createQuoteSchema = zod_1.z.object({
     companyId: zod_1.z.string(),
     client: zod_1.z.object({
@@ -52,7 +53,29 @@ const createQuoteSchema = zod_1.z.object({
         valorUnitario: zod_1.z.number(),
         valorTotal: zod_1.z.number(),
         tipo: zod_1.z.string().optional().default("Peça"),
-    })),
+        codigoPeca: zod_1.z.string().max(100).nullish(),
+        tipoPeca: zod_1.z.string().nullish(),
+    })).superRefine((items, ctx) => {
+        items.forEach((item, index) => {
+            if (item.tipo === 'Peça') {
+                if (!item.codigoPeca || item.codigoPeca.trim() === '') {
+                    ctx.addIssue({
+                        code: zod_1.z.ZodIssueCode.custom,
+                        message: 'Código da peça é obrigatório para itens do tipo Peça',
+                        path: [index, 'codigoPeca']
+                    });
+                }
+                const validTipos = ['Genuína', 'Original', 'Paralela', 'Remanufaturada'];
+                if (!item.tipoPeca || !validTipos.includes(item.tipoPeca)) {
+                    ctx.addIssue({
+                        code: zod_1.z.ZodIssueCode.custom,
+                        message: 'Tipo da peça deve ser Genuína, Original, Paralela ou Remanufaturada',
+                        path: [index, 'tipoPeca']
+                    });
+                }
+            }
+        });
+    }),
     subtotal: zod_1.z.number(),
     total: zod_1.z.number(),
     status: zod_1.z.string().optional().default("Aguardando Aprovação"),
@@ -349,6 +372,15 @@ exports.QuoteController = {
                 }
             });
             console.log(`Quote created: #${quote.numeroOrcamento} for client ${client.nome} (id=${quote.id})`);
+            // Audit log for added parts
+            const parts = data.items.filter(item => item.tipo === 'Peça');
+            if (parts.length > 0) {
+                const userId = req.userId || 'SYSTEM';
+                const companyId = req.companyId || data.companyId;
+                parts.forEach(part => {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'ADD_PART', `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`, 'SUCCESS');
+                });
+            }
             return res.status(201).json(quote);
         }
         catch (error) {
@@ -568,6 +600,15 @@ exports.QuoteController = {
                 }
             });
             console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
+            // Audit log for added/updated parts
+            const parts = data.items.filter(item => item.tipo === 'Peça');
+            if (parts.length > 0) {
+                const userId = req.userId || 'SYSTEM';
+                const companyId = req.companyId || data.companyId;
+                parts.forEach(part => {
+                    audit_logger_1.AuditLogger.log(userId, companyId, 'ADD_PART', `Peça atualizada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`, 'SUCCESS');
+                });
+            }
             return res.json(quote);
         }
         catch (error) {

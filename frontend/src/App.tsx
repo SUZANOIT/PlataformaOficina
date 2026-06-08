@@ -33,6 +33,8 @@ import { ModuleGuard } from './components/ModuleGuard';
 import { SaaSAdminGuard } from './components/SaaSAdminGuard';
 import { MyPlan } from './pages/MyPlan';
 import { Presentation } from './pages/Presentation';
+import { AbsenceControl } from './pages/rh/AbsenceControl';
+import { MonthlyClosing } from './pages/rh/MonthlyClosing';
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
 import { SaaSAuthGuard } from './components/SaaSAuthGuard';
@@ -123,6 +125,10 @@ function App() {
               <Route path="fleet/vehicles/:id" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><VehicleDetails /></ModuleGuard>} />
               <Route path="fleet/preventive" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetPreventive /></ModuleGuard>} />
               <Route path="fleet/workshops" element={<ModuleGuard moduleKey="frotas" moduleName="Gestão de Frotas"><FleetWorkshops /></ModuleGuard>} />
+
+              {/* Rotas de Recursos Humanos */}
+              <Route path="rh/absences" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><AbsenceControl /></ModuleGuard>} />
+              <Route path="rh/closing" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><MonthlyClosing /></ModuleGuard>} />
 
               {/* Rota Administrativa do SaaS (Apenas Platform Admin) */}
               <Route path="saas-dashboard" element={<SaaSAdminGuard><SaaSDashboard /></SaaSAdminGuard>} />
