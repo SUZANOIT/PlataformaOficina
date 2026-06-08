@@ -198,6 +198,79 @@ export function CreateQuote() {
     }
   });
 
+  const isInitialStatusEffect = useRef(true);
+
+  const buildFormDataFromQuote = (data: any) => ({
+    companyId: (isEditing || isViewing) ? data.companyId : '',
+    client: {
+      nome: data.client?.nome || '',
+      empresa: data.client?.empresa || '',
+      cnpj: data.client?.cnpj || '',
+      telefone: data.client?.telefone || '',
+      email: data.client?.email || '',
+      cidade: data.client?.cidade || '',
+      estado: data.client?.estado || '',
+      logradouro: data.client?.logradouro || '',
+      numero: data.client?.numero || '',
+      complemento: data.client?.complemento || '',
+      bairro: data.client?.bairro || '',
+      cep: data.client?.cep || '',
+      dataSituacao: data.client?.dataSituacao || '',
+      atividadePrincipal: data.client?.atividadePrincipal || '',
+    },
+    condicaoPagamento: data.condicaoPagamento,
+    status: data.status || 'Aguardando Aprovação',
+    parcelas: data.parcelas,
+    valorParcela: !isEditing && cloneId && data.valorParcela
+      ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
+      : data.valorParcela,
+    validade: data.validade,
+    garantia: data.garantia,
+    prazoExecucao: data.prazoExecucao,
+    observacao: data.observacao || '',
+    veiculoMarca: data.veiculoMarca || '',
+    veiculoModelo: data.veiculoModelo || '',
+    veiculoAno: data.veiculoAno || '',
+    veiculoPlaca: data.veiculoPlaca || '',
+    veiculoPrefixo: data.veiculoPrefixo || '',
+    veiculoAnoFabricacao: data.veiculoAnoFabricacao || '',
+    veiculoAnoModelo: data.veiculoAnoModelo || '',
+    veiculoChassi: data.veiculoChassi || '',
+    veiculoRenavam: data.veiculoRenavam || '',
+    veiculoFrota: data.veiculoFrota || '',
+    veiculoSubfrota: data.veiculoSubfrota || '',
+    veiculoHodometro: data.veiculoHodometro || '',
+    veiculoTipo: data.veiculoTipo || '',
+    oficinaId: data.oficinaId || '',
+    plataformaGestaoId: data.plataformaGestaoId || '',
+    osExterna: data.osExterna || '',
+    notaFiscalDescricao: data.notaFiscalDescricao || '',
+    items: data.items.map((i: any) => ({
+      descricao: i.descricao,
+      quantidade: i.quantidade,
+      valorUnitario: !isEditing && cloneId
+        ? Math.round(Number(i.valorUnitario) * 1.1985 * 100) / 100
+        : Number(i.valorUnitario),
+      tipo: i.tipo || 'Peça',
+      codigoPeca: i.codigoPeca || '',
+      tipoPeca: i.tipoPeca || '',
+    })),
+  });
+
+  const extractApiErrorMessage = (error: any, fallback: string) => {
+    const apiError = error?.response?.data?.error;
+    if (Array.isArray(apiError)) {
+      return apiError.map((e: any) => e.message || JSON.stringify(e)).join('; ');
+    }
+    if (typeof apiError === 'string' && apiError.trim()) {
+      return apiError;
+    }
+    if (error?.message) {
+      return error.message;
+    }
+    return fallback;
+  };
+
   // Load quote for edit or clone
   useEffect(() => {
     const fetchQuote = async () => {
@@ -209,50 +282,9 @@ export function CreateQuote() {
         if (isEditing || isViewing) {
           setNumeroOrcamento(data.numeroOrcamento);
         }
-        
-        const formData: any = {
-          companyId: (isEditing || isViewing) ? data.companyId : '', // Se for clone, obriga a escolher nova empresa
-          client: data.client,
-          condicaoPagamento: data.condicaoPagamento,
-          status: data.status || 'Aguardando Aprovação',
-          parcelas: data.parcelas,
-          valorParcela: !isEditing && cloneId && data.valorParcela
-            ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
-            : data.valorParcela,
-          validade: data.validade,
-          garantia: data.garantia,
-          prazoExecucao: data.prazoExecucao,
-          observacao: data.observacao || '',
-          veiculoMarca: data.veiculoMarca || '',
-          veiculoModelo: data.veiculoModelo || '',
-          veiculoAno: data.veiculoAno || '',
-          veiculoPlaca: data.veiculoPlaca || '',
-          veiculoPrefixo: data.veiculoPrefixo || '',
-          veiculoAnoFabricacao: data.veiculoAnoFabricacao || '',
-          veiculoAnoModelo: data.veiculoAnoModelo || '',
-          veiculoChassi: data.veiculoChassi || '',
-          veiculoRenavam: data.veiculoRenavam || '',
-          veiculoFrota: data.veiculoFrota || '',
-          veiculoSubfrota: data.veiculoSubfrota || '',
-          veiculoHodometro: data.veiculoHodometro || '',
-          veiculoTipo: data.veiculoTipo || '',
-          oficinaId: data.oficinaId || '',
-          plataformaGestaoId: data.plataformaGestaoId || '',
-          osExterna: data.osExterna || '',
-          notaFiscalDescricao: data.notaFiscalDescricao || '',
-          items: data.items.map((i: any) => ({
-            descricao: i.descricao,
-            quantidade: i.quantidade,
-            valorUnitario: !isEditing && cloneId
-              ? Math.round(Number(i.valorUnitario) * 1.1985 * 100) / 100
-              : Number(i.valorUnitario),
-            tipo: i.tipo || 'Peça',
-            codigoPeca: i.codigoPeca || '',
-            tipoPeca: i.tipoPeca || '',
-          }))
-        };
-        
-        reset(formData);
+
+        reset(buildFormDataFromQuote(data));
+        isInitialStatusEffect.current = true;
         if (data.plataformaGestao) {
           setSelectedPlatform(data.plataformaGestao);
           setSearchPlatformTerm(data.plataformaGestao.nomeFantasia);
@@ -267,7 +299,7 @@ export function CreateQuote() {
     };
     
     fetchQuote();
-  }, [id, cloneId, reset, isEditing]);
+  }, [id, cloneId, reset, isEditing, isViewing]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -416,8 +448,6 @@ ${bankingText}`;
     }
   }, [watchCompanyId, workshops, companies, setValue]);
 
-  const isInitialStatusEffect = useRef(true);
-
   // Generate description when status is changed to 'Aguardando Pagamento' or 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
     if (isInitialStatusEffect.current) {
@@ -474,6 +504,11 @@ ${bankingText}`;
 
   const onSubmit = async (data: QuoteFormValues) => {
     try {
+      if (isEditing && !id) {
+        toast.error('Identificador do orçamento não encontrado.');
+        return;
+      }
+
       // Validação frontend de obrigatoriedade de peças
       for (let i = 0; i < data.items.length; i++) {
         const item = data.items[i];
@@ -489,26 +524,51 @@ ${bankingText}`;
         }
       }
 
+      const { plataformaGestao: _pg, oficina: _of, ...formData } = data as QuoteFormValues & { plataformaGestao?: unknown; oficina?: unknown };
+
       const payload = {
-        ...data,
-        items: data.items.map(item => ({
-           ...item,
-           quantidade: Number(item.quantidade),
-           valorUnitario: Number(item.valorUnitario),
-           valorTotal: Number(item.quantidade) * Number(item.valorUnitario),
-           codigoPeca: item.tipo === 'Peça' ? item.codigoPeca : null,
-           tipoPeca: item.tipo === 'Peça' ? item.tipoPeca : null,
+        ...formData,
+        client: {
+          nome: formData.client.nome,
+          empresa: formData.client.empresa || null,
+          cnpj: formData.client.cnpj || null,
+          telefone: formData.client.telefone || null,
+          email: formData.client.email || null,
+          cidade: formData.client.cidade || null,
+          estado: formData.client.estado || null,
+          logradouro: formData.client.logradouro || null,
+          numero: formData.client.numero || null,
+          complemento: formData.client.complemento || null,
+          bairro: formData.client.bairro || null,
+          cep: formData.client.cep || null,
+          dataSituacao: formData.client.dataSituacao || null,
+          atividadePrincipal: formData.client.atividadePrincipal || null,
+        },
+        items: formData.items.map(item => ({
+          descricao: item.descricao,
+          tipo: item.tipo,
+          quantidade: Number(item.quantidade),
+          valorUnitario: Number(item.valorUnitario),
+          valorTotal: Number(item.quantidade) * Number(item.valorUnitario),
+          codigoPeca: item.tipo === 'Peça' ? item.codigoPeca?.trim() || null : null,
+          tipoPeca: item.tipo === 'Peça' ? item.tipoPeca?.trim() || null : null,
         })),
         subtotal,
-        total
+        total,
       };
 
       toast.loading(isEditing ? 'Atualizando orçamento...' : 'Salvando orçamento...', { id: 'save-quote' });
       
       let savedData;
-      if (isEditing) {
+      if (isEditing && id) {
         savedData = await quoteService.updateQuote(id, payload);
-        toast.success('Orçamento atualizado com sucesso!', { id: 'save-quote' });
+        reset(buildFormDataFromQuote(savedData));
+        isInitialStatusEffect.current = true;
+        if (savedData.plataformaGestao) {
+          setSelectedPlatform(savedData.plataformaGestao);
+          setSearchPlatformTerm(savedData.plataformaGestao.nomeFantasia);
+        }
+        toast.success('Orçamento atualizado com sucesso.', { id: 'save-quote' });
       } else {
         savedData = await quoteService.saveQuote(payload);
         setNumeroOrcamento(savedData.numeroOrcamento);
@@ -517,7 +577,10 @@ ${bankingText}`;
       }
 
     } catch (error: any) {
-      toast.error(error.message || 'Erro ao salvar o orçamento', { id: 'save-quote' });
+      toast.error(
+        extractApiErrorMessage(error, 'Erro ao salvar o orçamento'),
+        { id: 'save-quote' }
+      );
       console.error(error);
     }
   };
