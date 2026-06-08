@@ -623,61 +623,104 @@ export const QuoteController = {
         }
       }
 
-      // Update quote & items (delete old, create new)
-      const quote = await prisma.quote.update({
-        where: { id },
-        data: {
-          companyId: data.companyId,
-          clientId: client.id,
-          condicaoPagamento: data.condicaoPagamento,
-          parcelas: data.parcelas,
-          valorParcela: data.valorParcela,
-          validade: data.validade,
-          garantia: data.garantia,
-          prazoExecucao: data.prazoExecucao,
-          observacao: data.observacao,
-          veiculoMarca: data.veiculoMarca,
-          veiculoModelo: data.veiculoModelo,
-          veiculoAno: data.veiculoAno,
-          veiculoPlaca: data.veiculoPlaca,
-          veiculoPrefixo: data.veiculoPrefixo,
-          veiculoAnoFabricacao: data.veiculoAnoFabricacao,
-          veiculoAnoModelo: data.veiculoAnoModelo,
-          veiculoChassi: data.veiculoChassi,
-          veiculoRenavam: data.veiculoRenavam,
-          veiculoFrota: data.veiculoFrota,
-          veiculoSubfrota: data.veiculoSubfrota,
-          veiculoHodometro: data.veiculoHodometro,
-          veiculoTipo: data.veiculoTipo,
-          veiculoId: veiculoId,
-          plataformaGestaoId: data.plataformaGestaoId || null,
-          osExterna: data.osExterna,
-          oficinaId: data.oficinaId || null,
-          notaFiscalDescricao: data.notaFiscalDescricao || null,
-          subtotal: data.subtotal,
-          total: data.total,
-          status: data.status,
-          items: {
-            deleteMany: {},
-            create: data.items,
+      // Update quote & items (delete old, create new) in transaction
+      const quoteItems = data.items.map(item => ({
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valorUnitario: item.valorUnitario,
+        valorTotal: item.valorTotal,
+        tipo: item.tipo,
+        codigoPeca: item.codigoPeca,
+        tipoPeca: item.tipoPeca,
+      }));
+
+      let quote = await prisma.$transaction(async (tx) => {
+        const updatedQuote = await tx.quote.update({
+          where: { id },
+          data: {
+            clientId: client.id,
+            condicaoPagamento: data.condicaoPagamento,
+            parcelas: data.parcelas,
+            valorParcela: data.valorParcela,
+            validade: data.validade,
+            garantia: data.garantia,
+            prazoExecucao: data.prazoExecucao,
+            observacao: data.observacao,
+            veiculoMarca: data.veiculoMarca,
+            veiculoModelo: data.veiculoModelo,
+            veiculoAno: data.veiculoAno,
+            veiculoPlaca: data.veiculoPlaca,
+            veiculoPrefixo: data.veiculoPrefixo,
+            veiculoAnoFabricacao: data.veiculoAnoFabricacao,
+            veiculoAnoModelo: data.veiculoAnoModelo,
+            veiculoChassi: data.veiculoChassi,
+            veiculoRenavam: data.veiculoRenavam,
+            veiculoFrota: data.veiculoFrota,
+            veiculoSubfrota: data.veiculoSubfrota,
+            veiculoHodometro: data.veiculoHodometro,
+            veiculoTipo: data.veiculoTipo,
+            veiculoId: veiculoId,
+            plataformaGestaoId: data.plataformaGestaoId || null,
+            osExterna: data.osExterna,
+            oficinaId: data.oficinaId || null,
+            notaFiscalDescricao: data.notaFiscalDescricao || null,
+            subtotal: data.subtotal,
+            total: data.total,
+            status: data.status,
+            items: {
+              deleteMany: {},
+              create: quoteItems,
+            }
+          },
+          include: {
+            items: true,
+            client: true,
+            company: true,
+            plataformaGestao: true,
+            oficina: true
           }
-        },
-        include: {
-          items: true,
-          client: true,
-          company: true,
-          plataformaGestao: true,
-          oficina: true
-        }
+        });
+
+        return updatedQuote;
       });
 
+      if (data.companyId && data.companyId !== existingQuote.companyId) {
+        const targetCompany = await basePrisma.company.findUnique({
+          where: { id: data.companyId }
+        });
+
+        if (!targetCompany) {
+          return res.status(400).json({ error: 'Invalid companyId: company not found' });
+        }
+
+        quote = await basePrisma.quote.update({
+          where: { id },
+          data: { companyId: data.companyId },
+          include: {
+            items: true,
+            client: true,
+            company: true,
+            plataformaGestao: true,
+            oficina: true
+          }
+        });
+      }
+
       console.log(`Quote updated: #${quote.numeroOrcamento} (id=${quote.id})`);
+
+      const userId = (req as any).userId || 'SYSTEM';
+      const companyId = (req as any).companyId || data.companyId;
+      AuditLogger.log(
+        userId,
+        companyId,
+        'UPDATE_QUOTE',
+        `Orçamento #${quote.numeroOrcamento} atualizado por ${userId}`,
+        'SUCCESS'
+      );
 
       // Audit log for added/updated parts
       const parts = data.items.filter(item => item.tipo === 'Peça');
       if (parts.length > 0) {
-        const userId = (req as any).userId || 'SYSTEM';
-        const companyId = (req as any).companyId || data.companyId;
         parts.forEach(part => {
           AuditLogger.log(
             userId,
