@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  FileText, UploadCloud, Search, Calendar, RefreshCw, Trash2, Edit3, Download, 
-  History, ShieldAlert, AlertCircle, FileCode, Tag, DollarSign, X, ShieldCheck
+  UploadCloud, Search, Calendar, RefreshCw, Trash2, Edit3, Download, 
+  History, ShieldAlert, AlertCircle, FileCode, Tag, DollarSign, X, ShieldCheck, Files
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
@@ -10,7 +10,7 @@ interface FiscalDoc {
   id: string;
   numeroDocumento: string;
   chaveAcesso: string | null;
-  tipo: 'XML' | 'PDF';
+  tipo: 'XML';
   nomeArquivo: string;
   dataEmissao: string | null;
   valorTotal: number;
@@ -37,7 +37,7 @@ interface AuditLog {
 
 interface DashboardStats {
   xmlCount: number;
-  pdfCount: number;
+  documentCount: number;
   totalValue: number;
   estimatedTaxes: number;
   statusCounts: Array<{ status: string; count: number }>;
@@ -49,7 +49,7 @@ export function FiscalDocuments() {
   const [audits, setAudits] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     xmlCount: 0,
-    pdfCount: 0,
+    documentCount: 0,
     totalValue: 0,
     estimatedTaxes: 0,
     statusCounts: []
@@ -60,7 +60,6 @@ export function FiscalDocuments() {
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'XML' | 'PDF'>('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -110,8 +109,8 @@ export function FiscalDocuments() {
       const token = localStorage.getItem('token');
       // Build query string
       const params = new URLSearchParams();
+      params.append('tipo', 'XML');
       if (searchTerm) params.append('search', searchTerm);
-      if (typeFilter !== 'ALL') params.append('tipo', typeFilter);
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
@@ -159,7 +158,7 @@ export function FiscalDocuments() {
     if (user && (user.roleAdmin || user.roleContabilidade)) {
       fetchData();
     }
-  }, [user, searchTerm, typeFilter, statusFilter, startDate, endDate]);
+  }, [user, searchTerm, statusFilter, startDate, endDate]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -182,11 +181,11 @@ export function FiscalDocuments() {
       if (isZip) {
         return name.endsWith('.zip');
       }
-      return name.endsWith('.xml') || name.endsWith('.pdf');
+      return name.endsWith('.xml');
     });
 
     if (validFiles.length === 0) {
-      toast.error(isZip ? 'Selecione um arquivo ZIP válido.' : 'Envie apenas arquivos XML ou PDF.');
+      toast.error(isZip ? 'Selecione um arquivo ZIP válido.' : 'Envie apenas arquivos XML de NF-e.');
       return;
     }
 
@@ -210,7 +209,7 @@ export function FiscalDocuments() {
 
         preparedFiles.push({
           fileName: file.name,
-          fileType: file.type || (file.name.endsWith('.xml') ? 'text/xml' : 'application/pdf'),
+          fileType: file.type || 'text/xml',
           fileContent: base64
         });
 
@@ -341,20 +340,19 @@ export function FiscalDocuments() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        toast.success(`Download de "${fileName}" registrado com sucesso.`);
-
-        // Trigger browser file download
-        const blob = new Blob([data.xmlContent || 'Simulated Document Content'], { type: 'text/plain' });
+        const blob = await response.blob();
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
-        link.download = data.nomeArquivo;
+        link.download = fileName;
         link.click();
+        window.URL.revokeObjectURL(link.href);
+        toast.success(`Download de "${fileName}" concluído.`);
       } else {
         toast.error('Erro ao fazer download do documento.');
       }
     } catch (error) {
       console.error('Failed downloading individual doc', error);
+      toast.error('Erro de conexão ao baixar documento.');
     }
   };
 
@@ -376,16 +374,13 @@ export function FiscalDocuments() {
       });
 
       if (response.ok) {
-        await response.json();
-        toast.success(`Exportação em lote concluída para ${selectedIds.length} arquivos.`);
-        
-        // Trigger simulated batch zip download
-        const blob = new Blob(['Simulated Zip Package containing batch documents'], { type: 'application/zip' });
+        const blob = await response.blob();
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
         link.download = `exportacao-lote-fiscal-${Date.now()}.zip`;
         link.click();
-        
+        window.URL.revokeObjectURL(link.href);
+        toast.success(`Exportação em lote concluída para ${selectedIds.length} arquivos.`);
         setSelectedIds([]);
       } else {
         toast.error('Erro ao efetuar download em lote.');
@@ -449,7 +444,7 @@ export function FiscalDocuments() {
             ref={fileInputRef} 
             multiple 
             onChange={(e) => handleFileChange(e, false)}
-            accept=".xml,.pdf"
+            accept=".xml"
             className="hidden" 
           />
           <input 
@@ -465,7 +460,7 @@ export function FiscalDocuments() {
             className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition text-sm flex-1 sm:flex-initial"
           >
             <UploadCloud size={16} />
-            <span>Upload XML / PDF</span>
+            <span>Upload XML</span>
           </button>
 
           <button
@@ -518,15 +513,15 @@ export function FiscalDocuments() {
           </div>
         </div>
 
-        {/* Total PDF */}
+        {/* Total de Documentos */}
         <div className="bg-card border border-border p-5 rounded-xl shadow-sm flex items-center justify-between hover:border-emerald-500/20 transition-all hover:scale-[1.01]">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground font-semibold">Total de PDFs</p>
-            <h3 className="text-2xl font-black text-foreground font-mono">{stats.pdfCount}</h3>
-            <p className="text-[10px] text-muted-foreground">Recibos e faturas</p>
+            <p className="text-xs text-muted-foreground font-semibold">Total de Documentos</p>
+            <h3 className="text-2xl font-black text-foreground font-mono">{stats.documentCount}</h3>
+            <p className="text-[10px] text-muted-foreground">NF-e importadas</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <FileText size={20} />
+            <Files size={20} />
           </div>
         </div>
 
@@ -584,26 +579,6 @@ export function FiscalDocuments() {
               </div>
             </div>
 
-            {/* Type Selector */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase">Tipo de Documento</label>
-              <div className="grid grid-cols-3 gap-1 bg-muted p-0.5 rounded-lg border border-border/50">
-                {(['ALL', 'XML', 'PDF'] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTypeFilter(t)}
-                    className={`py-1 rounded-md text-[10px] font-black uppercase transition ${
-                      typeFilter === t 
-                        ? 'bg-card text-foreground shadow-sm' 
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {t === 'ALL' ? 'Todos' : t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Status Filter */}
             <div className="space-y-1">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase">Status</label>
@@ -645,7 +620,6 @@ export function FiscalDocuments() {
             <button
               onClick={() => {
                 setSearchTerm('');
-                setTypeFilter('ALL');
                 setStatusFilter('ALL');
                 setStartDate('');
                 setEndDate('');
@@ -782,10 +756,8 @@ export function FiscalDocuments() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
-                              d.tipo === 'XML' ? 'bg-blue-500/10 text-blue-500' : 'bg-emerald-500/10 text-emerald-500'
-                            }`}>
-                              {d.tipo === 'XML' ? <FileCode size={16} /> : <FileText size={16} />}
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold bg-blue-500/10 text-blue-500">
+                              <FileCode size={16} />
                             </div>
                             <div>
                               <div className="font-semibold text-foreground">{d.numeroDocumento}</div>

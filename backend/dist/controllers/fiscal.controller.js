@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FiscalController = void 0;
+const archiver_1 = require("archiver");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
+const fiscalFile_service_1 = require("../services/fiscalFile.service");
 // XML details extraction helper
 function parseXmlData(xmlText) {
     try {
@@ -177,40 +179,48 @@ exports.FiscalController = {
             }
             const createdDocs = [];
             for (const f of files) {
-                let isXml = f.fileName.toLowerCase().endsWith('.xml') || f.fileType === 'text/xml' || f.fileType === 'application/xml';
-                let typeStr = isXml ? 'XML' : 'PDF';
+                const isXml = f.fileName.toLowerCase().endsWith('.xml') || f.fileType === 'text/xml' || f.fileType === 'application/xml';
+                const typeStr = isXml ? 'XML' : 'PDF';
                 let docDetails = {
                     numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
                     chaveAcesso: null,
                     dataEmissao: new Date(),
                     valorTotal: 0.0,
-                    emitenteNome: 'Emitente MOCK S.A.',
+                    emitenteNome: 'Emitente não identificado',
                     emitenteCnpj: '00.000.000/0001-00',
-                    destinatarioNome: 'Destinatário MOCK S.A.',
+                    destinatarioNome: 'Destinatário não identificado',
                     destinatarioCnpj: '00.000.000/0001-99'
                 };
-                if (isXml && f.fileContent) {
-                    // If base64, decode it
-                    let xmlText = f.fileContent;
-                    if (f.fileContent.includes('base64,')) {
-                        xmlText = Buffer.from(f.fileContent.split('base64,')[1], 'base64').toString('utf8');
+                let storedFileUrl = f.fileUrl || null;
+                if (f.fileContent) {
+                    const fileBuffer = (0, fiscalFile_service_1.decodeBase64Content)(f.fileContent);
+                    if (isXml) {
+                        const xmlText = fileBuffer.toString('utf8');
+                        const parsed = parseXmlData(xmlText);
+                        if (parsed) {
+                            docDetails = parsed;
+                            docDetails.xmlContent = xmlText;
+                        }
+                        else {
+                            docDetails.xmlContent = xmlText;
+                        }
+                        const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
+                        storedFileUrl = saved.fileUrl;
                     }
-                    else if (/^[a-zA-Z0-9+/=]+$/.test(f.fileContent.trim()) && f.fileContent.length % 4 === 0) {
-                        xmlText = Buffer.from(f.fileContent, 'base64').toString('utf8');
+                    else {
+                        const parsedPdf = await (0, fiscalFile_service_1.parsePdfBuffer)(fileBuffer);
+                        if (parsedPdf) {
+                            docDetails = parsedPdf;
+                        }
+                        else {
+                            const matchNum = f.fileName.match(/\d+/);
+                            if (matchNum) {
+                                docDetails.numeroDocumento = `NF-${matchNum[0]}`;
+                            }
+                        }
+                        const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
+                        storedFileUrl = saved.fileUrl;
                     }
-                    const parsed = parseXmlData(xmlText);
-                    if (parsed) {
-                        docDetails = parsed;
-                        docDetails.xmlContent = xmlText;
-                    }
-                }
-                else if (!isXml && f.fileName) {
-                    // Try to extract document number from filename
-                    const matchNum = f.fileName.match(/\d+/);
-                    if (matchNum) {
-                        docDetails.numeroDocumento = `NF-${matchNum[0]}`;
-                    }
-                    docDetails.valorTotal = Math.floor(100 + Math.random() * 9000);
                 }
                 const doc = await prisma_1.prisma.fiscalDocument.create({
                     data: {
@@ -225,7 +235,7 @@ exports.FiscalController = {
                         destinatarioNome: docDetails.destinatarioNome,
                         destinatarioCnpj: docDetails.destinatarioCnpj,
                         xmlContent: docDetails.xmlContent || null,
-                        fileUrl: f.fileUrl || `uploads/fiscal/${f.fileName}`,
+                        fileUrl: storedFileUrl,
                         companyId,
                         status: 'IMPORTADO'
                     }
@@ -327,6 +337,7 @@ exports.FiscalController = {
             await prisma_1.prisma.fiscalDocument.delete({
                 where: { id }
             });
+            await (0, fiscalFile_service_1.deleteFiscalFile)(doc.fileUrl);
             await writeFiscalAudit(req, user, 'EXCLUSAO_DOCUMENTOS', `Deleted document ID ${id} (${doc.numeroDocumento}, File: ${doc.nomeArquivo})`);
             return res.status(204).send();
         }
@@ -347,12 +358,17 @@ exports.FiscalController = {
                 return res.status(404).json({ error: 'Documento não encontrado.' });
             }
             await writeFiscalAudit(req, user, 'DOWNLOAD_INDIVIDUAL', `Downloaded individual file: ${doc.nomeArquivo} (Doc: ${doc.numeroDocumento})`);
-            // Return details and file Url
-            return res.json({
-                fileUrl: doc.fileUrl,
-                nomeArquivo: doc.nomeArquivo,
-                xmlContent: doc.xmlContent
-            });
+            let fileBuffer = doc.fileUrl ? await (0, fiscalFile_service_1.readFiscalFile)(doc.fileUrl) : null;
+            if (!fileBuffer && doc.xmlContent) {
+                fileBuffer = Buffer.from(doc.xmlContent, 'utf8');
+            }
+            if (!fileBuffer) {
+                return res.status(404).json({ error: 'Arquivo do documento não encontrado.' });
+            }
+            const contentType = doc.tipo === 'PDF' ? 'application/pdf' : 'application/xml';
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Disposition', `attachment; filename="${doc.nomeArquivo}"`);
+            return res.send(fileBuffer);
         }
         catch (error) {
             console.error('Error in individual download:', error);
@@ -373,10 +389,27 @@ exports.FiscalController = {
                 where: { id: { in: ids } }
             });
             await writeFiscalAudit(req, user, 'DOWNLOAD_EM_LOTE', `Batch downloaded ${docs.length} files. Documents: ${docs.map(d => d.numeroDocumento).join(', ')}`);
-            return res.json({
-                message: 'Download em lote registrado com sucesso.',
-                files: docs.map(d => ({ id: d.id, fileUrl: d.fileUrl, nomeArquivo: d.nomeArquivo }))
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="exportacao-lote-fiscal-${Date.now()}.zip"`);
+            const archive = new archiver_1.ZipArchive({ zlib: { level: 9 } });
+            archive.on('error', (err) => {
+                console.error('Erro ao gerar ZIP fiscal:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Erro ao gerar arquivo ZIP.' });
+                }
             });
+            archive.pipe(res);
+            for (const doc of docs) {
+                let fileBuffer = doc.fileUrl ? await (0, fiscalFile_service_1.readFiscalFile)(doc.fileUrl) : null;
+                if (!fileBuffer && doc.xmlContent) {
+                    fileBuffer = Buffer.from(doc.xmlContent, 'utf8');
+                }
+                if (fileBuffer) {
+                    archive.append(fileBuffer, { name: doc.nomeArquivo });
+                }
+            }
+            await archive.finalize();
+            return;
         }
         catch (error) {
             console.error('Error in batch download:', error);

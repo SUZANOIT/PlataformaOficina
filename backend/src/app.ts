@@ -6,7 +6,7 @@ import { routes } from './routes';
 const app = express();
 
 app.use(cors());
-// PDFs/XML em base64 no upload fiscal excedem o limite padrão (~100kb) do express.json
+// XML em base64 no upload fiscal excedem o limite padrão (~100kb) do express.json
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
+import { ZipArchive } from 'archiver';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import {
+  decodeBase64Content,
+  deleteFiscalFile,
+  readFiscalFile,
+  saveFiscalFile
+} from '../services/fiscalFile.service';
 
 // XML details extraction helper
 function parseXmlData(xmlText: string) {
@@ -190,47 +197,51 @@ export const FiscalController = {
       const createdDocs: any[] = [];
 
       for (const f of files) {
-        let isXml = f.fileName.toLowerCase().endsWith('.xml') || f.fileType === 'text/xml' || f.fileType === 'application/xml';
-        let typeStr = isXml ? 'XML' : 'PDF';
+        const isXml = f.fileName.toLowerCase().endsWith('.xml')
+          || f.fileType === 'text/xml'
+          || f.fileType === 'application/xml';
+
+        if (!isXml) {
+          return res.status(400).json({
+            error: `Arquivo "${f.fileName}" não é XML. Apenas XML de NF-e é permitido.`
+          });
+        }
+
+        if (!f.fileContent) {
+          return res.status(400).json({ error: `Conteúdo do arquivo "${f.fileName}" não enviado.` });
+        }
 
         let docDetails: any = {
           numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
           chaveAcesso: null,
           dataEmissao: new Date(),
           valorTotal: 0.0,
-          emitenteNome: 'Emitente MOCK S.A.',
+          emitenteNome: 'Emitente não identificado',
           emitenteCnpj: '00.000.000/0001-00',
-          destinatarioNome: 'Destinatário MOCK S.A.',
+          destinatarioNome: 'Destinatário não identificado',
           destinatarioCnpj: '00.000.000/0001-99'
         };
 
-        if (isXml && f.fileContent) {
-          // If base64, decode it
-          let xmlText = f.fileContent;
-          if (f.fileContent.includes('base64,')) {
-            xmlText = Buffer.from(f.fileContent.split('base64,')[1], 'base64').toString('utf8');
-          } else if (/^[a-zA-Z0-9+/=]+$/.test(f.fileContent.trim()) && f.fileContent.length % 4 === 0) {
-            xmlText = Buffer.from(f.fileContent, 'base64').toString('utf8');
-          }
-          const parsed = parseXmlData(xmlText);
-          if (parsed) {
-            docDetails = parsed;
-            docDetails.xmlContent = xmlText;
-          }
-        } else if (!isXml && f.fileName) {
-          // Try to extract document number from filename
-          const matchNum = f.fileName.match(/\d+/);
-          if (matchNum) {
-            docDetails.numeroDocumento = `NF-${matchNum[0]}`;
-          }
-          docDetails.valorTotal = Math.floor(100 + Math.random() * 9000);
+        let storedFileUrl = f.fileUrl || null;
+        const fileBuffer = decodeBase64Content(f.fileContent);
+        const xmlText = fileBuffer.toString('utf8');
+        const parsed = parseXmlData(xmlText);
+
+        if (parsed) {
+          docDetails = parsed;
+          docDetails.xmlContent = xmlText;
+        } else {
+          docDetails.xmlContent = xmlText;
         }
+
+        const saved = await saveFiscalFile(companyId, f.fileName, fileBuffer);
+        storedFileUrl = saved.fileUrl;
 
         const doc = await prisma.fiscalDocument.create({
           data: {
             numeroDocumento: docDetails.numeroDocumento,
             chaveAcesso: docDetails.chaveAcesso,
-            tipo: typeStr,
+            tipo: 'XML',
             nomeArquivo: f.fileName,
             dataEmissao: docDetails.dataEmissao,
             valorTotal: docDetails.valorTotal,
@@ -239,7 +250,7 @@ export const FiscalController = {
             destinatarioNome: docDetails.destinatarioNome,
             destinatarioCnpj: docDetails.destinatarioCnpj,
             xmlContent: docDetails.xmlContent || null,
-            fileUrl: f.fileUrl || `uploads/fiscal/${f.fileName}`,
+            fileUrl: storedFileUrl,
             companyId,
             status: 'IMPORTADO'
           }
@@ -259,7 +270,7 @@ export const FiscalController = {
         auditAction = 'UPLOAD_EM_LOTE';
         auditDetails = `Batch uploaded ${files.length} documents. Batch name: ${batchName || 'unnamed'}`;
       } else {
-        auditAction = files[0].fileName.toLowerCase().endsWith('.xml') ? 'UPLOAD_XML' : 'UPLOAD_PDF';
+        auditAction = 'UPLOAD_XML';
       }
 
       await writeFiscalAudit(req, user, auditAction, auditDetails);
@@ -364,6 +375,8 @@ export const FiscalController = {
         where: { id }
       });
 
+      await deleteFiscalFile(doc.fileUrl);
+
       await writeFiscalAudit(
         req, 
         user, 
@@ -393,18 +406,26 @@ export const FiscalController = {
       }
 
       await writeFiscalAudit(
-        req, 
-        user, 
-        'DOWNLOAD_INDIVIDUAL', 
+        req,
+        user,
+        'DOWNLOAD_INDIVIDUAL',
         `Downloaded individual file: ${doc.nomeArquivo} (Doc: ${doc.numeroDocumento})`
       );
 
-      // Return details and file Url
-      return res.json({
-        fileUrl: doc.fileUrl,
-        nomeArquivo: doc.nomeArquivo,
-        xmlContent: doc.xmlContent
-      });
+      let fileBuffer = doc.fileUrl ? await readFiscalFile(doc.fileUrl) : null;
+
+      if (!fileBuffer && doc.xmlContent) {
+        fileBuffer = Buffer.from(doc.xmlContent, 'utf8');
+      }
+
+      if (!fileBuffer) {
+        return res.status(404).json({ error: 'Arquivo do documento não encontrado.' });
+      }
+
+      const contentType = doc.tipo === 'PDF' ? 'application/pdf' : 'application/xml';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${doc.nomeArquivo}"`);
+      return res.send(fileBuffer);
     } catch (error) {
       console.error('Error in individual download:', error);
       return res.status(500).json({ error: 'Erro ao processar download do documento.' });
@@ -428,16 +449,37 @@ export const FiscalController = {
       });
 
       await writeFiscalAudit(
-        req, 
-        user, 
-        'DOWNLOAD_EM_LOTE', 
+        req,
+        user,
+        'DOWNLOAD_EM_LOTE',
         `Batch downloaded ${docs.length} files. Documents: ${docs.map(d => d.numeroDocumento).join(', ')}`
       );
 
-      return res.json({
-        message: 'Download em lote registrado com sucesso.',
-        files: docs.map(d => ({ id: d.id, fileUrl: d.fileUrl, nomeArquivo: d.nomeArquivo }))
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="exportacao-lote-fiscal-${Date.now()}.zip"`);
+
+      const archive = new ZipArchive({ zlib: { level: 9 } });
+      archive.on('error', (err: Error) => {
+        console.error('Erro ao gerar ZIP fiscal:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Erro ao gerar arquivo ZIP.' });
+        }
       });
+
+      archive.pipe(res);
+
+      for (const doc of docs) {
+        let fileBuffer = doc.fileUrl ? await readFiscalFile(doc.fileUrl) : null;
+        if (!fileBuffer && doc.xmlContent) {
+          fileBuffer = Buffer.from(doc.xmlContent, 'utf8');
+        }
+        if (fileBuffer) {
+          archive.append(fileBuffer, { name: doc.nomeArquivo });
+        }
+      }
+
+      await archive.finalize();
+      return;
     } catch (error) {
       console.error('Error in batch download:', error);
       return res.status(500).json({ error: 'Erro ao processar download em lote.' });
@@ -479,8 +521,8 @@ export const FiscalController = {
         where: { companyId, tipo: 'XML' }
       });
 
-      const pdfCount = await prisma.fiscalDocument.count({
-        where: { companyId, tipo: 'PDF' }
+      const documentCount = await prisma.fiscalDocument.count({
+        where: { companyId }
       });
 
       const totalValueRes = await prisma.fiscalDocument.aggregate({
@@ -506,7 +548,7 @@ export const FiscalController = {
 
       return res.json({
         xmlCount,
-        pdfCount,
+        documentCount,
         totalValue,
         estimatedTaxes,
         statusCounts: statusCounts.map((s: any) => ({
