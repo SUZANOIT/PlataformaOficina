@@ -11,7 +11,7 @@ const routes_1 = require("./routes");
 const app = (0, express_1.default)();
 exports.app = app;
 app.use((0, cors_1.default)());
-// PDFs/XML em base64 no upload fiscal excedem o limite padrão (~100kb) do express.json
+// XML em base64 no upload fiscal excedem o limite padrão (~100kb) do express.json
 app.use(express_1.default.json({ limit: '50mb' }));
 app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 // Serve frontend static files from the built dist directory

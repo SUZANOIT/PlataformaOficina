@@ -1,59 +1,47 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FiscalController = void 0;
 const archiver_1 = require("archiver");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const fiscalFile_service_1 = require("../services/fiscalFile.service");
-// XML details extraction helper
-function parseXmlData(xmlText) {
-    try {
-        const nNFM = xmlText.match(/<nNF>(\d+)<\/nNF>/i);
-        const numeroDocumento = nNFM ? nNFM[1] : `NF-${Math.floor(100000 + Math.random() * 900000)}`;
-        const chNFeM = xmlText.match(/<chNFe>(\d+)<\/chNFe>/i) || xmlText.match(/Id="NFe(\d+)"/i);
-        const chaveAcesso = chNFeM ? chNFeM[1] : null;
-        const dhEmiM = xmlText.match(/<dhEmi>([^<]+)<\/dhEmi>/i) || xmlText.match(/<dEmi>([^<]+)<\/dEmi>/i);
-        const dataEmissao = dhEmiM ? new Date(dhEmiM[1]) : new Date();
-        const vNFM = xmlText.match(/<vNF>([\d.]+)<\/vNF>/i);
-        const valorTotal = vNFM ? parseFloat(vNFM[1]) : 0.0;
-        const emitBlock = xmlText.match(/<emit>([\s\S]*?)<\/emit>/i);
-        let emitenteNome = 'Emitente MOCK S.A.';
-        let emitenteCnpj = '00.000.000/0001-00';
-        if (emitBlock) {
-            const xNomeM = emitBlock[1].match(/<xNome>([^<]+)<\/xNome>/i);
-            const cnpjM = emitBlock[1].match(/<CNPJ>([^<]+)<\/CNPJ>/i);
-            if (xNomeM)
-                emitenteNome = xNomeM[1];
-            if (cnpjM)
-                emitenteCnpj = cnpjM[1];
-        }
-        const destBlock = xmlText.match(/<dest>([\s\S]*?)<\/dest>/i);
-        let destinatarioNome = 'Destinatário MOCK S.A.';
-        let destinatarioCnpj = '00.000.000/0001-99';
-        if (destBlock) {
-            const xNomeM = destBlock[1].match(/<xNome>([^<]+)<\/xNome>/i);
-            const cnpjM = destBlock[1].match(/<CNPJ>([^<]+)<\/CNPJ>/i);
-            if (xNomeM)
-                destinatarioNome = xNomeM[1];
-            if (cnpjM)
-                destinatarioCnpj = cnpjM[1];
-        }
-        return {
-            numeroDocumento,
-            chaveAcesso,
-            dataEmissao,
-            valorTotal,
-            emitenteNome,
-            emitenteCnpj,
-            destinatarioNome,
-            destinatarioCnpj
-        };
-    }
-    catch (error) {
-        console.error('Erro ao fazer parse do XML:', error);
-        return null;
-    }
-}
+const fiscalXmlParser_service_1 = require("../services/fiscalXmlParser.service");
+const fiscalDashboard_service_1 = require("../services/fiscalDashboard.service");
+const fiscalFilters_util_1 = require("../utils/fiscalFilters.util");
+const XLSX = __importStar(require("xlsx"));
 // IP extraction helper
 function getClientIp(req) {
     const forwarded = req.headers['x-forwarded-for'];
@@ -87,7 +75,8 @@ async function writeFiscalAudit(req, user, action, details) {
                 userProfile: profiles.join(', '),
                 action,
                 details,
-                ipAddress: getClientIp(req)
+                ipAddress: getClientIp(req),
+                companyId: req.companyId || null
             }
         });
     }
@@ -127,8 +116,8 @@ exports.FiscalController = {
             if (!companyId) {
                 return res.status(400).json({ error: 'Identificador da empresa não encontrado.' });
             }
-            const { search, tipo, status, startDate, endDate } = req.query;
-            const whereClause = { companyId };
+            const { search, tipo, status, startDate, endDate, page, pageSize } = req.query;
+            const whereClause = { companyId, tipo: 'XML' };
             if (tipo) {
                 whereClause.tipo = tipo;
             }
@@ -152,11 +141,27 @@ exports.FiscalController = {
                     { chaveAcesso: { contains: search, mode: 'insensitive' } }
                 ];
             }
-            const documents = await prisma_1.prisma.fiscalDocument.findMany({
-                where: whereClause,
-                orderBy: { dataEmissao: 'desc' }
+            const currentPage = Math.max(parseInt(page || '1', 10), 1);
+            const limit = Math.min(Math.max(parseInt(pageSize || '20', 10), 1), 100);
+            const skip = (currentPage - 1) * limit;
+            const [documents, total] = await Promise.all([
+                prisma_1.prisma.fiscalDocument.findMany({
+                    where: whereClause,
+                    orderBy: { dataEmissao: 'desc' },
+                    skip,
+                    take: limit
+                }),
+                prisma_1.prisma.fiscalDocument.count({ where: whereClause })
+            ]);
+            return res.json({
+                data: documents,
+                pagination: {
+                    page: currentPage,
+                    pageSize: limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
             });
-            return res.json(documents);
         }
         catch (error) {
             console.error('Error listing fiscal documents:', error);
@@ -179,65 +184,85 @@ exports.FiscalController = {
             }
             const createdDocs = [];
             for (const f of files) {
-                const isXml = f.fileName.toLowerCase().endsWith('.xml') || f.fileType === 'text/xml' || f.fileType === 'application/xml';
-                const typeStr = isXml ? 'XML' : 'PDF';
-                let docDetails = {
+                const isXml = f.fileName.toLowerCase().endsWith('.xml')
+                    || f.fileType === 'text/xml'
+                    || f.fileType === 'application/xml';
+                if (!isXml) {
+                    return res.status(400).json({
+                        error: `Arquivo "${f.fileName}" não é XML. Apenas XML de NF-e é permitido.`
+                    });
+                }
+                if (!f.fileContent) {
+                    return res.status(400).json({ error: `Conteúdo do arquivo "${f.fileName}" não enviado.` });
+                }
+                const fileBuffer = (0, fiscalFile_service_1.decodeBase64Content)(f.fileContent);
+                const xmlText = fileBuffer.toString('utf8');
+                const company = await prisma_1.basePrisma.company.findUnique({
+                    where: { id: companyId },
+                    select: { cnpj: true, cnpjSemMascara: true }
+                });
+                const companyCnpj = company?.cnpjSemMascara || company?.cnpj || '';
+                const parsed = (0, fiscalXmlParser_service_1.parseFiscalXml)(xmlText, companyCnpj);
+                const docDetails = parsed || {
                     numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
+                    numeroNota: '',
+                    serie: null,
                     chaveAcesso: null,
                     dataEmissao: new Date(),
-                    valorTotal: 0.0,
+                    valorTotal: 0,
+                    valorBruto: 0,
+                    valorLiquido: 0,
+                    valorImpostos: 0,
+                    icms: 0, ipi: 0, pis: 0, cofins: 0, iss: 0, irpj: 0, csll: 0,
                     emitenteNome: 'Emitente não identificado',
                     emitenteCnpj: '00.000.000/0001-00',
                     destinatarioNome: 'Destinatário não identificado',
-                    destinatarioCnpj: '00.000.000/0001-99'
+                    destinatarioCnpj: '00.000.000/0001-99',
+                    clienteNome: null,
+                    fornecedorNome: null,
+                    tipoDocumento: 'ENTRADA',
+                    status: 'EMITIDA',
+                    xmlContent: xmlText
                 };
-                let storedFileUrl = f.fileUrl || null;
-                if (f.fileContent) {
-                    const fileBuffer = (0, fiscalFile_service_1.decodeBase64Content)(f.fileContent);
-                    if (isXml) {
-                        const xmlText = fileBuffer.toString('utf8');
-                        const parsed = parseXmlData(xmlText);
-                        if (parsed) {
-                            docDetails = parsed;
-                            docDetails.xmlContent = xmlText;
-                        }
-                        else {
-                            docDetails.xmlContent = xmlText;
-                        }
-                        const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
-                        storedFileUrl = saved.fileUrl;
-                    }
-                    else {
-                        const parsedPdf = await (0, fiscalFile_service_1.parsePdfBuffer)(fileBuffer);
-                        if (parsedPdf) {
-                            docDetails = parsedPdf;
-                        }
-                        else {
-                            const matchNum = f.fileName.match(/\d+/);
-                            if (matchNum) {
-                                docDetails.numeroDocumento = `NF-${matchNum[0]}`;
-                            }
-                        }
-                        const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
-                        storedFileUrl = saved.fileUrl;
-                    }
+                if (!parsed) {
+                    docDetails.xmlContent = xmlText;
                 }
+                const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
+                const storedFileUrl = saved.fileUrl;
                 const doc = await prisma_1.prisma.fiscalDocument.create({
                     data: {
                         numeroDocumento: docDetails.numeroDocumento,
+                        numeroNota: docDetails.numeroNota || docDetails.numeroDocumento,
+                        serie: docDetails.serie,
                         chaveAcesso: docDetails.chaveAcesso,
-                        tipo: typeStr,
+                        tipo: 'XML',
+                        tipoDocumento: docDetails.tipoDocumento,
                         nomeArquivo: f.fileName,
                         dataEmissao: docDetails.dataEmissao,
                         valorTotal: docDetails.valorTotal,
+                        valorBruto: docDetails.valorBruto,
+                        valorLiquido: docDetails.valorLiquido,
+                        valorImpostos: docDetails.valorImpostos,
+                        icms: docDetails.icms,
+                        ipi: docDetails.ipi,
+                        pis: docDetails.pis,
+                        cofins: docDetails.cofins,
+                        iss: docDetails.iss,
+                        irpj: docDetails.irpj,
+                        csll: docDetails.csll,
                         emitenteNome: docDetails.emitenteNome,
                         emitenteCnpj: docDetails.emitenteCnpj,
                         destinatarioNome: docDetails.destinatarioNome,
                         destinatarioCnpj: docDetails.destinatarioCnpj,
-                        xmlContent: docDetails.xmlContent || null,
+                        clienteNome: docDetails.clienteNome,
+                        fornecedorNome: docDetails.fornecedorNome,
+                        origemNota: isZip ? 'XML_IMPORTADO' : 'UPLOAD_MANUAL',
+                        usuarioResponsavelId: user.id,
+                        usuarioResponsavelNome: user.name,
+                        xmlContent: docDetails.xmlContent || xmlText,
                         fileUrl: storedFileUrl,
                         companyId,
-                        status: 'IMPORTADO'
+                        status: docDetails.status || 'EMITIDA'
                     }
                 });
                 createdDocs.push(doc);
@@ -254,7 +279,7 @@ exports.FiscalController = {
                 auditDetails = `Batch uploaded ${files.length} documents. Batch name: ${batchName || 'unnamed'}`;
             }
             else {
-                auditAction = files[0].fileName.toLowerCase().endsWith('.xml') ? 'UPLOAD_XML' : 'UPLOAD_PDF';
+                auditAction = 'UPLOAD_XML';
             }
             await writeFiscalAudit(req, user, auditAction, auditDetails);
             return res.status(201).json({
@@ -365,7 +390,7 @@ exports.FiscalController = {
             if (!fileBuffer) {
                 return res.status(404).json({ error: 'Arquivo do documento não encontrado.' });
             }
-            const contentType = doc.tipo === 'PDF' ? 'application/pdf' : 'application/xml';
+            const contentType = 'application/xml';
             res.setHeader('Content-Type', contentType);
             res.setHeader('Content-Disposition', `attachment; filename="${doc.nomeArquivo}"`);
             return res.send(fileBuffer);
@@ -422,8 +447,11 @@ exports.FiscalController = {
             if (!user) {
                 return res.status(403).json({ error: 'Acesso negado. Perfil não autorizado.' });
             }
-            const audits = await prisma_1.prisma.fiscalAudit.findMany({
-                orderBy: { createdAt: 'desc' }
+            const companyId = req.companyId;
+            const audits = await prisma_1.basePrisma.fiscalAudit.findMany({
+                where: companyId ? { companyId } : undefined,
+                orderBy: { createdAt: 'desc' },
+                take: 200
             });
             return res.json(audits);
         }
@@ -446,8 +474,8 @@ exports.FiscalController = {
             const xmlCount = await prisma_1.prisma.fiscalDocument.count({
                 where: { companyId, tipo: 'XML' }
             });
-            const pdfCount = await prisma_1.prisma.fiscalDocument.count({
-                where: { companyId, tipo: 'PDF' }
+            const documentCount = await prisma_1.prisma.fiscalDocument.count({
+                where: { companyId }
             });
             const totalValueRes = await prisma_1.prisma.fiscalDocument.aggregate({
                 where: { companyId },
@@ -467,7 +495,7 @@ exports.FiscalController = {
             await writeFiscalAudit(req, user, 'VISUALIZAR_DASHBOARD_CONTABIL', 'Visualized accounting/fiscal dashboard metrics');
             return res.json({
                 xmlCount,
-                pdfCount,
+                documentCount,
                 totalValue,
                 estimatedTaxes,
                 statusCounts: statusCounts.map((s) => ({
@@ -479,6 +507,165 @@ exports.FiscalController = {
         catch (error) {
             console.error('Error in fiscal dashboard:', error);
             return res.status(500).json({ error: 'Erro ao carregar dados do painel contábil.' });
+        }
+    },
+    async getFullDashboard(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado. Perfil não autorizado.' });
+            const companyId = req.companyId;
+            if (!companyId)
+                return res.status(400).json({ error: 'Identificador da empresa não encontrado.' });
+            const filters = (0, fiscalFilters_util_1.parseFiscalFilters)(req, companyId);
+            const dashboard = await (0, fiscalDashboard_service_1.getFiscalDashboard)(filters);
+            await writeFiscalAudit(req, user, 'VISUALIZAR_DASHBOARD_FISCAL', `Dashboard fiscal ${filters.ano}${filters.mes ? `/${filters.mes}` : ''}`);
+            return res.json(dashboard);
+        }
+        catch (error) {
+            console.error('Error in full fiscal dashboard:', error);
+            return res.status(500).json({ error: 'Erro ao carregar dashboard fiscal.' });
+        }
+    },
+    async getMonthlyDetails(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado.' });
+            const companyId = req.companyId;
+            const ano = parseInt(String(req.params.ano), 10);
+            const mes = parseInt(String(req.params.mes), 10);
+            const filters = (0, fiscalFilters_util_1.parseFiscalFilters)(req, companyId);
+            const details = await (0, fiscalDashboard_service_1.getMonthDetails)(filters, ano, mes);
+            return res.json(details);
+        }
+        catch (error) {
+            console.error('Error loading month details:', error);
+            return res.status(500).json({ error: 'Erro ao carregar detalhes do mês.' });
+        }
+    },
+    async autocompleteClients(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado.' });
+            const companyId = req.companyId;
+            const q = String(req.query.q || '');
+            if (q.length < 2)
+                return res.json([]);
+            const results = await (0, fiscalDashboard_service_1.searchClients)(companyId, q);
+            return res.json(results);
+        }
+        catch (error) {
+            return res.status(500).json({ error: 'Erro na busca de clientes.' });
+        }
+    },
+    async autocompleteSuppliers(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado.' });
+            const companyId = req.companyId;
+            const q = String(req.query.q || '');
+            if (q.length < 2)
+                return res.json([]);
+            const results = await (0, fiscalDashboard_service_1.searchSuppliers)(companyId, q);
+            return res.json(results);
+        }
+        catch (error) {
+            return res.status(500).json({ error: 'Erro na busca de fornecedores.' });
+        }
+    },
+    async exportCsv(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado.' });
+            const companyId = req.companyId;
+            const filters = (0, fiscalFilters_util_1.parseFiscalFilters)(req, companyId);
+            filters.page = 1;
+            filters.pageSize = 100000;
+            const docs = await (0, fiscalDashboard_service_1.fetchUnifiedDocuments)(filters);
+            const csv = (0, fiscalDashboard_service_1.documentsToCsvRows)(docs);
+            await writeFiscalAudit(req, user, 'EXPORTACAO_CSV', `Exportação CSV com ${docs.length} registros`);
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="documentos-fiscais-${Date.now()}.csv"`);
+            return res.send(csv);
+        }
+        catch (error) {
+            console.error('Error exporting CSV:', error);
+            return res.status(500).json({ error: 'Erro ao exportar CSV.' });
+        }
+    },
+    async exportExcel(req, res) {
+        try {
+            const user = await exports.FiscalController.verifyUserAccess(req);
+            if (!user)
+                return res.status(403).json({ error: 'Acesso negado.' });
+            const companyId = req.companyId;
+            const filters = (0, fiscalFilters_util_1.parseFiscalFilters)(req, companyId);
+            const dashboard = await (0, fiscalDashboard_service_1.getFiscalDashboard)({ ...filters, page: 1, pageSize: 100000 });
+            const docs = await (0, fiscalDashboard_service_1.fetchUnifiedDocuments)({ ...filters, page: 1, pageSize: 100000 });
+            const wb = XLSX.utils.book_new();
+            const resumoSheet = XLSX.utils.json_to_sheet(dashboard.resumoMensal.map((r) => ({
+                Mês: r.mesLabel,
+                'NF Entrada (Qtd)': r.entrada.qtd,
+                'Valor Entrada': r.entrada.valor,
+                'NF Serviço (Qtd)': r.servico.qtd,
+                'Valor Serviço': r.servico.valor,
+                'NF Peças (Qtd)': r.pecas.qtd,
+                'Valor Peças': r.pecas.valor,
+                'NF Saída (Qtd)': r.saida.qtd,
+                'Valor Saída': r.saida.valor,
+                Impostos: r.impostos,
+                Resultado: r.resultado
+            })));
+            XLSX.utils.book_append_sheet(wb, resumoSheet, 'Resumo Mensal');
+            const detalheSheet = XLSX.utils.json_to_sheet(docs.map(d => ({
+                'Número': d.numeroNota,
+                Série: d.serie,
+                Tipo: d.tipoDocumento,
+                Cliente: d.clienteNome,
+                Fornecedor: d.fornecedorNome,
+                'Data Emissão': d.dataEmissao ? new Date(d.dataEmissao).toLocaleDateString('pt-BR') : '',
+                'Valor Bruto': d.valorBruto,
+                'Valor Líquido': d.valorLiquido,
+                Impostos: d.valorImpostos,
+                Status: d.status,
+                'Chave Fiscal': d.chaveAcesso,
+                Origem: d.origemNota,
+                Responsável: d.usuarioResponsavel
+            })));
+            XLSX.utils.book_append_sheet(wb, detalheSheet, 'Detalhamento');
+            const impostosSheet = XLSX.utils.json_to_sheet([
+                { Imposto: 'ISS', Valor: dashboard.impostosPainel.iss },
+                { Imposto: 'ICMS', Valor: dashboard.impostosPainel.icms },
+                { Imposto: 'IPI', Valor: dashboard.impostosPainel.ipi },
+                { Imposto: 'PIS', Valor: dashboard.impostosPainel.pis },
+                { Imposto: 'COFINS', Valor: dashboard.impostosPainel.cofins },
+                { Imposto: 'IRPJ', Valor: dashboard.impostosPainel.irpj },
+                { Imposto: 'CSLL', Valor: dashboard.impostosPainel.csll },
+                { Imposto: 'Total', Valor: dashboard.impostosPainel.total }
+            ]);
+            XLSX.utils.book_append_sheet(wb, impostosSheet, 'Impostos');
+            const indicadoresSheet = XLSX.utils.json_to_sheet([
+                { Indicador: 'Ticket Médio Serviços', Valor: dashboard.indicadores.ticketMedioServicos },
+                { Indicador: 'Ticket Médio Peças', Valor: dashboard.indicadores.ticketMedioPecas },
+                { Indicador: 'Ticket Médio Geral', Valor: dashboard.indicadores.ticketMedioGeral },
+                { Indicador: 'Margem Bruta', Valor: dashboard.indicadores.margemBruta },
+                { Indicador: '% Impostos', Valor: dashboard.indicadores.percentualImpostos },
+                { Indicador: 'Crescimento Mensal %', Valor: dashboard.indicadores.crescimentoMensal }
+            ]);
+            XLSX.utils.book_append_sheet(wb, indicadoresSheet, 'Indicadores');
+            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+            await writeFiscalAudit(req, user, 'EXPORTACAO_EXCEL', `Exportação Excel com ${docs.length} registros`);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="dashboard-fiscal-${Date.now()}.xlsx"`);
+            return res.send(buffer);
+        }
+        catch (error) {
+            console.error('Error exporting Excel:', error);
+            return res.status(500).json({ error: 'Erro ao exportar Excel.' });
         }
     }
 };

@@ -228,6 +228,12 @@ registerFleetRoutes('/api/fleet');
 // Módulo Fiscal / Documentos Fiscais
 routes.use('/fiscal', authMiddleware);
 routes.get('/fiscal/documents', FiscalController.listDocuments);
+routes.get('/fiscal/documents/dashboard-full', FiscalController.getFullDashboard);
+routes.get('/fiscal/documents/month/:ano/:mes/details', FiscalController.getMonthlyDetails);
+routes.get('/fiscal/documents/clients/search', FiscalController.autocompleteClients);
+routes.get('/fiscal/documents/suppliers/search', FiscalController.autocompleteSuppliers);
+routes.get('/fiscal/documents/export/csv', FiscalController.exportCsv);
+routes.get('/fiscal/documents/export/excel', FiscalController.exportExcel);
 routes.post('/fiscal/documents/upload', FiscalController.uploadDocuments);
 routes.put('/fiscal/documents/:id', FiscalController.updateDocument);
 routes.delete('/fiscal/documents/:id', FiscalController.deleteDocument);
