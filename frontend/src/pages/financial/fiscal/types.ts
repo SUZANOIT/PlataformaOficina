@@ -99,6 +99,8 @@ export interface DashboardData {
   };
   documentos: UnifiedDoc[];
   pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  availableYears: number[];
+  filteredAno: number;
 }
 
 export const TIPOS_DOCUMENTO: { value: TipoDocumentoFiscal; label: string }[] = [
@@ -121,6 +123,13 @@ export const MESES = [
 
 export function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+export function yearFromChaveAcesso(chaveAcesso?: string | null): number | null {
+  if (!chaveAcesso || chaveAcesso.length < 4) return null;
+  const yy = parseInt(chaveAcesso.substring(2, 4), 10);
+  if (Number.isNaN(yy)) return null;
+  return 2000 + yy;
 }
 
 export function buildFilterParams(filters: FiscalFilters): URLSearchParams {

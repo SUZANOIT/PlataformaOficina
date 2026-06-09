@@ -271,6 +271,33 @@ export async function fetchUnifiedDocuments(filters: FiscalFilters): Promise<Uni
   return applyClientSideFilters(unified, filters);
 }
 
+export function yearFromChaveAcesso(chaveAcesso: string | null | undefined): number | null {
+  if (!chaveAcesso || chaveAcesso.length < 4) return null;
+  const yy = parseInt(chaveAcesso.substring(2, 4), 10);
+  if (Number.isNaN(yy)) return null;
+  return 2000 + yy;
+}
+
+export async function getAvailableYears(companyId: string): Promise<number[]> {
+  const [fiscalDates, nfeDates] = await Promise.all([
+    basePrisma.fiscalDocument.findMany({
+      where: { companyId, dataEmissao: { not: null } },
+      select: { dataEmissao: true }
+    }),
+    basePrisma.nfeImport.findMany({
+      where: { companyId },
+      select: { dataEmissao: true }
+    })
+  ]);
+
+  const years = new Set<number>();
+  for (const d of [...fiscalDates, ...nfeDates]) {
+    if (d.dataEmissao) years.add(new Date(d.dataEmissao).getFullYear());
+  }
+  years.add(new Date().getFullYear());
+  return Array.from(years).sort((a, b) => b - a);
+}
+
 function aggregateByType(docs: UnifiedFiscalDocument[], tipo: TipoDocumentoFiscal) {
   const filtered = docs.filter(d => d.tipoDocumento === tipo);
   return {
@@ -286,7 +313,10 @@ function aggregateByType(docs: UnifiedFiscalDocument[], tipo: TipoDocumentoFisca
 }
 
 export async function getFiscalDashboard(filters: FiscalFilters) {
-  const docs = await fetchUnifiedDocuments(filters);
+  const [docs, availableYears] = await Promise.all([
+    fetchUnifiedDocuments(filters),
+    getAvailableYears(filters.companyId)
+  ]);
 
   const entrada = aggregateByType(docs, 'ENTRADA');
   const saida = aggregateByType(docs, 'SAIDA');
@@ -424,7 +454,9 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
       pageSize,
       total: docs.length,
       totalPages: Math.ceil(docs.length / pageSize)
-    }
+    },
+    availableYears,
+    filteredAno: filters.ano
   };
 }
 

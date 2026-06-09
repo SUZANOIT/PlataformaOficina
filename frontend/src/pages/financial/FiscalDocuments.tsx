@@ -7,7 +7,7 @@ import {
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
 import type { DashboardData, FiscalFilters, UnifiedDoc } from './fiscal/types';
-import { MESES, STATUS_OPTIONS, TIPOS_DOCUMENTO, buildFilterParams, formatCurrency } from './fiscal/types';
+import { MESES, STATUS_OPTIONS, TIPOS_DOCUMENTO, buildFilterParams, formatCurrency, yearFromChaveAcesso } from './fiscal/types';
 
 const defaultFilters = (): FiscalFilters => ({
   ano: new Date().getFullYear(),
@@ -203,15 +203,26 @@ export function FiscalDocuments() {
         body: JSON.stringify({ files: prepared, isZip, batchName: `Lote ${new Date().toLocaleDateString()}` })
       });
       if (res.ok) {
+        const result = await res.json();
+        const uploadYear = result.documents?.[0]?.dataEmissao
+          ? new Date(result.documents[0].dataEmissao).getFullYear()
+          : filters.ano;
         toast.success('Importação concluída.');
-        fetchDashboard();
+        setFilters(prev => ({ ...prev, ano: uploadYear, mes: undefined, page: 1 }));
+        if (activeTab !== 'painel') setActiveTab('importacao');
       } else {
         const data = await res.json().catch(() => ({}));
         if (res.status === 409 && data.code === 'DUPLICATE_KEY') {
-          toast.error(data.error || 'NF-e já importada anteriormente.', {
-            description: data.chaveAcesso ? `Chave: ${data.chaveAcesso}` : undefined,
-            duration: 7000
+          const dupYear = yearFromChaveAcesso(data.chaveAcesso);
+          toast.warning(data.error || 'NF-e já importada anteriormente.', {
+            description: dupYear
+              ? `Altere o filtro para o ano ${dupYear} para visualizar a nota.`
+              : data.chaveAcesso ? `Chave: ${data.chaveAcesso}` : undefined,
+            duration: 8000
           });
+          if (dupYear) {
+            setFilters(prev => ({ ...prev, ano: dupYear, mes: undefined, page: 1 }));
+          }
         } else {
           handleApiError(res, data.error || 'Falha na importação.');
         }
@@ -253,6 +264,11 @@ export function FiscalDocuments() {
   const cards = dashboard?.cards;
   const imp = dashboard?.impostosPainel;
   const ind = dashboard?.indicadores;
+  const yearOptions = dashboard?.availableYears?.length
+    ? dashboard.availableYears
+    : [new Date().getFullYear(), new Date().getFullYear() - 1];
+  const showYearHint = dashboard && dashboard.pagination.total === 0
+    && dashboard.availableYears.some(y => y !== filters.ano);
 
   return (
     <div className="space-y-6 pb-12">
@@ -296,6 +312,24 @@ export function FiscalDocuments() {
 
       {activeTab === 'painel' && (
         <>
+          {showYearHint && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-sm text-foreground">
+                Nenhum documento encontrado em <strong>{filters.ano}</strong>.
+                Existem notas fiscais em: {dashboard!.availableYears.filter(y => y !== filters.ano).join(', ')}.
+              </p>
+              <button
+                onClick={() => {
+                  const alt = dashboard!.availableYears.find(y => y !== filters.ano);
+                  if (alt) updateFilter({ ano: alt, mes: undefined });
+                }}
+                className="text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"
+              >
+                Ver ano {dashboard!.availableYears.find(y => y !== filters.ano)}
+              </button>
+            </div>
+          )}
+
           {/* Filtros */}
           <div className="bg-card border border-border rounded-xl p-4 space-y-4">
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 text-sm font-bold">
@@ -306,9 +340,9 @@ export function FiscalDocuments() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground">Ano *</label>
-                  <select value={filters.ano} onChange={e => updateFilter({ ano: parseInt(e.target.value) })}
+                  <select value={filters.ano} onChange={e => updateFilter({ ano: parseInt(e.target.value), mes: undefined })}
                     className="w-full mt-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm">
-                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
                 <div>

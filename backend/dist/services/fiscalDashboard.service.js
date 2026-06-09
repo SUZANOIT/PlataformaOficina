@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchUnifiedDocuments = fetchUnifiedDocuments;
+exports.yearFromChaveAcesso = yearFromChaveAcesso;
+exports.getAvailableYears = getAvailableYears;
 exports.getFiscalDashboard = getFiscalDashboard;
 exports.getMonthDetails = getMonthDetails;
 exports.searchClients = searchClients;
@@ -218,6 +220,33 @@ async function fetchUnifiedDocuments(filters) {
     });
     return applyClientSideFilters(unified, filters);
 }
+function yearFromChaveAcesso(chaveAcesso) {
+    if (!chaveAcesso || chaveAcesso.length < 4)
+        return null;
+    const yy = parseInt(chaveAcesso.substring(2, 4), 10);
+    if (Number.isNaN(yy))
+        return null;
+    return 2000 + yy;
+}
+async function getAvailableYears(companyId) {
+    const [fiscalDates, nfeDates] = await Promise.all([
+        prisma_1.basePrisma.fiscalDocument.findMany({
+            where: { companyId, dataEmissao: { not: null } },
+            select: { dataEmissao: true }
+        }),
+        prisma_1.basePrisma.nfeImport.findMany({
+            where: { companyId },
+            select: { dataEmissao: true }
+        })
+    ]);
+    const years = new Set();
+    for (const d of [...fiscalDates, ...nfeDates]) {
+        if (d.dataEmissao)
+            years.add(new Date(d.dataEmissao).getFullYear());
+    }
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+}
 function aggregateByType(docs, tipo) {
     const filtered = docs.filter(d => d.tipoDocumento === tipo);
     return {
@@ -232,7 +261,10 @@ function aggregateByType(docs, tipo) {
     };
 }
 async function getFiscalDashboard(filters) {
-    const docs = await fetchUnifiedDocuments(filters);
+    const [docs, availableYears] = await Promise.all([
+        fetchUnifiedDocuments(filters),
+        getAvailableYears(filters.companyId)
+    ]);
     const entrada = aggregateByType(docs, 'ENTRADA');
     const saida = aggregateByType(docs, 'SAIDA');
     const servico = aggregateByType(docs, 'SERVICO');
@@ -377,7 +409,9 @@ async function getFiscalDashboard(filters) {
             pageSize,
             total: docs.length,
             totalPages: Math.ceil(docs.length / pageSize)
-        }
+        },
+        availableYears,
+        filteredAno: filters.ano
     };
 }
 async function getMonthDetails(filters, ano, mes) {
