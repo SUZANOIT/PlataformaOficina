@@ -529,17 +529,17 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="w-full">
-          <table className="w-full text-left border-collapse table-fixed break-words">
+        <div className="w-full overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium w-1/12">Nº</th>
-                <th className="p-4 font-medium hidden md:table-cell w-2/12">Empresa Emitente</th>
-                <th className="p-4 font-medium w-3/12">Cliente</th>
-                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Data</th>
-                <th className="p-4 font-medium hidden xl:table-cell w-1/12">Status</th>
-                <th className="p-4 font-medium w-2/12">Valor Total</th>
-                <th className="p-4 font-medium w-1/12">Ações</th>
+                <th className="p-4 font-medium w-[80px]">Nº</th>
+                <th className="p-4 font-medium hidden md:table-cell w-[22%]">Empresa Emitente</th>
+                <th className="p-4 font-medium w-[25%]">Cliente</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
+                <th className="p-4 font-medium w-[130px]">Valor Total</th>
+                <th className="p-4 font-medium w-[160px] text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
