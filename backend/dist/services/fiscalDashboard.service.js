@@ -9,6 +9,7 @@ exports.searchClients = searchClients;
 exports.searchSuppliers = searchSuppliers;
 exports.documentsToCsvRows = documentsToCsvRows;
 const prisma_1 = require("../lib/prisma");
+const fiscalFile_service_1 = require("./fiscalFile.service");
 const fiscalXmlParser_service_1 = require("./fiscalXmlParser.service");
 function sumTaxes(values) {
     return values.reduce((acc, v) => acc + (v || 0), 0);
@@ -54,29 +55,43 @@ async function getCompanyCnpj(companyId) {
     });
     return company?.cnpjSemMascara || company?.cnpj?.replace(/\D/g, '') || '';
 }
-function mapFiscalDocument(doc, companyCnpj) {
-    const tipoDocumento = (0, fiscalXmlParser_service_1.inferTipoDocumentoFromRecord)(doc, companyCnpj);
-    const icms = doc.icms || 0;
-    const ipi = doc.ipi || 0;
-    const pis = doc.pis || 0;
-    const cofins = doc.cofins || 0;
-    const iss = doc.iss || 0;
-    const irpj = doc.irpj || 0;
-    const csll = doc.csll || 0;
-    const valorTotal = doc.valorTotal || 0;
-    const valorImpostos = doc.valorImpostos ?? sumTaxes([icms, ipi, pis, cofins, iss, irpj, csll]);
+async function resolveXmlContent(doc) {
+    if (doc.xmlContent)
+        return doc.xmlContent;
+    if (doc.fileUrl) {
+        const buffer = await (0, fiscalFile_service_1.readFiscalFile)(doc.fileUrl);
+        return buffer ? buffer.toString('utf8') : null;
+    }
+    return null;
+}
+function mapFiscalDocument(doc, companyCnpj, xmlText) {
+    const parsed = xmlText ? (0, fiscalXmlParser_service_1.parseFiscalXml)(xmlText, companyCnpj) : null;
+    const tipoDocumento = parsed?.tipoDocumento
+        ?? (doc.tipoDocumento || (0, fiscalXmlParser_service_1.inferTipoDocumentoFromRecord)(doc, companyCnpj));
+    const fluxoFinanceiro = parsed?.fluxoFinanceiro ?? (0, fiscalXmlParser_service_1.inferFluxoFromRecord)(doc, companyCnpj);
+    const icms = parsed?.icms ?? doc.icms ?? 0;
+    const ipi = parsed?.ipi ?? doc.ipi ?? 0;
+    const pis = parsed?.pis ?? doc.pis ?? 0;
+    const cofins = parsed?.cofins ?? doc.cofins ?? 0;
+    const iss = parsed?.iss ?? doc.iss ?? 0;
+    const irpj = parsed?.irpj ?? doc.irpj ?? 0;
+    const csll = parsed?.csll ?? doc.csll ?? 0;
+    const valorTotal = parsed?.valorTotal ?? doc.valorTotal ?? 0;
+    const valorImpostos = parsed?.valorImpostos ?? doc.valorImpostos ?? sumTaxes([icms, ipi, pis, cofins, iss, irpj, csll]);
+    const isSaidaFluxo = fluxoFinanceiro === 'SAIDA';
     return {
         id: doc.id,
         source: 'FiscalDocument',
-        numeroNota: doc.numeroNota || doc.numeroDocumento,
-        serie: doc.serie || null,
-        tipoDocumento: doc.tipoDocumento || tipoDocumento,
-        chaveAcesso: doc.chaveAcesso,
-        clienteNome: doc.clienteNome || (tipoDocumento === 'SAIDA' ? doc.destinatarioNome : null),
-        fornecedorNome: doc.fornecedorNome || (tipoDocumento !== 'SAIDA' ? doc.emitenteNome : null),
-        dataEmissao: doc.dataEmissao,
-        valorBruto: doc.valorBruto ?? valorTotal,
-        valorLiquido: doc.valorLiquido ?? Math.max(valorTotal - valorImpostos, 0),
+        numeroNota: parsed?.numeroNota || doc.numeroNota || doc.numeroDocumento,
+        serie: parsed?.serie ?? doc.serie ?? null,
+        tipoDocumento,
+        fluxoFinanceiro,
+        chaveAcesso: parsed?.chaveAcesso ?? doc.chaveAcesso,
+        clienteNome: parsed?.clienteNome ?? doc.clienteNome ?? (isSaidaFluxo ? doc.destinatarioNome : null),
+        fornecedorNome: parsed?.fornecedorNome ?? doc.fornecedorNome ?? (!isSaidaFluxo ? doc.emitenteNome : null),
+        dataEmissao: parsed?.dataEmissao ?? doc.dataEmissao,
+        valorBruto: parsed?.valorBruto ?? doc.valorBruto ?? valorTotal,
+        valorLiquido: parsed?.valorLiquido ?? doc.valorLiquido ?? Math.max(valorTotal - valorImpostos, 0),
         valorImpostos,
         valorTotal,
         icms,
@@ -89,11 +104,42 @@ function mapFiscalDocument(doc, companyCnpj) {
         status: (0, fiscalXmlParser_service_1.mapLegacyStatus)(doc.status),
         origemNota: doc.origemNota || 'UPLOAD_MANUAL',
         usuarioResponsavel: doc.usuarioResponsavelNome || null,
-        xmlRecebido: !!(doc.xmlContent || doc.fileUrl),
+        xmlRecebido: !!(xmlText || doc.fileUrl),
         nomeArquivo: doc.nomeArquivo
     };
 }
-function mapNfeImport(nfe) {
+function mapNfeImport(nfe, companyCnpj) {
+    const parsed = nfe.xmlOriginal ? (0, fiscalXmlParser_service_1.parseFiscalXml)(nfe.xmlOriginal, companyCnpj) : null;
+    if (parsed) {
+        return {
+            id: nfe.id,
+            source: 'NfeImport',
+            numeroNota: parsed.numeroNota || nfe.numeroNf,
+            serie: parsed.serie ?? nfe.serie,
+            tipoDocumento: parsed.tipoDocumento,
+            fluxoFinanceiro: parsed.fluxoFinanceiro,
+            chaveAcesso: parsed.chaveAcesso ?? nfe.chaveAcesso,
+            clienteNome: parsed.clienteNome,
+            fornecedorNome: parsed.fornecedorNome ?? nfe.supplier?.razaoSocial ?? null,
+            dataEmissao: parsed.dataEmissao ?? nfe.dataEmissao,
+            valorBruto: parsed.valorBruto,
+            valorLiquido: parsed.valorLiquido,
+            valorImpostos: parsed.valorImpostos,
+            valorTotal: parsed.valorTotal,
+            icms: parsed.icms,
+            ipi: parsed.ipi,
+            pis: parsed.pis,
+            cofins: parsed.cofins,
+            iss: parsed.iss,
+            irpj: parsed.irpj,
+            csll: parsed.csll,
+            status: (0, fiscalXmlParser_service_1.mapLegacyStatus)(nfe.status),
+            origemNota: 'XML_IMPORTADO',
+            usuarioResponsavel: null,
+            xmlRecebido: true,
+            nomeArquivo: `${nfe.numeroNf}.xml`
+        };
+    }
     const items = nfe.items || [];
     const icms = items.reduce((s, i) => s + (i.icmsValor || 0), 0);
     const ipi = items.reduce((s, i) => s + (i.ipiValor || 0), 0);
@@ -104,13 +150,14 @@ function mapNfeImport(nfe) {
     const irpj = valorTotal * 0.015;
     const csll = valorTotal * 0.01;
     const valorImpostos = icms + ipi + pis + cofins + iss + irpj + csll;
-    const hasPecas = items.some((i) => i.cfop && /^(1102|2102|1403|2403)/.test(i.cfop));
+    const hasPecas = items.some((i) => i.cfop && /^(1102|2102|1403|2403|5102|5405)/.test(i.cfop));
     return {
         id: nfe.id,
         source: 'NfeImport',
         numeroNota: nfe.numeroNf,
         serie: nfe.serie,
         tipoDocumento: hasPecas ? 'PECAS' : 'ENTRADA',
+        fluxoFinanceiro: 'ENTRADA',
         chaveAcesso: nfe.chaveAcesso,
         clienteNome: null,
         fornecedorNome: nfe.supplier?.razaoSocial || null,
@@ -209,10 +256,10 @@ async function fetchUnifiedDocuments(filters) {
         })
     ]);
     const chavesFiscal = new Set(fiscalDocs.map(d => d.chaveAcesso).filter(Boolean));
-    const mappedFiscal = fiscalDocs.map(d => mapFiscalDocument(d, companyCnpj));
+    const mappedFiscal = await Promise.all(fiscalDocs.map(async (d) => mapFiscalDocument(d, companyCnpj, await resolveXmlContent(d))));
     const mappedNfe = nfeImports
         .filter(n => !n.chaveAcesso || !chavesFiscal.has(n.chaveAcesso))
-        .map(mapNfeImport);
+        .map(n => mapNfeImport(n, companyCnpj));
     const unified = [...mappedFiscal, ...mappedNfe].sort((a, b) => {
         const da = a.dataEmissao ? new Date(a.dataEmissao).getTime() : 0;
         const db = b.dataEmissao ? new Date(b.dataEmissao).getTime() : 0;
@@ -270,8 +317,8 @@ async function getFiscalDashboard(filters) {
     const servico = aggregateByType(docs, 'SERVICO');
     const pecas = aggregateByType(docs, 'PECAS');
     const totalImpostos = docs.reduce((s, d) => s + d.valorImpostos, 0);
-    const receitas = saida.valorTotal + servico.valorTotal + pecas.valorTotal;
-    const compras = entrada.valorTotal + pecas.valorTotal;
+    const receitas = docs.filter(d => d.fluxoFinanceiro === 'SAIDA').reduce((s, d) => s + d.valorTotal, 0);
+    const compras = docs.filter(d => d.fluxoFinanceiro === 'ENTRADA').reduce((s, d) => s + d.valorTotal, 0);
     const resultadoBruto = receitas - compras;
     const impostosPainel = {
         iss: docs.reduce((s, d) => s + d.iss, 0),
@@ -284,10 +331,10 @@ async function getFiscalDashboard(filters) {
     };
     const qtdServico = servico.quantidade || 0;
     const qtdPecas = pecas.quantidade || 0;
-    const qtdTotal = docs.length || 0;
+    const qtdReceitas = docs.filter(d => d.fluxoFinanceiro === 'SAIDA').length || 0;
     const ticketMedioServicos = qtdServico > 0 ? servico.valorTotal / qtdServico : 0;
     const ticketMedioPecas = qtdPecas > 0 ? pecas.valorTotal / qtdPecas : 0;
-    const ticketMedioGeral = qtdTotal > 0 ? receitas / qtdTotal : 0;
+    const ticketMedioGeral = qtdReceitas > 0 ? receitas / qtdReceitas : 0;
     const margemBruta = resultadoBruto;
     const percentualImpostos = receitas > 0 ? (totalImpostos / receitas) * 100 : 0;
     const monthlyMap = new Map();
@@ -306,32 +353,45 @@ async function getFiscalDashboard(filters) {
                 servico: { qtd: 0, valor: 0 },
                 pecas: { qtd: 0, valor: 0 },
                 impostos: 0,
+                icms: 0,
+                ipi: 0,
+                pis: 0,
+                cofins: 0,
+                iss: 0,
+                irpj: 0,
+                csll: 0,
                 receitas: 0,
                 compras: 0
             });
         }
         const row = monthlyMap.get(key);
         row.impostos += doc.valorImpostos;
+        row.icms += doc.icms;
+        row.ipi += doc.ipi;
+        row.pis += doc.pis;
+        row.cofins += doc.cofins;
+        row.iss += doc.iss;
+        row.irpj += doc.irpj;
+        row.csll += doc.csll;
+        if (doc.fluxoFinanceiro === 'SAIDA')
+            row.receitas += doc.valorTotal;
+        else
+            row.compras += doc.valorTotal;
         if (doc.tipoDocumento === 'ENTRADA') {
             row.entrada.qtd++;
             row.entrada.valor += doc.valorTotal;
-            row.compras += doc.valorTotal;
         }
         if (doc.tipoDocumento === 'SAIDA') {
             row.saida.qtd++;
             row.saida.valor += doc.valorTotal;
-            row.receitas += doc.valorTotal;
         }
         if (doc.tipoDocumento === 'SERVICO') {
             row.servico.qtd++;
             row.servico.valor += doc.valorTotal;
-            row.receitas += doc.valorTotal;
         }
         if (doc.tipoDocumento === 'PECAS') {
             row.pecas.qtd++;
             row.pecas.valor += doc.valorTotal;
-            row.receitas += doc.valorTotal;
-            row.compras += doc.valorTotal;
         }
         row.resultado = row.receitas - row.compras;
     }
@@ -355,13 +415,13 @@ async function getFiscalDashboard(filters) {
     const chartCompras = resumoMensal.map(r => ({ mes: r.mesLabel, entradas: r.entrada.valor }));
     const chartImpostos = resumoMensal.map(r => ({
         mes: r.mesLabel,
-        iss: r.impostos * 0.1,
-        icms: r.impostos * 0.35,
-        ipi: r.impostos * 0.1,
-        pis: r.impostos * 0.15,
-        cofins: r.impostos * 0.15,
-        irpj: r.impostos * 0.08,
-        csll: r.impostos * 0.07
+        iss: r.iss,
+        icms: r.icms,
+        ipi: r.ipi,
+        pis: r.pis,
+        cofins: r.cofins,
+        irpj: r.irpj,
+        csll: r.csll
     }));
     const chartComparativo = resumoMensal.map(r => ({
         mes: r.mesLabel,

@@ -257,6 +257,7 @@ export const FiscalController = {
               clienteNome: null,
               fornecedorNome: null,
               tipoDocumento: 'ENTRADA' as const,
+              fluxoFinanceiro: 'ENTRADA' as const,
               status: 'EMITIDA',
               xmlContent: xmlText
             };

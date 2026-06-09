@@ -251,6 +251,7 @@ exports.FiscalController = {
                         clienteNome: null,
                         fornecedorNome: null,
                         tipoDocumento: 'ENTRADA',
+                        fluxoFinanceiro: 'ENTRADA',
                         status: 'EMITIDA',
                         xmlContent: xmlText
                     };

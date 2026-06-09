@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.classifyTipoDocumento = classifyTipoDocumento;
+exports.resolveFluxoFinanceiro = resolveFluxoFinanceiro;
 exports.parseFiscalXml = parseFiscalXml;
+exports.inferFluxoFromRecord = inferFluxoFromRecord;
 exports.inferTipoDocumentoFromRecord = inferTipoDocumentoFromRecord;
 exports.mapLegacyStatus = mapLegacyStatus;
 const nfe_controller_1 = require("../controllers/nfe.controller");
@@ -23,6 +25,16 @@ function isPecasCfop(cfop) {
         return false;
     return /^(1102|2102|1403|2403|1556|2556)/.test(cfop);
 }
+function isVendaPecasCfop(cfop) {
+    if (!cfop)
+        return false;
+    return /^(5102|5405|6102|6118|6108)/.test(cfop);
+}
+function isPecasNcm(ncm) {
+    if (!ncm)
+        return false;
+    return /^(8708|4011|4013|7007|7009|8482|84)/.test(ncm);
+}
 function classifyTipoDocumento(xmlText, companyCnpj, items = []) {
     const companyClean = cleanCnpj(companyCnpj);
     const nfe = (0, nfe_controller_1.parseNfeXml)(xmlText);
@@ -37,16 +49,30 @@ function classifyTipoDocumento(xmlText, companyCnpj, items = []) {
     }
     const isEntrada = destClean === companyClean && destClean.length === 14;
     const isSaida = emitClean === companyClean && emitClean.length === 14;
-    if (isSaida)
+    const isPecasItem = (i) => isPecasCfop(i.cfop) || isVendaPecasCfop(i.cfop) || isPecasNcm(i.ncm);
+    if (isSaida) {
+        if (items.some(isPecasItem))
+            return 'PECAS';
         return 'SAIDA';
+    }
     if (isEntrada) {
-        const hasPecas = items.some(i => isPecasCfop(i.cfop));
         const natOp = (nfe.naturezaOperacao || '').toUpperCase();
-        if (hasPecas || natOp.includes('PEÇA') || natOp.includes('PECA')) {
+        if (items.some(isPecasItem) || natOp.includes('PEÇA') || natOp.includes('PECA')) {
             return 'PECAS';
         }
         return 'ENTRADA';
     }
+    return 'ENTRADA';
+}
+function resolveFluxoFinanceiro(xmlText, companyCnpj) {
+    const companyClean = cleanCnpj(companyCnpj);
+    const nfe = (0, nfe_controller_1.parseNfeXml)(xmlText);
+    const emitClean = cleanCnpj(nfe.supplier?.cnpj || '');
+    const destClean = cleanCnpj(nfe.destCnpj || '');
+    if (emitClean === companyClean && emitClean.length === 14)
+        return 'SAIDA';
+    if (destClean === companyClean && destClean.length === 14)
+        return 'ENTRADA';
     return 'ENTRADA';
 }
 function parseFiscalXml(xmlText, companyCnpj) {
@@ -65,14 +91,15 @@ function parseFiscalXml(xmlText, companyCnpj) {
         const irpj = valorTotal * 0.015;
         const csll = valorTotal * 0.01;
         const tipoDocumento = classifyTipoDocumento(xmlText, companyCnpj, items);
+        const fluxoFinanceiro = resolveFluxoFinanceiro(xmlText, companyCnpj);
         const emitenteNome = nfe.supplier?.razaoSocial || 'Emitente não identificado';
         const emitenteCnpj = nfe.supplier?.cnpj || '';
         const destBlock = blockContent(xmlText, 'dest') || '';
         const destinatarioNome = tagContent(destBlock, 'xNome') || 'Destinatário não identificado';
         const destinatarioCnpj = tagContent(destBlock, 'CNPJ') || tagContent(destBlock, 'CPF') || '';
-        const isSaida = tipoDocumento === 'SAIDA';
-        const clienteNome = isSaida ? destinatarioNome : null;
-        const fornecedorNome = isSaida ? null : emitenteNome;
+        const isSaidaFluxo = fluxoFinanceiro === 'SAIDA';
+        const clienteNome = isSaidaFluxo ? destinatarioNome : null;
+        const fornecedorNome = isSaidaFluxo ? null : emitenteNome;
         return {
             numeroDocumento: nfe.numeroNf || `NF-${Date.now()}`,
             numeroNota: nfe.numeroNf || '',
@@ -97,6 +124,7 @@ function parseFiscalXml(xmlText, companyCnpj) {
             clienteNome,
             fornecedorNome,
             tipoDocumento,
+            fluxoFinanceiro,
             status: 'EMITIDA'
         };
     }
@@ -104,6 +132,16 @@ function parseFiscalXml(xmlText, companyCnpj) {
         console.error('Erro ao parsear XML fiscal:', error);
         return null;
     }
+}
+function inferFluxoFromRecord(doc, companyCnpj) {
+    const companyClean = cleanCnpj(companyCnpj);
+    const emitClean = cleanCnpj(doc.emitenteCnpj);
+    const destClean = cleanCnpj(doc.destinatarioCnpj);
+    if (emitClean === companyClean && emitClean.length === 14)
+        return 'SAIDA';
+    if (destClean === companyClean && destClean.length === 14)
+        return 'ENTRADA';
+    return 'ENTRADA';
 }
 function inferTipoDocumentoFromRecord(doc, companyCnpj) {
     if (doc.tipoDocumento && ['ENTRADA', 'SAIDA', 'SERVICO', 'PECAS'].includes(doc.tipoDocumento)) {

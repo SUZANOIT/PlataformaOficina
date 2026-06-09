@@ -26,6 +26,7 @@ export interface ParsedFiscalXml {
   clienteNome: string | null;
   fornecedorNome: string | null;
   tipoDocumento: TipoDocumentoFiscal;
+  fluxoFinanceiro: 'ENTRADA' | 'SAIDA';
   status: string;
 }
 
@@ -50,10 +51,20 @@ function isPecasCfop(cfop: string | null | undefined): boolean {
   return /^(1102|2102|1403|2403|1556|2556)/.test(cfop);
 }
 
+function isVendaPecasCfop(cfop: string | null | undefined): boolean {
+  if (!cfop) return false;
+  return /^(5102|5405|6102|6118|6108)/.test(cfop);
+}
+
+function isPecasNcm(ncm: string | null | undefined): boolean {
+  if (!ncm) return false;
+  return /^(8708|4011|4013|7007|7009|8482|84)/.test(ncm);
+}
+
 export function classifyTipoDocumento(
   xmlText: string,
   companyCnpj: string,
-  items: Array<{ cfop?: string | null; issValor?: number | null }> = []
+  items: Array<{ cfop?: string | null; issValor?: number | null; ncm?: string | null }> = []
 ): TipoDocumentoFiscal {
   const companyClean = cleanCnpj(companyCnpj);
   const nfe = parseNfeXml(xmlText);
@@ -73,17 +84,35 @@ export function classifyTipoDocumento(
   const isEntrada = destClean === companyClean && destClean.length === 14;
   const isSaida = emitClean === companyClean && emitClean.length === 14;
 
-  if (isSaida) return 'SAIDA';
+  const isPecasItem = (i: { cfop?: string | null; ncm?: string | null }) =>
+    isPecasCfop(i.cfop) || isVendaPecasCfop(i.cfop) || isPecasNcm(i.ncm);
+
+  if (isSaida) {
+    if (items.some(isPecasItem)) return 'PECAS';
+    return 'SAIDA';
+  }
 
   if (isEntrada) {
-    const hasPecas = items.some(i => isPecasCfop(i.cfop));
     const natOp = (nfe.naturezaOperacao || '').toUpperCase();
-    if (hasPecas || natOp.includes('PEÇA') || natOp.includes('PECA')) {
+    if (items.some(isPecasItem) || natOp.includes('PEÇA') || natOp.includes('PECA')) {
       return 'PECAS';
     }
     return 'ENTRADA';
   }
 
+  return 'ENTRADA';
+}
+
+export function resolveFluxoFinanceiro(
+  xmlText: string,
+  companyCnpj: string
+): 'ENTRADA' | 'SAIDA' {
+  const companyClean = cleanCnpj(companyCnpj);
+  const nfe = parseNfeXml(xmlText);
+  const emitClean = cleanCnpj(nfe.supplier?.cnpj || '');
+  const destClean = cleanCnpj(nfe.destCnpj || '');
+  if (emitClean === companyClean && emitClean.length === 14) return 'SAIDA';
+  if (destClean === companyClean && destClean.length === 14) return 'ENTRADA';
   return 'ENTRADA';
 }
 
@@ -106,15 +135,16 @@ export function parseFiscalXml(xmlText: string, companyCnpj: string): ParsedFisc
     const csll = valorTotal * 0.01;
 
     const tipoDocumento = classifyTipoDocumento(xmlText, companyCnpj, items);
+    const fluxoFinanceiro = resolveFluxoFinanceiro(xmlText, companyCnpj);
     const emitenteNome = nfe.supplier?.razaoSocial || 'Emitente não identificado';
     const emitenteCnpj = nfe.supplier?.cnpj || '';
     const destBlock = blockContent(xmlText, 'dest') || '';
     const destinatarioNome = tagContent(destBlock, 'xNome') || 'Destinatário não identificado';
     const destinatarioCnpj = tagContent(destBlock, 'CNPJ') || tagContent(destBlock, 'CPF') || '';
 
-    const isSaida = tipoDocumento === 'SAIDA';
-    const clienteNome = isSaida ? destinatarioNome : null;
-    const fornecedorNome = isSaida ? null : emitenteNome;
+    const isSaidaFluxo = fluxoFinanceiro === 'SAIDA';
+    const clienteNome = isSaidaFluxo ? destinatarioNome : null;
+    const fornecedorNome = isSaidaFluxo ? null : emitenteNome;
 
     return {
       numeroDocumento: nfe.numeroNf || `NF-${Date.now()}`,
@@ -140,6 +170,7 @@ export function parseFiscalXml(xmlText: string, companyCnpj: string): ParsedFisc
       clienteNome,
       fornecedorNome,
       tipoDocumento,
+      fluxoFinanceiro,
       status: 'EMITIDA'
     };
   } catch (error) {
@@ -148,6 +179,17 @@ export function parseFiscalXml(xmlText: string, companyCnpj: string): ParsedFisc
   }
 }
 
+export function inferFluxoFromRecord(
+  doc: { emitenteCnpj?: string | null; destinatarioCnpj?: string | null },
+  companyCnpj: string
+): 'ENTRADA' | 'SAIDA' {
+  const companyClean = cleanCnpj(companyCnpj);
+  const emitClean = cleanCnpj(doc.emitenteCnpj);
+  const destClean = cleanCnpj(doc.destinatarioCnpj);
+  if (emitClean === companyClean && emitClean.length === 14) return 'SAIDA';
+  if (destClean === companyClean && destClean.length === 14) return 'ENTRADA';
+  return 'ENTRADA';
+}
 export function inferTipoDocumentoFromRecord(
   doc: {
     tipoDocumento?: string | null;
