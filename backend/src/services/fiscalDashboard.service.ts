@@ -592,3 +592,162 @@ export function documentsToCsvRows(docs: UnifiedFiscalDocument[]): string {
   }
   return csv;
 }
+
+const TIPO_PASTA: Record<TipoDocumentoFiscal, string> = {
+  ENTRADA: 'Entradas',
+  SAIDA: 'Saidas',
+  SERVICO: 'Servicos',
+  PECAS: 'Pecas'
+};
+
+const MESES_NOME = [
+  'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+export interface AccountingTypeCell {
+  quantidade: number;
+  valorTotal: number;
+  comXml: number;
+}
+
+export interface AccountingMonthRow {
+  ano: number;
+  mes: number;
+  mesLabel: string;
+  tipos: Record<TipoDocumentoFiscal, AccountingTypeCell>;
+  totalDocumentos: number;
+  totalComXml: number;
+}
+
+export interface AccountingXmlEntry {
+  zipPath: string;
+  buffer: Buffer;
+}
+
+function emptyTypeCell(): AccountingTypeCell {
+  return { quantidade: 0, valorTotal: 0, comXml: 0 };
+}
+
+function monthFolderLabel(mes: number): string {
+  const nome = MESES_NOME[mes - 1] || String(mes);
+  return `${String(mes).padStart(2, '0')}-${nome}`;
+}
+
+function buildXmlFileName(doc: UnifiedFiscalDocument): string {
+  if (doc.chaveAcesso) return `${doc.chaveAcesso}.xml`;
+  const serie = doc.serie ? `_serie${doc.serie}` : '';
+  return `NF${doc.numeroNota}${serie}.xml`;
+}
+
+export async function resolveUnifiedDocXml(doc: UnifiedFiscalDocument): Promise<Buffer | null> {
+  if (doc.source === 'FiscalDocument') {
+    const record = await basePrisma.fiscalDocument.findUnique({
+      where: { id: doc.id },
+      select: { xmlContent: true, fileUrl: true }
+    });
+    if (!record) return null;
+    if (record.fileUrl) {
+      const fromDisk = await readFiscalFile(record.fileUrl);
+      if (fromDisk) return fromDisk;
+    }
+    if (record.xmlContent) return Buffer.from(record.xmlContent, 'utf8');
+    return null;
+  }
+
+  const nfe = await basePrisma.nfeImport.findUnique({
+    where: { id: doc.id },
+    select: { xmlOriginal: true }
+  });
+  if (nfe?.xmlOriginal) return Buffer.from(nfe.xmlOriginal, 'utf8');
+  return null;
+}
+
+export async function getAccountingSummary(companyId: string, ano: number): Promise<AccountingMonthRow[]> {
+  const docs = await fetchUnifiedDocuments({
+    companyId,
+    ano,
+    tiposDocumento: [],
+    status: [],
+    cliente: '',
+    fornecedor: '',
+    numeroNota: '',
+    chaveFiscal: '',
+    dataInicial: '',
+    dataFinal: '',
+    search: '',
+    page: 1,
+    pageSize: 100000
+  });
+
+  const map = new Map<number, AccountingMonthRow>();
+
+  for (const doc of docs) {
+    if (!doc.dataEmissao) continue;
+    const dt = new Date(doc.dataEmissao);
+    const mes = dt.getMonth() + 1;
+
+    if (!map.has(mes)) {
+      map.set(mes, {
+        ano,
+        mes,
+        mesLabel: `${MESES_NOME[mes - 1]}/${ano}`,
+        tipos: {
+          ENTRADA: emptyTypeCell(),
+          SAIDA: emptyTypeCell(),
+          SERVICO: emptyTypeCell(),
+          PECAS: emptyTypeCell()
+        },
+        totalDocumentos: 0,
+        totalComXml: 0
+      });
+    }
+
+    const row = map.get(mes)!;
+    const cell = row.tipos[doc.tipoDocumento];
+    cell.quantidade += 1;
+    cell.valorTotal += doc.valorTotal;
+    if (doc.xmlRecebido) {
+      cell.comXml += 1;
+      row.totalComXml += 1;
+    }
+    row.totalDocumentos += 1;
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.mes - b.mes);
+}
+
+export async function buildAccountingXmlEntries(filters: FiscalFilters): Promise<AccountingXmlEntry[]> {
+  const exportFilters = { ...filters, page: 1, pageSize: 100000 };
+  const docs = await fetchUnifiedDocuments(exportFilters);
+  const entries: AccountingXmlEntry[] = [];
+  const usedPaths = new Set<string>();
+
+  for (const doc of docs) {
+    if (!doc.dataEmissao || !doc.xmlRecebido) continue;
+
+    const dt = new Date(doc.dataEmissao);
+    const mes = dt.getMonth() + 1;
+    const ano = dt.getFullYear();
+    const basePath = `${ano}/${monthFolderLabel(mes)}/${TIPO_PASTA[doc.tipoDocumento]}`;
+    let fileName = buildXmlFileName(doc);
+    let zipPath = `${basePath}/${fileName}`;
+
+    let suffix = 1;
+    while (usedPaths.has(zipPath)) {
+      const ext = fileName.endsWith('.xml') ? '.xml' : '';
+      const stem = ext ? fileName.slice(0, -4) : fileName;
+      fileName = `${stem}_${suffix}${ext}`;
+      zipPath = `${basePath}/${fileName}`;
+      suffix += 1;
+    }
+
+    const buffer = await resolveUnifiedDocXml(doc);
+    if (!buffer) continue;
+
+    usedPaths.add(zipPath);
+    entries.push({ zipPath, buffer });
+  }
+
+  return entries;
+}

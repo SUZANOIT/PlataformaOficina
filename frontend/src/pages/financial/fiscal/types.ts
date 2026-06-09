@@ -47,6 +47,7 @@ export interface UnifiedDoc {
   numeroNota: string;
   serie: string | null;
   tipoDocumento: TipoDocumentoFiscal;
+  fluxoFinanceiro?: 'ENTRADA' | 'SAIDA';
   chaveAcesso: string | null;
   clienteNome: string | null;
   fornecedorNome: string | null;
@@ -55,12 +56,54 @@ export interface UnifiedDoc {
   valorLiquido: number;
   valorImpostos: number;
   valorTotal: number;
+  icms?: number;
+  ipi?: number;
+  pis?: number;
+  cofins?: number;
+  iss?: number;
+  irpj?: number;
+  csll?: number;
   status: string;
   origemNota: string;
   usuarioResponsavel: string | null;
   xmlRecebido: boolean;
   nomeArquivo?: string;
 }
+
+export interface AccountingTypeCell {
+  quantidade: number;
+  valorTotal: number;
+  comXml: number;
+}
+
+export interface AccountingMonthRow {
+  ano: number;
+  mes: number;
+  mesLabel: string;
+  tipos: Record<TipoDocumentoFiscal, AccountingTypeCell>;
+  totalDocumentos: number;
+  totalComXml: number;
+}
+
+export interface AccountingSummaryData {
+  ano: number;
+  summary: AccountingMonthRow[];
+  availableYears: number[];
+}
+
+export const TIPO_PASTA_LABEL: Record<TipoDocumentoFiscal, string> = {
+  ENTRADA: 'Entradas',
+  SAIDA: 'Saídas',
+  SERVICO: 'Serviços',
+  PECAS: 'Peças'
+};
+
+export const TIPO_BADGE_COLOR: Record<TipoDocumentoFiscal, string> = {
+  ENTRADA: 'bg-blue-500/10 text-blue-600',
+  SAIDA: 'bg-emerald-500/10 text-emerald-600',
+  SERVICO: 'bg-violet-500/10 text-violet-600',
+  PECAS: 'bg-amber-500/10 text-amber-600'
+};
 
 export interface DashboardData {
   cards: {

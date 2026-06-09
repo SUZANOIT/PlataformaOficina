@@ -289,6 +289,14 @@ export function Layout() {
                     <span>Documentos Fiscais</span>
                   </Link>
                   <Link 
+                    to="/accounting/xml-export" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-violet-500" />
+                    <span>Exportação XML Contabilidade</span>
+                  </Link>
+                  <Link 
                     to="/accounting/nfe-import" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -670,6 +678,13 @@ export function Layout() {
                   >
                     <FileText size={16} className="text-blue-500" />
                     <span>Documentos Fiscais</span>
+                  </Link>
+                  <Link 
+                    to="/accounting/xml-export" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-violet-500" />
+                    <span>Exportação XML Contabilidade</span>
                   </Link>
                   <Link 
                     to="/accounting/nfe-import" 

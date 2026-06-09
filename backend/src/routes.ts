@@ -232,6 +232,8 @@ routes.get('/fiscal/documents/dashboard-full', FiscalController.getFullDashboard
 routes.get('/fiscal/documents/month/:ano/:mes/details', FiscalController.getMonthlyDetails);
 routes.get('/fiscal/documents/clients/search', FiscalController.autocompleteClients);
 routes.get('/fiscal/documents/suppliers/search', FiscalController.autocompleteSuppliers);
+routes.get('/fiscal/documents/accounting/summary', FiscalController.getAccountingSummary);
+routes.get('/fiscal/documents/export/xml-pack', FiscalController.exportAccountingXmlPack);
 routes.get('/fiscal/documents/export/csv', FiscalController.exportCsv);
 routes.get('/fiscal/documents/export/excel', FiscalController.exportExcel);
 routes.post('/fiscal/documents/upload', FiscalController.uploadDocuments);
@@ -260,6 +262,7 @@ routes.delete('/fiscal/tributacao/federal/:id', TaxController.deleteFederal);
 
 // Módulo Contabilidade - Importação de Notas Fiscais de Entrada
 routes.get('/fiscal/nfe', NfeController.list);
+routes.get('/fiscal/nfe/:id/xml', NfeController.downloadXml);
 routes.get('/fiscal/nfe/:id', NfeController.getOne);
 routes.post('/fiscal/nfe/upload', NfeController.upload);
 routes.post('/fiscal/nfe/confirm', NfeController.confirm);

@@ -10,8 +10,11 @@ import {
 } from '../services/fiscalFile.service';
 import { parseFiscalXml } from '../services/fiscalXmlParser.service';
 import {
+  buildAccountingXmlEntries,
   documentsToCsvRows,
   fetchUnifiedDocuments,
+  getAccountingSummary,
+  getAvailableYears,
   getFiscalDashboard,
   getMonthDetails,
   searchClients,
@@ -807,6 +810,78 @@ export const FiscalController = {
     } catch (error) {
       console.error('Error exporting Excel:', error);
       return res.status(500).json({ error: 'Erro ao exportar Excel.' });
+    }
+  },
+
+  async getAccountingSummary(req: Request, res: Response) {
+    try {
+      const user = await FiscalController.verifyUserAccess(req);
+      if (!user) return res.status(403).json({ error: 'Acesso negado.' });
+
+      const companyId = (req as any).companyId;
+      if (!companyId) return res.status(400).json({ error: 'Identificador da empresa não encontrado.' });
+
+      const ano = parseInt(String(req.query.ano || new Date().getFullYear()), 10);
+      const [summary, availableYears] = await Promise.all([
+        getAccountingSummary(companyId, ano),
+        getAvailableYears(companyId)
+      ]);
+
+      return res.json({ ano, summary, availableYears });
+    } catch (error) {
+      console.error('Error in accounting summary:', error);
+      return res.status(500).json({ error: 'Erro ao carregar resumo contábil.' });
+    }
+  },
+
+  async exportAccountingXmlPack(req: Request, res: Response) {
+    try {
+      const user = await FiscalController.verifyUserAccess(req);
+      if (!user) return res.status(403).json({ error: 'Acesso negado.' });
+
+      const companyId = (req as any).companyId;
+      if (!companyId) return res.status(400).json({ error: 'Identificador da empresa não encontrado.' });
+
+      const filters = parseFiscalFilters(req, companyId);
+      const entries = await buildAccountingXmlEntries(filters);
+
+      if (!entries.length) {
+        return res.status(404).json({ error: 'Nenhum XML encontrado para os filtros selecionados.' });
+      }
+
+      const mesLabel = filters.mes ? `-${String(filters.mes).padStart(2, '0')}` : '';
+      const tiposLabel = filters.tiposDocumento?.length
+        ? `-${filters.tiposDocumento.join('-')}`
+        : '';
+      const zipName = `xmls-fiscais-${filters.ano}${mesLabel}${tiposLabel}-${Date.now()}.zip`;
+
+      await writeFiscalAudit(
+        req,
+        user,
+        'EXPORTACAO_XML_CONTABILIDADE',
+        `Exportação XML contabilidade: ${entries.length} arquivos (${filters.ano}${mesLabel})`
+      );
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+      const archive = new ZipArchive({ zlib: { level: 9 } });
+      archive.on('error', (err: Error) => {
+        console.error('Erro ao gerar ZIP contabilidade:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Erro ao gerar arquivo ZIP.' });
+        }
+      });
+
+      archive.pipe(res);
+      for (const entry of entries) {
+        archive.append(entry.buffer, { name: entry.zipPath });
+      }
+      await archive.finalize();
+      return;
+    } catch (error) {
+      console.error('Error exporting accounting XML pack:', error);
+      return res.status(500).json({ error: 'Erro ao exportar pacote de XMLs.' });
     }
   }
 };

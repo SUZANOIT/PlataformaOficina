@@ -18,6 +18,7 @@ import { FinancialApprovals } from './pages/financial/FinancialApprovals';
 import { FinancialReports } from './pages/financial/FinancialReports';
 import { FinancialCategories } from './pages/financial/FinancialCategories';
 import { FiscalDocuments } from './pages/financial/FiscalDocuments';
+import { FiscalAccountingPortal } from './pages/financial/FiscalAccountingPortal';
 import FleetDashboard from './pages/fleet/FleetDashboard';
 import FleetVehicles from './pages/fleet/FleetVehicles';
 import VehicleDetails from './pages/fleet/VehicleDetails';
@@ -124,6 +125,7 @@ function App() {
               <Route path="financial/categories" element={<ModuleGuard moduleKey="financeiro" moduleName="Gestão Financeira"><FinancialCategories /></ModuleGuard>} />
               <Route path="financial/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
               <Route path="accounting/fiscal-documents" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalDocuments /></ModuleGuard>} />
+              <Route path="accounting/xml-export" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalAccountingPortal /></ModuleGuard>} />
               <Route path="products" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Products /></ModuleGuard>} />
               <Route path="accounting/nfe-import" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><NfeImport /></ModuleGuard>} />
               <Route path="accounting/taxes/municipal" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><MunicipalTaxes /></ModuleGuard>} />

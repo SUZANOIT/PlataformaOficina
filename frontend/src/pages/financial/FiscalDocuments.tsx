@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
 import type { DashboardData, FiscalFilters, UnifiedDoc } from './fiscal/types';
 import { MESES, STATUS_OPTIONS, TIPOS_DOCUMENTO, buildFilterParams, formatCurrency, yearFromChaveAcesso } from './fiscal/types';
+import { MonthDetailsModal, DocumentDetailModal } from './fiscal/FiscalModals';
+import { Link } from 'react-router-dom';
 
 const defaultFilters = (): FiscalFilters => ({
   ano: new Date().getFullYear(),
@@ -74,8 +76,10 @@ export function FiscalDocuments() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'painel' | 'importacao' | 'auditoria'>('painel');
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [monthModal, setMonthModal] = useState<{ ano: number; mes: number; mesLabel: string } | null>(null);
   const [monthDetails, setMonthDetails] = useState<UnifiedDoc[]>([]);
+  const [monthLoading, setMonthLoading] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<UnifiedDoc | null>(null);
   const [audits, setAudits] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(true);
   const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
@@ -155,13 +159,15 @@ export function FiscalDocuments() {
     if (res.ok) setSupplierSuggestions(await res.json());
   };
 
-  const expandMonth = async (row: { ano: number; mes: number; mesLabel: string }) => {
-    const key = `${row.ano}-${row.mes}`;
-    if (expandedMonth === key) { setExpandedMonth(null); return; }
-    setExpandedMonth(key);
+  const openMonthModal = async (row: { ano: number; mes: number; mesLabel: string }) => {
+    setMonthModal(row);
+    setMonthLoading(true);
+    setMonthDetails([]);
     const params = buildFilterParams({ ...filters, ano: row.ano, mes: row.mes });
     const res = await fetch(`/fiscal/documents/month/${row.ano}/${row.mes}/details?${params}`, { headers: authHeaders() });
     if (res.ok) setMonthDetails(await res.json());
+    else toast.error('Erro ao carregar documentos do mês.');
+    setMonthLoading(false);
   };
 
   const exportFile = async (type: 'csv' | 'excel') => {
@@ -235,14 +241,19 @@ export function FiscalDocuments() {
     }
   };
 
-  const downloadXml = async (id: string, fileName: string) => {
-    const res = await fetch(`/fiscal/documents/${id}/download`, { headers: authHeaders() });
+  const downloadUnifiedXml = async (doc: UnifiedDoc) => {
+    const url = doc.source === 'NfeImport'
+      ? `/fiscal/nfe/${doc.id}/xml`
+      : `/fiscal/documents/${doc.id}/download`;
+    const fileName = doc.nomeArquivo || (doc.chaveAcesso ? `${doc.chaveAcesso}.xml` : `NF${doc.numeroNota}.xml`);
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) { toast.error('Erro no download.'); return; }
     const blob = await res.blob();
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = fileName;
     link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   const deleteDoc = async (id: string) => {
@@ -283,6 +294,12 @@ export function FiscalDocuments() {
           <p className="text-sm text-muted-foreground">Dashboard Fiscal, Financeiro e Tributário — NF Entrada, Saída, Serviço e Peças</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link
+            to="/accounting/xml-export"
+            className="flex items-center gap-2 bg-violet-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-violet-700"
+          >
+            <FileCode size={16} /> Portal Contabilidade
+          </Link>
           <button onClick={() => exportFile('excel')} className="flex items-center gap-2 bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">
             <FileSpreadsheet size={16} /> Excel
           </button>
@@ -529,9 +546,9 @@ export function FiscalDocuments() {
                       {dashboard.resumoMensal.map(row => (
                         <Fragment key={`${row.ano}-${row.mes}`}>
                           <tr className="border-t border-border hover:bg-muted/10 cursor-pointer"
-                            onClick={() => expandMonth(row)}>
+                            onClick={() => openMonthModal(row)}>
                             <td className="p-3 font-semibold flex items-center gap-1">
-                              {expandedMonth === `${row.ano}-${row.mes}` ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                              <ChevronRight size={12} />
                               {row.mesLabel}
                             </td>
                             <td className="p-3 text-right">{row.entrada.qtd}</td>
@@ -547,19 +564,6 @@ export function FiscalDocuments() {
                               {formatCurrency(row.resultado)}
                             </td>
                           </tr>
-                          {expandedMonth === `${row.ano}-${row.mes}` && monthDetails.map(doc => (
-                            <tr key={doc.id} className="bg-muted/5 border-t border-border/50 text-[10px]">
-                              <td className="p-2 pl-8" colSpan={2}>NF {doc.numeroNota} {doc.serie && `Série ${doc.serie}`}</td>
-                              <td className="p-2">{doc.tipoDocumento}</td>
-                              <td className="p-2" colSpan={2}>{doc.clienteNome || doc.fornecedorNome || '—'}</td>
-                              <td className="p-2">{doc.dataEmissao ? new Date(doc.dataEmissao).toLocaleDateString('pt-BR') : '—'}</td>
-                              <td className="p-2 font-mono">{formatCurrency(doc.valorBruto)}</td>
-                              <td className="p-2 font-mono">{formatCurrency(doc.valorLiquido)}</td>
-                              <td className="p-2 font-mono">{formatCurrency(doc.valorImpostos)}</td>
-                              <td className="p-2">{doc.status}</td>
-                              <td className="p-2 truncate max-w-[120px]" title={doc.chaveAcesso || ''}>{doc.chaveAcesso?.slice(-8) || '—'}</td>
-                            </tr>
-                          ))}
                         </Fragment>
                       ))}
                       {!dashboard.resumoMensal.length && (
@@ -619,18 +623,16 @@ export function FiscalDocuments() {
                     <td className="p-3 text-right font-mono">{formatCurrency(doc.valorTotal)}</td>
                     <td className="p-3">{doc.status}</td>
                     <td className="p-3 text-center flex justify-center gap-1">
-                      {doc.source === 'FiscalDocument' && (
-                        <>
-                          <button onClick={() => downloadXml(doc.id, doc.nomeArquivo || `${doc.numeroNota}.xml`)}
-                            className="p-1 hover:bg-muted rounded" title="Download XML">
-                            <Download size={14} />
-                          </button>
-                          {user.roleAdmin && (
-                            <button onClick={() => deleteDoc(doc.id)} className="p-1 hover:bg-red-500/10 text-red-500 rounded" title="Excluir">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </>
+                      {doc.xmlRecebido && (
+                        <button onClick={() => downloadUnifiedXml(doc)}
+                          className="p-1 hover:bg-muted rounded" title="Download XML">
+                          <Download size={14} />
+                        </button>
+                      )}
+                      {doc.source === 'FiscalDocument' && user.roleAdmin && (
+                        <button onClick={() => deleteDoc(doc.id)} className="p-1 hover:bg-red-500/10 text-red-500 rounded" title="Excluir">
+                          <Trash2 size={14} />
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -676,6 +678,25 @@ export function FiscalDocuments() {
             </table>
           </div>
         </div>
+      )}
+
+      {monthModal && (
+        <MonthDetailsModal
+          mesLabel={monthModal.mesLabel}
+          docs={monthDetails}
+          loading={monthLoading}
+          onClose={() => setMonthModal(null)}
+          onSelectDoc={setSelectedDoc}
+          onDownload={downloadUnifiedXml}
+        />
+      )}
+
+      {selectedDoc && (
+        <DocumentDetailModal
+          doc={selectedDoc}
+          onClose={() => setSelectedDoc(null)}
+          onDownload={downloadUnifiedXml}
+        />
       )}
     </div>
   );

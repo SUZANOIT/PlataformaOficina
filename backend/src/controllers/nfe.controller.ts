@@ -710,5 +710,23 @@ export const NfeController = {
       console.error('Error canceling NFe import:', error);
       return res.status(500).json({ error: 'Erro ao cancelar importação de nota fiscal.' });
     }
+  },
+
+  async downloadXml(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId;
+      const id = req.params.id as string;
+      const nfe = await prisma.nfeImport.findFirst({ where: { id, companyId } });
+      if (!nfe?.xmlOriginal) {
+        return res.status(404).json({ error: 'XML da nota fiscal não encontrado.' });
+      }
+      const fileName = nfe.chaveAcesso ? `${nfe.chaveAcesso}.xml` : `NF${nfe.numeroNf}.xml`;
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      return res.send(Buffer.from(nfe.xmlOriginal, 'utf8'));
+    } catch (error) {
+      console.error('Error downloading NFe XML:', error);
+      return res.status(500).json({ error: 'Erro ao baixar XML da nota fiscal.' });
+    }
   }
 };
