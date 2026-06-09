@@ -393,6 +393,107 @@ async function main() {
     }
   }
 
+  // 8. Seed Faturamentos (Financeiro SaaS)
+  const faturamentosSeed = [
+    {
+      id: 'FAT-1001',
+      empresaId: 'c6d1edb2-d2d7-4f69-bbfc-d231860318e1', // Curio
+      planoId: starterPlan?.id || '',
+      valor: starterPlan?.valorMensal || 99.90,
+      competencia: '06/2026',
+      status: 'PAGO',
+      dataPagamento: new Date(),
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    },
+    {
+      id: 'FAT-1002',
+      empresaId: 'mca-padrao-company-uuid-000000000001', // MCA
+      planoId: enterprisePlan?.id || '',
+      valor: enterprisePlan?.valorMensal || 399.90,
+      competencia: '06/2026',
+      status: 'PAGO',
+      dataPagamento: new Date(),
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    },
+    {
+      id: 'FAT-1003',
+      empresaId: 'c6d1edb2-d2d7-4f69-bbfc-d231860318e1', // Curio
+      planoId: starterPlan?.id || '',
+      valor: starterPlan?.valorMensal || 99.90,
+      competencia: '05/2026',
+      status: 'PAGO',
+      dataPagamento: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000)
+    }
+  ];
+
+  for (const fat of faturamentosSeed) {
+    if (!fat.planoId) continue;
+    await prisma.saaSFaturamento.upsert({
+      where: { id: fat.id },
+      update: {
+        empresaId: fat.empresaId,
+        planoId: fat.planoId,
+        valor: fat.valor,
+        competencia: fat.competencia,
+        status: fat.status,
+        dataPagamento: fat.dataPagamento,
+        createdAt: fat.createdAt
+      },
+      create: fat
+    });
+  }
+
+  // 9. Seed Gateway Logs
+  const gatewayLogsSeed = [
+    {
+      id: '1',
+      gateway: 'Stripe',
+      event: 'charge.succeeded',
+      payload: JSON.stringify({ amount: 39990, currency: "brl", customer: "cus_9f812" }),
+      status: 'SUCCESS',
+      createdAt: new Date(Date.now() - 30 * 60 * 1000)
+    },
+    {
+      id: '2',
+      gateway: 'Asaas',
+      event: 'payment.received',
+      payload: JSON.stringify({ paymentId: "pay_9081231", value: 199.90, billingType: "PIX" }),
+      status: 'SUCCESS',
+      createdAt: new Date(Date.now() - 4 * 3600 * 1000)
+    },
+    {
+      id: '3',
+      gateway: 'Mercado Pago',
+      event: 'payment.created',
+      payload: JSON.stringify({ id: 89123891, status: "pending", payment_method_id: "bolbradesco" }),
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 24 * 3600 * 1000)
+    },
+    {
+      id: '4',
+      gateway: 'PagSeguro',
+      event: 'transaction.notification',
+      payload: JSON.stringify({ code: "A192B-C90D", status: "3" }),
+      status: 'SUCCESS',
+      createdAt: new Date(Date.now() - 48 * 3600 * 1000)
+    }
+  ];
+
+  for (const log of gatewayLogsSeed) {
+    await prisma.saaSGatewayLog.upsert({
+      where: { id: log.id },
+      update: {
+        gateway: log.gateway,
+        event: log.event,
+        payload: log.payload,
+        status: log.status,
+        createdAt: log.createdAt
+      },
+      create: log
+    });
+  }
+
   console.log('✅ SaaS Seed concluído!');
   console.log('');
   console.log('🎉 Seed concluído com sucesso!');

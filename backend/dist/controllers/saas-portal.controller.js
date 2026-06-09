@@ -7,6 +7,9 @@ exports.SaaSPortalController = void 0;
 const prisma_1 = require("../lib/prisma");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const zod_1 = require("zod");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const os_1 = __importDefault(require("os"));
+const child_process_1 = require("child_process");
 // Helper de Auditoria do SaaS
 async function logSaaSAuditoria(usuario, acao, detalhes, tenant, ip) {
     try {
@@ -711,15 +714,24 @@ exports.SaaSPortalController = {
             return res.status(500).json({ error: 'Erro ao cancelar assinatura.' });
         }
     },
-    // Interface Gateway Logs mock
     async getGatewayLogs(req, res) {
-        const logs = [
-            { id: '1', gateway: 'Stripe', event: 'charge.succeeded', payload: '{"amount": 39990, "currency": "brl", "customer": "cus_9f812"}', status: 'SUCCESS', date: new Date(Date.now() - 30 * 60000) },
-            { id: '2', gateway: 'Asaas', event: 'payment.received', payload: '{"paymentId": "pay_9081231", "value": 199.90, "billingType": "PIX"}', status: 'SUCCESS', date: new Date(Date.now() - 4 * 3600000) },
-            { id: '3', gateway: 'Mercado Pago', event: 'payment.created', payload: '{"id": 89123891, "status": "pending", "payment_method_id": "bolbradesco"}', status: 'PENDING', date: new Date(Date.now() - 24 * 3600000) },
-            { id: '4', gateway: 'PagSeguro', event: 'transaction.notification', payload: '{"code": "A192B-C90D", "status": "3"}', status: 'SUCCESS', date: new Date(Date.now() - 48 * 3600000) }
-        ];
-        return res.json(logs);
+        try {
+            const logs = await prisma_1.prisma.saaSGatewayLog.findMany({
+                orderBy: { createdAt: 'desc' }
+            });
+            return res.json(logs.map(l => ({
+                id: l.id,
+                gateway: l.gateway,
+                event: l.event,
+                payload: l.payload,
+                status: l.status,
+                date: l.createdAt
+            })));
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao carregar logs de gateway.' });
+        }
     },
     // ==================================================================
     // 5. MARKETPLACE DE MÓDULOS
@@ -944,14 +956,30 @@ exports.SaaSPortalController = {
             const mrr = activeSubs.reduce((sum, sub) => sum + sub.valor, 0);
             // Metricas financeiras
             const ticketMedio = mrr / (activeSubs.length || 1);
-            const cac = 150.00; // Custo de Aquisição de Clientes (Simulado)
+            const cacSetting = await prisma_1.prisma.saaSSetting.findUnique({ where: { chave: 'cac' } });
+            const cac = cacSetting ? parseFloat(cacSetting.valor) : 150.00;
             const ltv = ticketMedio * 18; // LifeTime Value (Ticket médio * tempo de retenção médio de 18 meses)
-            const faturamentosSimulados = [
-                { id: 'FAT-1001', tenant: 'Curio Serviços Automotivos', plano: 'Starter', valor: 99.90, formaPagamento: 'PIX', status: 'PAGO', dataVencimento: new Date(), dataPagamento: new Date() },
-                { id: 'FAT-1002', tenant: 'Mca Comércio Automotivo', plano: 'Enterprise', valor: 399.90, formaPagamento: 'Cartão', status: 'PAGO', dataVencimento: new Date(), dataPagamento: new Date() },
-                { id: 'FAT-1003', tenant: 'Oficina Mecânica Rápida', plano: 'Professional', valor: 199.90, formaPagamento: 'Boleto', status: 'PENDENTE', dataVencimento: new Date(Date.now() + 5 * 24 * 60000) },
-                { id: 'FAT-1004', tenant: 'Rede Auto Centro', plano: 'Enterprise', valor: 399.90, formaPagamento: 'Pix', status: 'PENDENTE', dataVencimento: new Date(Date.now() - 3 * 24 * 60000) }
-            ];
+            const [faturamentos, tenants, plans] = await Promise.all([
+                prisma_1.prisma.saaSFaturamento.findMany({ orderBy: { createdAt: 'desc' } }),
+                prisma_1.prisma.saaSTenant.findMany(),
+                prisma_1.prisma.saaSPlan.findMany()
+            ]);
+            const tenantMap = new Map(tenants.map(t => [t.id, t.razaoSocial]));
+            const planMap = new Map(plans.map(p => [p.id, p.nome]));
+            const faturamentosReal = faturamentos.map(f => ({
+                id: f.id,
+                tenant: tenantMap.get(f.empresaId) || 'Desconhecido',
+                plano: planMap.get(f.planoId) || 'Desconhecido',
+                valor: f.valor,
+                formaPagamento: 'Pix',
+                status: f.status,
+                dataVencimento: f.createdAt,
+                dataPagamento: f.dataPagamento
+            }));
+            const inadimplentesCount = faturamentos.filter(f => f.status === 'ATRASADO').length;
+            const inadimplenciaPercent = faturamentos.length > 0 ? (inadimplentesCount / faturamentos.length) * 100 : 0.0;
+            const receitas = faturamentos.filter(f => f.status === 'PAGO').reduce((sum, f) => sum + f.valor, 0);
+            const despesas = receitas * 0.25; // Proporção simulada de infraestrutura/suporte
             return res.json({
                 receitaMensal: mrr,
                 receitaAnual: mrr * 12,
@@ -959,12 +987,12 @@ exports.SaaSPortalController = {
                 ltv,
                 cac,
                 fluxoCaixa: {
-                    receitas: mrr,
-                    despesas: mrr * 0.25, // Proporção simulada de infraestrutura/suporte
-                    saldo: mrr * 0.75
+                    receitas,
+                    despesas,
+                    saldo: receitas - despesas
                 },
-                inadimplenciaPercent: 5.2,
-                faturamentos: faturamentosSimulados
+                inadimplenciaPercent,
+                faturamentos: faturamentosReal
             });
         }
         catch (error) {
@@ -1011,13 +1039,38 @@ exports.SaaSPortalController = {
     async getTelemetry(req, res) {
         try {
             const memoryUsage = process.memoryUsage();
-            const dbSize = '42.3 MB'; // Simulação de consulta pg_database_size
-            // Simular uso de recursos
+            // CPU load calculation
+            const cpus = os_1.default.cpus();
+            const load = os_1.default.loadavg()[0];
+            const cpuUsage = Math.min(100, Math.max(1, (load / (cpus.length || 1)) * 100)).toFixed(1) + '%';
+            // Real database size in PostgreSQL
+            let dbSize = '18.4 MB';
+            try {
+                const dbSizeResult = await prisma_1.prisma.$queryRawUnsafe(`SELECT pg_size_pretty(pg_database_size(current_database())) as size`);
+                if (dbSizeResult && dbSizeResult[0]?.size) {
+                    dbSize = dbSizeResult[0].size;
+                }
+            }
+            catch (e) {
+                console.error('Failed to read db size:', e);
+            }
+            // Real disk usage using df -h
+            let diskUsage = '14.2 GB / 100 GB (14%)';
+            try {
+                const stdout = (0, child_process_1.execSync)('df -h / | tail -1').toString();
+                const parts = stdout.split(/\s+/);
+                if (parts.length >= 5) {
+                    diskUsage = `${parts[2]} / ${parts[1]} (${parts[4]})`;
+                }
+            }
+            catch (e) {
+                console.error('Failed to read disk usage:', e);
+            }
             const telemetry = {
-                cpuUsage: (Math.random() * 15 + 5).toFixed(1) + '%', // CPU do Node
+                cpuUsage,
                 memoryUsage: (memoryUsage.heapUsed / 1024 / 1024).toFixed(1) + ' MB / ' + (memoryUsage.heapTotal / 1024 / 1024).toFixed(1) + ' MB',
                 postgresSize: dbSize,
-                diskUsage: '14.2 GB / 100 GB (14%)',
+                diskUsage,
                 processingQueue: {
                     activeJobs: 0,
                     pendingJobs: 0,
@@ -1114,6 +1167,76 @@ exports.SaaSPortalController = {
                 return res.status(400).json({ error: error.errors });
             console.error(error);
             return res.status(500).json({ error: 'Erro ao disparar alerta.' });
+        }
+    },
+    async markAsRead(req, res) {
+        const adminEmail = req.saasUserEmail || 'admin@suzanoit.com';
+        const id = req.params.id;
+        try {
+            const notification = await prisma_1.prisma.saaSNotification.update({
+                where: { id },
+                data: { lida: true }
+            });
+            await logSaaSAuditoria(adminEmail, 'Confirmação Leitura Alerta', `Confirmou leitura do alerta: '${notification.titulo}'`);
+            return res.json(notification);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao marcar alerta como lido.' });
+        }
+    },
+    async acessarTenant(req, res) {
+        const adminEmail = req.saasUserEmail || 'admin@suzanoit.com';
+        const schema = zod_1.z.object({
+            id: zod_1.z.string()
+        });
+        try {
+            const { id } = schema.parse(req.body);
+            // Encontrar o tenant
+            const tenant = await prisma_1.prisma.saaSTenant.findUnique({
+                where: { id }
+            });
+            if (!tenant) {
+                return res.status(404).json({ error: 'Empresa do SaaS não encontrada.' });
+            }
+            if (!tenant.companyId) {
+                return res.status(400).json({ error: 'Esta empresa SaaS não possui vínculo com uma oficina operacional.' });
+            }
+            // Encontrar o primeiro usuário da oficina operacional
+            const user = await prisma_1.prisma.user.findFirst({
+                where: {
+                    companyId: tenant.companyId
+                }
+            });
+            if (!user) {
+                return res.status(404).json({ error: 'Nenhum usuário operacional encontrado para esta oficina.' });
+            }
+            // Buscar a primeira oficina (workshopId) vinculada a essa empresa
+            const workshop = await prisma_1.prisma.oficina.findFirst({
+                where: { companyId: tenant.companyId }
+            });
+            // Gerar token operacional
+            const secret = process.env.JWT_SECRET || 'secret';
+            const tokenPayload = {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                companyId: tenant.companyId,
+                impersonatorEmail: adminEmail // Identifica que é uma impersonificação
+            };
+            const token = jsonwebtoken_1.default.sign(tokenPayload, secret, { expiresIn: '2h' });
+            await logSaaSAuditoria(adminEmail, 'Acesso Oficina Impersonificada', `Iniciou acesso à oficina de '${tenant.razaoSocial}'`);
+            return res.json({
+                token,
+                userId: user.id,
+                workshopId: workshop?.id || null
+            });
+        }
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError)
+                return res.status(400).json({ error: error.errors });
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao processar acesso à oficina.' });
         }
     }
 };

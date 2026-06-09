@@ -9,7 +9,8 @@ import {
   XCircle,
   Calendar,
   X,
-  Plus
+  Plus,
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
@@ -67,6 +68,17 @@ export function Notificacoes() {
       toast.error(err.response?.data?.error || 'Erro ao disparar alerta.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await SaaSAPIService.markNotificationAsRead(id);
+      toast.success('Leitura do alerta confirmada!');
+      loadNotifications();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Erro ao marcar alerta como lido.');
     }
   };
 
@@ -139,9 +151,39 @@ export function Notificacoes() {
                 </div>
               </div>
 
-              <div className="text-[10px] text-slate-500 font-mono font-bold shrink-0 flex items-center gap-1.5 justify-end mt-2 md:mt-0">
-                <Calendar size={12} className="text-slate-600" />
-                <span>{new Date(notif.createdAt).toLocaleString('pt-BR')}</span>
+              <div className="flex flex-col items-end gap-2 shrink-0 justify-center mt-2 md:mt-0">
+                <div className="flex items-center gap-2">
+                  {notif.lida ? (
+                    <span className="text-[9px] font-extrabold text-slate-500 bg-slate-950 px-2.5 py-1 rounded-full border border-slate-850 uppercase">
+                      Lida
+                    </span>
+                  ) : (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      </span>
+                      <span className="text-[9px] font-extrabold text-amber-400 bg-amber-950/20 px-2.5 py-1 rounded-full border border-amber-500/15 uppercase">
+                        Pendente
+                      </span>
+                    </>
+                  )}
+                </div>
+                
+                <div className="text-[10px] text-slate-500 font-mono font-bold flex items-center gap-1.5">
+                  <Calendar size={12} className="text-slate-600" />
+                  <span>{new Date(notif.createdAt).toLocaleString('pt-BR')}</span>
+                </div>
+
+                {!notif.lida && (
+                  <button
+                    onClick={() => handleMarkAsRead(notif.id)}
+                    className="mt-1 flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 text-indigo-400 hover:text-indigo-300 font-bold border border-indigo-500/15 hover:border-indigo-500/35 rounded-lg text-[10px] transition active:scale-95"
+                  >
+                    <Check size={11} />
+                    <span>Confirmar Leitura</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

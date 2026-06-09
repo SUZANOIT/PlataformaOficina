@@ -23,7 +23,8 @@ import {
   Tag,
   CreditCard,
   Package,
-  Percent
+  Percent,
+  ArrowLeftRight
 } from 'lucide-react';
 
 export function Layout() {
@@ -65,6 +66,13 @@ export function Layout() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const hasSaaSToken = !!localStorage.getItem('saas_token');
+
+  const handleReturnToSaaS = () => {
+    localStorage.removeItem('token');
+    navigate('/administracao/tenants');
   };
 
   const hasModule = (moduleKey: string) => {
@@ -484,6 +492,19 @@ export function Layout() {
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
           
+          {hasSaaSToken && (
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleReturnToSaaS();
+              }}
+              className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-primary/10 hover:text-primary transition-colors text-sm font-medium border border-primary/20 bg-primary/5"
+            >
+              <ArrowLeftRight size={20} />
+              <span>Voltar ao SaaS</span>
+            </button>
+          )}
+          
           <button 
             onClick={() => {
               setIsMobileMenuOpen(false);
@@ -859,6 +880,16 @@ export function Layout() {
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
+
+          {hasSaaSToken && (
+            <button 
+              onClick={handleReturnToSaaS}
+              className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-primary/10 hover:text-primary transition-colors text-sm font-medium border border-primary/20 bg-primary/5"
+            >
+              <ArrowLeftRight size={20} />
+              <span>Voltar ao SaaS</span>
+            </button>
+          )}
 
           <button 
             onClick={handleLogout}

@@ -216,7 +216,7 @@ export function Subscriptions() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-2">
             <h3 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-2">
               <Terminal size={14} className="text-indigo-400 animate-pulse" />
-              Logs de Webhooks e Transações de Gateway (Mocked)
+              Logs de Webhooks e Transações de Gateway
             </h3>
             <p className="text-[10px] text-slate-400 font-semibold">
               Rastreamento em tempo real de eventos recebidos do Stripe, Asaas, Mercado Pago e PagSeguro.

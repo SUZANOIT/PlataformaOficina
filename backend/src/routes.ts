@@ -364,6 +364,8 @@ routes.post('/api/saas/admin/tenants/suspend', saasAuthMiddleware, saasPermissio
 routes.post('/api/saas/admin/tenants/reactivate', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.reactivateTenant);
 routes.post('/api/saas/admin/tenants/reset-password', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.resetTenantAdminPassword);
 routes.get('/api/saas/admin/tenants/:id/history', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.getTenantHistory);
+routes.post('/api/saas/admin/tenants/acessar', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.acessarTenant);
+
 
 // CRUD Planos
 routes.get('/api/saas/admin/plans', saasAuthMiddleware, saasPermissionGuard('planos'), SaaSPortalController.listPlans);
@@ -402,5 +404,6 @@ routes.post('/api/saas/admin/settings', saasAuthMiddleware, saasPermissionGuard(
 // Notificações
 routes.get('/api/saas/admin/notifications', saasAuthMiddleware, SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.createNotification);
+routes.post('/api/saas/admin/notifications/:id/read', saasAuthMiddleware, SaaSPortalController.markAsRead);
 
 export { routes };

@@ -101,6 +101,11 @@ export const SaaSAPIService = {
     return response.data;
   },
 
+  async acessarTenant(id: string) {
+    const response = await saasApi.post('/api/saas/admin/tenants/acessar', { id });
+    return response.data;
+  },
+
   // Planos
   async listPlans() {
     const response = await saasApi.get('/api/saas/admin/plans');
@@ -217,6 +222,11 @@ export const SaaSAPIService = {
 
   async createNotification(payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR' }) {
     const response = await saasApi.post('/api/saas/admin/notifications', payload);
+    return response.data;
+  },
+
+  async markNotificationAsRead(id: string) {
+    const response = await saasApi.post(`/api/saas/admin/notifications/${id}/read`);
     return response.data;
   }
 };

@@ -384,7 +384,12 @@ export function Dashboard() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse table-fixed">
+              <colgroup>
+                <col className="w-1/2" />
+                <col className="w-1/4" />
+                <col className="w-1/4" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="pb-3 font-bold">Razão Social / Fantasia</th>
@@ -395,12 +400,12 @@ export function Dashboard() {
               <tbody className="divide-y divide-slate-800/40 text-xs">
                 {topTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-800/10">
-                    <td className="py-3 font-bold text-slate-200">
-                      <div>{t.razaoSocial}</div>
-                      {t.nomeFantasia && <div className="text-[10px] text-slate-500 font-semibold">{t.nomeFantasia}</div>}
+                    <td className="py-3 font-bold text-slate-200 truncate">
+                      <div className="truncate" title={t.razaoSocial}>{t.razaoSocial}</div>
+                      {t.nomeFantasia && <div className="text-[10px] text-slate-500 font-semibold truncate" title={t.nomeFantasia}>{t.nomeFantasia}</div>}
                     </td>
-                    <td className="py-3 text-slate-400 font-semibold">
-                      <span className="inline-block bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800 text-[10px] font-extrabold text-indigo-400">
+                    <td className="py-3 text-slate-400 font-semibold truncate">
+                      <span className="inline-block bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800 text-[10px] font-extrabold text-indigo-400 truncate max-w-full">
                         {t.plano}
                       </span>
                     </td>

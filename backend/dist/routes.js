@@ -323,6 +323,7 @@ routes.post('/api/saas/admin/tenants/suspend', saas_auth_middleware_1.saasAuthMi
 routes.post('/api/saas/admin/tenants/reactivate', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.reactivateTenant);
 routes.post('/api/saas/admin/tenants/reset-password', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.resetTenantAdminPassword);
 routes.get('/api/saas/admin/tenants/:id/history', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.getTenantHistory);
+routes.post('/api/saas/admin/tenants/acessar', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.acessarTenant);
 // CRUD Planos
 routes.get('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.listPlans);
 routes.post('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.createPlan);
@@ -353,3 +354,4 @@ routes.post('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddlewar
 // Notificações
 routes.get('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.createNotification);
+routes.post('/api/saas/admin/notifications/:id/read', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.markAsRead);

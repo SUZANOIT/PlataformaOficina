@@ -13,7 +13,8 @@ import {
   History,
   Check,
   AlertTriangle,
-  X
+  X,
+  Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
@@ -201,6 +202,33 @@ export function Tenants() {
     } catch (err) {
       console.error(err);
       toast.error('Erro ao buscar logs de auditoria.');
+    }
+  };
+
+  const handleAcessarOficina = async (tenant: any) => {
+    try {
+      toast.loading('Gerando token de acesso e redirecionando...');
+      const data = await SaaSAPIService.acessarTenant(tenant.id);
+      toast.dismiss();
+      
+      const currentToken = localStorage.getItem('token');
+      const currentSaaSToken = localStorage.getItem('saas_token');
+      if (currentToken && !currentSaaSToken) {
+        localStorage.setItem('saas_token', currentToken);
+      }
+      
+      localStorage.setItem('token', data.token);
+      toast.success(`Acessando a oficina de ${tenant.razaoSocial}...`);
+      
+      if (data.workshopId) {
+        window.location.href = `/fleet/workshops?workshopId=${data.workshopId}`;
+      } else {
+        window.location.href = `/fleet/workshops`;
+      }
+    } catch (err: any) {
+      toast.dismiss();
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Erro ao obter acesso à oficina.');
     }
   };
 
@@ -403,6 +431,13 @@ export function Tenants() {
                           <Edit3 size={13} />
                         </button>
                         <button
+                          onClick={() => handleAcessarOficina(tenant)}
+                          className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/15 transition shrink-0"
+                          title="Acessar Oficina"
+                        >
+                          <Wrench size={13} />
+                        </button>
+                        <button
                           onClick={() => handleOpenHistory(tenant)}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0"
                           title="Histórico / Auditoria"
@@ -422,6 +457,16 @@ export function Tenants() {
                           {isActionMenuOpen === tenant.id && (
                             <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl z-20 p-1 divide-y divide-slate-800 text-left">
                               <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    handleAcessarOficina(tenant);
+                                    setIsActionMenuOpen(null);
+                                  }}
+                                  className="flex items-center gap-2.5 w-full px-3 py-2 text-[11px] font-semibold text-indigo-400 hover:bg-slate-800 hover:text-indigo-300 rounded-lg transition"
+                                >
+                                  <Wrench size={12} className="shrink-0" />
+                                  <span className="truncate">Acessar Oficina</span>
+                                </button>
                                 <button
                                   onClick={() => {
                                     setSelectedTenant(tenant);
