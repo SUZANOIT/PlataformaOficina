@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, Save, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { GlobalBreadcrumbs } from '../components/GlobalBreadcrumbs';
 import { handleApiError } from '../utils/toast.helper';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 function CompanyModalBreadcrumb({ isEdit }: { isEdit: boolean }) {
   useBreadcrumbs([{ label: isEdit ? 'Editar Emissora' : 'Nova Emissora' }]);
@@ -552,23 +553,13 @@ export function BudgetCompanies() {
                 />
               </div>
 
-              {/* Botões */}
-              <div className="border-t border-border pt-4 flex justify-end gap-3 bg-muted/10 -mx-6 -mb-6 p-6">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition text-sm font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm flex items-center gap-1.5"
-                >
-                  {isSaving ? 'Salvando...' : <><Save size={16} /> {selectedCompany ? 'Atualizar' : 'Cadastrar'}</>}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={handleCloseModal}
+                primaryLabel={selectedCompany ? 'Atualizar' : 'Cadastrar'}
+                loading={isSaving}
+                primaryType="submit"
+                flush
+              />
             </form>
           </div>
         </div>

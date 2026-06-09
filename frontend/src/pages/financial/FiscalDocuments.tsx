@@ -57,6 +57,70 @@ function BarChart({ data, keys, colors }: {
   );
 }
 
+const COMPARATIVO_SERIES = [
+  { key: 'receitas', label: 'Receita', color: '#10b981' },
+  { key: 'impostos', label: 'Impostos', color: '#ef4444' },
+  { key: 'resultado', label: 'Resultado', color: '#8b5cf6' }
+] as const;
+
+function ComparativoFinanceiroChart({ data }: {
+  data: Array<{ mes: string; receitas: number; impostos: number; resultado: number }>;
+}) {
+  const max = Math.max(
+    ...data.flatMap(d => COMPARATIVO_SERIES.map(s => Math.abs(Number(d[s.key] || 0)))),
+    1
+  );
+
+  return (
+    <div>
+      <div className="flex items-end gap-3 h-52 overflow-x-auto pb-2 px-1">
+        {data.map((row, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5 min-w-[72px] shrink-0">
+            <div className="flex items-end justify-center gap-1 h-40 w-full">
+              {COMPARATIVO_SERIES.map(s => {
+                const value = Number(row[s.key] || 0);
+                const heightPct = (Math.abs(value) / max) * 100;
+                const isNegativeResult = s.key === 'resultado' && value < 0;
+                return (
+                  <div
+                    key={s.key}
+                    className="w-4 rounded-t-sm transition-all"
+                    style={{
+                      height: `${heightPct}%`,
+                      backgroundColor: isNegativeResult ? '#f97316' : s.color,
+                      minHeight: value !== 0 ? '4px' : '0',
+                      opacity: value === 0 ? 0.25 : 1
+                    }}
+                    title={`${s.label}: ${formatCurrency(value)}`}
+                  />
+                );
+              })}
+            </div>
+            <span className="text-[9px] text-muted-foreground truncate max-w-[68px] text-center">{row.mes}</span>
+          </div>
+        ))}
+        {!data.length && (
+          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground h-40">
+            Sem dados para o período.
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap justify-center gap-4 mt-3 pt-3 border-t border-border/50">
+        {COMPARATIVO_SERIES.map(s => (
+          <div key={s.key} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="font-semibold">{s.label}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm shrink-0 bg-orange-500" />
+          <span className="font-semibold">Resultado negativo</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SummaryCard({ title, qtd, valor, taxes, color }: {
   title: string; qtd: number; valor: number; taxes?: string; color: string;
 }) {
@@ -586,7 +650,8 @@ export function FiscalDocuments() {
                 </div>
                 <div className="bg-card border border-border rounded-xl p-4 lg:col-span-2">
                   <h4 className="text-xs font-bold mb-3 flex items-center gap-1"><BarChart3 size={14} /> Comparativo Financeiro</h4>
-                  <BarChart data={dashboard.charts.comparativo} keys={['receitas', 'compras', 'impostos', 'resultado']} colors={['#10b981', '#3b82f6', '#ef4444', '#8b5cf6']} />
+                  <p className="text-[10px] text-muted-foreground mb-3">Receita, Impostos e Resultado por mês</p>
+                  <ComparativoFinanceiroChart data={dashboard.charts.comparativo} />
                 </div>
               </div>
             </>

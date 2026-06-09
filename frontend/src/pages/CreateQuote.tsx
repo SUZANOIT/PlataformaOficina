@@ -8,6 +8,7 @@ import { platformService } from '../services/platformService';
 import { QuotePdfTemplate } from '../components/QuotePdfTemplate';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 type QuoteFormValues = {
   companyId: string;
@@ -1643,16 +1644,14 @@ ${bankingText}`;
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
-              <button
-                type="button"
-                onClick={() => setIsVehicleModalOpen(false)}
-                className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition shadow-sm text-sm"
-              >
-                {isViewing ? 'Fechar' : 'Confirmar'}
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsVehicleModalOpen(false)}
+              onPrimary={() => setIsVehicleModalOpen(false)}
+              cancelLabel={isViewing ? 'Fechar' : 'Cancelar'}
+              primaryLabel="Confirmar"
+              hidePrimary={isViewing}
+              flush
+            />
           </div>
         </div>
       )}

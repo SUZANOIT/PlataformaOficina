@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 interface Collaborator {
   id: string;
@@ -693,31 +694,13 @@ export function AbsenceControl() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-border/40">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-border/80 text-muted-foreground rounded-xl text-sm font-semibold hover:bg-secondary transition"
-                  disabled={submitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/95 transition flex items-center gap-1.5 shadow-md shadow-primary/20"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <span>Salvar</span>
-                  )}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsModalOpen(false)}
+                primaryLabel="Salvar"
+                loading={submitting}
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>
@@ -788,16 +771,11 @@ export function AbsenceControl() {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex justify-end p-4 border-t border-border/60 bg-secondary/5">
-              <button
-                type="button"
-                onClick={() => setShowAuditModal(false)}
-                className="px-5 py-2 bg-secondary text-foreground hover:bg-secondary/80 border border-border/70 rounded-xl text-sm font-semibold transition"
-              >
-                Fechar
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setShowAuditModal(false)}
+              cancelLabel="Fechar"
+              hidePrimary
+            />
           </div>
         </div>
       )}

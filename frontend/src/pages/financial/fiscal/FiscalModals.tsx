@@ -1,4 +1,5 @@
 import { X, Download, Eye } from 'lucide-react';
+import { ModalFooterActions } from '../../../components/ui/ModalFooterActions';
 import type { UnifiedDoc } from './types';
 import { TIPOS_DOCUMENTO, TIPO_BADGE_COLOR, formatCurrency } from './types';
 
@@ -100,6 +101,13 @@ export function MonthDetailsModal({ mesLabel, docs, loading, onClose, onSelectDo
             </table>
           )}
         </div>
+
+        <ModalFooterActions
+          onCancel={onClose}
+          cancelLabel="Fechar"
+          hidePrimary
+          flush
+        />
       </div>
     </div>
   );
@@ -172,20 +180,23 @@ export function DocumentDetailModal({ doc, onClose, onDownload }: DocModalProps)
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
-            {doc.xmlRecebido && (
+          {doc.xmlRecebido && (
+            <div className="pt-2">
               <button
                 onClick={() => onDownload(doc)}
                 className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium"
               >
                 <Download size={16} /> Baixar XML
               </button>
-            )}
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm border border-border">
-              Fechar
-            </button>
-          </div>
+            </div>
+          )}
         </div>
+
+        <ModalFooterActions
+          onCancel={onClose}
+          cancelLabel="Fechar"
+          hidePrimary
+        />
       </div>
     </div>
   );

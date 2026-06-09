@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 export function Tenants() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -668,22 +669,13 @@ export function Tenants() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black rounded-xl text-xs transition disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Salvando...' : 'Cadastrar Tenant'}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsCreateOpen(false)}
+                primaryLabel="Cadastrar Tenant"
+                loading={isSubmitting}
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>
@@ -830,22 +822,13 @@ export function Tenants() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsEditOpen(false)}
-                  className="px-4 py-2 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black rounded-xl text-xs transition disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsEditOpen(false)}
+                primaryLabel="Salvar Alterações"
+                loading={isSubmitting}
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>
@@ -880,22 +863,14 @@ export function Tenants() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsResetOpen(false)}
-                  className="px-3.5 py-2 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black rounded-xl text-xs transition disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Processando...' : 'Confirmar Reset'}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsResetOpen(false)}
+                primaryLabel="Confirmar Reset"
+                loading={isSubmitting}
+                loadingLabel="Processando..."
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>
@@ -937,6 +912,13 @@ export function Tenants() {
                 ))
               )}
             </div>
+
+            <ModalFooterActions
+              onCancel={() => setIsHistoryOpen(false)}
+              cancelLabel="Fechar"
+              hidePrimary
+              flush
+            />
           </div>
         </div>
       )}

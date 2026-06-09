@@ -12,6 +12,7 @@ import {
   Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 export function Notificacoes() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -199,23 +200,15 @@ export function Notificacoes() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsComposerOpen(false)}
-                  className="px-4 py-2 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black rounded-xl text-xs transition disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <Send size={12} />
-                  <span>{isSubmitting ? 'Enviando...' : 'Disparar'}</span>
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsComposerOpen(false)}
+                primaryLabel="Disparar"
+                primaryIcon={<Send size={12} />}
+                loading={isSubmitting}
+                loadingLabel="Enviando..."
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>

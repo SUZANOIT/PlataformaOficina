@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 import { handleApiError } from '../utils/toast.helper';
 
 // TypeScript Interface
@@ -806,31 +807,14 @@ export function Users() {
                 </div>
               </div>
 
-              {/* Action Buttons in Footer */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-5 py-2.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded-xl font-semibold text-sm transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  form="user-form"
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-gradient-to-r from-primary to-orange-600 hover:to-orange-500 text-primary-foreground rounded-xl font-semibold text-sm shadow hover:shadow-primary/10 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <span>Salvar Alterações</span>
-                  )}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={handleCloseModal}
+                onPrimary={() => void handleSubmit(onSubmit)()}
+                primaryLabel="Salvar Alterações"
+                loading={isSubmitting}
+                primaryType="button"
+                className="mt-6 pt-6"
+              />
             </div>
 
           </div>

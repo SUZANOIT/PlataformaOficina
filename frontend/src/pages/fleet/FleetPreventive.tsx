@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Wrench, ShieldAlert, Check, Sparkles } from 'lucide-react';
+import { Plus, Wrench, ShieldAlert, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 export default function FleetPreventive() {
   const [activeTab, setActiveTab] = useState<'motor' | 'cambio'>('motor');
@@ -590,27 +591,13 @@ export default function FleetPreventive() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setIsMotorModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-1.5 transition disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  ) : (
-                    <Check size={16} />
-                  )}
-                  Salvar Troca
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsMotorModalOpen(false)}
+                primaryLabel="Salvar Troca"
+                loading={isSubmitting}
+                primaryType="submit"
+                flush
+              />
             </form>
           </div>
         </div>
@@ -766,27 +753,13 @@ export default function FleetPreventive() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setIsGearModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-1.5 transition disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  ) : (
-                    <Check size={16} />
-                  )}
-                  Salvar Troca
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsGearModalOpen(false)}
+                primaryLabel="Salvar Troca"
+                loading={isSubmitting}
+                primaryType="submit"
+                flush
+              />
             </form>
           </div>
         </div>

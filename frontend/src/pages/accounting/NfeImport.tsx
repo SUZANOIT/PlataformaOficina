@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, AlertTriangle, ArrowRight, ArrowLeft, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, ArrowRight, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 export function NfeImport() {
   const [activeView, setActiveView] = useState<'import' | 'history'>('import');
@@ -464,23 +465,15 @@ export function NfeImport() {
                 />
               </div>
 
-              {/* Footer Confirmation Controls */}
-              <div className="flex justify-between items-center pt-4 border-t border-border">
-                <button
-                  onClick={() => { setNfeResult(null); setXmlText(''); }}
-                  className="flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-foreground hover:bg-muted font-semibold text-sm transition"
-                >
-                  <ArrowLeft size={16} /> Voltar / Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmImport}
-                  disabled={nfeResult.isDuplicate}
-                  className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-bold shadow hover:bg-primary/90 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span>Confirmar Importação de Itens</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => { setNfeResult(null); setXmlText(''); }}
+                onPrimary={handleConfirmImport}
+                cancelLabel="Voltar / Cancelar"
+                primaryLabel="Confirmar Importação de Itens"
+                primaryIcon={<ArrowRight size={16} />}
+                disabled={nfeResult.isDuplicate}
+                embedded
+              />
             </div>
           )}
         </div>
@@ -653,14 +646,11 @@ export function NfeImport() {
               )}
             </div>
 
-            <div className="border-t border-border pt-4 flex justify-end bg-muted/10 p-6">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 bg-muted hover:bg-secondary border border-border rounded-lg text-foreground text-xs font-semibold transition"
-              >
-                Fechar Painel
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsDetailModalOpen(false)}
+              cancelLabel="Fechar Painel"
+              hidePrimary
+            />
           </div>
         </div>
       )}

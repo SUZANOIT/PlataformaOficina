@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { platformService } from '../services/platformService';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { handleApiError } from '../utils/toast.helper';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 export function Platforms() {
   useBreadcrumbs([{ label: 'Plataformas de Gestão' }]);
@@ -646,24 +647,13 @@ export function Platforms() {
                 </div>
               </div>
 
-              {/* Modal Footer Controls */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-border hover:bg-secondary text-foreground text-sm font-semibold rounded-lg transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-primary hover:bg-primary/95 disabled:opacity-75 text-primary-foreground px-5 py-2 rounded-lg font-semibold text-sm transition-all shadow-sm flex items-center gap-1.5"
-                >
-                  {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {selectedPlatform ? 'Salvar Alterações' : 'Confirmar Cadastro'}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={handleCloseModal}
+                primaryLabel={selectedPlatform ? 'Salvar Alterações' : 'Confirmar Cadastro'}
+                loading={isSaving}
+                primaryType="submit"
+                className="pt-4"
+              />
 
             </form>
           </div>

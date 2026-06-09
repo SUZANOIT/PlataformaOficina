@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { GlobalBreadcrumbs } from '../components/GlobalBreadcrumbs';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 function SoldModalBreadcrumb() {
   useBreadcrumbs([{ label: 'Detalhamento de Vendas' }]);
@@ -894,15 +895,11 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-4 bg-muted/20 border-t border-border flex justify-end">
-              <button
-                onClick={() => setIsSoldModalOpen(false)}
-                className="w-full sm:w-auto px-4 py-2 bg-secondary hover:bg-secondary/80 border border-border text-sm font-medium rounded-lg transition"
-              >
-                Fechar
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsSoldModalOpen(false)}
+              cancelLabel="Fechar"
+              hidePrimary
+            />
           </div>
         </div>
       )}

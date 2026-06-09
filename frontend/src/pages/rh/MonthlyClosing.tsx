@@ -13,6 +13,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 import { api } from '../../services/api';
 
 interface ClosingItem {
@@ -355,31 +356,15 @@ export function MonthlyClosing() {
                 </ul>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-border/40">
-                <button
-                  type="button"
-                  onClick={() => setIsConfirmOpen(false)}
-                  className="px-4 py-2 border border-border/80 text-muted-foreground rounded-xl text-sm font-semibold hover:bg-secondary transition"
-                  disabled={submittingClose}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloseMonth}
-                  className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary/95 transition flex items-center gap-1.5 shadow-md shadow-primary/20"
-                  disabled={submittingClose}
-                >
-                  {submittingClose ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                      <span>Processando...</span>
-                    </>
-                  ) : (
-                    <span>Fechar Mês</span>
-                  )}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsConfirmOpen(false)}
+                onPrimary={handleCloseMonth}
+                primaryLabel="Fechar Mês"
+                loading={submittingClose}
+                loadingLabel="Processando..."
+                primaryType="button"
+                embedded
+              />
             </div>
           </div>
         </div>
@@ -510,16 +495,11 @@ export function MonthlyClosing() {
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end p-4 border-t border-border/60 bg-secondary/5">
-              <button
-                type="button"
-                onClick={() => setDetailItem(null)}
-                className="px-5 py-2 bg-secondary text-foreground hover:bg-secondary/80 border border-border/70 rounded-xl text-sm font-semibold transition"
-              >
-                Fechar Detalhes
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setDetailItem(null)}
+              cancelLabel="Fechar"
+              hidePrimary
+            />
           </div>
         </div>
       )}

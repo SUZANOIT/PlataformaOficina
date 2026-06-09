@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 export function Suppliers() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -579,23 +580,13 @@ export function Suppliers() {
                 </div>
               )}
 
-              {/* Botões */}
-              <div className="border-t border-border pt-4 flex justify-end gap-3 bg-muted/10 -mx-6 -mb-6 p-6">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted transition text-sm font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isSubmitting ? 'Salvando...' : (selectedSupplier ? 'Atualizar Fornecedor' : 'Cadastrar Fornecedor')}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={handleCloseModal}
+                primaryLabel={selectedSupplier ? 'Atualizar Fornecedor' : 'Cadastrar Fornecedor'}
+                loading={isSubmitting}
+                primaryType="submit"
+                flush
+              />
             </form>
           </div>
         </div>

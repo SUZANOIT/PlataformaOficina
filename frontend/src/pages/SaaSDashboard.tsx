@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
+import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
 interface Plan {
   id: string;
@@ -1472,36 +1473,13 @@ export function SaaSDashboard() {
 
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setWizardStep(prev => Math.max(prev - 1, 1))}
-                disabled={wizardStep === 1 || isSubmitting}
-                className="px-4 py-2 border border-border hover:bg-muted text-xs font-semibold rounded-xl transition disabled:opacity-50"
-              >
-                Voltar
-              </button>
-
-              {wizardStep < 5 ? (
-                <button
-                  type="button"
-                  onClick={() => setWizardStep(prev => Math.min(prev + 1, 5))}
-                  className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-                >
-                  Continuar
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleCreateCompanySubmit}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
-                >
-                  {isSubmitting ? 'Salvando...' : 'Finalizar Cadastro'}
-                </button>
-              )}
-            </div>
+            <ModalFooterActions
+              onCancel={() => setWizardStep(prev => Math.max(prev - 1, 1))}
+              onPrimary={wizardStep < 5 ? () => setWizardStep(prev => Math.min(prev + 1, 5)) : handleCreateCompanySubmit}
+              cancelLabel="Voltar"
+              primaryLabel={wizardStep < 5 ? 'Continuar' : 'Finalizar Cadastro'}
+              loading={isSubmitting}
+            />
 
           </div>
         </div>
@@ -1583,14 +1561,11 @@ export function SaaSDashboard() {
               </div>
             </div>
             
-            <div className="p-4 border-t border-border bg-muted/20 text-right">
-              <button 
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-              >
-                Fechar Detalhes
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsViewModalOpen(false)}
+              cancelLabel="Fechar Detalhes"
+              hidePrimary
+            />
           </div>
         </div>
       )}
@@ -1696,22 +1671,12 @@ export function SaaSDashboard() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-end gap-2">
-              <button 
-                type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 border border-border hover:bg-muted text-xs font-semibold rounded-xl transition"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-              >
-                {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsEditModalOpen(false)}
+              primaryLabel="Salvar Alterações"
+              loading={isSubmitting}
+              primaryType="submit"
+            />
           </form>
         </div>
       )}
@@ -1770,22 +1735,12 @@ export function SaaSDashboard() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-end gap-2">
-              <button 
-                type="button"
-                onClick={() => setIsSubscriptionModalOpen(false)}
-                className="px-4 py-2 border border-border hover:bg-muted text-xs font-semibold rounded-xl transition"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-              >
-                {isSubmitting ? 'Salvando...' : 'Aplicar Alterações'}
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsSubscriptionModalOpen(false)}
+              primaryLabel="Aplicar Alterações"
+              loading={isSubmitting}
+              primaryType="submit"
+            />
           </form>
         </div>
       )}
@@ -1832,22 +1787,12 @@ export function SaaSDashboard() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-end gap-2">
-              <button 
-                type="button"
-                onClick={() => setIsResetPasswordModalOpen(false)}
-                className="px-4 py-2 border border-border hover:bg-muted text-xs font-semibold rounded-xl transition"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-              >
-                Confirmar Reset
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsResetPasswordModalOpen(false)}
+              primaryLabel="Confirmar Reset"
+              loading={isSubmitting}
+              primaryType="submit"
+            />
           </form>
         </div>
       )}
@@ -1881,14 +1826,11 @@ export function SaaSDashboard() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/20 text-right">
-              <button 
-                onClick={() => setIsHistoryModalOpen(false)}
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl transition"
-              >
-                Fechar Histórico
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsHistoryModalOpen(false)}
+              cancelLabel="Fechar Histórico"
+              hidePrimary
+            />
           </div>
         </div>
       )}

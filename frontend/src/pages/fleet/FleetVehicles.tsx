@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { 
-  Truck, Plus, Search, Edit2, Trash2, Sparkles, Check, X,
+  Truck, Plus, Search, Edit2, Trash2, Sparkles, X,
   ChevronDown, ChevronRight, Folder, FolderOpen, DollarSign,
   Wrench, Package, Paperclip, Clipboard, CheckSquare, FileText, AlertCircle, AlertTriangle,
   TrendingUp, TrendingDown, Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 export default function FleetVehicles() {
   // Tree States
@@ -1472,28 +1473,13 @@ export default function FleetVehicles() {
               )}
             </form>
 
-            {/* Modal Footer */}
-            <div className="p-6 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-indigo-650 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition disabled:opacity-50 flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                ) : (
-                  <Check size={16} />
-                )}
-                Salvar Veículo
-              </button>
-            </div>
+            <ModalFooterActions
+              onCancel={() => setIsModalOpen(false)}
+              onPrimary={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+              primaryLabel="Salvar Veículo"
+              loading={isSubmitting}
+              primaryType="button"
+            />
           </div>
         </div>
       )}

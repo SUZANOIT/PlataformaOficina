@@ -11,9 +11,9 @@ import {
   TrendingUp, 
   Layers,
   X,
-  Loader2,
   FolderOpen
 } from 'lucide-react';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
 interface Category {
   id: string;
@@ -425,31 +425,12 @@ export function FinancialCategories() {
                 </div>
               </div>
 
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-border/60 bg-muted/40 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold hover:bg-secondary text-muted-foreground hover:text-foreground transition duration-150 disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2 rounded-xl shadow-md transition duration-150 active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <span>Salvar Categoria</span>
-                  )}
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsModalOpen(false)}
+                primaryLabel="Salvar Categoria"
+                loading={isSubmitting}
+                primaryType="submit"
+              />
             </form>
           </div>
         </div>

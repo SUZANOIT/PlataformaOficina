@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Attachment {
@@ -1277,22 +1278,12 @@ export function FinancialReceivables() {
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="pt-4 border-t border-border flex items-center justify-end gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 border border-border text-foreground hover:bg-secondary transition-colors text-sm rounded-xl font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 transition-colors text-sm rounded-xl font-semibold shadow-xs"
-                >
-                  Salvar Lançamento
-                </button>
-              </div>
+              <ModalFooterActions
+                onCancel={() => setIsFormOpen(false)}
+                primaryLabel="Salvar Lançamento"
+                primaryType="submit"
+                embedded
+              />
             </form>
           </div>
         </div>
@@ -1506,6 +1497,13 @@ export function FinancialReceivables() {
                 )}
               </div>
             </div>
+
+            <ModalFooterActions
+              onCancel={() => setIsDetailOpen(false)}
+              cancelLabel="Fechar"
+              hidePrimary
+              flush
+            />
           </div>
         </div>
       )}
