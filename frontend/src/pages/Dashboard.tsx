@@ -1,16 +1,8 @@
-import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Building, X, Eye } from 'lucide-react';
+import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Building, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useBreadcrumbs } from '../context/BreadcrumbContext';
-import { GlobalBreadcrumbs } from '../components/GlobalBreadcrumbs';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
-import { ModalFooterActions } from '../components/ui/ModalFooterActions';
-
-function SoldModalBreadcrumb() {
-  useBreadcrumbs([{ label: 'Detalhamento de Vendas' }]);
-  return null;
-}
 
 export function Dashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -21,7 +13,6 @@ export function Dashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isSoldModalOpen, setIsSoldModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchStats = async () => {
@@ -221,47 +212,8 @@ export function Dashboard() {
     'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
   ];
 
-  // Sold Modal calculations
-  const activeQuotes = (selectedCompanyId === 'all' 
-    ? quotes 
-    : quotes.filter((q: any) => q.company?.id === selectedCompanyId)
-  ).filter((q: any) => {
-    const company = q.company;
-    if (!company) return false;
-    const cnpjClean = company.cnpj ? company.cnpj.replace(/\D/g, '') : '';
-    const ieClean = company.inscricaoEstadual ? company.inscricaoEstadual.replace(/\D/g, '') : '';
-    const matchesCnpj = cnpjClean === '30021766000113' || cnpjClean === '98765432000110';
-    const matchesIe = ieClean === '119214099114' || ieClean === '987654321000';
-    const matchesName = company.razaoSocial?.toLowerCase().includes('mca') || 
-                        company.nomeFantasia?.toLowerCase().includes('mca');
-    return matchesCnpj || matchesIe || matchesName;
-  });
 
-  // Geral
-  const totalSoldVal = activeQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
-  let totalPecasVal = 0;
-  let totalMaoDeObraVal = 0;
 
-  // Aprovados
-  const approvedQuotes = activeQuotes.filter((q: any) => q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento');
-  const totalApprovedVal = approvedQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
-  let totalPecasApprovedVal = 0;
-  let totalMaoDeObraApprovedVal = 0;
-
-  activeQuotes.forEach((q: any) => {
-    const isApproved = q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento';
-    (q.items || []).forEach((item: any) => {
-      const tipo = item.tipo || 'Peça';
-      const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
-      if (tipo === 'Peça') {
-        totalPecasVal += itemVal;
-        if (isApproved) totalPecasApprovedVal += itemVal;
-      } else {
-        totalMaoDeObraVal += itemVal;
-        if (isApproved) totalMaoDeObraApprovedVal += itemVal;
-      }
-    });
-  });
 
   return (
     <div className="space-y-6">
@@ -288,17 +240,14 @@ export function Dashboard() {
         </div>
         
         <div 
-          onClick={() => setIsSoldModalOpen(true)}
-          className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer hover:border-emerald-500/40 hover:shadow-md transition duration-200 group active:scale-[0.98]"
-          title="Ver detalhamento de vendas"
+          className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4"
         >
-          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center group-hover:scale-110 transition duration-200">
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">
             <TrendingUp size={24} />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground group-hover:text-emerald-500 transition duration-200">Valor Total Vendido</p>
+            <p className="text-sm text-muted-foreground">Valor Total Vendido</p>
             <h3 className="text-2xl font-bold">{formatCurrency(stats?.totalSold || 0)}</h3>
-            <span className="text-[10px] text-muted-foreground/60 group-hover:text-muted-foreground transition duration-200">Clique para ver mais detalhes</span>
           </div>
         </div>
 
@@ -752,157 +701,7 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Modal Detalhamento Valor Total Vendido */}
-      {isSoldModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <SoldModalBreadcrumb />
-          <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 relative flex flex-col max-h-[90vh]">
-            <button 
-              onClick={() => setIsSoldModalOpen(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition z-50 animate-in fade-in duration-300"
-              aria-label="Fechar"
-            >
-              <X size={18} />
-            </button>
-            {/* Header */}
-            <div className="p-6 border-b border-border flex justify-between items-center">
-              <div className="flex flex-col gap-2 w-full mr-8">
-                <GlobalBreadcrumbs />
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="text-emerald-500" size={20} />
-                  <h3 className="text-lg font-bold text-foreground">Detalhamento de Vendas por Empresa</h3>
-                </div>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6 overflow-y-auto flex-1 pr-4">
-              {selectedCompanyId !== 'all' && (
-                <div className="bg-muted/20 border border-border/40 px-3 py-2 rounded-lg text-xs text-muted-foreground flex justify-between items-center">
-                  <span>Filtro ativo por empresa: <strong className="text-foreground">{stats?.companyBreakdown?.find((c: any) => c.companyId === selectedCompanyId)?.companyName}</strong></span>
-                  <button 
-                    onClick={() => setSelectedCompanyId('all')}
-                    className="text-xs text-primary font-semibold hover:underline"
-                  >
-                    Limpar Filtro
-                  </button>
-                </div>
-              )}
-
-              {/* Grid de Indicadores */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Indicador 1: Total Aprovado */}
-                <div className="bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/25 p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Aprovado Efetivado</span>
-                  <h4 className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(totalApprovedVal)}</h4>
-                  <div className="text-[10px] text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
-                    <span>Peças: {formatCurrency(totalPecasApprovedVal)}</span>
-                  </div>
-                </div>
-
-                {/* Indicador 2: Mão de Obra Aprovada */}
-                <div className="bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/25 p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">M.O. Aprovada</span>
-                  <h4 className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(totalMaoDeObraApprovedVal)}</h4>
-                  <div className="text-[10px] text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
-                    <span>Bruto M.O: {formatCurrency(totalMaoDeObraVal)}</span>
-                  </div>
-                </div>
-
-                {/* Indicador 3: Total Geral (Bruto) */}
-                <div className="bg-primary/5 border border-primary/10 dark:border-primary/25 p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Geral Bruto</span>
-                  <h4 className="text-xl font-black text-primary mt-1">{formatCurrency(totalSoldVal)}</h4>
-                  <div className="text-[10px] text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
-                    <span>Peças: {formatCurrency(totalPecasVal)}</span>
-                  </div>
-                </div>
-
-                {/* Indicador 4: Conversão */}
-                <div className="bg-amber-500/5 border border-amber-500/10 dark:border-amber-500/25 p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Taxa de Conversão</span>
-                  <h4 className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
-                    {totalSoldVal > 0 ? `${((totalApprovedVal / totalSoldVal) * 100).toFixed(1)}%` : '0%'}
-                  </h4>
-                  <div className="text-[10px] text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
-                    <span>Aprovados vs Geral</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabela de Desempenho por Empresa */}
-              <div className="space-y-3 pt-2">
-                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Detalhamento por Empresa Emitente</h4>
-                <div className="border border-border rounded-xl overflow-hidden bg-muted/5">
-                  <div className="w-full">
-                    <table className="w-full text-left border-collapse table-fixed break-words">
-                      <thead>
-                        <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground font-semibold">
-                          <th className="p-4 w-4/12">Empresa</th>
-                          <th className="p-4 text-center w-2/12 hidden sm:table-cell">Qtd. Orçamentos</th>
-                          <th className="p-4 text-right w-4/12 sm:w-3/12">Total Vendido</th>
-                          <th className="p-4 text-center w-4/12 sm:w-3/12">Participação (%)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border text-sm">
-                        {stats?.companyBreakdown && stats.companyBreakdown.length > 0 ? (
-                          stats.companyBreakdown.map((c: any) => {
-                            const pct = totalSoldVal > 0 ? (c.totalSold / totalSoldVal) * 100 : 0;
-                            const isCurrentFilter = selectedCompanyId === c.companyId;
-
-                            return (
-                              <tr 
-                                key={c.companyId} 
-                                className={`hover:bg-muted/40 transition cursor-pointer ${isCurrentFilter ? 'bg-primary/10 hover:bg-primary/15' : ''}`}
-                                onClick={() => setSelectedCompanyId(isCurrentFilter ? 'all' : c.companyId)}
-                                title="Clique para filtrar o dashboard por esta empresa"
-                              >
-                                <td className="p-4 font-medium text-foreground truncate">
-                                  <div className="flex items-center gap-2 truncate">
-                                    <Building className="text-muted-foreground shrink-0" size={14} />
-                                    <span className="truncate">{c.companyName}</span>
-                                    {isCurrentFilter && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold hidden sm:inline-block">Filtro</span>}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-center text-foreground font-semibold hidden sm:table-cell">{c.quotesCount}</td>
-                                <td className="p-4 text-right font-black text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(c.totalSold)}</td>
-                                <td className="p-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-muted dark:bg-muted/20 h-2 rounded-full overflow-hidden hidden sm:block">
-                                      <div 
-                                        className="bg-emerald-500 h-2 rounded-full" 
-                                        style={{ width: `${pct}%` }}
-                                      ></div>
-                                    </div>
-                                    <span className="text-xs font-bold text-foreground w-full sm:w-10 text-center sm:text-right truncate">{pct.toFixed(0)}%</span>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma empresa encontrada com vendas no período.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground italic mt-1">
-                  💡 Dica: Clique em uma linha da tabela para alternar o filtro do painel por essa empresa emitente.
-                </p>
-              </div>
-            </div>
-
-            <ModalFooterActions
-              onCancel={() => setIsSoldModalOpen(false)}
-              cancelLabel="Fechar"
-              hidePrimary
-            />
-          </div>
-        </div>
-      )}
+      {/* Modal Detalhamento Valor Total Vendido has been removed */}
     </div>
   );
 }

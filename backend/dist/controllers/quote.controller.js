@@ -47,6 +47,8 @@ const createQuoteSchema = zod_1.z.object({
     osExterna: zod_1.z.string().max(100).nullish(),
     oficinaId: zod_1.z.string().nullish(),
     notaFiscalDescricao: zod_1.z.string().nullish(),
+    isCloned: zod_1.z.boolean().optional().default(false),
+    clonedFromId: zod_1.z.string().nullish(),
     items: zod_1.z.array(zod_1.z.object({
         descricao: zod_1.z.string(),
         quantidade: zod_1.z.number(),
@@ -58,13 +60,6 @@ const createQuoteSchema = zod_1.z.object({
     })).superRefine((items, ctx) => {
         items.forEach((item, index) => {
             if (item.tipo === 'Peça') {
-                if (!item.codigoPeca || item.codigoPeca.trim() === '') {
-                    ctx.addIssue({
-                        code: zod_1.z.ZodIssueCode.custom,
-                        message: 'Código da peça é obrigatório para itens do tipo Peça',
-                        path: [index, 'codigoPeca']
-                    });
-                }
                 const validTipos = ['Genuína', 'Original', 'Paralela', 'Remanufaturada'];
                 if (!item.tipoPeca || !validTipos.includes(item.tipoPeca)) {
                     ctx.addIssue({
@@ -245,9 +240,26 @@ exports.QuoteController = {
     async create(req, res) {
         try {
             const data = createQuoteSchema.parse(req.body);
+            let finalCompanyId = data.companyId;
+            if (data.isCloned || data.clonedFromId) {
+                const curio = await prisma_1.prisma.company.findFirst({
+                    where: {
+                        OR: [
+                            { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                            { nomeFantasia: { contains: 'curio', mode: 'insensitive' } },
+                            { razaoSocial: { contains: 'curió', mode: 'insensitive' } },
+                            { nomeFantasia: { contains: 'curió', mode: 'insensitive' } }
+                        ]
+                    }
+                });
+                if (!curio) {
+                    return res.status(400).json({ error: 'Empresa Curio não cadastrada no sistema' });
+                }
+                finalCompanyId = curio.id;
+            }
             // Validar limite mensal de Ordens de Serviço (OS) do plano
             const company = await prisma_1.prisma.company.findUnique({
-                where: { id: data.companyId },
+                where: { id: finalCompanyId },
                 include: { plan: true }
             });
             if (company && company.plan) {
@@ -260,7 +272,7 @@ exports.QuoteController = {
                 endOfMonth.setHours(23, 59, 59, 999);
                 const osCount = await prisma_1.prisma.quote.count({
                     where: {
-                        companyId: data.companyId,
+                        companyId: finalCompanyId,
                         createdAt: {
                             gte: startOfMonth,
                             lte: endOfMonth
@@ -376,7 +388,7 @@ exports.QuoteController = {
                             tipoVeiculo: data.veiculoTipo || null,
                             kmAtual: hodometro,
                             clienteId: client.id,
-                            companyId: data.companyId,
+                            companyId: finalCompanyId,
                             status: 'ATIVO',
                             observacoes: `Criado automaticamente via Novo Orçamento`
                         }
@@ -387,7 +399,7 @@ exports.QuoteController = {
             // Create quote
             const quote = await prisma_1.prisma.quote.create({
                 data: {
-                    companyId: data.companyId,
+                    companyId: finalCompanyId,
                     clientId: client.id,
                     condicaoPagamento: data.condicaoPagamento,
                     parcelas: data.parcelas,
@@ -414,6 +426,8 @@ exports.QuoteController = {
                     osExterna: data.osExterna,
                     oficinaId: data.oficinaId || null,
                     notaFiscalDescricao: data.notaFiscalDescricao || null,
+                    isCloned: data.isCloned || !!data.clonedFromId,
+                    clonedFromId: data.clonedFromId,
                     subtotal: data.subtotal,
                     total: data.total,
                     status: data.status,
@@ -434,7 +448,7 @@ exports.QuoteController = {
             const parts = data.items.filter(item => item.tipo === 'Peça');
             if (parts.length > 0) {
                 const userId = req.userId || 'SYSTEM';
-                const companyId = req.companyId || data.companyId;
+                const companyId = req.companyId || finalCompanyId;
                 parts.forEach(part => {
                     audit_logger_1.AuditLogger.log(userId, companyId, 'ADD_PART', `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`, 'SUCCESS');
                 });
@@ -502,6 +516,11 @@ exports.QuoteController = {
             });
             if (!existingQuote) {
                 return res.status(404).json({ error: 'Quote not found' });
+            }
+            if (existingQuote.isCloned || existingQuote.clonedFromId) {
+                if (data.companyId !== existingQuote.companyId) {
+                    return res.status(400).json({ error: 'Não é permitido alterar a empresa de um orçamento clonado.' });
+                }
             }
             const client = await resolveClientForQuote(data.client, existingQuote.client);
             // Resolve or create vehicle

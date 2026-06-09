@@ -1,6 +1,6 @@
 import { Edit, Copy, Trash2, Search, Filter, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 
@@ -10,10 +10,23 @@ export function QuotesList() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string>('all');
+  const [showClientsDropdown, setShowClientsDropdown] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+
+  const clientsList = useMemo(() => {
+    const map = new Map();
+    quotes.forEach((q: any) => {
+      if (q.client && q.client.id && q.client.nome) {
+        map.set(q.client.id, q.client.nome);
+      }
+    });
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [quotes]);
 
   const fetchStats = async () => {
     try {
@@ -52,7 +65,7 @@ export function QuotesList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId]);
+  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId, selectedClientId]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Tem certeza de que deseja excluir este orçamento?')) {
@@ -94,6 +107,10 @@ export function QuotesList() {
       : (quote.status || 'Aguardando Aprovação');
 
     if (statusFilter !== 'all' && normalizedStatus !== statusFilter) {
+      return false;
+    }
+
+    if (selectedClientId !== 'all' && quote.client?.id !== selectedClientId) {
       return false;
     }
     
@@ -170,19 +187,85 @@ export function QuotesList() {
           </div>
 
           {/* Filtros Avançados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-2">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Número ou Cliente</label>
+              <label className="text-xs font-semibold text-muted-foreground">Número ou Termo</label>
               <div className="relative">
                 <input 
                   type="text" 
-                  placeholder="Buscar nº ou cliente..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm outline-none focus:border-primary transition"
                 />
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               </div>
+            </div>
+
+            {/* Combobox de Cliente */}
+            <div className="space-y-1 relative">
+              <label className="text-xs font-semibold text-muted-foreground">Cliente</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Buscar cliente..."
+                  value={clientSearchTerm}
+                  onChange={(e) => {
+                    setClientSearchTerm(e.target.value);
+                    setShowClientsDropdown(true);
+                    if (!e.target.value) {
+                      setSelectedClientId('all');
+                    }
+                  }}
+                  onFocus={() => setShowClientsDropdown(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowClientsDropdown(false), 200);
+                  }}
+                  className="w-full bg-background border border-border rounded-lg pl-3 pr-8 py-1.5 text-sm outline-none focus:border-primary transition"
+                  autoComplete="off"
+                />
+                {selectedClientId !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedClientId('all');
+                      setClientSearchTerm('');
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground font-bold text-xs"
+                    title="Limpar cliente"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {showClientsDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto divide-y divide-border/50 animate-in fade-in duration-100">
+                  {clientsList
+                    .filter(c => c.nome.toLowerCase().includes(clientSearchTerm.toLowerCase()))
+                    .map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedClientId(c.id);
+                          setClientSearchTerm(c.nome);
+                          setShowClientsDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs hover:bg-muted/70 transition-colors flex items-center justify-between ${
+                          selectedClientId === c.id ? 'bg-primary/5 font-semibold text-primary' : 'text-foreground'
+                        }`}
+                      >
+                        {c.nome}
+                      </button>
+                    ))}
+                  {clientsList.filter(c => c.nome.toLowerCase().includes(clientSearchTerm.toLowerCase())).length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground text-center">
+                      Nenhum cliente encontrado
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -221,17 +304,17 @@ export function QuotesList() {
           </div>
         </div>
 
-        <div className="w-full">
-          <table className="w-full text-left border-collapse table-fixed break-words">
+        <div className="w-full overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium w-1/12">Nº</th>
-                <th className="p-4 font-medium hidden md:table-cell w-2/12">Empresa Emitente</th>
-                <th className="p-4 font-medium w-3/12">Cliente</th>
-                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Data</th>
-                <th className="p-4 font-medium hidden xl:table-cell w-1/12">Status</th>
-                <th className="p-4 font-medium w-2/12">Valor Total</th>
-                <th className="p-4 font-medium w-1/12 text-center lg:text-left">Ações</th>
+                <th className="p-4 font-medium w-[80px]">Nº</th>
+                <th className="p-4 font-medium hidden md:table-cell w-[22%]">Empresa Emitente</th>
+                <th className="p-4 font-medium w-[25%]">Cliente</th>
+                <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
+                <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
+                <th className="p-4 font-medium w-[130px]">Valor Total</th>
+                <th className="p-4 font-medium w-[160px] text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -276,37 +359,39 @@ export function QuotesList() {
                   <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
                   </td>
-                  <td className="p-4 flex gap-1 justify-center lg:justify-start">
-                    <button 
-                      onClick={() => navigate(`/quotes/view/${quote.id}`)}
-                      className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Visualizar"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                      disabled={quote.status === 'Pago'}
-                      className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
-                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser editados" : "Editar"}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
-                      className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Clonar"
-                    >
-                      <Copy size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(quote.id)}
-                      disabled={quote.status === 'Pago'}
-                      className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-rose-500/10"
-                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser excluídos" : "Excluir"}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <td className="p-4">
+                    <div className="flex gap-1.5 justify-center lg:justify-start items-center">
+                      <button 
+                        onClick={() => navigate(`/quotes/view/${quote.id}`)}
+                        className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
+                        title="Visualizar"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/quotes/edit/${quote.id}`)}
+                        disabled={quote.status === 'Pago'}
+                        className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
+                        title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser editados" : "Editar"}
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
+                        className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
+                        title="Clonar"
+                      >
+                        <Copy size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(quote.id)}
+                        disabled={quote.status === 'Pago'}
+                        className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-rose-500/10"
+                        title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser excluídos" : "Excluir"}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

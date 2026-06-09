@@ -73,6 +73,7 @@ const condicoesPagamento = [
 
 export function CreateQuote() {
   const [companies, setCompanies] = useState<any[]>([]);
+  const [isClonedQuote, setIsClonedQuote] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [numeroOrcamento, setNumeroOrcamento] = useState<number | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,34 @@ export function CreateQuote() {
   const [selectedPlatform, setSelectedPlatform] = useState<any>(null);
 
   const [workshops, setWorkshops] = useState<any[]>([]);
+
+  const { register, control, watch, handleSubmit, setValue, reset } = useForm<QuoteFormValues>({
+    defaultValues: {
+      items: [{ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' }],
+      validade: 'Proposta válida por 7 dias',
+      garantia: 'Garantia de 90 dias',
+      prazoExecucao: '5 dias úteis',
+      observacao: '',
+      veiculoMarca: '',
+      veiculoModelo: '',
+      veiculoAno: '',
+      veiculoPlaca: '',
+      veiculoPrefixo: '',
+      veiculoAnoFabricacao: '',
+      veiculoAnoModelo: '',
+      veiculoChassi: '',
+      veiculoRenavam: '',
+      veiculoFrota: '',
+      veiculoSubfrota: '',
+      veiculoHodometro: '',
+      veiculoTipo: '',
+      oficinaId: '',
+      status: 'Aguardando Aprovação',
+      plataformaGestaoId: '',
+      osExterna: '',
+      notaFiscalDescricao: ''
+    }
+  });
 
   useEffect(() => {
     const fetchPlatformsList = async () => {
@@ -146,6 +175,14 @@ export function CreateQuote() {
   }, []);
 
 
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const cloneId = searchParams.get('clone');
+  const isViewing = window.location.pathname.includes('/quotes/view/');
+  const isEditing = !!id && !isViewing;
+  const isCloned = !!cloneId || isClonedQuote;
+
   // Load companies
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -157,53 +194,42 @@ export function CreateQuote() {
         if (response.ok) {
           const data = await response.json();
           setCompanies(data);
+          if (cloneId && !isEditing && !isViewing) {
+            const curio = data.find((c: any) => {
+              const name = (c.razaoSocial || c.nomeFantasia || '').toLowerCase();
+              return name.includes('curio') || name.includes('curió');
+            });
+            if (curio) {
+              setValue('companyId', curio.id);
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to load companies", error);
       }
     };
     fetchCompanies();
-  }, []);
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const cloneId = searchParams.get('clone');
-  const isViewing = window.location.pathname.includes('/quotes/view/');
-  const isEditing = !!id && !isViewing;
+  }, [cloneId, isEditing, isViewing, setValue]);
 
-  const { register, control, watch, handleSubmit, setValue, reset } = useForm<QuoteFormValues>({
-    defaultValues: {
-      items: [{ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' }],
-      validade: 'Proposta válida por 7 dias',
-      garantia: 'Garantia de 90 dias',
-      prazoExecucao: '5 dias úteis',
-      observacao: '',
-      veiculoMarca: '',
-      veiculoModelo: '',
-      veiculoAno: '',
-      veiculoPlaca: '',
-      veiculoPrefixo: '',
-      veiculoAnoFabricacao: '',
-      veiculoAnoModelo: '',
-      veiculoChassi: '',
-      veiculoRenavam: '',
-      veiculoFrota: '',
-      veiculoSubfrota: '',
-      veiculoHodometro: '',
-      veiculoTipo: '',
-      oficinaId: '',
-      status: 'Aguardando Aprovação',
-      plataformaGestaoId: '',
-      osExterna: '',
-      notaFiscalDescricao: ''
-    }
-  });
 
   const isInitialStatusEffect = useRef(true);
 
-  const buildFormDataFromQuote = (data: any) => ({
-    companyId: (isEditing || isViewing) ? data.companyId : '',
-    client: {
+  const buildFormDataFromQuote = (data: any) => {
+    let targetCompanyId = '';
+    if (isEditing || isViewing) {
+      targetCompanyId = data.companyId || '';
+    } else if (cloneId) {
+      const curio = companies.find((c: any) => {
+        const name = (c.razaoSocial || c.nomeFantasia || '').toLowerCase();
+        return name.includes('curio') || name.includes('curió');
+      });
+      if (curio) {
+        targetCompanyId = curio.id;
+      }
+    }
+    return {
+      companyId: targetCompanyId,
+      client: {
       nome: data.client?.nome || '',
       empresa: data.client?.empresa || '',
       cnpj: data.client?.cnpj || '',
@@ -256,7 +282,8 @@ export function CreateQuote() {
       codigoPeca: i.codigoPeca || '',
       tipoPeca: i.tipoPeca || '',
     })),
-  });
+    };
+  };
 
   const extractApiErrorMessage = (error: any, fallback: string) => {
     const apiError = error?.response?.data?.error;
@@ -282,6 +309,7 @@ export function CreateQuote() {
         const data = await quoteService.getQuote(quoteId);
         if (isEditing || isViewing) {
           setNumeroOrcamento(data.numeroOrcamento);
+          setIsClonedQuote(data.isCloned || !!data.clonedFromId);
         }
 
         reset(buildFormDataFromQuote(data));
@@ -514,10 +542,6 @@ ${bankingText}`;
       for (let i = 0; i < data.items.length; i++) {
         const item = data.items[i];
         if (item.tipo === 'Peça') {
-          if (!item.codigoPeca || item.codigoPeca.trim() === '') {
-            toast.error(`O Código da Peça é obrigatório no Item #${i + 1}`);
-            return;
-          }
           if (!item.tipoPeca || item.tipoPeca.trim() === '') {
             toast.error(`O Tipo da Peça é obrigatório no Item #${i + 1}`);
             return;
@@ -529,6 +553,8 @@ ${bankingText}`;
 
       const payload = {
         ...formData,
+        isCloned: !!cloneId || isClonedQuote,
+        clonedFromId: cloneId || null,
         client: {
           nome: formData.client.nome,
           empresa: formData.client.empresa || null,
@@ -591,7 +617,8 @@ ${bankingText}`;
     
     const company = companies.find(c => c.id === data.companyId);
     const companyName = company?.razaoSocial || company?.nomeFantasia || '';
-    const companySlug = companyName.toLowerCase().includes('curio') ? 'curio' : 'mca';
+    const isCurioCompany = companyName.toLowerCase().includes('curio') || companyName.toLowerCase().includes('curió');
+    const companySlug = isCurioCompany ? 'curio' : 'mca';
     
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -672,8 +699,8 @@ ${bankingText}`;
               <label className="text-sm font-medium">Selecione a Empresa</label>
               <select 
                 {...register('companyId')}
-                disabled={isViewing}
-                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                disabled={isViewing || isCloned}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-75 disabled:cursor-not-allowed"
               >
                 <option value="">Selecione...</option>
                 {companies.map(c => (

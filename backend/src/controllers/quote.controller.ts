@@ -46,6 +46,8 @@ const createQuoteSchema = z.object({
   osExterna: z.string().max(100).nullish(),
   oficinaId: z.string().nullish(),
   notaFiscalDescricao: z.string().nullish(),
+  isCloned: z.boolean().optional().default(false),
+  clonedFromId: z.string().nullish(),
   items: z.array(z.object({
     descricao: z.string(),
     quantidade: z.number(),
@@ -57,13 +59,6 @@ const createQuoteSchema = z.object({
   })).superRefine((items, ctx) => {
     items.forEach((item, index) => {
       if (item.tipo === 'Peça') {
-        if (!item.codigoPeca || item.codigoPeca.trim() === '') {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Código da peça é obrigatório para itens do tipo Peça',
-            path: [index, 'codigoPeca']
-          });
-        }
         const validTipos = ['Genuína', 'Original', 'Paralela', 'Remanufaturada'];
         if (!item.tipoPeca || !validTipos.includes(item.tipoPeca)) {
           ctx.addIssue({
@@ -269,9 +264,27 @@ export const QuoteController = {
     try {
       const data = createQuoteSchema.parse(req.body);
 
+      let finalCompanyId = data.companyId;
+      if (data.isCloned || data.clonedFromId) {
+        const curio = await prisma.company.findFirst({
+          where: {
+            OR: [
+              { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+              { nomeFantasia: { contains: 'curio', mode: 'insensitive' } },
+              { razaoSocial: { contains: 'curió', mode: 'insensitive' } },
+              { nomeFantasia: { contains: 'curió', mode: 'insensitive' } }
+            ]
+          }
+        });
+        if (!curio) {
+          return res.status(400).json({ error: 'Empresa Curio não cadastrada no sistema' });
+        }
+        finalCompanyId = curio.id;
+      }
+
       // Validar limite mensal de Ordens de Serviço (OS) do plano
       const company = await prisma.company.findUnique({
-        where: { id: data.companyId },
+        where: { id: finalCompanyId },
         include: { plan: true }
       });
 
@@ -287,7 +300,7 @@ export const QuoteController = {
 
         const osCount = await prisma.quote.count({
           where: {
-            companyId: data.companyId,
+            companyId: finalCompanyId,
             createdAt: {
               gte: startOfMonth,
               lte: endOfMonth
@@ -414,7 +427,7 @@ export const QuoteController = {
               tipoVeiculo: data.veiculoTipo || null,
               kmAtual: hodometro,
               clienteId: client.id,
-              companyId: data.companyId,
+              companyId: finalCompanyId,
               status: 'ATIVO',
               observacoes: `Criado automaticamente via Novo Orçamento`
             }
@@ -426,7 +439,7 @@ export const QuoteController = {
       // Create quote
       const quote = await prisma.quote.create({
         data: {
-          companyId: data.companyId,
+          companyId: finalCompanyId,
           clientId: client.id,
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
@@ -453,6 +466,8 @@ export const QuoteController = {
           osExterna: data.osExterna,
           oficinaId: data.oficinaId || null,
           notaFiscalDescricao: data.notaFiscalDescricao || null,
+          isCloned: data.isCloned || !!data.clonedFromId,
+          clonedFromId: data.clonedFromId,
           subtotal: data.subtotal,
           total: data.total,
           status: data.status,
@@ -475,7 +490,7 @@ export const QuoteController = {
       const parts = data.items.filter(item => item.tipo === 'Peça');
       if (parts.length > 0) {
         const userId = (req as any).userId || 'SYSTEM';
-        const companyId = (req as any).companyId || data.companyId;
+        const companyId = (req as any).companyId || finalCompanyId;
         parts.forEach(part => {
           AuditLogger.log(
             userId,
@@ -555,6 +570,12 @@ export const QuoteController = {
 
       if (!existingQuote) {
         return res.status(404).json({ error: 'Quote not found' });
+      }
+
+      if (existingQuote.isCloned || existingQuote.clonedFromId) {
+        if (data.companyId !== existingQuote.companyId) {
+          return res.status(400).json({ error: 'Não é permitido alterar a empresa de um orçamento clonado.' });
+        }
       }
 
       const client = await resolveClientForQuote(data.client, existingQuote.client);

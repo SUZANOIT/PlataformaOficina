@@ -186,6 +186,9 @@ model Quote {
   veiculoId           String?
   veiculo             Vehicle?    @relation(fields: [veiculoId], references: [id], onDelete: SetNull)
   
+  isCloned            Boolean     @default(false)
+  clonedFromId        String?
+  
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
