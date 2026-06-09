@@ -116,8 +116,7 @@ function mapFiscalDocument(
 ): UnifiedFiscalDocument {
   const parsed = xmlText ? parseFiscalXml(xmlText, companyCnpj) : null;
 
-  const tipoDocumento = parsed?.tipoDocumento
-    ?? ((doc.tipoDocumento as TipoDocumentoFiscal) || inferTipoDocumentoFromRecord(doc, companyCnpj));
+  const tipoDocumento = parsed?.tipoDocumento ?? inferTipoDocumentoFromRecord(doc, companyCnpj);
 
   const fluxoFinanceiro = parsed?.fluxoFinanceiro ?? inferFluxoFromRecord(doc, companyCnpj);
 
@@ -207,14 +206,13 @@ function mapNfeImport(nfe: any, companyCnpj: string): UnifiedFiscalDocument {
   const irpj = valorTotal * 0.015;
   const csll = valorTotal * 0.01;
   const valorImpostos = icms + ipi + pis + cofins + iss + irpj + csll;
-  const hasPecas = items.some((i: any) => i.cfop && /^(1102|2102|1403|2403|5102|5405)/.test(i.cfop));
 
   return {
     id: nfe.id,
     source: 'NfeImport',
     numeroNota: nfe.numeroNf,
     serie: nfe.serie,
-    tipoDocumento: hasPecas ? 'PECAS' : 'ENTRADA',
+    tipoDocumento: 'ENTRADA',
     fluxoFinanceiro: 'ENTRADA',
     chaveAcesso: nfe.chaveAcesso,
     clienteNome: null,
@@ -380,7 +378,6 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
   const entrada = aggregateByType(docs, 'ENTRADA');
   const saida = aggregateByType(docs, 'SAIDA');
   const servico = aggregateByType(docs, 'SERVICO');
-  const pecas = aggregateByType(docs, 'PECAS');
 
   const totalImpostos = docs.reduce((s, d) => s + d.valorImpostos, 0);
   const receitas = docs.filter(d => d.fluxoFinanceiro === 'SAIDA').reduce((s, d) => s + d.valorTotal, 0);
@@ -398,11 +395,11 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
   };
 
   const qtdServico = servico.quantidade || 0;
-  const qtdPecas = pecas.quantidade || 0;
+  const qtdSaida = saida.quantidade || 0;
   const qtdReceitas = docs.filter(d => d.fluxoFinanceiro === 'SAIDA').length || 0;
 
   const ticketMedioServicos = qtdServico > 0 ? servico.valorTotal / qtdServico : 0;
-  const ticketMedioPecas = qtdPecas > 0 ? pecas.valorTotal / qtdPecas : 0;
+  const ticketMedioSaida = qtdSaida > 0 ? saida.valorTotal / qtdSaida : 0;
   const ticketMedioGeral = qtdReceitas > 0 ? receitas / qtdReceitas : 0;
   const margemBruta = resultadoBruto;
   const percentualImpostos = receitas > 0 ? (totalImpostos / receitas) * 100 : 0;
@@ -420,7 +417,6 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
         entrada: { qtd: 0, valor: 0 },
         saida: { qtd: 0, valor: 0 },
         servico: { qtd: 0, valor: 0 },
-        pecas: { qtd: 0, valor: 0 },
         impostos: 0,
         icms: 0,
         ipi: 0,
@@ -447,7 +443,6 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
     if (doc.tipoDocumento === 'ENTRADA') { row.entrada.qtd++; row.entrada.valor += doc.valorTotal; }
     if (doc.tipoDocumento === 'SAIDA') { row.saida.qtd++; row.saida.valor += doc.valorTotal; }
     if (doc.tipoDocumento === 'SERVICO') { row.servico.qtd++; row.servico.valor += doc.valorTotal; }
-    if (doc.tipoDocumento === 'PECAS') { row.pecas.qtd++; row.pecas.valor += doc.valorTotal; }
     row.resultado = row.receitas - row.compras;
   }
 
@@ -466,7 +461,6 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
   const chartFaturamento = resumoMensal.map(r => ({
     mes: r.mesLabel,
     servicos: r.servico.valor,
-    pecas: r.pecas.valor,
     saidas: r.saida.valor
   }));
 
@@ -499,7 +493,6 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
       entrada,
       saida,
       servico,
-      pecas,
       totalImpostos,
       resultadoBruto
     },
@@ -510,7 +503,7 @@ export async function getFiscalDashboard(filters: FiscalFilters) {
     },
     indicadores: {
       ticketMedioServicos,
-      ticketMedioPecas,
+      ticketMedioSaida,
       ticketMedioGeral,
       margemBruta,
       percentualImpostos,
@@ -596,8 +589,7 @@ export function documentsToCsvRows(docs: UnifiedFiscalDocument[]): string {
 const TIPO_PASTA: Record<TipoDocumentoFiscal, string> = {
   ENTRADA: 'Entradas',
   SAIDA: 'Saidas',
-  SERVICO: 'Servicos',
-  PECAS: 'Pecas'
+  SERVICO: 'Servicos'
 };
 
 const MESES_NOME = [
@@ -695,8 +687,7 @@ export async function getAccountingSummary(companyId: string, ano: number): Prom
         tipos: {
           ENTRADA: emptyTypeCell(),
           SAIDA: emptyTypeCell(),
-          SERVICO: emptyTypeCell(),
-          PECAS: emptyTypeCell()
+          SERVICO: emptyTypeCell()
         },
         totalDocumentos: 0,
         totalComXml: 0

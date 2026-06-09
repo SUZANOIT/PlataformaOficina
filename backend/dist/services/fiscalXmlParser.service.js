@@ -20,26 +20,10 @@ function blockContent(xml, blockName) {
 function cleanCnpj(cnpj) {
     return (cnpj || '').replace(/\D/g, '');
 }
-function isPecasCfop(cfop) {
-    if (!cfop)
-        return false;
-    return /^(1102|2102|1403|2403|1556|2556)/.test(cfop);
-}
-function isVendaPecasCfop(cfop) {
-    if (!cfop)
-        return false;
-    return /^(5102|5405|6102|6118|6108)/.test(cfop);
-}
-function isPecasNcm(ncm) {
-    if (!ncm)
-        return false;
-    return /^(8708|4011|4013|7007|7009|8482|84)/.test(ncm);
-}
 function classifyTipoDocumento(xmlText, companyCnpj, items = []) {
     const companyClean = cleanCnpj(companyCnpj);
     const nfe = (0, nfe_controller_1.parseNfeXml)(xmlText);
     const emitClean = cleanCnpj(nfe.supplier?.cnpj || '');
-    const destClean = cleanCnpj(nfe.destCnpj || '');
     const ideXml = blockContent(xmlText, 'ide') || '';
     const mod = tagContent(ideXml, 'mod') || '55';
     const totalIss = items.reduce((sum, item) => sum + (item.issValor || 0), 0);
@@ -47,20 +31,9 @@ function classifyTipoDocumento(xmlText, companyCnpj, items = []) {
     if (mod === '99' || hasIssItems) {
         return 'SERVICO';
     }
-    const isEntrada = destClean === companyClean && destClean.length === 14;
     const isSaida = emitClean === companyClean && emitClean.length === 14;
-    const isPecasItem = (i) => isPecasCfop(i.cfop) || isVendaPecasCfop(i.cfop) || isPecasNcm(i.ncm);
     if (isSaida) {
-        if (items.some(isPecasItem))
-            return 'PECAS';
         return 'SAIDA';
-    }
-    if (isEntrada) {
-        const natOp = (nfe.naturezaOperacao || '').toUpperCase();
-        if (items.some(isPecasItem) || natOp.includes('PEÇA') || natOp.includes('PECA')) {
-            return 'PECAS';
-        }
-        return 'ENTRADA';
     }
     return 'ENTRADA';
 }
@@ -144,7 +117,8 @@ function inferFluxoFromRecord(doc, companyCnpj) {
     return 'ENTRADA';
 }
 function inferTipoDocumentoFromRecord(doc, companyCnpj) {
-    if (doc.tipoDocumento && ['ENTRADA', 'SAIDA', 'SERVICO', 'PECAS'].includes(doc.tipoDocumento)) {
+    // Registros legados classificados como 'PECAS' são reinferidos pelo CNPJ (SAIDA/ENTRADA).
+    if (doc.tipoDocumento && ['ENTRADA', 'SAIDA', 'SERVICO'].includes(doc.tipoDocumento)) {
         return doc.tipoDocumento;
     }
     const companyClean = cleanCnpj(companyCnpj);

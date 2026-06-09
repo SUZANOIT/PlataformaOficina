@@ -709,7 +709,7 @@ model FiscalDocument {
   numeroDocumento  String
   chaveAcesso      String?
   tipo             String   // 'XML' | 'PDF' (legado)
-  tipoDocumento    String?  // ENTRADA | SAIDA | SERVICO | PECAS
+  tipoDocumento    String?  // ENTRADA | SAIDA | SERVICO
   serie            String?
   numeroNota       String?
   nomeArquivo      String

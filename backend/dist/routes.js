@@ -43,10 +43,41 @@ const authMiddleware = async (req, res, next) => {
         const { prisma } = require('./lib/prisma');
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
-            select: { companyId: true }
+            select: {
+                companyId: true,
+                roleAdmin: true,
+                roleOrcamentista: true,
+                roleContasPagar: true,
+                roleContasReceber: true,
+                roleContabilidade: true,
+                roleRh: true,
+                roleColaborador: true,
+            }
         });
         if (!user) {
             return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
+        }
+        // Usuários cujo único nível de acesso é Contabilidade só podem usar a Exportação XML Contabilidade
+        const isContabilidadeOnly = user.roleContabilidade
+            && !user.roleAdmin
+            && !user.roleOrcamentista
+            && !user.roleContasPagar
+            && !user.roleContasReceber
+            && !user.roleRh
+            && !user.roleColaborador;
+        if (isContabilidadeOnly) {
+            const path = req.originalUrl.split('?')[0];
+            const allowedPaths = [
+                '/auth/me',
+                '/fiscal/documents/accounting/summary',
+                '/fiscal/documents/export/xml-pack',
+            ];
+            if (!allowedPaths.includes(path)) {
+                return res.status(403).json({
+                    error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade',
+                    code: 'CONTABILIDADE_ONLY',
+                });
+            }
         }
         req.companyId = user.companyId;
         const { tenantContext } = require('./lib/tenant-context');

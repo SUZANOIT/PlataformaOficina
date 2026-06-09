@@ -752,8 +752,6 @@ export const FiscalController = {
         'Valor Entrada': r.entrada.valor,
         'NF Serviço (Qtd)': r.servico.qtd,
         'Valor Serviço': r.servico.valor,
-        'NF Peças (Qtd)': r.pecas.qtd,
-        'Valor Peças': r.pecas.valor,
         'NF Saída (Qtd)': r.saida.qtd,
         'Valor Saída': r.saida.valor,
         Impostos: r.impostos,
@@ -792,7 +790,7 @@ export const FiscalController = {
 
       const indicadoresSheet = XLSX.utils.json_to_sheet([
         { Indicador: 'Ticket Médio Serviços', Valor: dashboard.indicadores.ticketMedioServicos },
-        { Indicador: 'Ticket Médio Peças', Valor: dashboard.indicadores.ticketMedioPecas },
+        { Indicador: 'Ticket Médio NF Saída', Valor: dashboard.indicadores.ticketMedioSaida },
         { Indicador: 'Ticket Médio Geral', Valor: dashboard.indicadores.ticketMedioGeral },
         { Indicador: 'Margem Bruta', Valor: dashboard.indicadores.margemBruta },
         { Indicador: '% Impostos', Valor: dashboard.indicadores.percentualImpostos },

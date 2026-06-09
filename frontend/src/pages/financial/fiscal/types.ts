@@ -1,4 +1,4 @@
-export type TipoDocumentoFiscal = 'ENTRADA' | 'SAIDA' | 'SERVICO' | 'PECAS';
+export type TipoDocumentoFiscal = 'ENTRADA' | 'SAIDA' | 'SERVICO';
 
 export interface FiscalFilters {
   ano: number;
@@ -34,7 +34,6 @@ export interface MonthlyRow {
   entrada: { qtd: number; valor: number };
   saida: { qtd: number; valor: number };
   servico: { qtd: number; valor: number };
-  pecas: { qtd: number; valor: number };
   impostos: number;
   receitas: number;
   compras: number;
@@ -94,15 +93,13 @@ export interface AccountingSummaryData {
 export const TIPO_PASTA_LABEL: Record<TipoDocumentoFiscal, string> = {
   ENTRADA: 'Entradas',
   SAIDA: 'Saídas',
-  SERVICO: 'Serviços',
-  PECAS: 'Peças'
+  SERVICO: 'Serviços'
 };
 
 export const TIPO_BADGE_COLOR: Record<TipoDocumentoFiscal, string> = {
   ENTRADA: 'bg-blue-500/10 text-blue-600',
   SAIDA: 'bg-emerald-500/10 text-emerald-600',
-  SERVICO: 'bg-violet-500/10 text-violet-600',
-  PECAS: 'bg-amber-500/10 text-amber-600'
+  SERVICO: 'bg-violet-500/10 text-violet-600'
 };
 
 export interface DashboardData {
@@ -110,7 +107,6 @@ export interface DashboardData {
     entrada: TypeSummary;
     saida: TypeSummary;
     servico: TypeSummary;
-    pecas: TypeSummary;
     totalImpostos: number;
     resultadoBruto: number;
   };
@@ -127,7 +123,7 @@ export interface DashboardData {
   };
   indicadores: {
     ticketMedioServicos: number;
-    ticketMedioPecas: number;
+    ticketMedioSaida: number;
     ticketMedioGeral: number;
     margemBruta: number;
     percentualImpostos: number;
@@ -135,7 +131,7 @@ export interface DashboardData {
   };
   resumoMensal: MonthlyRow[];
   charts: {
-    faturamento: Array<{ mes: string; servicos: number; pecas: number; saidas: number }>;
+    faturamento: Array<{ mes: string; servicos: number; saidas: number }>;
     compras: Array<{ mes: string; entradas: number }>;
     impostos: Array<{ mes: string; iss: number; icms: number; ipi: number; pis: number; cofins: number; irpj: number; csll: number }>;
     comparativo: Array<{ mes: string; receitas: number; compras: number; impostos: number; resultado: number }>;
@@ -149,8 +145,7 @@ export interface DashboardData {
 export const TIPOS_DOCUMENTO: { value: TipoDocumentoFiscal; label: string }[] = [
   { value: 'ENTRADA', label: 'NF Entrada' },
   { value: 'SAIDA', label: 'NF Saída' },
-  { value: 'SERVICO', label: 'NF Serviço' },
-  { value: 'PECAS', label: 'NF Peças' }
+  { value: 'SERVICO', label: 'NF Serviço' }
 ];
 
 export const STATUS_OPTIONS = [

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { GlobalBreadcrumbs } from './GlobalBreadcrumbs';
 import { 
   LayoutDashboard, 
@@ -29,6 +29,7 @@ import {
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOficinaOpen, setIsOficinaOpen] = useState(true);
   const [isFinancialOpen, setIsFinancialOpen] = useState(true);
@@ -84,6 +85,21 @@ export function Layout() {
     return true;
   };
 
+  // Usuários cujo único nível de acesso é Contabilidade só podem acessar o Portal Contabilidade Externa
+  const isContabilidadeOnly = !!user?.roleContabilidade
+    && !user?.roleAdmin
+    && !user?.roleOrcamentista
+    && !user?.roleContasPagar
+    && !user?.roleContasReceber
+    && !user?.roleRh
+    && !user?.roleColaborador;
+
+  useEffect(() => {
+    if (isContabilidadeOnly && location.pathname !== '/accounting/xml-export') {
+      navigate('/accounting/xml-export', { replace: true });
+    }
+  }, [isContabilidadeOnly, location.pathname, navigate]);
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Mobile Menu Backdrop */}
@@ -112,6 +128,7 @@ export function Layout() {
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
           {/* Categoria 1: Gestão da Oficina */}
+          {!isContabilidadeOnly && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -193,8 +210,9 @@ export function Layout() {
               </div>
             )}
           </div>
+          )}
                    {/* Categoria 2: Gestão Financeira */}
-          {hasModule('financeiro') && (
+          {!isContabilidadeOnly && hasModule('financeiro') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFinancialOpen(!isFinancialOpen)}
@@ -289,60 +307,64 @@ export function Layout() {
               {isContabilidadeOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
                   <Link 
-                    to="/accounting/fiscal-documents" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <FileText size={16} className="text-blue-500" />
-                    <span>Documentos Fiscais</span>
-                  </Link>
-                  <Link 
                     to="/accounting/xml-export" 
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                   >
                     <FileText size={16} className="text-violet-500" />
-                    <span>Exportação XML Contabilidade</span>
+                    <span>Portal Contabilidade Externa</span>
                   </Link>
-                  <Link 
-                    to="/accounting/nfe-import" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <FileText size={16} className="text-emerald-500" />
-                    <span>Notas Fiscais de Entrada</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/municipal" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-amber-500" />
-                    <span>Tributação Municipal</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/estadual" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-orange-500" />
-                    <span>Tributação Estadual</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/federal" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-red-500" />
-                    <span>Tributação Federal</span>
-                  </Link>
+                  {user?.roleAdmin && (
+                    <>
+                      <Link 
+                        to="/accounting/fiscal-documents" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <FileText size={16} className="text-blue-500" />
+                        <span>Documentos Fiscais</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/nfe-import" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <FileText size={16} className="text-emerald-500" />
+                        <span>Notas Fiscais de Entrada</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/municipal" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-amber-500" />
+                        <span>Tributação Municipal</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/estadual" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-orange-500" />
+                        <span>Tributação Estadual</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/federal" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-red-500" />
+                        <span>Tributação Federal</span>
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {/* Categoria 2.7: Recursos Humanos */}
-          {hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
+          {!isContabilidadeOnly && hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsRhOpen(!isRhOpen)}
@@ -393,7 +415,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Gestão de Frotas */}
-          {hasModule('frotas') && (
+          {!isContabilidadeOnly && hasModule('frotas') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFleetOpen(!isFleetOpen)}
@@ -446,6 +468,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Configurações & Administração */}
+          {!isContabilidadeOnly && (
           <div className="pt-2 border-t border-border/40">
             <button 
               onClick={() => setIsAdminOpen(!isAdminOpen)}
@@ -487,12 +510,13 @@ export function Layout() {
               </div>
             )}
           </div>
+          )}
 
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
           
-          {hasSaaSToken && (
+          {hasSaaSToken && !isContabilidadeOnly && (
             <button 
               onClick={() => {
                 setIsMobileMenuOpen(false);
@@ -530,6 +554,7 @@ export function Layout() {
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
           {/* Categoria 1: Gestão da Oficina */}
+          {!isContabilidadeOnly && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -604,9 +629,10 @@ export function Layout() {
               </div>
             )}
           </div>
+          )}
 
           {/* Categoria 2: Gestão Financeira */}
-          {hasModule('financeiro') && (
+          {!isContabilidadeOnly && hasModule('financeiro') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFinancialOpen(!isFinancialOpen)}
@@ -694,54 +720,58 @@ export function Layout() {
               {isContabilidadeOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
                   <Link 
-                    to="/accounting/fiscal-documents" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <FileText size={16} className="text-blue-500" />
-                    <span>Documentos Fiscais</span>
-                  </Link>
-                  <Link 
                     to="/accounting/xml-export" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                   >
                     <FileText size={16} className="text-violet-500" />
-                    <span>Exportação XML Contabilidade</span>
+                    <span>Portal Contabilidade Externa</span>
                   </Link>
-                  <Link 
-                    to="/accounting/nfe-import" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <FileText size={16} className="text-emerald-500" />
-                    <span>Notas Fiscais de Entrada</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/municipal" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-amber-500" />
-                    <span>Tributação Municipal</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/estadual" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-orange-500" />
-                    <span>Tributação Estadual</span>
-                  </Link>
-                  <Link 
-                    to="/accounting/taxes/federal" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <Percent size={16} className="text-red-500" />
-                    <span>Tributação Federal</span>
-                  </Link>
+                  {user?.roleAdmin && (
+                    <>
+                      <Link 
+                        to="/accounting/fiscal-documents" 
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <FileText size={16} className="text-blue-500" />
+                        <span>Documentos Fiscais</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/nfe-import" 
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <FileText size={16} className="text-emerald-500" />
+                        <span>Notas Fiscais de Entrada</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/municipal" 
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-amber-500" />
+                        <span>Tributação Municipal</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/estadual" 
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-orange-500" />
+                        <span>Tributação Estadual</span>
+                      </Link>
+                      <Link 
+                        to="/accounting/taxes/federal" 
+                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                      >
+                        <Percent size={16} className="text-red-500" />
+                        <span>Tributação Federal</span>
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {/* Categoria 2.7: Recursos Humanos */}
-          {hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
+          {!isContabilidadeOnly && hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsRhOpen(!isRhOpen)}
@@ -789,7 +819,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Gestão de Frotas */}
-          {hasModule('frotas') && (
+          {!isContabilidadeOnly && hasModule('frotas') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFleetOpen(!isFleetOpen)}
@@ -838,6 +868,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Configurações & Administração */}
+          {!isContabilidadeOnly && (
           <div className="pt-2 border-t border-border/40">
             <button 
               onClick={() => setIsAdminOpen(!isAdminOpen)}
@@ -876,12 +907,13 @@ export function Layout() {
               </div>
             )}
           </div>
+          )}
 
         </nav>
 
         <div className="p-4 border-t border-border flex flex-col gap-3">
 
-          {hasSaaSToken && (
+          {hasSaaSToken && !isContabilidadeOnly && (
             <button 
               onClick={handleReturnToSaaS}
               className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-md hover:bg-primary/10 hover:text-primary transition-colors text-sm font-medium border border-primary/20 bg-primary/5"

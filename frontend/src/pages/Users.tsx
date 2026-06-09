@@ -294,7 +294,7 @@ export function Users() {
     {
       key: 'roleContabilidade' as const,
       title: 'Contabilidade',
-      description: 'Acesso a relatórios de auditoria, DRE financeiro e dados fiscais.',
+      description: 'Acesso exclusivo à Exportação XML Contabilidade (Portal Contabilidade Externa).',
       icon: BarChart3,
       color: 'text-violet-500 bg-violet-500/10 border-violet-500/20 dark:border-violet-500/10',
     },

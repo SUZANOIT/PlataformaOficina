@@ -355,7 +355,7 @@ export function FiscalDocuments() {
             {user.roleAdmin && <span className="text-[10px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full uppercase font-bold"><ShieldCheck size={10} className="inline" /> Admin</span>}
             {user.roleContabilidade && !user.roleAdmin && <span className="text-[10px] bg-violet-500/10 text-violet-500 px-2 py-0.5 rounded-full uppercase font-bold"><Tag size={10} className="inline" /> Contabilidade</span>}
           </h1>
-          <p className="text-sm text-muted-foreground">Dashboard Fiscal, Financeiro e Tributário — NF Entrada, Saída, Serviço e Peças</p>
+          <p className="text-sm text-muted-foreground">Dashboard Fiscal, Financeiro e Tributário — NF Entrada, Saída e Serviço</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -525,15 +525,13 @@ export function FiscalDocuments() {
           ) : dashboard && (
             <>
               {/* Cards Resumo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <SummaryCard title="NF Entrada" qtd={cards!.entrada.quantidade} valor={cards!.entrada.valorTotal}
                   taxes={`ICMS ${formatCurrency(cards!.entrada.icms)} | IPI ${formatCurrency(cards!.entrada.ipi)} | PIS ${formatCurrency(cards!.entrada.pis)} | COFINS ${formatCurrency(cards!.entrada.cofins)}`} color="blue" />
                 <SummaryCard title="NF Saída" qtd={cards!.saida.quantidade} valor={cards!.saida.valorTotal}
-                  taxes={`Impostos ${formatCurrency(cards!.saida.impostos)}`} color="green" />
+                  taxes={`ICMS ${formatCurrency(cards!.saida.icms)} | IPI ${formatCurrency(cards!.saida.ipi)} | Impostos ${formatCurrency(cards!.saida.impostos)}`} color="green" />
                 <SummaryCard title="NF Serviço" qtd={cards!.servico.quantidade} valor={cards!.servico.valorTotal}
                   taxes={`ISS ${formatCurrency(cards!.servico.iss)}`} color="violet" />
-                <SummaryCard title="NF Peças" qtd={cards!.pecas.quantidade} valor={cards!.pecas.valorTotal}
-                  taxes={`ICMS ${formatCurrency(cards!.pecas.icms)} | IPI ${formatCurrency(cards!.pecas.ipi)}`} color="amber" />
                 <div className="bg-card border border-border p-4 rounded-xl">
                   <p className="text-xs text-muted-foreground font-semibold">Total Impostos</p>
                   <p className="text-xl font-black font-mono mt-2">{formatCurrency(cards!.totalImpostos)}</p>
@@ -550,7 +548,7 @@ export function FiscalDocuments() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
                   { label: 'Ticket Médio Serviços', value: formatCurrency(ind!.ticketMedioServicos) },
-                  { label: 'Ticket Médio Peças', value: formatCurrency(ind!.ticketMedioPecas) },
+                  { label: 'Ticket Médio NF Saída', value: formatCurrency(ind!.ticketMedioSaida) },
                   { label: 'Ticket Médio Geral', value: formatCurrency(ind!.ticketMedioGeral) },
                   { label: 'Margem Bruta', value: formatCurrency(ind!.margemBruta) },
                   { label: '% Impostos', value: `${ind!.percentualImpostos.toFixed(1)}%` },
@@ -598,8 +596,6 @@ export function FiscalDocuments() {
                         <th className="p-3 text-right">Valor Entrada</th>
                         <th className="p-3 text-right">NF Serviço</th>
                         <th className="p-3 text-right">Valor Serviço</th>
-                        <th className="p-3 text-right">NF Peças</th>
-                        <th className="p-3 text-right">Valor Peças</th>
                         <th className="p-3 text-right">NF Saída</th>
                         <th className="p-3 text-right">Valor Saída</th>
                         <th className="p-3 text-right">Impostos</th>
@@ -619,8 +615,6 @@ export function FiscalDocuments() {
                             <td className="p-3 text-right font-mono">{formatCurrency(row.entrada.valor)}</td>
                             <td className="p-3 text-right">{row.servico.qtd}</td>
                             <td className="p-3 text-right font-mono">{formatCurrency(row.servico.valor)}</td>
-                            <td className="p-3 text-right">{row.pecas.qtd}</td>
-                            <td className="p-3 text-right font-mono">{formatCurrency(row.pecas.valor)}</td>
                             <td className="p-3 text-right">{row.saida.qtd}</td>
                             <td className="p-3 text-right font-mono">{formatCurrency(row.saida.valor)}</td>
                             <td className="p-3 text-right font-mono">{formatCurrency(row.impostos)}</td>
@@ -631,7 +625,7 @@ export function FiscalDocuments() {
                         </Fragment>
                       ))}
                       {!dashboard.resumoMensal.length && (
-                        <tr><td colSpan={11} className="p-8 text-center text-muted-foreground">Nenhum dado para o período selecionado.</td></tr>
+                        <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Nenhum dado para o período selecionado.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -641,8 +635,8 @@ export function FiscalDocuments() {
               {/* Gráficos */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-card border border-border rounded-xl p-4">
-                  <h4 className="text-xs font-bold mb-3 flex items-center gap-1"><BarChart3 size={14} /> Faturamento (Serviços, Peças, Saídas)</h4>
-                  <BarChart data={dashboard.charts.faturamento} keys={['servicos', 'pecas', 'saidas']} colors={['#8b5cf6', '#f59e0b', '#10b981']} />
+                  <h4 className="text-xs font-bold mb-3 flex items-center gap-1"><BarChart3 size={14} /> Faturamento (Serviços, Saídas)</h4>
+                  <BarChart data={dashboard.charts.faturamento} keys={['servicos', 'saidas']} colors={['#8b5cf6', '#10b981']} />
                 </div>
                 <div className="bg-card border border-border rounded-xl p-4">
                   <h4 className="text-xs font-bold mb-3 flex items-center gap-1"><BarChart3 size={14} /> Compras (Entradas)</h4>

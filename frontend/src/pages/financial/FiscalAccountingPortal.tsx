@@ -112,7 +112,7 @@ export function FiscalAccountingPortal() {
             )}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Download de XMLs organizados por mês e tipo de NF — Entradas, Saídas, Serviços e Peças
+            Download de XMLs organizados por mês e tipo de NF — Entradas, Saídas e Serviços
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-end">
@@ -150,7 +150,7 @@ export function FiscalAccountingPortal() {
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
           <FileCode size={16} /> Download Rápido por Tipo (Ano {ano})
         </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {TIPOS_DOCUMENTO.map(tipo => {
             const qtd = data?.summary.reduce((s, m) => s + m.tipos[tipo.value].comXml, 0) || 0;
             return (
