@@ -1117,6 +1117,18 @@ model SaaSSetting {
   @@map("saas_settings")
 }
 
+model SaaSGatewayLog {
+  id        String   @id @default(uuid())
+  gateway   String
+  event     String
+  payload   String   @db.Text
+  status    String   @default("SUCCESS")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("saas_gateway_logs")
+}
+
+
 model AbsenceHistory {
   id                String       @id @default(uuid())
   collaboratorId    String

@@ -533,7 +533,7 @@ export function Dashboard() {
           <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium w-[80px]">Nº</th>
+                <th className="py-4 pl-4 pr-2 font-medium w-[100px]">Nº</th>
                 <th className="p-4 font-medium hidden md:table-cell w-[22%]">Empresa Emitente</th>
                 <th className="p-4 font-medium w-[25%]">Cliente</th>
                 <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
@@ -545,7 +545,7 @@ export function Dashboard() {
             <tbody>
               {paginatedQuotes.map((quote: any) => (
                 <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                  <td className="p-4 font-semibold text-primary truncate">
+                  <td className="py-4 pl-4 pr-2 font-semibold text-primary truncate">
                     #{String(quote.numeroOrcamento).padStart(5, '0')}
                   </td>
                   <td className="p-4 font-medium text-muted-foreground truncate hidden md:table-cell" title={quote.company?.razaoSocial}>
