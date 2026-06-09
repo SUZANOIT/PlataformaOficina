@@ -205,7 +205,17 @@ export function FiscalDocuments() {
       if (res.ok) {
         toast.success('Importação concluída.');
         fetchDashboard();
-      } else handleApiError(res, 'Falha na importação.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409 && data.code === 'DUPLICATE_KEY') {
+          toast.error(data.error || 'NF-e já importada anteriormente.', {
+            description: data.chaveAcesso ? `Chave: ${data.chaveAcesso}` : undefined,
+            duration: 7000
+          });
+        } else {
+          handleApiError(res, data.error || 'Falha na importação.');
+        }
+      }
     } catch {
       toast.error('Erro ao importar arquivos.');
     } finally {

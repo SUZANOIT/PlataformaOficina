@@ -93,6 +93,33 @@ const updateDocSchema = zod_1.z.object({
     valorTotal: zod_1.z.number().optional(),
     status: zod_1.z.string().optional()
 });
+async function findDuplicateFiscalNote(companyId, chaveAcesso) {
+    const [existingFiscal, existingNfe] = await Promise.all([
+        prisma_1.basePrisma.fiscalDocument.findFirst({
+            where: { companyId, chaveAcesso },
+            select: { id: true, numeroDocumento: true, nomeArquivo: true }
+        }),
+        prisma_1.basePrisma.nfeImport.findUnique({
+            where: { chaveAcesso },
+            select: { id: true, numeroNf: true }
+        })
+    ]);
+    if (existingFiscal) {
+        return {
+            source: 'FiscalDocument',
+            numero: existingFiscal.numeroDocumento,
+            fileName: existingFiscal.nomeArquivo
+        };
+    }
+    if (existingNfe) {
+        return {
+            source: 'NfeImport',
+            numero: existingNfe.numeroNf,
+            fileName: null
+        };
+    }
+    return null;
+}
 exports.FiscalController = {
     // Verify access helper inside endpoints
     async verifyUserAccess(req) {
@@ -182,7 +209,13 @@ exports.FiscalController = {
             if (!files || files.length === 0) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
-            const createdDocs = [];
+            const company = await prisma_1.basePrisma.company.findUnique({
+                where: { id: companyId },
+                select: { cnpj: true, cnpjSemMascara: true }
+            });
+            const companyCnpj = company?.cnpjSemMascara || company?.cnpj || '';
+            const parsedFiles = [];
+            const chavesNoLote = new Set();
             for (const f of files) {
                 const isXml = f.fileName.toLowerCase().endsWith('.xml')
                     || f.fileType === 'text/xml'
@@ -197,36 +230,55 @@ exports.FiscalController = {
                 }
                 const fileBuffer = (0, fiscalFile_service_1.decodeBase64Content)(f.fileContent);
                 const xmlText = fileBuffer.toString('utf8');
-                const company = await prisma_1.basePrisma.company.findUnique({
-                    where: { id: companyId },
-                    select: { cnpj: true, cnpjSemMascara: true }
-                });
-                const companyCnpj = company?.cnpjSemMascara || company?.cnpj || '';
                 const parsed = (0, fiscalXmlParser_service_1.parseFiscalXml)(xmlText, companyCnpj);
-                const docDetails = parsed || {
-                    numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
-                    numeroNota: '',
-                    serie: null,
-                    chaveAcesso: null,
-                    dataEmissao: new Date(),
-                    valorTotal: 0,
-                    valorBruto: 0,
-                    valorLiquido: 0,
-                    valorImpostos: 0,
-                    icms: 0, ipi: 0, pis: 0, cofins: 0, iss: 0, irpj: 0, csll: 0,
-                    emitenteNome: 'Emitente não identificado',
-                    emitenteCnpj: '00.000.000/0001-00',
-                    destinatarioNome: 'Destinatário não identificado',
-                    destinatarioCnpj: '00.000.000/0001-99',
-                    clienteNome: null,
-                    fornecedorNome: null,
-                    tipoDocumento: 'ENTRADA',
-                    status: 'EMITIDA',
-                    xmlContent: xmlText
-                };
-                if (!parsed) {
-                    docDetails.xmlContent = xmlText;
+                const docDetails = parsed
+                    ? { ...parsed, xmlContent: xmlText }
+                    : {
+                        numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
+                        numeroNota: '',
+                        serie: null,
+                        chaveAcesso: null,
+                        dataEmissao: new Date(),
+                        valorTotal: 0,
+                        valorBruto: 0,
+                        valorLiquido: 0,
+                        valorImpostos: 0,
+                        icms: 0, ipi: 0, pis: 0, cofins: 0, iss: 0, irpj: 0, csll: 0,
+                        emitenteNome: 'Emitente não identificado',
+                        emitenteCnpj: '00.000.000/0001-00',
+                        destinatarioNome: 'Destinatário não identificado',
+                        destinatarioCnpj: '00.000.000/0001-99',
+                        clienteNome: null,
+                        fornecedorNome: null,
+                        tipoDocumento: 'ENTRADA',
+                        status: 'EMITIDA',
+                        xmlContent: xmlText
+                    };
+                if (docDetails.chaveAcesso) {
+                    if (chavesNoLote.has(docDetails.chaveAcesso)) {
+                        return res.status(409).json({
+                            error: `O arquivo "${f.fileName}" contém uma NF-e duplicada no lote enviado.`,
+                            code: 'DUPLICATE_KEY',
+                            chaveAcesso: docDetails.chaveAcesso,
+                            fileName: f.fileName
+                        });
+                    }
+                    const duplicate = await findDuplicateFiscalNote(companyId, docDetails.chaveAcesso);
+                    if (duplicate) {
+                        return res.status(409).json({
+                            error: `A NF-e do arquivo "${f.fileName}" já foi importada anteriormente (NF ${duplicate.numero}).`,
+                            code: 'DUPLICATE_KEY',
+                            chaveAcesso: docDetails.chaveAcesso,
+                            fileName: f.fileName,
+                            duplicateSource: duplicate.source
+                        });
+                    }
+                    chavesNoLote.add(docDetails.chaveAcesso);
                 }
+                parsedFiles.push({ file: f, fileBuffer, xmlText, docDetails });
+            }
+            const createdDocs = [];
+            for (const { file: f, fileBuffer, xmlText, docDetails } of parsedFiles) {
                 const saved = await (0, fiscalFile_service_1.saveFiscalFile)(companyId, f.fileName, fileBuffer);
                 const storedFileUrl = saved.fileUrl;
                 const doc = await prisma_1.prisma.fiscalDocument.create({
