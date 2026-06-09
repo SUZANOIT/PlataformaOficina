@@ -1,4 +1,4 @@
-import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Building, Eye } from 'lucide-react';
+import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -262,10 +262,8 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Gráficos e Desempenho por Empresa */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna da Esquerda: Gráficos (col-span-2) */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Gráficos */}
+      <div className="space-y-6">
           {/* Gráfico 1: Volume Financeiro por Status */}
           <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
@@ -458,32 +456,6 @@ export function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Coluna da Direita: Desempenho por Empresa */}
-        {stats?.companyBreakdown && stats.companyBreakdown.length > 0 && (
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 flex flex-col justify-between">
-            <div className="w-full">
-              <div className="flex items-center gap-2 border-b border-border pb-3">
-                <Building className="text-primary" size={20} />
-                <h2 className="text-lg font-semibold">Desempenho por Empresa</h2>
-              </div>
-              <div className="space-y-3 pt-4">
-                {stats.companyBreakdown.map((c: any) => (
-                  <div key={c.companyId} className="bg-muted/20 border border-border p-3.5 rounded-xl space-y-2 hover:border-primary/50 transition">
-                    <h4 className="font-bold text-foreground text-sm truncate" title={c.companyName}>
-                      {c.companyName}
-                    </h4>
-                    <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
-                      <span>Orçamentos: <strong className="text-foreground">{c.quotesCount}</strong></span>
-                      <span>Total: <strong className="text-emerald-600 font-bold">{formatCurrency(c.totalSold)}</strong></span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabela de Orçamentos */}

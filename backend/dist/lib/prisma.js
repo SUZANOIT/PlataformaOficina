@@ -11,6 +11,31 @@ const modelsWithCompanyId = [
     'PlataformaGestao', 'FinancialCategory', 'FiscalDocument', 'Oficina',
     'Subscription', 'ModuleLicense', 'AbsenceHistory', 'AbsenceAudit'
 ];
+let cachedCurioCompanyId = null;
+async function getCurioCompanyId() {
+    if (cachedCurioCompanyId)
+        return cachedCurioCompanyId;
+    try {
+        const curio = await basePrisma.company.findFirst({
+            where: {
+                OR: [
+                    { razaoSocial: { contains: 'curio', mode: 'insensitive' } },
+                    { nomeFantasia: { contains: 'curio', mode: 'insensitive' } },
+                    { razaoSocial: { contains: 'curió', mode: 'insensitive' } },
+                    { nomeFantasia: { contains: 'curió', mode: 'insensitive' } }
+                ]
+            },
+            select: { id: true }
+        });
+        if (curio) {
+            cachedCurioCompanyId = curio.id;
+        }
+    }
+    catch (err) {
+        console.error('Error fetching Curio company ID in prisma extension:', err);
+    }
+    return cachedCurioCompanyId;
+}
 exports.prisma = basePrisma.$extends({
     query: {
         $allModels: {
@@ -22,6 +47,11 @@ exports.prisma = basePrisma.$extends({
                 }
                 const companyId = context.companyId;
                 const anyArgs = args;
+                const curioCompanyId = await getCurioCompanyId();
+                const isBypassedModel = model === 'Quote' || model === 'Vehicle';
+                const allowedCompanyIds = isBypassedModel && curioCompanyId
+                    ? [companyId, curioCompanyId]
+                    : [companyId];
                 // Injeta filtros de leitura
                 if (operation === 'findFirst' ||
                     operation === 'findMany' ||
@@ -29,27 +59,46 @@ exports.prisma = basePrisma.$extends({
                     operation === 'aggregate' ||
                     operation === 'groupBy') {
                     anyArgs.where = anyArgs.where || {};
-                    anyArgs.where.companyId = companyId;
+                    anyArgs.where.companyId = isBypassedModel && curioCompanyId
+                        ? { in: allowedCompanyIds }
+                        : companyId;
                 }
                 // Converte findUnique para findFirst do basePrisma para aceitar filtro de companyId sem erro de índice único
                 if (operation === 'findUnique') {
                     anyArgs.where = anyArgs.where || {};
-                    anyArgs.where.companyId = companyId;
+                    anyArgs.where.companyId = isBypassedModel && curioCompanyId
+                        ? { in: allowedCompanyIds }
+                        : companyId;
                     return basePrisma[model].findFirst(anyArgs);
                 }
                 // Injeta companyId no create
                 if (operation === 'create') {
                     anyArgs.data = anyArgs.data || {};
-                    anyArgs.data.companyId = companyId;
+                    const passedCompanyId = anyArgs.data.companyId;
+                    const isWritingToCurio = curioCompanyId && passedCompanyId === curioCompanyId;
+                    if (!(isBypassedModel && isWritingToCurio)) {
+                        anyArgs.data.companyId = companyId;
+                    }
                 }
                 // Injeta companyId no createMany
                 if (operation === 'createMany') {
                     if (anyArgs.data) {
                         if (Array.isArray(anyArgs.data)) {
-                            anyArgs.data = anyArgs.data.map((item) => ({ ...item, companyId }));
+                            anyArgs.data = anyArgs.data.map((item) => {
+                                const passedCompanyId = item.companyId;
+                                const isWritingToCurio = curioCompanyId && passedCompanyId === curioCompanyId;
+                                if (isBypassedModel && isWritingToCurio) {
+                                    return item;
+                                }
+                                return { ...item, companyId };
+                            });
                         }
                         else {
-                            anyArgs.data.companyId = companyId;
+                            const passedCompanyId = anyArgs.data.companyId;
+                            const isWritingToCurio = curioCompanyId && passedCompanyId === curioCompanyId;
+                            if (!(isBypassedModel && isWritingToCurio)) {
+                                anyArgs.data.companyId = companyId;
+                            }
                         }
                     }
                 }
@@ -62,7 +111,9 @@ exports.prisma = basePrisma.$extends({
                 // Injeta filtros no updateMany/deleteMany
                 if (operation === 'updateMany' || operation === 'deleteMany') {
                     anyArgs.where = anyArgs.where || {};
-                    anyArgs.where.companyId = companyId;
+                    anyArgs.where.companyId = isBypassedModel && curioCompanyId
+                        ? { in: allowedCompanyIds }
+                        : companyId;
                 }
                 // Validação estrita de posse para mutações individuais (update e delete)
                 if (operation === 'update' || operation === 'delete') {
@@ -70,7 +121,9 @@ exports.prisma = basePrisma.$extends({
                     const existing = await basePrisma[model].findFirst({
                         where: {
                             ...anyArgs.where,
-                            companyId
+                            companyId: isBypassedModel && curioCompanyId
+                                ? { in: allowedCompanyIds }
+                                : companyId
                         }
                     });
                     if (!existing) {
