@@ -11,22 +11,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
-  status    String   @default("ATIVO") // ATIVO, INATIVO
-  
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+  role     String @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
+  status   String @default("ATIVO") // ATIVO, INATIVO
+
   // Níveis de acesso / Permissões (Granular)
-  roleAdmin        Boolean @default(false)
-  roleOrcamentista Boolean @default(false)
+  roleAdmin         Boolean @default(false)
+  roleOrcamentista  Boolean @default(false)
   roleContasPagar   Boolean @default(false)
   roleContasReceber Boolean @default(false)
   roleContabilidade Boolean @default(false)
-  roleRh           Boolean @default(false)
-  roleColaborador  Boolean @default(false)
-  
+  roleRh            Boolean @default(false)
+  roleColaborador   Boolean @default(false)
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
@@ -38,46 +38,46 @@ model User {
 }
 
 model Company {
-  id               String   @id @default(uuid())
-  razaoSocial      String
-  nomeFantasia     String?
-  cnpj             String   @unique
-  cnpjSemMascara   String   @unique
+  id                String  @id @default(uuid())
+  razaoSocial       String
+  nomeFantasia      String?
+  cnpj              String  @unique
+  cnpjSemMascara    String  @unique
   inscricaoEstadual String?
-  
+
   // Cadastro da Oficina
-  endereco          String?
-  telefone          String?
-  whatsapp          String?
-  email             String?
-  logo              String?  // Base64 ou URL da logo personalizada
-  regimeTributario  String?  // Regime tributário da oficina
-  
-  parentCompanyId  String?
-  parentCompany    Company?  @relation("SubCompanies", fields: [parentCompanyId], references: [id])
-  subCompanies     Company[] @relation("SubCompanies")
+  endereco         String?
+  telefone         String?
+  whatsapp         String?
+  email            String?
+  logo             String? // Base64 ou URL da logo personalizada
+  regimeTributario String? // Regime tributário da oficina
+
+  parentCompanyId String?
+  parentCompany   Company?  @relation("SubCompanies", fields: [parentCompanyId], references: [id])
+  subCompanies    Company[] @relation("SubCompanies")
 
   // SaaS e Licenciamento
-  planoId          String?            @map("plano_id")
-  plan             Plan?              @relation(fields: [planoId], references: [id], onDelete: SetNull)
-  statusAssinatura String?            @default("Trial") @map("status_assinatura")
-  dataContratacao  DateTime?          @default(now()) @map("data_contratacao")
-  dataVencimento   DateTime?          @map("data_vencimento")
+  planoId          String?         @map("plano_id")
+  plan             Plan?           @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  statusAssinatura String?         @default("Trial") @map("status_assinatura")
+  dataContratacao  DateTime?       @default(now()) @map("data_contratacao")
+  dataVencimento   DateTime?       @map("data_vencimento")
   subscription     Subscription?
   moduleLicenses   ModuleLicense[]
   oficinas         Oficina[]
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  users            User[]
-  clients          Client[]
-  suppliers        Supplier[]
-  collaborators    Collaborator[]
-  vehicles         Vehicle[]
-  taxSettings      TaxSetting[]
-  emailConfigs     EmailConfig[]
-  quotes           Quote[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                User[]
+  clients              Client[]
+  suppliers            Supplier[]
+  collaborators        Collaborator[]
+  vehicles             Vehicle[]
+  taxSettings          TaxSetting[]
+  emailConfigs         EmailConfig[]
+  quotes               Quote[]
   financialPayables    FinancialPayable[]
   financialReceivables FinancialReceivable[]
   plataformasGestao    PlataformaGestao[]
@@ -85,27 +85,24 @@ model Company {
   fiscalDocuments      FiscalDocument[]
   absences             EmployeeAbsence[]
 
-  products             Product[]
-  nfeImports           NfeImport[]
-  tributacoesMunicipais TributacaoMunicipal[]
-  tributacoesEstaduais  TributacaoEstadual[]
-  tributacoesFederais   TributacaoFederal[]
-
+  products              Product[]
+  nfeImports            NfeImport[]
+  tributacoes           Tributacao[] @relation("CompanyToTributacao")
 
   @@index([cnpj])
   @@index([parentCompanyId])
 }
 
 model Client {
-  id        String   @id @default(uuid())
-  nome      String
-  empresa   String?
-  cnpj      String?
-  telefone  String?
-  email     String?
-  cidade    String?
-  estado    String?
-  
+  id       String  @id @default(uuid())
+  nome     String
+  empresa  String?
+  cnpj     String?
+  telefone String?
+  email    String?
+  cidade   String?
+  estado   String?
+
   // Novos campos (ReceitaWS)
   logradouro         String?
   numero             String?
@@ -116,9 +113,9 @@ model Client {
   atividadePrincipal String?
 
   // Frotas
-  whatsapp           String?
-  status             String   @default("ATIVO") // ATIVO, INATIVO
-  veiculos           Vehicle[]
+  whatsapp String?
+  status   String    @default("ATIVO") // ATIVO, INATIVO
+  veiculos Vehicle[]
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
@@ -133,30 +130,30 @@ model Client {
 }
 
 model Quote {
-  id                  String      @id @default(uuid())
-  numeroOrcamento     Int         @unique @default(autoincrement())
-  
-  companyId           String
-  company             Company     @relation(fields: [companyId], references: [id])
-  
-  clientId            String
-  client              Client      @relation(fields: [clientId], references: [id])
-  
-  condicaoPagamento   String
-  parcelas            Int?        // Se for parcelado
-  valorParcela        Float?      // Se for parcelado
-  
-  validade            String      // Ex: "Proposta válida por 7 dias"
-  garantia            String?     // Ex: "Garantia de 90 dias"
-  prazoExecucao       String?     // Ex: "5 dias úteis"
-  observacao          String?     // Campo de observações gerais
-  
+  id              String @id @default(uuid())
+  numeroOrcamento Int    @unique @default(autoincrement())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  condicaoPagamento String
+  parcelas          Int? // Se for parcelado
+  valorParcela      Float? // Se for parcelado
+
+  validade      String // Ex: "Proposta válida por 7 dias"
+  garantia      String? // Ex: "Garantia de 90 dias"
+  prazoExecucao String? // Ex: "5 dias úteis"
+  observacao    String? // Campo de observações gerais
+
   // Dados do Veículo (Opcional)
-  veiculoMarca        String?
-  veiculoModelo       String?
-  veiculoAno          String?
-  veiculoPlaca        String?
-  veiculoPrefixo      String?
+  veiculoMarca         String?
+  veiculoModelo        String?
+  veiculoAno           String?
+  veiculoPlaca         String?
+  veiculoPrefixo       String?
   veiculoAnoFabricacao String?
   veiculoAnoModelo     String?
   veiculoChassi        String?
@@ -165,32 +162,32 @@ model Quote {
   veiculoSubfrota      String?
   veiculoHodometro     String?
   veiculoTipo          String?
-  
-  subtotal            Float
-  total               Float
-  status              String      @default("Orçamento")
-  
-  items               QuoteItem[]
+
+  subtotal Float
+  total    Float
+  status   String @default("Orçamento")
+
+  items                QuoteItem[]
   financialReceivables FinancialReceivable[]
-  linkedPayables      PayableQuoteLink[]
-  linkedReceivables   ReceivableQuoteLink[]
-  
-  plataformaGestaoId  String?
-  plataformaGestao    PlataformaGestao? @relation(fields: [plataformaGestaoId], references: [id], onDelete: SetNull)
-  osExterna           String?
-  
+  linkedPayables       PayableQuoteLink[]
+  linkedReceivables    ReceivableQuoteLink[]
+
+  plataformaGestaoId String?
+  plataformaGestao   PlataformaGestao? @relation(fields: [plataformaGestaoId], references: [id], onDelete: SetNull)
+  osExterna          String?
+
   oficinaId           String?
   oficina             Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
   notaFiscalDescricao String?
-  
-  veiculoId           String?
-  veiculo             Vehicle?    @relation(fields: [veiculoId], references: [id], onDelete: SetNull)
-  
-  isCloned            Boolean     @default(false)
-  clonedFromId        String?
-  
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+
+  veiculoId String?
+  veiculo   Vehicle? @relation(fields: [veiculoId], references: [id], onDelete: SetNull)
+
+  isCloned     Boolean @default(false)
+  clonedFromId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([clientId])
@@ -200,34 +197,34 @@ model Quote {
 }
 
 model QuoteItem {
-  id            String   @id @default(uuid())
-  quoteId       String
-  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  
+  id      String @id @default(uuid())
+  quoteId String
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
   descricao     String
   quantidade    Int
   valorUnitario Float
   valorTotal    Float
-  tipo          String   @default("Peça")
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  tipo          String @default("Peça")
 
-  codigoPeca    String?  @map("codigo_peca") @db.VarChar(100)
-  tipoPeca      String?  @map("tipo_peca") @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  codigoPeca String? @map("codigo_peca") @db.VarChar(100)
+  tipoPeca   String? @map("tipo_peca") @db.VarChar(30)
 
   @@index([quoteId])
 }
 
 model EmailConfig {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   host      String
   port      Int
   user      String
   password  String
   fromName  String?
   fromEmail String?
-  
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
@@ -238,124 +235,124 @@ model EmailConfig {
 }
 
 model FinancialPayable {
-  id                    String                 @id @default(uuid())
-  numeroLancamento      Int                    @unique @default(autoincrement())
-  companyId             String
-  company               Company                @relation(fields: [companyId], references: [id])
-  fornecedor            String
-  categoria             String
-  centroCusto           String
-  descricao             String
-  valor                 Float
-  dataEmissao           DateTime
-  vencimento            DateTime
-  dataPagamento         DateTime?
-  formaPagamento        String
-  responsavel           String
-  observacoes           String?
-  status                String                 @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, PAGA, CANCELADA, VENCIDA
-  
-  recorrente            Boolean                @default(false)
-  tipoRecorrencia       String?                // DIARIA, SEMANAL, QUINZENAL, MENSAL, BIMESTRAL, TRIMESTRAL, SEMESTRAL, ANUAL
-  quantidadeParcelas    Int?
-  parcelaAtual          Int?                   @default(1)
-  dataFinalRecorrencia  DateTime?
-  pagamentoAutomatico   Boolean                @default(false)
-  parentRecurrenceId    String?                // Identificador para agrupar parcelas da mesma recorrência
-  
-  attachments           FinancialAttachment[]
-  audits                FinancialAudit[]
-  linkedQuotes          PayableQuoteLink[]
-  salaryAdvance         SalaryAdvance?
-  
+  id               String    @id @default(uuid())
+  numeroLancamento Int       @unique @default(autoincrement())
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id])
+  fornecedor       String
+  categoria        String
+  centroCusto      String
+  descricao        String
+  valor            Float
+  dataEmissao      DateTime
+  vencimento       DateTime
+  dataPagamento    DateTime?
+  formaPagamento   String
+  responsavel      String
+  observacoes      String?
+  status           String    @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, PAGA, CANCELADA, VENCIDA
+
+  recorrente           Boolean   @default(false)
+  tipoRecorrencia      String? // DIARIA, SEMANAL, QUINZENAL, MENSAL, BIMESTRAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  quantidadeParcelas   Int?
+  parcelaAtual         Int?      @default(1)
+  dataFinalRecorrencia DateTime?
+  pagamentoAutomatico  Boolean   @default(false)
+  parentRecurrenceId   String? // Identificador para agrupar parcelas da mesma recorrência
+
+  attachments   FinancialAttachment[]
+  audits        FinancialAudit[]
+  linkedQuotes  PayableQuoteLink[]
+  salaryAdvance SalaryAdvance?
+
   responsavel_lancamento_id   String?
   responsavel_lancamento_nome String?
-  data_criacao               DateTime               @default(now())
+  data_criacao                DateTime @default(now())
 
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
 }
 
 model FinancialReceivable {
-  id                    String                 @id @default(uuid())
-  numeroRecebimento     Int                    @unique @default(autoincrement())
-  companyId             String
-  company               Company                @relation(fields: [companyId], references: [id])
-  cliente               String
-  origem_tipo           String?                // 'CLIENTE' | 'PLATAFORMA'
-  origem_id             String?
-  categoria             String
-  descricao             String
-  valor                 Float
-  dataEmissao           DateTime
-  vencimento            DateTime
-  dataRecebimento       DateTime?
-  formaRecebimento      String
-  responsavel           String
-  observacoes           String?
-  status                String                 @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, RECEBIDA, CANCELADA, VENCIDA
+  id                String    @id @default(uuid())
+  numeroRecebimento Int       @unique @default(autoincrement())
+  companyId         String
+  company           Company   @relation(fields: [companyId], references: [id])
+  cliente           String
+  origem_tipo       String? // 'CLIENTE' | 'PLATAFORMA'
+  origem_id         String?
+  categoria         String
+  descricao         String
+  valor             Float
+  dataEmissao       DateTime
+  vencimento        DateTime
+  dataRecebimento   DateTime?
+  formaRecebimento  String
+  responsavel       String
+  observacoes       String?
+  status            String    @default("PENDENTE") // PENDENTE, EM ANÁLISE, APROVADA, REPROVADA, RECEBIDA, CANCELADA, VENCIDA
 
-  quoteId               String?
-  quote                 Quote?                 @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  quoteId String?
+  quote   Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
 
-  attachments           FinancialAttachment[]
-  audits                FinancialAudit[]
-  linkedQuotes          ReceivableQuoteLink[]
-  
+  attachments  FinancialAttachment[]
+  audits       FinancialAudit[]
+  linkedQuotes ReceivableQuoteLink[]
+
   responsavel_lancamento_id   String?
   responsavel_lancamento_nome String?
-  data_criacao               DateTime               @default(now())
+  data_criacao                DateTime @default(now())
 
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([quoteId])
 }
 
 model FinancialAttachment {
-  id                    String                 @id @default(uuid())
-  payableId             String?
-  payable               FinancialPayable?      @relation(fields: [payableId], references: [id], onDelete: Cascade)
-  receivableId          String?
-  receivable            FinancialReceivable?   @relation(fields: [receivableId], references: [id], onDelete: Cascade)
-  
-  fileName              String
-  fileType              String                 // PDF, JPG, JPEG, PNG
-  fileUrl               String                 // Base64 ou URL de visualização
-  createdAt             DateTime               @default(now())
+  id           String               @id @default(uuid())
+  payableId    String?
+  payable      FinancialPayable?    @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  receivableId String?
+  receivable   FinancialReceivable? @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+
+  fileName  String
+  fileType  String // PDF, JPG, JPEG, PNG
+  fileUrl   String // Base64 ou URL de visualização
+  createdAt DateTime @default(now())
 
   @@index([payableId])
   @@index([receivableId])
 }
 
 model FinancialAudit {
-  id                    String                 @id @default(uuid())
-  payableId             String?
-  payable               FinancialPayable?      @relation(fields: [payableId], references: [id], onDelete: Cascade)
-  receivableId          String?
-  receivable            FinancialReceivable?   @relation(fields: [receivableId], references: [id], onDelete: Cascade)
-  
-  action                String                 // CREATE, UPDATE, DELETE, STATUS_CHANGE, APPROVAL, REJECTION
-  previousStatus        String?
-  newStatus             String?
-  user                  String                 // E-mail/Nome do executor
-  changes               String?                // Descrição detalhada das mudanças
-  comments              String?                // Comentários de aprovação/reprovação
-  createdAt             DateTime               @default(now())
+  id           String               @id @default(uuid())
+  payableId    String?
+  payable      FinancialPayable?    @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  receivableId String?
+  receivable   FinancialReceivable? @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+
+  action         String // CREATE, UPDATE, DELETE, STATUS_CHANGE, APPROVAL, REJECTION
+  previousStatus String?
+  newStatus      String?
+  user           String // E-mail/Nome do executor
+  changes        String? // Descrição detalhada das mudanças
+  comments       String? // Comentários de aprovação/reprovação
+  createdAt      DateTime @default(now())
 
   @@index([payableId])
   @@index([receivableId])
 }
 
 model Supplier {
-  id                 String   @id @default(uuid())
+  id                 String  @id @default(uuid())
   razaoSocial        String
   nomeFantasia       String?
-  cnpj               String?  @unique
-  cnpjSemMascara     String?  @unique
+  cnpj               String? @unique
+  cnpjSemMascara     String? @unique
   telefone           String?
   email              String?
   logradouro         String?
@@ -367,55 +364,54 @@ model Supplier {
   estado             String?
   dataSituacao       String?
   atividadePrincipal String?
-  
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
   nfeImports NfeImport[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([cnpj])
   @@index([companyId])
 }
 
 model Vehicle {
-  id                 String   @id @default(uuid())
-  clienteId          String
-  client             Client   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  
-  placa              String   @unique
-  renavam            String?
-  chassi             String?
-  vin                String?
-  frota              String?
-  subfrota           String?
-  prefixo            String?
-  
-  marca              String
-  modelo             String
-  versao             String?
-  anoFabricacao      Int
-  anoModelo          Int
-  cor                String?
-  combustivel        String?
-  tipoVeiculo        String?
-  kmAtual            Int      @default(0)
-  status             String   @default("ATIVO") // ATIVO, EM_MANUTENCAO, INATIVO, VENDIDO
-  observacoes        String?
-  
+  id        String @id @default(uuid())
+  clienteId String
+  client    Client @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  placa    String  @unique
+  renavam  String?
+  chassi   String?
+  vin      String?
+  frota    String?
+  subfrota String?
+  prefixo  String?
+
+  marca         String
+  modelo        String
+  versao        String?
+  anoFabricacao Int
+  anoModelo     Int
+  cor           String?
+  combustivel   String?
+  tipoVeiculo   String?
+  kmAtual       Int     @default(0)
+  status        String  @default("ATIVO") // ATIVO, EM_MANUTENCAO, INATIVO, VENDIDO
+  observacoes   String?
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
-  trocasOleoMotor    TrocaOleoMotor[]
-  trocasOleoCambio   TrocaOleoCambio[]
-  events             VehicleEvent[]
-  quotes             Quote[]
-  
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  trocasOleoMotor  TrocaOleoMotor[]
+  trocasOleoCambio TrocaOleoCambio[]
+  events           VehicleEvent[]
+  quotes           Quote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clienteId])
   @@index([placa])
@@ -425,15 +421,15 @@ model Vehicle {
 model ConsultaPlaca {
   id           String   @id @default(uuid())
   placa        String   @unique
-  retornoApi   String   // JSON stringified
+  retornoApi   String // JSON stringified
   dataConsulta DateTime @default(now())
   status       String   @default("SUCESSO")
 }
 
 model Oficina {
-  id                 String   @id @default(uuid())
+  id                 String  @id @default(uuid())
   nome               String
-  cnpj               String   @unique
+  cnpj               String  @unique
   responsavel        String?
   telefone           String?
   whatsapp           String?
@@ -441,28 +437,28 @@ model Oficina {
   endereco           String?
   servicosRealizados String?
   observacoes        String?
-  
-  // Dados Bancários
-  banco              String?
-  agencia            String?
-  contaCorrente      String?
-  tipoConta          String?
-  chavePix           String?
-  favorecido         String?
-  cpfCnpjFavorecido  String?
-  
-  trocasOleoMotor    TrocaOleoMotor[]
-  trocasOleoCambio   TrocaOleoCambio[]
-  salaryAdvances     SalaryAdvance[]
-  collaborators      Collaborator[]
-  quotes             Quote[]
-  absences           EmployeeAbsence[]
-  
-  companyId          String?
-  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  // Dados Bancários
+  banco             String?
+  agencia           String?
+  contaCorrente     String?
+  tipoConta         String?
+  chavePix          String?
+  favorecido        String?
+  cpfCnpjFavorecido String?
+
+  trocasOleoMotor  TrocaOleoMotor[]
+  trocasOleoCambio TrocaOleoCambio[]
+  salaryAdvances   SalaryAdvance[]
+  collaborators    Collaborator[]
+  quotes           Quote[]
+  absences         EmployeeAbsence[]
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TrocaOleoMotor {
@@ -479,9 +475,9 @@ model TrocaOleoMotor {
   oficina          Oficina  @relation(fields: [oficinaId], references: [id])
   valor            Float
   observacoes      String?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([veiculoId])
   @@index([oficinaId])
@@ -491,7 +487,7 @@ model TrocaOleoCambio {
   id               String   @id @default(uuid())
   veiculoId        String
   veiculo          Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
-  tipoCambio       String   // MANUAL, AUTOMATICO, CVT
+  tipoCambio       String // MANUAL, AUTOMATICO, CVT
   dataTroca        DateTime
   kmTroca          Int
   oleoUtilizado    String?
@@ -502,62 +498,62 @@ model TrocaOleoCambio {
   oficina          Oficina  @relation(fields: [oficinaId], references: [id])
   valor            Float
   observacoes      String?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([veiculoId])
   @@index([oficinaId])
 }
 
 model VehicleEvent {
-  id          String   @id @default(uuid())
-  veiculoId   String
-  veiculo     Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
-  tipo        String   // TROCA_OLEO_MOTOR, TROCA_OLEO_CAMBIO, REVISAO, MANUTENCAO, KM, ABASTECIMENTO, MULTA, SINISTRO, ALTERACAO
-  data        DateTime
-  km          Int?
-  descricao   String
-  valor       Float?
-  oficinaId   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  veiculoId String
+  veiculo   Vehicle  @relation(fields: [veiculoId], references: [id], onDelete: Cascade)
+  tipo      String // TROCA_OLEO_MOTOR, TROCA_OLEO_CAMBIO, REVISAO, MANUTENCAO, KM, ABASTECIMENTO, MULTA, SINISTRO, ALTERACAO
+  data      DateTime
+  km        Int?
+  descricao String
+  valor     Float?
+  oficinaId String?
+  createdAt DateTime @default(now())
 
   @@index([veiculoId])
 }
 
 model Collaborator {
-  id                 String   @id @default(uuid())
-  nome               String
-  cpf                String?  @unique
-  cpfSemMascara      String?  @unique
-  telefone           String?
-  whatsapp           String?
-  email              String?  @unique
-  cargo              String?
-  departamento       String?
-  dataAdmissao       DateTime?
-  salario            Float?
-  status             String   @default("ATIVO") // ATIVO, INATIVO
-  observacoes        String?
-  
+  id            String    @id @default(uuid())
+  nome          String
+  cpf           String?   @unique
+  cpfSemMascara String?   @unique
+  telefone      String?
+  whatsapp      String?
+  email         String?   @unique
+  cargo         String?
+  departamento  String?
+  dataAdmissao  DateTime?
+  salario       Float?
+  status        String    @default("ATIVO") // ATIVO, INATIVO
+  observacoes   String?
+
   // Dados de Desconto por Ausência
-  faltas             Int       @default(0)
-  descontoAusencia   Float     @default(0.0)
-  observacoesFaltas  String?
+  faltas                Int       @default(0)
+  descontoAusencia      Float     @default(0.0)
+  observacoesFaltas     String?
   dataUltimaAtualizacao DateTime? @default(now())
 
   companyId String?
-  company   Company? @relation(fields: [companyId], references: [id])
+  company   Company?          @relation(fields: [companyId], references: [id])
   advances  SalaryAdvance[]
   oficinaId String?
-  oficina   Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+  oficina   Oficina?          @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
   absences  EmployeeAbsence[]
-  
-  cargaHoraria       Float?
-  valorHora          Float?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  cargaHoraria Float?
+  valorHora    Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([cpf])
   @@index([email])
@@ -571,14 +567,14 @@ model PayableQuoteLink {
   payable        FinancialPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
   quoteId        String
   quote          Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  valorVinculado Float            // O valor alocado deste lançamento para este orçamento
+  valorVinculado Float // O valor alocado deste lançamento para este orçamento
 
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@unique([payableId, quoteId])
   @@index([payableId])
   @@index([quoteId])
-  @@unique([payableId, quoteId])
 }
 
 model ReceivableQuoteLink {
@@ -587,23 +583,23 @@ model ReceivableQuoteLink {
   receivable     FinancialReceivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
   quoteId        String
   quote          Quote               @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  valorVinculado Float               // O valor alocado deste lançamento para este orçamento
+  valorVinculado Float // O valor alocado deste lançamento para este orçamento
 
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@unique([receivableId, quoteId])
   @@index([receivableId])
   @@index([quoteId])
-  @@unique([receivableId, quoteId])
 }
 
 model TaxSetting {
-  id        String   @id @default(uuid())
-  nome      String
-  aliquota  Float
-  tipo      String   @default("FATURAMENTO") // FATURAMENTO, RETENCAO, OUTRO
-  status    String   @default("ATIVO") // ATIVO, INATIVO
-  
+  id       String @id @default(uuid())
+  nome     String
+  aliquota Float
+  tipo     String @default("FATURAMENTO") // FATURAMENTO, RETENCAO, OUTRO
+  status   String @default("ATIVO") // ATIVO, INATIVO
+
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
@@ -614,7 +610,7 @@ model TaxSetting {
 }
 
 model PlataformaGestao {
-  id             String   @id @default(uuid())
+  id             String  @id @default(uuid())
   razaoSocial    String
   nomeFantasia   String
   cnpj           String
@@ -622,22 +618,22 @@ model PlataformaGestao {
   telefone       String
   email          String
   responsavel    String?
-  status         String   @default("ATIVO") // ATIVO, INATIVO
+  status         String  @default("ATIVO") // ATIVO, INATIVO
   observacoes    String?
-  
+
   // Endereço
-  endereco       String?
-  cidade         String?
-  estado         String?
-  cep            String?
+  endereco String?
+  cidade   String?
+  estado   String?
+  cep      String?
 
-  companyId      String?
-  company        Company? @relation(fields: [companyId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
-  quotes         Quote[]
+  quotes Quote[]
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([companyId, cnpj])
   @@unique([companyId, cnpjSemMascara])
@@ -659,19 +655,19 @@ model SalaryAdvance {
   payableId         String?            @unique
   payable           FinancialPayable?  @relation(fields: [payableId], references: [id], onDelete: SetNull)
   pdfs              SalaryAdvancePdf[]
-  
-  oficinaId         String?
-  oficina           Oficina?           @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
-  
+
+  oficinaId String?
+  oficina   Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+
   // Payment and Discount Control Fields
   payment_date       DateTime?
   payroll_competency String?
-  discount_status    String             @default("PENDENTE") // PENDENTE, DESCONTADO, CANCELADO
+  discount_status    String    @default("PENDENTE") // PENDENTE, DESCONTADO, CANCELADO
   discounted_at      DateTime?
   discounted_by      String?
 
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([collaboratorId])
   @@index([payableId])
@@ -691,56 +687,56 @@ model SalaryAdvancePdf {
 }
 
 model FinancialCategory {
-  id         String   @id @default(uuid())
-  name       String
-  type       String   // 'PAYABLE' | 'RECEIVABLE' | 'BOTH'
-  companyId  String
-  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String  @id @default(uuid())
+  name      String
+  type      String // 'PAYABLE' | 'RECEIVABLE' | 'BOTH'
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([companyId, name, type])
   @@index([companyId])
 }
 
 model FiscalDocument {
-  id               String   @id @default(uuid())
-  numeroDocumento  String
-  chaveAcesso      String?
-  tipo             String   // 'XML' | 'PDF' (legado)
-  tipoDocumento    String?  // ENTRADA | SAIDA | SERVICO
-  serie            String?
-  numeroNota       String?
-  nomeArquivo      String
-  dataEmissao      DateTime?
-  valorTotal       Float?
-  valorBruto       Float?
-  valorLiquido     Float?
-  valorImpostos    Float?
-  icms             Float?   @default(0)
-  ipi              Float?   @default(0)
-  pis              Float?   @default(0)
-  cofins           Float?   @default(0)
-  iss              Float?   @default(0)
-  irpj             Float?   @default(0)
-  csll             Float?   @default(0)
-  emitenteNome     String?
-  emitenteCnpj     String?
-  destinatarioNome String?
-  destinatarioCnpj String?
-  clienteNome      String?
-  fornecedorNome   String?
-  origemNota       String?  @default("UPLOAD_MANUAL")
+  id                     String    @id @default(uuid())
+  numeroDocumento        String
+  chaveAcesso            String?
+  tipo                   String // 'XML' | 'PDF' (legado)
+  tipoDocumento          String? // ENTRADA | SAIDA | SERVICO
+  serie                  String?
+  numeroNota             String?
+  nomeArquivo            String
+  dataEmissao            DateTime?
+  valorTotal             Float?
+  valorBruto             Float?
+  valorLiquido           Float?
+  valorImpostos          Float?
+  icms                   Float?    @default(0)
+  ipi                    Float?    @default(0)
+  pis                    Float?    @default(0)
+  cofins                 Float?    @default(0)
+  iss                    Float?    @default(0)
+  irpj                   Float?    @default(0)
+  csll                   Float?    @default(0)
+  emitenteNome           String?
+  emitenteCnpj           String?
+  destinatarioNome       String?
+  destinatarioCnpj       String?
+  clienteNome            String?
+  fornecedorNome         String?
+  origemNota             String?   @default("UPLOAD_MANUAL")
   usuarioResponsavelId   String?
   usuarioResponsavelNome String?
-  status           String   @default("IMPORTADO")
-  xmlContent       String?  @db.Text
-  fileUrl          String?
-  companyId        String
-  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status                 String    @default("IMPORTADO")
+  xmlContent             String?   @db.Text
+  fileUrl                String?
+  companyId              String
+  company                Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@index([companyId])
   @@index([companyId, tipoDocumento])
@@ -842,23 +838,23 @@ model SubscriptionHistory {
 }
 
 model SaaSEmpresa {
-  id                  String   @id @default(uuid())
-  razaoSocial         String   @map("razao_social")
-  nomeFantasia        String?  @map("nome_fantasia")
-  cnpj                String   @unique
+  id                  String    @id @default(uuid())
+  razaoSocial         String    @map("razao_social")
+  nomeFantasia        String?   @map("nome_fantasia")
+  cnpj                String    @unique
   email               String?
   telefone            String?
   responsavel         String?
-  planoId             String?  @map("plano_id")
-  status              String   @default("ATIVO") // ATIVO, SUSPENSO, INATIVO, INADIMPLENTE
+  planoId             String?   @map("plano_id")
+  status              String    @default("ATIVO") // ATIVO, SUSPENSO, INATIVO, INADIMPLENTE
   dataVencimento      DateTime? @map("data_vencimento")
-  limiteUsuarios      Int      @default(5) @map("limite_usuarios")
-  limiteVeiculos      Int      @default(100) @map("limite_veiculos")
-  limiteOs            Int      @default(100) @map("limite_os")
-  limiteArmazenamento Int      @default(5000) @map("limite_armazenamento") // em MB
-  companyId           String?  @unique @map("company_id")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  limiteUsuarios      Int       @default(5) @map("limite_usuarios")
+  limiteVeiculos      Int       @default(100) @map("limite_veiculos")
+  limiteOs            Int       @default(100) @map("limite_os")
+  limiteArmazenamento Int       @default(5000) @map("limite_armazenamento") // em MB
+  companyId           String?   @unique @map("company_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   @@map("saas_empresas")
 }
@@ -939,28 +935,28 @@ model SaaSAuditoria {
 }
 
 model SaaSTenant {
-  id               String   @id @default(uuid())
-  razaoSocial      String   @map("razao_social")
-  nomeFantasia     String?  @map("nome_fantasia")
-  cnpj             String   @unique
-  email            String
-  telefone         String?
-  responsavel      String
-  planoId          String?  @map("plano_id")
-  plan             SaaSPlan? @relation(fields: [planoId], references: [id], onDelete: SetNull)
-  dataContratacao  DateTime @default(now()) @map("data_contratacao")
-  dataVencimento   DateTime? @map("data_vencimento")
-  status           String   @default("Trial") // Ativa, Suspensa, Bloqueada, Trial
-  limiteUsuarios   Int      @default(5) @map("limite_usuarios")
-  limiteVeiculos   Int      @default(100) @map("limite_veiculos")
-  limiteOficinas   Int      @default(3) @map("limite_oficinas")
-  limiteOs         Int      @default(100) @map("limite_os")
-  companyId        String?  @unique @map("company_id")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  razaoSocial     String    @map("razao_social")
+  nomeFantasia    String?   @map("nome_fantasia")
+  cnpj            String    @unique
+  email           String
+  telefone        String?
+  responsavel     String
+  planoId         String?   @map("plano_id")
+  plan            SaaSPlan? @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  dataContratacao DateTime  @default(now()) @map("data_contratacao")
+  dataVencimento  DateTime? @map("data_vencimento")
+  status          String    @default("Trial") // Ativa, Suspensa, Bloqueada, Trial
+  limiteUsuarios  Int       @default(5) @map("limite_usuarios")
+  limiteVeiculos  Int       @default(100) @map("limite_veiculos")
+  limiteOficinas  Int       @default(3) @map("limite_oficinas")
+  limiteOs        Int       @default(100) @map("limite_os")
+  companyId       String?   @unique @map("company_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  subscriptions    SaaSSubscription[]
-  tenantModules    SaaSTenantModule[]
+  subscriptions SaaSSubscription[]
+  tenantModules SaaSTenantModule[]
 
   @@map("saas_tenants")
 }
@@ -980,27 +976,27 @@ model SaaSPlan {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  tenants        SaaSTenant[]
-  subscriptions  SaaSSubscription[]
+  tenants       SaaSTenant[]
+  subscriptions SaaSSubscription[]
 
   @@map("saas_plans")
 }
 
 model SaaSSubscription {
-  id              String    @id @default(uuid())
-  tenantId        String    @map("tenant_id")
-  tenant          SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  planoId         String    @map("plano_id")
-  plan            SaaSPlan  @relation(fields: [planoId], references: [id], onDelete: Cascade)
-  valor           Float
-  formaPagamento  String    @map("forma_pagamento") // Mercado Pago, Asaas, PagSeguro, Stripe
-  status          String    @default("Ativa") // Ativa, Pendente, Atrasada, Cancelada, Expirada
-  dataInicio      DateTime  @default(now()) @map("data_inicio")
-  dataRenovacao   DateTime  @map("data_renovacao")
-  ultimoPagamento DateTime? @map("ultimo_pagamento")
-  proximoPagamento DateTime? @map("proximo_pagamento")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id               String     @id @default(uuid())
+  tenantId         String     @map("tenant_id")
+  tenant           SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planoId          String     @map("plano_id")
+  plan             SaaSPlan   @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  valor            Float
+  formaPagamento   String     @map("forma_pagamento") // Mercado Pago, Asaas, PagSeguro, Stripe
+  status           String     @default("Ativa") // Ativa, Pendente, Atrasada, Cancelada, Expirada
+  dataInicio       DateTime   @default(now()) @map("data_inicio")
+  dataRenovacao    DateTime   @map("data_renovacao")
+  ultimoPagamento  DateTime?  @map("ultimo_pagamento")
+  proximoPagamento DateTime?  @map("proximo_pagamento")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
 
   @@map("saas_subscriptions")
 }
@@ -1020,16 +1016,16 @@ model SaaSModule {
 }
 
 model SaaSTenantModule {
-  id                   String     @id @default(uuid())
-  tenantId             String     @map("tenant_id")
-  tenant               SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  moduleId             String     @map("module_id")
-  module               SaaSModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  ativo                Boolean    @default(true)
-  configuracao         String?    @db.Text
+  id                    String     @id @default(uuid())
+  tenantId              String     @map("tenant_id")
+  tenant                SaaSTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleId              String     @map("module_id")
+  module                SaaSModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  ativo                 Boolean    @default(true)
+  configuracao          String?    @db.Text
   valorAdicionalCobrado Float      @default(0) @map("valor_adicional_cobrado")
-  createdAt            DateTime   @default(now()) @map("created_at")
-  updatedAt            DateTime   @updatedAt @map("updated_at")
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
 
   @@unique([tenantId, moduleId])
   @@map("saas_tenant_modules")
@@ -1052,11 +1048,11 @@ model SaaSUser {
 }
 
 model SaaSRole {
-  id          String           @id @default(uuid())
-  nome        String           @unique
+  id          String               @id @default(uuid())
+  nome        String               @unique
   descricao   String?
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
   users       SaaSUser[]
   permissions SaaSRolePermission[]
 
@@ -1064,12 +1060,12 @@ model SaaSRole {
 }
 
 model SaaSPermission {
-  id          String           @id @default(uuid())
-  nome        String           @unique
-  descricao   String?
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-  roles       SaaSRolePermission[]
+  id        String               @id @default(uuid())
+  nome      String               @unique
+  descricao String?
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+  roles     SaaSRolePermission[]
 
   @@map("saas_permissions")
 }
@@ -1144,32 +1140,31 @@ model SaaSGatewayLog {
   @@map("saas_gateway_logs")
 }
 
-
 model AbsenceHistory {
-  id                String       @id @default(uuid())
-  collaboratorId    String
-  collaboratorName  String
-  competencia       String       // e.g. "06/2026"
-  faltas            Int
-  valorDescontado   Float
+  id                 String   @id @default(uuid())
+  collaboratorId     String
+  collaboratorName   String
+  competencia        String // e.g. "06/2026"
+  faltas             Int
+  valorDescontado    Float
   usuarioResponsavel String
-  createdAt         DateTime     @default(now())
-  companyId         String
+  createdAt          DateTime @default(now())
+  companyId          String
 
   @@index([collaboratorId])
   @@index([companyId])
 }
 
 model AbsenceAudit {
-  id                String       @id @default(uuid())
-  collaboratorId    String
-  collaboratorName  String
-  usuario           String
-  action            String       // e.g. "INCLUSAO_FALTAS", "ALTERACAO_FALTAS", "EXCLUSAO_FALTAS", "ALTERACAO_DESCONTO"
-  valorAnterior     String
-  valorNovo         String
-  createdAt         DateTime     @default(now())
-  companyId         String
+  id               String   @id @default(uuid())
+  collaboratorId   String
+  collaboratorName String
+  usuario          String
+  action           String // e.g. "INCLUSAO_FALTAS", "ALTERACAO_FALTAS", "EXCLUSAO_FALTAS", "ALTERACAO_DESCONTO"
+  valorAnterior    String
+  valorNovo        String
+  createdAt        DateTime @default(now())
+  companyId        String
 
   @@index([collaboratorId])
   @@index([companyId])
@@ -1180,7 +1175,7 @@ model EmployeeAbsence {
   collaboratorId  String       @map("collaborator_id")
   collaborator    Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
   dataFalta       DateTime     @map("data_falta")
-  tipo            String       // JUSTIFICADA, NAO_JUSTIFICADA
+  tipo            String // JUSTIFICADA, NAO_JUSTIFICADA
   diasFalta       Int          @default(1) @map("dias_falta")
   motivo          String?      @map("motivo")
   observacao      String?
@@ -1189,14 +1184,14 @@ model EmployeeAbsence {
   fileUrl         String?      @map("file_url") @db.Text
   responsavelId   String?      @map("responsavel_id")
   responsavelNome String       @map("responsavel_nome")
-  
-  companyId       String?      @map("company_id")
-  company         Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  oficinaId       String?      @map("oficina_id")
-  oficina         Oficina?     @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  companyId String?  @map("company_id")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  oficinaId String?  @map("oficina_id")
+  oficina   Oficina? @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([collaboratorId])
   @@index([companyId])
@@ -1205,113 +1200,36 @@ model EmployeeAbsence {
 }
 
 model Product {
-  id                    String              @id @default(uuid())
-  codigo                String?
-  codigoBarras          String?
-  descricao             String
-  unidade               String?
-  valorCusto            Float               @default(0.0)
-  custoMedio            Float               @default(0.0)
-  quantidadeEstoque     Float               @default(0.0)
-  ncm                   String?
-  cest                  String?
-  cfopEntrada           String?
-  
+  id                String  @id @default(uuid())
+  codigo            String?
+  codigoBarras      String?
+  descricao         String
+  unidade           String?
+  valorCusto        Float   @default(0.0)
+  custoMedio        Float   @default(0.0)
+  quantidadeEstoque Float   @default(0.0)
+  ncm               String?
+  cest              String?
+  cfopEntrada       String?
+
   tributacaoMunicipalId String?
-  tributacaoMunicipal   TributacaoMunicipal? @relation(fields: [tributacaoMunicipalId], references: [id], onDelete: SetNull)
-  
-  tributacaoEstadualId  String?
-  tributacaoEstadual    TributacaoEstadual?  @relation(fields: [tributacaoEstadualId], references: [id], onDelete: SetNull)
-  
-  tributacaoFederalId   String?
-  tributacaoFederal     TributacaoFederal?   @relation(fields: [tributacaoFederalId], references: [id], onDelete: SetNull)
-  
-  companyId             String
-  company               Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  movements             StockMovement[]
-  nfeItems              NfeItem[]
-  
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  tributacaoMunicipal   Tributacao? @relation("ProdutoTributacaoMunicipal", fields: [tributacaoMunicipalId], references: [id], onDelete: SetNull)
 
-  @@index([companyId])
-  @@index([tributacaoMunicipalId])
-  @@index([tributacaoEstadualId])
-  @@index([tributacaoFederalId])
-}
+  tributacaoEstadualId String?
+  tributacaoEstadual   Tributacao? @relation("ProdutoTributacaoEstadual", fields: [tributacaoEstadualId], references: [id], onDelete: SetNull)
 
-model TributacaoMunicipal {
-  id                 String    @id @default(uuid())
-  codigo             String
-  descricao          String
-  municipio          String?
-  codigoServico      String?
-  aliquotaIss        Float?
-  retencaoIss        Boolean   @default(false)
-  situacaoTributaria String?
-  status             String    @default("ATIVO")
-  
-  companyId          String
-  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  products           Product[]
-  
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  tributacaoFederalId String?
+  tributacaoFederal   Tributacao? @relation("ProdutoTributacaoFederal", fields: [tributacaoFederalId], references: [id], onDelete: SetNull)
 
-  @@unique([companyId, codigo])
-  @@index([companyId])
-}
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-model TributacaoEstadual {
-  id                 String    @id @default(uuid())
-  codigo             String
-  descricao          String
-  uf                 String?
-  cfop               String?
-  cstIcms            String?
-  csosn              String?
-  aliquotaIcms       Float?
-  fcp                Float?
-  difal              Float?
-  observacao         String?
-  status             String    @default("ATIVO")
-  
-  companyId          String
-  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  products           Product[]
-  
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  movements StockMovement[]
+  nfeItems  NfeItem[]
 
-  @@unique([companyId, codigo])
-  @@index([companyId])
-}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-model TributacaoFederal {
-  id                 String    @id @default(uuid())
-  codigo             String
-  descricao          String
-  cstPis             String?
-  cstCofins          String?
-  cstIpi             String?
-  aliquotaPis        Float?
-  aliquotaCofins     Float?
-  aliquotaIpi        Float?
-  naturezaReceita    String?
-  status             String    @default("ATIVO")
-  
-  companyId          String
-  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  products           Product[]
-  
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  @@unique([companyId, codigo])
   @@index([companyId])
 }
 
@@ -1319,12 +1237,12 @@ model StockMovement {
   id              String   @id @default(uuid())
   productId       String
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  tipo            String   // ENTRADA, SAIDA
+  tipo            String // ENTRADA, SAIDA
   quantidade      Float
   valorUnitario   Float
   valorTotal      Float
-  origem          String   // IMPORTACAO_NFE, AJUSTE_MANUAL, VENDA, etc.
-  documentoOrigem String?  // ID ou número da NF-e
+  origem          String // IMPORTACAO_NFE, AJUSTE_MANUAL, VENDA, etc.
+  documentoOrigem String? // ID ou número da NF-e
   userId          String?
   createdAt       DateTime @default(now())
 
@@ -1332,84 +1250,128 @@ model StockMovement {
 }
 
 model NfeImport {
-  id               String    @id @default(uuid())
-  chaveAcesso      String    @unique
+  id               String   @id @default(uuid())
+  chaveAcesso      String   @unique
   numeroNf         String
   serie            String?
   dataEmissao      DateTime
-  dataEntrada      DateTime  @default(now())
+  dataEntrada      DateTime @default(now())
   naturezaOperacao String?
   valorProdutos    Float
-  valorFrete       Float     @default(0.0)
-  valorSeguro      Float     @default(0.0)
-  valorDesconto    Float     @default(0.0)
+  valorFrete       Float    @default(0.0)
+  valorSeguro      Float    @default(0.0)
+  valorDesconto    Float    @default(0.0)
   valorTotal       Float
-  xmlOriginal      String    @db.Text
-  status           String    @default("IMPORTADO") // IMPORTADO, CANCELADO
-  
-  supplierId       String
-  supplier         Supplier  @relation(fields: [supplierId], references: [id])
-  
-  companyId        String
-  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  items            NfeItem[]
-  
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  xmlOriginal      String   @db.Text
+  status           String   @default("IMPORTADO") // IMPORTADO, CANCELADO
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  items NfeItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([supplierId])
 }
 
 model NfeItem {
-  id                  String     @id @default(uuid())
-  nfeImportId         String
-  nfeImport           NfeImport  @relation(fields: [nfeImportId], references: [id], onDelete: Cascade)
-  
-  productId           String?
-  product             Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
-  
-  codigoProduto       String
-  codigoBarras        String?
-  descricao           String
-  ncm                 String?
-  cest                String?
-  cfop                String?
-  unidade             String?
-  quantidade          Float
-  valorUnitario       Float
-  valorTotal          Float
-  
+  id          String    @id @default(uuid())
+  nfeImportId String
+  nfeImport   NfeImport @relation(fields: [nfeImportId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  codigoProduto String
+  codigoBarras  String?
+  descricao     String
+  ncm           String?
+  cest          String?
+  cfop          String?
+  unidade       String?
+  quantidade    Float
+  valorUnitario Float
+  valorTotal    Float
+
   // Impostos
-  icmsCst             String?
-  icmsCsosn           String?
-  icmsBaseCalculo     Float?
-  icmsAliquota        Float?
-  icmsValor           Float?
-  
-  ipiCst              String?
-  ipiBaseCalculo      Float?
-  ipiAliquota         Float?
-  ipiValor            Float?
-  
-  pisCst              String?
-  pisBaseCalculo      Float?
-  pisAliquota         Float?
-  pisValor            Float?
-  
-  cofinsCst           String?
-  cofinsBaseCalculo   Float?
-  cofinsAliquota      Float?
-  cofinsValor         Float?
-  
-  issCodigoServico    String?
-  issAliquota         Float?
-  issValor            Float?
+  icmsCst         String?
+  icmsCsosn       String?
+  icmsBaseCalculo Float?
+  icmsAliquota    Float?
+  icmsValor       Float?
+
+  ipiCst         String?
+  ipiBaseCalculo Float?
+  ipiAliquota    Float?
+  ipiValor       Float?
+
+  pisCst         String?
+  pisBaseCalculo Float?
+  pisAliquota    Float?
+  pisValor       Float?
+
+  cofinsCst         String?
+  cofinsBaseCalculo Float?
+  cofinsAliquota    Float?
+  cofinsValor       Float?
+
+  issCodigoServico String?
+  issAliquota      Float?
+  issValor         Float?
 
   @@index([nfeImportId])
   @@index([productId])
 }
 
+model Tributacao {
+  id        String @id @default(uuid())
+  esfera    String // MUNICIPAL, ESTADUAL, FEDERAL
+  codigo    String
+  descricao String
+  status    String @default("ATIVO")
 
+  // Municipal specific
+  municipio          String?
+  codigoServico      String?
+  aliquotaIss        Float?
+  retencaoIss        Boolean @default(false)
+  situacaoTributaria String?
 
+  // Estadual specific
+  uf           String?
+  cfop         String?
+  cstIcms      String?
+  csosn        String?
+  aliquotaIcms Float?
+  fcp          Float?
+  difal        Float?
+  observacao   String?
+
+  // Federal specific
+  cstPis          String?
+  cstCofins       String?
+  cstIpi          String?
+  aliquotaPis     Float?
+  aliquotaCofins  Float?
+  aliquotaIpi     Float?
+  naturezaReceita String?
+
+  companyId String
+  company   Company @relation("CompanyToTributacao", fields: [companyId], references: [id], onDelete: Cascade)
+
+  produtosMunicipal  Product[] @relation("ProdutoTributacaoMunicipal")
+  produtosEstadual   Product[] @relation("ProdutoTributacaoEstadual")
+  produtosFederal    Product[] @relation("ProdutoTributacaoFederal")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, esfera, codigo])
+  @@index([companyId])
+}

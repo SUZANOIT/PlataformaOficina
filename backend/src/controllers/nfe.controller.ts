@@ -598,9 +598,9 @@ export const NfeController = {
               ncm: item.ncm,
               cest: item.cest,
               cfopEntrada: item.cfop,
-              tributacaoMunicipalId: item.tributacaoMunicipalId,
-              tributacaoEstadualId: item.tributacaoEstadualId,
-              tributacaoFederalId: item.tributacaoFederalId,
+              tributacaoMunicipalId: item.tributacaoMunicipalId || null,
+              tributacaoEstadualId: item.tributacaoEstadualId || null,
+              tributacaoFederalId: item.tributacaoFederalId || null,
               companyId
             }
           });

@@ -278,20 +278,10 @@ routes.get('/fiscal/audits', FiscalController.listAudits);
 routes.get('/fiscal/dashboard', FiscalController.getDashboard);
 
 // Módulo Contabilidade - Regras de Tributação
-routes.get('/fiscal/tributacao/municipal', TaxController.listMunicipal);
-routes.post('/fiscal/tributacao/municipal', TaxController.createMunicipal);
-routes.put('/fiscal/tributacao/municipal/:id', TaxController.updateMunicipal);
-routes.delete('/fiscal/tributacao/municipal/:id', TaxController.deleteMunicipal);
-
-routes.get('/fiscal/tributacao/estadual', TaxController.listEstadual);
-routes.post('/fiscal/tributacao/estadual', TaxController.createEstadual);
-routes.put('/fiscal/tributacao/estadual/:id', TaxController.updateEstadual);
-routes.delete('/fiscal/tributacao/estadual/:id', TaxController.deleteEstadual);
-
-routes.get('/fiscal/tributacao/federal', TaxController.listFederal);
-routes.post('/fiscal/tributacao/federal', TaxController.createFederal);
-routes.put('/fiscal/tributacao/federal/:id', TaxController.updateFederal);
-routes.delete('/fiscal/tributacao/federal/:id', TaxController.deleteFederal);
+routes.get('/fiscal/tributacao', TaxController.list);
+routes.post('/fiscal/tributacao', TaxController.create);
+routes.put('/fiscal/tributacao/:id', TaxController.update);
+routes.delete('/fiscal/tributacao/:id', TaxController.delete);
 
 // Módulo Contabilidade - Importação de Notas Fiscais de Entrada
 routes.get('/fiscal/nfe', NfeController.list);
