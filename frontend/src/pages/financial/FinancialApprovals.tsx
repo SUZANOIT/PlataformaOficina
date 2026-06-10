@@ -42,10 +42,10 @@ export function FinancialApprovals() {
 
       // Fetch payables and receivables in parallel
       const [payablesRes, receivablesRes] = await Promise.all([
-        fetch('/financial/payables?limit=100&status=EM ANÁLISE', {
+        fetch('/financial/payables?limit=100&status=PENDENTE,EM ANÁLISE', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('/financial/receivables?limit=100&status=EM ANÁLISE', {
+        fetch('/financial/receivables?limit=100&status=PENDENTE,EM ANÁLISE', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);

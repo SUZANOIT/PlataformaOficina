@@ -354,7 +354,14 @@ export const FinancialController = {
       const whereClause: any = {};
 
       if (companyId) whereClause.companyId = companyId as string;
-      if (status) whereClause.status = status as string;
+      if (status) {
+        const statusStr = status as string;
+        if (statusStr.includes(',')) {
+          whereClause.status = { in: statusStr.split(',') };
+        } else {
+          whereClause.status = statusStr;
+        }
+      }
       if (category) whereClause.categoria = category as string;
       if (costCenter) whereClause.centroCusto = costCenter as string;
       if (req.query.quoteId) {
@@ -765,7 +772,14 @@ export const FinancialController = {
       const whereClause: any = {};
 
       if (companyId) whereClause.companyId = companyId as string;
-      if (status) whereClause.status = status as string;
+      if (status) {
+        const statusStr = status as string;
+        if (statusStr.includes(',')) {
+          whereClause.status = { in: statusStr.split(',') };
+        } else {
+          whereClause.status = statusStr;
+        }
+      }
       if (category) whereClause.categoria = category as string;
       if (origemTipo) whereClause.origem_tipo = origemTipo as string;
       if (origemId) whereClause.origem_id = origemId as string;
