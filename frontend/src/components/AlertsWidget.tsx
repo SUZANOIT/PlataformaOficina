@@ -101,13 +101,13 @@ export function AlertsWidget() {
           Nenhum registro encontrado.
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-border max-h-[280px] overflow-y-auto scrollbar-thin">
           {alerts.map((alert) => {
             const priority = PRIORITY_CONFIG[alert.prioridade] || PRIORITY_CONFIG.MEDIA;
             return (
               <div
                 key={alert.id}
-                className={`p-4 sm:p-5 border-l-4 ${priority.border} ${alert.lida ? 'opacity-60' : ''} flex flex-col sm:flex-row sm:items-start justify-between gap-3`}
+                className={`p-3 sm:p-4 border-l-4 ${priority.border} ${alert.lida ? 'opacity-60' : ''} flex flex-col sm:flex-row sm:items-start justify-between gap-3`}
               >
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -121,7 +121,7 @@ export function AlertsWidget() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{alert.mensagem}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{alert.mensagem}</p>
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1">
                     <Calendar size={12} />
                     <span>Publicado em {new Date(alert.createdAt).toLocaleString('pt-BR')}</span>
@@ -135,7 +135,7 @@ export function AlertsWidget() {
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted text-foreground transition disabled:opacity-50"
                   >
                     <Check size={13} />
-                    <span>{markingId === alert.id ? 'Salvando...' : 'Marcar como lido'}</span>
+                    <span>{markingId === alert.id ? 'Salvando...' : 'Lido'}</span>
                   </button>
                 )}
               </div>
