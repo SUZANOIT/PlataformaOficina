@@ -94,7 +94,12 @@ export function AbsenceControl() {
     try {
       const response = await api.get('/auth/me');
       const me = response.data;
-      if (me.roleColaborador) {
+      // Admin/RH têm precedência sobre o perfil Colaborador
+      if (me.roleAdmin) {
+        setUserRole('ADMIN');
+      } else if (me.roleRh) {
+        setUserRole('RH');
+      } else if (me.roleColaborador) {
         setUserRole('COLABORADOR');
         // Retrieve associated collaborator record
         const collabRes = await api.get('/registry/collaborators');
@@ -102,10 +107,6 @@ export function AbsenceControl() {
         if (match) {
           setCurrentCollabId(match.id);
         }
-      } else if (me.roleAdmin) {
-        setUserRole('ADMIN');
-      } else if (me.roleRh) {
-        setUserRole('RH');
       }
     } catch (error) {
       console.error('Failed to get current user info', error);

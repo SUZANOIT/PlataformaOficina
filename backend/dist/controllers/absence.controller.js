@@ -61,7 +61,8 @@ exports.AbsenceController = {
             const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
             const { startDate, endDate, collaboratorId, tipo } = req.query;
             const whereClause = { companyId };
-            if (user?.roleColaborador) {
+            // Restrição de colaborador só se aplica a quem não é Admin/RH
+            if (user?.roleColaborador && !user.roleAdmin && !user.roleRh) {
                 const collaborator = await prisma_1.prisma.collaborator.findFirst({
                     where: { email: user.email, companyId },
                 });
@@ -284,7 +285,8 @@ exports.AbsenceController = {
             const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
             const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
             const collaboratorWhere = { companyId };
-            if (user?.roleColaborador) {
+            // Restrição de colaborador só se aplica a quem não é Admin/RH
+            if (user?.roleColaborador && !user.roleAdmin && !user.roleRh) {
                 const collaborator = await prisma_1.prisma.collaborator.findFirst({
                     where: { email: user.email, companyId },
                 });

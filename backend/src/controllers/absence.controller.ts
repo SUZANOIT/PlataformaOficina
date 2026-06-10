@@ -69,7 +69,8 @@ export const AbsenceController = {
 
       const whereClause: any = { companyId };
 
-      if (user?.roleColaborador) {
+      // Restrição de colaborador só se aplica a quem não é Admin/RH
+      if (user?.roleColaborador && !user.roleAdmin && !user.roleRh) {
         const collaborator = await prisma.collaborator.findFirst({
           where: { email: user.email, companyId },
         });
@@ -328,7 +329,8 @@ export const AbsenceController = {
 
       const collaboratorWhere: any = { companyId };
 
-      if (user?.roleColaborador) {
+      // Restrição de colaborador só se aplica a quem não é Admin/RH
+      if (user?.roleColaborador && !user.roleAdmin && !user.roleRh) {
         const collaborator = await prisma.collaborator.findFirst({
           where: { email: user.email, companyId },
         });
