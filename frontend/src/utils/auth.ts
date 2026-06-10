@@ -6,6 +6,15 @@ export interface PlanInfo {
   preco: number;
 }
 
+export interface CompanyInfo {
+  id: string;
+  nome?: string;
+  plano?: string;
+  statusAssinatura?: string;
+  activeModules?: string[];
+  [key: string]: unknown;
+}
+
 export interface UserProfile {
   id: string;
   nome: string;
@@ -15,6 +24,7 @@ export interface UserProfile {
   statusAssinatura?: string;
   plano?: PlanInfo | null;
   activeModules?: string[];
+  company?: CompanyInfo | null;
   roleAdmin?: boolean;
   roleContabilidade?: boolean;
 }

@@ -51,29 +51,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.success(`Bem-vindo de volta, ${newUser.nome}!`);
   }, []);
 
-  // Validate session on mount
+  // Validate session and sync full profile whenever the token changes
+  // (on mount AND right after login, so guards like ModuleGuard see activeModules)
   useEffect(() => {
+    let cancelled = false;
+
     const checkAuth = async () => {
-      const storedToken = authStorage.getToken();
-      if (storedToken) {
-        if (authStorage.isTokenExpired(storedToken)) {
+      if (token) {
+        if (authStorage.isTokenExpired(token)) {
           logout(true);
-        } else {
-          try {
-            const response = await api.get('/auth/me');
-            const latestUser = response.data;
-            authStorage.setUser(latestUser);
-            setUserState(latestUser);
-          } catch (error) {
-            console.error('Failed to sync user session payload:', error);
-          }
+          return;
+        }
+        setIsLoading(true);
+        try {
+          const response = await api.get('/auth/me');
+          if (cancelled) return;
+          const latestUser = response.data;
+          authStorage.setUser(latestUser);
+          setUserState(latestUser);
+        } catch (error) {
+          console.error('Failed to sync user session payload:', error);
         }
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     checkAuth();
-  }, [logout]);
+    return () => {
+      cancelled = true;
+    };
+  }, [token, logout]);
 
   // Global listeners for axios response 401s / expired events
   useEffect(() => {
