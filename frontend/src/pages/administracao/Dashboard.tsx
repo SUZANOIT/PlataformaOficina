@@ -221,7 +221,7 @@ export function Dashboard() {
         <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl shadow-lg space-y-3 relative overflow-hidden">
           <div className="absolute top-0 right-0 h-12 w-12 bg-indigo-500/5 rounded-bl-3xl"></div>
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[9px] font-bold uppercase tracking-wider">Total Tenants</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider">Total de Empresas</span>
             <Building2 size={15} className="text-indigo-400" />
           </div>
           <div className="space-y-0.5">
@@ -375,7 +375,7 @@ export function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-xs font-black uppercase text-white tracking-wider">Top Empresas por Faturamento</h3>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Tenants com maior volume de faturamento</p>
+              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Empresas com maior volume de faturamento</p>
             </div>
             <Link to="/administracao/empresas" className="text-[10px] font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1 hover:underline">
               <span>Ver todas</span>

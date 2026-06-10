@@ -34,7 +34,7 @@ export function SaaSLayout() {
 
   const menuItems: MenuItem[] = [
     { name: 'Dashboard', path: '/administracao/dashboard', icon: LayoutDashboard },
-    { name: 'Empresas (Tenants)', path: '/administracao/empresas', icon: Building2, permission: 'empresas' },
+    { name: 'Empresa', path: '/administracao/empresas', icon: Building2, permission: 'empresas' },
     { name: 'Usuários Globais', path: '/administracao/usuarios', icon: Users2, permission: 'usuarios' },
     { name: 'Planos', path: '/administracao/planos', icon: Layers, permission: 'planos' },
     { name: 'Assinaturas', path: '/administracao/assinaturas', icon: CreditCard, permission: 'assinaturas' },

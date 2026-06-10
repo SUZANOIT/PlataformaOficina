@@ -1111,7 +1111,6 @@ export function Presentation() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
                   {[
                     { label: "Plataforma SaaS Multi-Tenant", desc: "Isolamento total de dados e configurações por cliente.", value: "SaaS Ativo" },
-                    { label: "Integração FIPE Nativa", desc: "Busca e atualização instantânea de valores de mercado de veículos.", value: "API FIPE" },
                     { label: "Integração ReceitaWS", desc: "Preenchimento automático de cadastros usando apenas CNPJ.", value: "API ReceitaWS" },
                     { label: "Emissão de NF-e Inteligente", desc: "Adequação tributária municipal e envio imediato ao cliente.", value: "Emissão Rápida" },
                     { label: "Segurança de Dados LGPD", desc: "Armazenamento criptografado e termo de consentimento digital.", value: "Conformidade" },

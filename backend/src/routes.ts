@@ -426,8 +426,9 @@ routes.get('/api/saas/admin/roles', saasAuthMiddleware, saasPermissionGuard('usu
 // Financeiro
 routes.get('/api/saas/admin/financial-stats', saasAuthMiddleware, saasPermissionGuard('financeiro'), SaaSPortalController.getFinancialStats);
 
-// Auditoria
+// Auditoria (paginação server-side: ?page=0&size=20&sort=dataHora,desc)
 routes.get('/api/saas/admin/audit-logs', saasAuthMiddleware, saasPermissionGuard('auditoria'), SaaSPortalController.listAuditLogs);
+routes.get('/api/auditoria', saasAuthMiddleware, saasPermissionGuard('auditoria'), SaaSPortalController.listAuditLogs);
 
 // Monitoramento & Configurações
 routes.get('/api/saas/admin/telemetry', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.getTelemetry);
@@ -438,5 +439,9 @@ routes.post('/api/saas/admin/settings', saasAuthMiddleware, saasPermissionGuard(
 routes.get('/api/saas/admin/notifications', saasAuthMiddleware, SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.createNotification);
 routes.post('/api/saas/admin/notifications/:id/read', saasAuthMiddleware, SaaSPortalController.markAsRead);
+
+// Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)
+routes.get('/notifications/active', authMiddleware, SaaSPortalController.listActiveNotificationsForCompany);
+routes.post('/notifications/:id/read', authMiddleware, SaaSPortalController.markNotificationReadForCompany);
 
 export { routes };

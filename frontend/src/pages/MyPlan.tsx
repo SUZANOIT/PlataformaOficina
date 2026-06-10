@@ -117,12 +117,10 @@ export function MyPlan() {
     aprovacao_niveis: 'Aprovação por Alçada',
     auditoria: 'Trilha de Auditoria',
     multiempresa: 'Suporte Multiempresa',
-    api: 'Integrações via API',
     bi: 'Business Intelligence',
     integracoes: 'Módulo de Integrações',
     whatsapp: 'Disparo via WhatsApp',
-    receitaws: 'Consulta CNPJ ReceitaWS',
-    fipe: 'Tabela FIPE Integrada'
+    receitaws: 'Consulta CNPJ ReceitaWS'
   };
 
   return (

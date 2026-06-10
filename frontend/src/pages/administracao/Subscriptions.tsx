@@ -129,7 +129,7 @@ export function Subscriptions() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/20">
-                    <th className="p-4">Empresa (Tenant)</th>
+                    <th className="p-4">Empresa</th>
                     <th className="p-4">Plano</th>
                     <th className="p-4">Valor Mensal</th>
                     <th className="p-4">Forma de Pgto</th>

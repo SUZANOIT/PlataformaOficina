@@ -216,10 +216,7 @@ async function main() {
     { nome: 'Relatórios BI', chave: 'bi', descricao: 'Relatórios avançados e gráficos analíticos de desempenho.', valorAdicional: 39.90 },
     { nome: 'IA para Diagnóstico', chave: 'ia', descricao: 'Inteligência artificial para auxiliar no diagnóstico de falhas.', valorAdicional: 79.90 },
     { nome: 'Emissão de NF-e', chave: 'fiscal', descricao: 'Emissão automatizada de notas fiscais de serviços (NFS-e).', valorAdicional: 19.90 },
-    { nome: 'Integração FIPE', chave: 'fipe', descricao: 'Consulta em tempo real de preços de veículos na tabela FIPE.', valorAdicional: 9.90 },
-    { nome: 'Integração ReceitaWS', chave: 'receitaws', descricao: 'Preenchimento automático de dados de empresas via Receita Federal.', valorAdicional: 9.90 },
-    { nome: 'API Externa', chave: 'api', descricao: 'Acesso a rotas de API externas para integração com outros sistemas.', valorAdicional: 99.90 },
-    { nome: 'Aplicativo Mobile', chave: 'mobile', descricao: 'Aplicativo exclusivo para mecânicos e clientes finais.', valorAdicional: 59.90 }
+    { nome: 'Integração ReceitaWS', chave: 'receitaws', descricao: 'Preenchimento automático de dados de empresas via Receita Federal.', valorAdicional: 9.90 }
   ];
 
   for (const m of modulosSaaS) {
@@ -229,6 +226,9 @@ async function main() {
       create: m
     });
   }
+
+  // Remove módulos descontinuados do Marketplace (API Externa, Aplicativo Mobile, Integração FIPE)
+  await prisma.saaSModule.deleteMany({ where: { chave: { in: ['api', 'mobile', 'fipe'] } } });
 
   // 2. Planos do SaaS
   const planosSaaS = [

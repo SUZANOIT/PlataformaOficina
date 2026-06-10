@@ -32,10 +32,11 @@ INSERT INTO "Module" ("id", "nome", "chave", "descricao") VALUES
   (gen_random_uuid(), 'Aprovação por Níveis', 'aprovacao_niveis', 'Alçada de aprovação de pagamentos por perfil'),
   (gen_random_uuid(), 'Trilha de Auditoria', 'auditoria', 'Histórico completo de alterações críticas'),
   (gen_random_uuid(), 'Multiempresa', 'multiempresa', 'Suporte a filiais e grupo de empresas'),
-  (gen_random_uuid(), 'Acesso à API', 'api', 'Acesso programático via chaves de API externas'),
   (gen_random_uuid(), 'Business Intelligence', 'bi', 'Relatórios avançados e gráficos analíticos de BI'),
   (gen_random_uuid(), 'Integrações', 'integracoes', 'Integrações de ERP de terceiros'),
   (gen_random_uuid(), 'Notificações via WhatsApp', 'whatsapp', 'Disparo de PDFs e notificações de aprovação no WhatsApp'),
-  (gen_random_uuid(), 'Consulta de CNPJ ReceitaWS', 'receitaws', 'Preenchimento automático de cadastros via ReceitaWS'),
-  (gen_random_uuid(), 'Consulta de Tabela FIPE', 'fipe', 'Valores de referência de veículos pela tabela FIPE')
+  (gen_random_uuid(), 'Consulta de CNPJ ReceitaWS', 'receitaws', 'Preenchimento automático de cadastros via ReceitaWS')
 ON CONFLICT ("chave") DO NOTHING;
+
+-- Remove módulos descontinuados (API Externa, Aplicativo Mobile, Integração FIPE)
+DELETE FROM "Module" WHERE "chave" IN ('api', 'mobile', 'fipe');

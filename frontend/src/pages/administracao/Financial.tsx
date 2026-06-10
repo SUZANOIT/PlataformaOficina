@@ -73,7 +73,7 @@ export function Financial() {
   // Exportar dados como CSV
   const handleExportCSV = () => {
     if (!data || data.faturamentos.length === 0) return;
-    const headers = ['Fatura ID', 'Cliente (Tenant)', 'Plano', 'Valor', 'Metodo Pagamento', 'Vencimento', 'Status'];
+    const headers = ['Fatura ID', 'Cliente', 'Plano', 'Valor', 'Metodo Pagamento', 'Vencimento', 'Status'];
     const rows = data.faturamentos.map(f => [
       f.id,
       f.tenant,

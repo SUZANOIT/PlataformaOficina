@@ -1097,14 +1097,30 @@ model SaaSAuditLog {
 }
 
 model SaaSNotification {
-  id        String   @id @default(uuid())
-  titulo    String
-  mensagem  String   @db.Text
-  tipo      String   @default("INFO") // INFO, WARNING, SUCCESS, ERROR
-  lida      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String    @id @default(uuid())
+  titulo     String
+  mensagem   String    @db.Text
+  tipo       String    @default("INFO") // INFO, WARNING, SUCCESS, ERROR
+  prioridade String    @default("MEDIA") // ALTA, MEDIA, BAIXA
+  expiraEm   DateTime? @map("expira_em")
+  lida       Boolean   @default(false)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  leituras SaaSNotificationRead[]
 
   @@map("saas_notifications")
+}
+
+// Registro de leitura dos alertas por oficina (empresa)
+model SaaSNotificationRead {
+  id             String           @id @default(uuid())
+  notificationId String           @map("notification_id")
+  notification   SaaSNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  companyId      String           @map("company_id")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@unique([notificationId, companyId])
+  @@map("saas_notification_reads")
 }
 
 model SaaSSetting {

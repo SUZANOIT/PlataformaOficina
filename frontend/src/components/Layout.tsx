@@ -73,7 +73,7 @@ export function Layout() {
 
   const handleReturnToSaaS = () => {
     localStorage.removeItem('token');
-    navigate('/administracao/tenants');
+    navigate('/administracao/empresas');
   };
 
   const hasModule = (moduleKey: string) => {

@@ -25,7 +25,9 @@ export function Notificacoes() {
   const [formData, setFormData] = useState({
     titulo: '',
     mensagem: '',
-    tipo: 'INFO' as 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
+    tipo: 'INFO' as 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR',
+    prioridade: 'MEDIA' as 'ALTA' | 'MEDIA' | 'BAIXA',
+    expiraEm: ''
   });
 
   const loadNotifications = async () => {
@@ -54,13 +56,21 @@ export function Notificacoes() {
 
     setIsSubmitting(true);
     try {
-      await SaaSAPIService.createNotification(formData);
+      await SaaSAPIService.createNotification({
+        titulo: formData.titulo,
+        mensagem: formData.mensagem,
+        tipo: formData.tipo,
+        prioridade: formData.prioridade,
+        expiraEm: formData.expiraEm ? new Date(formData.expiraEm).toISOString() : null
+      });
       toast.success('Alerta global disparado com sucesso!');
       setIsComposerOpen(false);
       setFormData({
         titulo: '',
         mensagem: '',
-        tipo: 'INFO'
+        tipo: 'INFO',
+        prioridade: 'MEDIA',
+        expiraEm: ''
       });
       loadNotifications();
     } catch (err: any) {
@@ -141,11 +151,23 @@ export function Notificacoes() {
                   {getAlertIcon(notif.tipo)}
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-xs font-extrabold text-white flex items-center gap-2">
+                  <h4 className="text-xs font-extrabold text-white flex items-center gap-2 flex-wrap">
                     {notif.titulo}
                     <span className="text-[9px] text-slate-500 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
                       {notif.tipo}
                     </span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                      notif.prioridade === 'ALTA' ? 'text-rose-400 bg-rose-950/20 border-rose-500/20' :
+                      notif.prioridade === 'BAIXA' ? 'text-sky-400 bg-sky-950/20 border-sky-500/20' :
+                      'text-amber-400 bg-amber-950/20 border-amber-500/20'
+                    }`}>
+                      {notif.prioridade === 'ALTA' ? 'Alta' : notif.prioridade === 'BAIXA' ? 'Baixa' : 'Média'}
+                    </span>
+                    {notif.expiraEm && new Date(notif.expiraEm) < new Date() && (
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded border text-slate-500 bg-slate-950 border-slate-850 uppercase">
+                        Expirado
+                      </span>
+                    )}
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">{notif.mensagem}</p>
                 </div>
@@ -228,6 +250,31 @@ export function Notificacoes() {
                   <option value="SUCCESS">Sucesso/Aviso Positivo (Verde)</option>
                   <option value="ERROR">Erro/Crítico (Vermelho)</option>
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prioridade *</label>
+                  <select
+                    value={formData.prioridade}
+                    onChange={(e) => setFormData({ ...formData, prioridade: e.target.value as any })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                  >
+                    <option value="ALTA">Alta</option>
+                    <option value="MEDIA">Média</option>
+                    <option value="BAIXA">Baixa</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expira em (opcional)</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.expiraEm}
+                    onChange={(e) => setFormData({ ...formData, expiraEm: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

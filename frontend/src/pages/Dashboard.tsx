@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import { AlertsWidget } from '../components/AlertsWidget';
 
 export function Dashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -226,6 +227,9 @@ export function Dashboard() {
           Novo Orçamento
         </Link>
       </div>
+
+      {/* Alertas e Comunicados do Painel Administrativo */}
+      <AlertsWidget />
 
       {/* Estatísticas Gerais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

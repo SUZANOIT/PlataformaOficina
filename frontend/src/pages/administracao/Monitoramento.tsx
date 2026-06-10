@@ -5,20 +5,16 @@ import {
   HardDrive, 
   Database, 
   RefreshCw, 
-  Server
+  Server,
+  PlugZap
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TelemetryData {
-  cpuUsage: string;
-  memoryUsage: string;
-  postgresSize: string;
-  diskUsage: string;
-  processingQueue: {
-    activeJobs: number;
-    pendingJobs: number;
-    failedJobs: number;
-  };
+  cpuUsage: string | null;
+  memoryUsage: string | null;
+  postgresSize: string | null;
+  diskUsage: string | null;
   apis: Array<{
     name: string;
     status: 'ONLINE' | 'OFFLINE';
@@ -58,18 +54,26 @@ export function Monitoramento() {
     return () => clearInterval(interval);
   }, []);
 
-  const getCPUProgress = (usage: string) => {
-    return parseFloat(usage.replace('%', ''));
+  const getCPUProgress = (usage: string | null) => {
+    if (!usage) return 0;
+    return parseFloat(usage.replace('%', '')) || 0;
   };
 
-  const getMemoryUsagePercent = (usage: string) => {
+  const getMemoryUsagePercent = (usage: string | null) => {
+    if (!usage) return 0;
     const parts = usage.split(' / ');
     if (parts.length === 2) {
       const used = parseFloat(parts[0]);
       const total = parseFloat(parts[1]);
-      return (used / total) * 100;
+      if (total > 0) return (used / total) * 100;
     }
-    return 20;
+    return 0;
+  };
+
+  const getDiskUsagePercent = (usage: string | null) => {
+    if (!usage) return 0;
+    const match = usage.match(/\((\d+)%\)/);
+    return match ? parseInt(match[1], 10) : 0;
   };
 
   if (isLoading || !telemetry) {
@@ -110,7 +114,7 @@ export function Monitoramento() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
-              <h3 className="text-xl font-black text-white">{telemetry.cpuUsage}</h3>
+              <h3 className="text-xl font-black text-white">{telemetry.cpuUsage || '—'}</h3>
               <span className="text-[10px] text-slate-500 font-bold">Node Process</span>
             </div>
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
@@ -130,10 +134,12 @@ export function Monitoramento() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
-              <h3 className="text-base font-black text-white truncate max-w-[140px]" title={telemetry.memoryUsage}>
-                {telemetry.memoryUsage.split(' / ')[0]}
+              <h3 className="text-base font-black text-white truncate max-w-[140px]" title={telemetry.memoryUsage || ''}>
+                {telemetry.memoryUsage ? telemetry.memoryUsage.split(' / ')[0] : '—'}
               </h3>
-              <span className="text-[9px] text-slate-500 font-bold">Total: {telemetry.memoryUsage.split(' / ')[1]}</span>
+              {telemetry.memoryUsage && (
+                <span className="text-[9px] text-slate-500 font-bold">Total: {telemetry.memoryUsage.split(' / ')[1]}</span>
+              )}
             </div>
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
               <div 
@@ -152,12 +158,12 @@ export function Monitoramento() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
-              <h3 className="text-xl font-black text-white">{telemetry.postgresSize}</h3>
+              <h3 className="text-xl font-black text-white">{telemetry.postgresSize || '—'}</h3>
               <span className="text-[10px] text-slate-500 font-bold">PostgreSQL</span>
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
-              <div style={{ width: '42%' }} className="h-full rounded-full bg-purple-500" />
-            </div>
+            {!telemetry.postgresSize && (
+              <p className="text-[10px] text-slate-500 font-semibold">Sem leitura disponível no momento.</p>
+            )}
           </div>
         </div>
 
@@ -169,24 +175,39 @@ export function Monitoramento() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
-              <h3 className="text-sm font-black text-white">{telemetry.diskUsage.split(' (')[0]}</h3>
-              <span className="text-[9px] text-slate-500 font-bold">Uso: {telemetry.diskUsage.split(' (')[1]?.replace(')', '')}</span>
+              <h3 className="text-sm font-black text-white">{telemetry.diskUsage ? telemetry.diskUsage.split(' (')[0] : '—'}</h3>
+              {telemetry.diskUsage && (
+                <span className="text-[9px] text-slate-500 font-bold">Uso: {telemetry.diskUsage.split(' (')[1]?.replace(')', '')}</span>
+              )}
             </div>
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
-              <div style={{ width: '14%' }} className="h-full rounded-full bg-amber-500" />
+              <div 
+                style={{ width: `${getDiskUsagePercent(telemetry.diskUsage)}%` }} 
+                className="h-full rounded-full bg-amber-500 transition-all duration-500" 
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Third-Party APIs Health */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 lg:col-span-2">
-          <div>
-            <h3 className="text-xs font-black uppercase text-white tracking-wider">Status das APIs e Gateways Parceiros</h3>
-            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Tempo de resposta médio das integrações essenciais</p>
-          </div>
+      {/* Third-Party APIs Health */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+        <div>
+          <h3 className="text-xs font-black uppercase text-white tracking-wider">Status das APIs e Gateways Parceiros</h3>
+          <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Tempo de resposta médio das integrações configuradas</p>
+        </div>
 
+        {telemetry.apis.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center">
+              <PlugZap size={22} className="text-slate-500" />
+            </div>
+            <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+              Nenhum dado de telemetria disponível.<br />
+              Configure uma integração para visualizar informações.
+            </p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {telemetry.apis.map((api) => (
               <div 
@@ -194,7 +215,7 @@ export function Monitoramento() {
                 className="bg-slate-950 border border-slate-850 rounded-xl p-4 flex items-center justify-between transition hover:border-slate-800"
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></div>
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${api.status === 'ONLINE' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></div>
                   <div>
                     <h4 className="text-xs font-extrabold text-slate-200">{api.name}</h4>
                     <span className="text-[9px] text-slate-500 font-bold block mt-0.5">Gateway / API</span>
@@ -202,51 +223,19 @@ export function Monitoramento() {
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    Online
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    api.status === 'ONLINE'
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                  }`}>
+                    {api.status === 'ONLINE' ? 'Online' : 'Offline'}
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 font-bold block mt-1">Ping: {api.ping}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Processing Queue Status */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-          <div className="space-y-5">
-            <div>
-              <h3 className="text-xs font-black uppercase text-white tracking-wider">Fila de Job Workers</h3>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Processamento de e-mails, boletos e webhooks assíncronos</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-850">
-                <span className="text-xs text-slate-400 font-semibold">Jobs em Execução</span>
-                <span className="text-xs font-mono font-black text-indigo-400">{telemetry.processingQueue.activeJobs}</span>
-              </div>
-
-              <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-850">
-                <span className="text-xs text-slate-400 font-semibold">Fila Pendente</span>
-                <span className="text-xs font-mono font-black text-white">{telemetry.processingQueue.pendingJobs}</span>
-              </div>
-
-              <div className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-850">
-                <span className="text-xs text-slate-400 font-semibold">Jobs com Erro</span>
-                <span className={`text-xs font-mono font-black ${
-                  telemetry.processingQueue.failedJobs > 0 ? 'text-rose-400' : 'text-slate-400'
-                }`}>
-                  {telemetry.processingQueue.failedJobs}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-950/45 border border-slate-850 p-3.5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-semibold mt-4">
-            <span className="text-white font-bold block mb-1">💡 Autolimpeza de fila ativa</span>
-            O sistema faz autodiagnóstico de tarefas falhas a cada 60 minutos, reiniciando requisições SMTP atrasadas de forma autônoma.
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

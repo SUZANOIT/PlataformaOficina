@@ -6,9 +6,7 @@ import {
   Save, 
   Wrench,
   Truck,
-  FileText,
-  Smartphone,
-  Cpu
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -141,8 +139,6 @@ export function Modules() {
       case 'oficina': return <Wrench className="text-indigo-400" size={24} />;
       case 'frotas': return <Truck className="text-emerald-400" size={24} />;
       case 'fiscal': return <FileText className="text-amber-400" size={24} />;
-      case 'mobile': return <Smartphone className="text-sky-400" size={24} />;
-      case 'api': return <Cpu className="text-purple-400" size={24} />;
       default: return <Boxes className="text-slate-400" size={24} />;
     }
   };
@@ -230,7 +226,7 @@ export function Modules() {
           {/* Selector */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
             <div className="space-y-1">
-              <h3 className="text-xs font-black uppercase text-white tracking-wider">Selecione o Cliente (Tenant)</h3>
+              <h3 className="text-xs font-black uppercase text-white tracking-wider">Selecione o Cliente</h3>
               <p className="text-[10px] text-slate-400 font-semibold">Atribua permissões operacionais e faturamento extra para uma oficina.</p>
             </div>
             

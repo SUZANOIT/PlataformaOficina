@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SaaSAPIService } from '../../services/saas';
 import { 
   Search, 
   RefreshCw, 
   User, 
   Calendar, 
-  Network
+  Network,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function Auditoria() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -18,41 +24,73 @@ export function Auditoria() {
   const [actionFilter, setActionFilter] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
 
-  const loadLogs = async () => {
+  // Pagination state (server-side)
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  const loadLogs = useCallback(async (targetPage: number, targetSize: number, filters?: { user?: string; acao?: string; search?: string }) => {
     try {
       setIsLoading(true);
       const data = await SaaSAPIService.listAuditLogs({
-        user: userFilter || undefined,
-        acao: actionFilter || undefined,
-        search: searchFilter || undefined
+        user: filters?.user ?? (userFilter || undefined),
+        acao: filters?.acao ?? (actionFilter || undefined),
+        search: filters?.search ?? (searchFilter || undefined),
+        page: targetPage,
+        size: targetSize,
+        sort: 'dataHora,desc'
       });
-      setLogs(data);
+      setLogs(data.content);
+      setTotalElements(data.totalElements);
+      setTotalPages(data.totalPages);
+      setPage(data.page);
+      setSize(data.size);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao carregar logs de auditoria.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userFilter, actionFilter, searchFilter]);
 
   useEffect(() => {
-    loadLogs();
+    loadLogs(0, 20);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loadLogs();
+    loadLogs(0, size);
   };
 
   const handleClearFilters = () => {
     setUserFilter('');
     setActionFilter('');
     setSearchFilter('');
-    // Wait for state updates to trigger loading or call directly with empty parameters
-    setTimeout(() => {
-      loadLogs();
-    }, 50);
+    loadLogs(0, size, { user: undefined, acao: undefined, search: undefined });
   };
+
+  const handleChangeSize = (newSize: number) => {
+    loadLogs(0, newSize);
+  };
+
+  const goToPage = (target: number) => {
+    if (target < 0 || (totalPages > 0 && target > totalPages - 1) || target === page) return;
+    loadLogs(target, size);
+  };
+
+  const firstItem = totalElements === 0 ? 0 : page * size + 1;
+  const lastItem = Math.min((page + 1) * size, totalElements);
+  const isFirstPage = page <= 0;
+  const isLastPage = totalPages === 0 || page >= totalPages - 1;
+
+  const paginationBtnClass = (disabled: boolean) =>
+    `p-1.5 rounded-lg border border-slate-800 transition ${
+      disabled
+        ? 'text-slate-700 cursor-not-allowed'
+        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+    }`;
 
   return (
     <div className="space-y-6">
@@ -60,11 +98,11 @@ export function Auditoria() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-lg font-black text-white uppercase tracking-wider">Histórico de Auditoria</h2>
-          <p className="text-xs text-slate-400">Rastreamento de ações administrativas de segurança, alteração de status de tenants, configurações e senhas.</p>
+          <p className="text-xs text-slate-400">Rastreamento de ações administrativas de segurança, alteração de status de empresas, configurações e senhas.</p>
         </div>
 
         <button
-          onClick={loadLogs}
+          onClick={() => loadLogs(page, size)}
           className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-xl text-xs border border-slate-800 transition w-full sm:w-auto"
         >
           <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
@@ -95,11 +133,11 @@ export function Auditoria() {
             >
               <option value="">Todas as ações</option>
               <option value="Acesso Dashboard">Acesso Dashboard</option>
-              <option value="Criação Tenant">Criação Tenant</option>
-              <option value="Edição Tenant">Edição Tenant</option>
-              <option value="Bloqueio Tenant">Bloqueio Tenant</option>
-              <option value="Suspensão Tenant">Suspensão Tenant</option>
-              <option value="Reativação Tenant">Reativação Tenant</option>
+              <option value="Criação Tenant">Criação Empresa</option>
+              <option value="Edição Tenant">Edição Empresa</option>
+              <option value="Bloqueio Tenant">Bloqueio Empresa</option>
+              <option value="Suspensão Tenant">Suspensão Empresa</option>
+              <option value="Reativação Tenant">Reativação Empresa</option>
               <option value="Reset Senha Tenant Admin">Reset Senha Local</option>
               <option value="Criação Plano">Criação Plano</option>
               <option value="Edição Plano">Edição Plano</option>
@@ -154,7 +192,7 @@ export function Auditoria() {
           </div>
         ) : logs.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-xs font-semibold">
-            Nenhum registro de auditoria localizado com estes filtros.
+            Nenhum registro encontrado.
           </div>
         ) : (
           <div className="w-full">
@@ -204,6 +242,65 @@ export function Auditoria() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {!isLoading && totalElements > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-800 bg-slate-950/20">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-slate-400 font-semibold">
+                Mostrando {firstItem} a {lastItem} de {totalElements} registros
+              </span>
+              <select
+                value={size}
+                onChange={(e) => handleChangeSize(Number(e.target.value))}
+                className="bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-[11px] text-slate-300 focus:border-indigo-500 focus:outline-none"
+                title="Registros por página"
+              >
+                {PAGE_SIZE_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt} por página</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(0)}
+                disabled={isFirstPage}
+                className={paginationBtnClass(isFirstPage)}
+                title="Primeira página"
+              >
+                <ChevronsLeft size={15} />
+              </button>
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={isFirstPage}
+                className={paginationBtnClass(isFirstPage)}
+                title="Página anterior"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <span className="text-[11px] text-slate-300 font-bold px-2">
+                Página {page + 1} de {Math.max(totalPages, 1)}
+              </span>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={isLastPage}
+                className={paginationBtnClass(isLastPage)}
+                title="Próxima página"
+              >
+                <ChevronRight size={15} />
+              </button>
+              <button
+                onClick={() => goToPage(totalPages - 1)}
+                disabled={isLastPage}
+                className={paginationBtnClass(isLastPage)}
+                title="Última página"
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
           </div>
         )}
       </div>

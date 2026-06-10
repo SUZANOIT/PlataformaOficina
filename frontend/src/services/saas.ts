@@ -191,10 +191,16 @@ export const SaaSAPIService = {
     return response.data;
   },
 
-  // Auditoria
-  async listAuditLogs(params?: { user?: string; acao?: string; search?: string }) {
+  // Auditoria (paginação server-side)
+  async listAuditLogs(params?: { user?: string; acao?: string; search?: string; page?: number; size?: number; sort?: string }) {
     const response = await saasApi.get('/api/saas/admin/audit-logs', { params });
-    return response.data;
+    return response.data as {
+      content: any[];
+      totalElements: number;
+      totalPages: number;
+      page: number;
+      size: number;
+    };
   },
 
   // Monitoramento
@@ -220,7 +226,7 @@ export const SaaSAPIService = {
     return response.data;
   },
 
-  async createNotification(payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR' }) {
+  async createNotification(payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null }) {
     const response = await saasApi.post('/api/saas/admin/notifications', payload);
     return response.data;
   },

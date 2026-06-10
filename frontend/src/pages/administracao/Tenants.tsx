@@ -77,7 +77,7 @@ export function Tenants() {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao carregar dados dos tenants.');
+      toast.error('Erro ao carregar dados das empresas.');
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +108,7 @@ export function Tenants() {
     setIsSubmitting(true);
     try {
       await SaaSAPIService.createTenant(formData);
-      toast.success('Empresa (Tenant) e Administrador criados com sucesso!');
+      toast.success('Empresa e Administrador criados com sucesso!');
       setIsCreateOpen(false);
       // Reset form
       setFormData({
@@ -131,7 +131,7 @@ export function Tenants() {
       loadData();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.error || 'Erro ao cadastrar tenant.');
+      toast.error(err.response?.data?.error || 'Erro ao cadastrar empresa.');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +149,7 @@ export function Tenants() {
       loadData();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.error || 'Erro ao atualizar tenant.');
+      toast.error(err.response?.data?.error || 'Erro ao atualizar empresa.');
     } finally {
       setIsSubmitting(false);
     }
@@ -189,7 +189,7 @@ export function Tenants() {
       loadData();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.error || 'Erro ao alterar status do tenant.');
+      toast.error(err.response?.data?.error || 'Erro ao alterar status da empresa.');
     }
   };
 
@@ -253,7 +253,7 @@ export function Tenants() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `tenants_saas_${Date.now()}.csv`);
+    link.setAttribute('download', `empresas_saas_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -280,7 +280,7 @@ export function Tenants() {
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-lg font-black text-white uppercase tracking-wider">Gestão de Empresas (Tenants)</h2>
+          <h2 className="text-lg font-black text-white uppercase tracking-wider">Gestão de Empresa</h2>
           <p className="text-xs text-slate-400">Gerenciamento cadastral, bloqueios e alteração de planos dos clientes SaaS.</p>
         </div>
 
@@ -533,7 +533,7 @@ export function Tenants() {
               <X size={20} />
             </button>
 
-            <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">Adicionar Nova Empresa (Tenant)</h3>
+            <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">Adicionar Nova Empresa</h3>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 overflow-y-auto flex-1 pr-2 scrollbar-thin">
               {/* Seção 1: Dados da Empresa */}
@@ -716,7 +716,7 @@ export function Tenants() {
 
               <ModalFooterActions
                 onCancel={() => setIsCreateOpen(false)}
-                primaryLabel="Cadastrar Tenant"
+                primaryLabel="Cadastrar Empresa"
                 loading={isSubmitting}
                 primaryType="submit"
                 embedded
