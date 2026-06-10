@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
@@ -7,6 +7,10 @@ import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 export function Suppliers() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -228,6 +232,13 @@ export function Suppliers() {
     );
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / ITEMS_PER_PAGE);
+  const paginatedSuppliers = filteredSuppliers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -272,7 +283,7 @@ export function Suppliers() {
               </tr>
             </thead>
             <tbody>
-              {filteredSuppliers.map((supplier) => (
+              {paginatedSuppliers.map((supplier) => (
                 <tr key={supplier.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                   <td className="p-4 truncate">
                     <div className="flex items-center gap-3 truncate">
@@ -339,7 +350,7 @@ export function Suppliers() {
 
       {/* Listagem Mobile */}
       <div className="block md:hidden space-y-4">
-        {filteredSuppliers.map((supplier) => (
+        {paginatedSuppliers.map((supplier) => (
           <div key={supplier.id} className="bg-card border border-border p-4 rounded-xl space-y-3 shadow-sm hover:border-primary/30 transition">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold flex-shrink-0">
@@ -383,6 +394,38 @@ export function Suppliers() {
           </div>
         )}
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between bg-card border border-border p-4 rounded-xl shadow-sm gap-4">
+          <p className="text-sm text-muted-foreground text-center sm:text-left">
+            Mostrando <span className="font-medium text-foreground">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> a{' '}
+            <span className="font-medium text-foreground">{Math.min(currentPage * ITEMS_PER_PAGE, filteredSuppliers.length)}</span> de{' '}
+            <span className="font-medium text-foreground">{filteredSuppliers.length}</span> fornecedores
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition text-foreground"
+              aria-label="Página Anterior"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-medium px-3 text-foreground">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition text-foreground"
+              aria-label="Próxima Página"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Cadastro/Edição */}
       {isModalOpen && (
