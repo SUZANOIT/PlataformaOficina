@@ -300,6 +300,7 @@ routes.get('/fiscal/nfe/:id', NfeController.getOne);
 routes.post('/fiscal/nfe/upload', NfeController.upload);
 routes.post('/fiscal/nfe/confirm', NfeController.confirm);
 routes.post('/fiscal/nfe/:id/cancel', NfeController.cancel);
+routes.delete('/fiscal/nfe/:id', NfeController.delete);
 
 // Módulo de Cadastro de Produtos
 routes.use('/products', authMiddleware);

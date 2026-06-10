@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NfeController = void 0;
+exports.parseNfseServicoXml = parseNfseServicoXml;
 exports.parseNfeXml = parseNfeXml;
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
@@ -17,8 +18,123 @@ function blockContent(xml, blockName) {
     const match = xml.match(regex);
     return match ? match[1] : null;
 }
+// Parse NFS-e (serviço) XML - layout Barueri/SP (ConsultarNfeServPrestadoResposta)
+function parseNfseServicoXml(xmlText) {
+    try {
+        const infNfse = blockContent(xmlText, 'InfNfeServPrestado') || xmlText;
+        const numeroNf = tagContent(infNfse, 'NumeroNfe') || '';
+        const serie = tagContent(infNfse, 'SerieNfe');
+        const codigoVerificacao = tagContent(infNfse, 'CodigoVerificacao');
+        const dataEmissaoStr = tagContent(infNfse, 'DataEmissao') || '';
+        const dataEmissao = dataEmissaoStr ? new Date(dataEmissaoStr) : new Date();
+        const naturezaOperacao = tagContent(infNfse, 'DescricaoNfe') || 'Prestação de Serviços';
+        // NFS-e não possui chave de acesso de 44 dígitos; gera identificador único
+        const prestadorXml = blockContent(infNfse, 'PrestadorServico') || '';
+        const emitCnpj = tagContent(prestadorXml, 'Cnpj') || '';
+        const chaveAcesso = codigoVerificacao
+            ? `NFSE-${emitCnpj}-${numeroNf}-${codigoVerificacao.replace(/[^a-zA-Z0-9]/g, '')}`
+            : `NFSE-${emitCnpj}-${numeroNf}`;
+        // Prestador = fornecedor
+        const emitRazaoSocial = tagContent(prestadorXml, 'RazaoSocial') || 'Fornecedor Desconhecido';
+        const emitLogradouro = tagContent(prestadorXml, 'Endereco');
+        const emitNumero = tagContent(prestadorXml, 'NumeroEndereco');
+        const emitComplemento = tagContent(prestadorXml, 'ComplementoEndereco');
+        const emitBairro = tagContent(prestadorXml, 'Bairro');
+        const emitCidade = tagContent(prestadorXml, 'Cidade');
+        const emitEstado = tagContent(prestadorXml, 'Uf');
+        const emitCep = tagContent(prestadorXml, 'Cep');
+        const emitTelefone = tagContent(prestadorXml, 'Telefone');
+        const emitEmail = tagContent(prestadorXml, 'Email');
+        // Tomador = destinatário
+        const tomadorXml = blockContent(infNfse, 'TomadorServico') || '';
+        const destCnpj = tagContent(tomadorXml, 'Cnpj') || '';
+        // Valores da nota
+        const valoresNfeXml = blockContent(infNfse, 'ValoresNfe') || '';
+        const valorTotal = parseFloat(tagContent(valoresNfeXml, 'ValorLiquidoNfe') || '0');
+        // Serviço prestado (item único)
+        const servicoXml = blockContent(infNfse, 'ServicoPrestado') || '';
+        const valoresServicoXml = blockContent(servicoXml, 'ValoresServicoPrestado') || '';
+        const quantidade = parseFloat(tagContent(valoresServicoXml, 'QuantidadeServico') || '1');
+        const valorUnitario = parseFloat(tagContent(valoresServicoXml, 'ValorUnitarioServico') || '0');
+        const valorServicos = parseFloat(tagContent(valoresServicoXml, 'ValorServicos') || String(valorTotal));
+        const pisValor = parseFloat(tagContent(valoresServicoXml, 'ValorPis') || '0');
+        const cofinsValor = parseFloat(tagContent(valoresServicoXml, 'ValorCofins') || '0');
+        const issValor = parseFloat(tagContent(valoresServicoXml, 'ValorIss') || tagContent(valoresNfeXml, 'ValorIss') || '0');
+        const issAliquota = parseFloat(tagContent(valoresServicoXml, 'Aliquota') || tagContent(valoresNfeXml, 'Aliquota') || '0');
+        const codigoServico = tagContent(servicoXml, 'CodigoServico') || numeroNf;
+        const descricaoServico = tagContent(servicoXml, 'DescricaoServico') || tagContent(servicoXml, 'Discriminacao') || 'Serviço Sem Descrição';
+        const items = [{
+                codigoProduto: codigoServico,
+                codigoBarras: null,
+                descricao: descricaoServico,
+                ncm: null,
+                cest: null,
+                cfop: null,
+                unidade: 'SV',
+                quantidade,
+                valorUnitario: valorUnitario || valorServicos,
+                valorTotal: valorServicos,
+                icmsCst: null,
+                icmsCsosn: null,
+                icmsBaseCalculo: 0,
+                icmsAliquota: 0,
+                icmsValor: 0,
+                ipiCst: null,
+                ipiBaseCalculo: 0,
+                ipiAliquota: 0,
+                ipiValor: 0,
+                pisCst: null,
+                pisBaseCalculo: 0,
+                pisAliquota: 0,
+                pisValor,
+                cofinsCst: null,
+                cofinsBaseCalculo: 0,
+                cofinsAliquota: 0,
+                cofinsValor,
+                issCodigoServico: codigoServico,
+                issAliquota,
+                issValor
+            }];
+        return {
+            chaveAcesso,
+            numeroNf,
+            serie,
+            dataEmissao,
+            naturezaOperacao,
+            destCnpj,
+            valorProdutos: valorServicos,
+            valorFrete: 0,
+            valorSeguro: 0,
+            valorDesconto: 0,
+            valorTotal: valorTotal || valorServicos,
+            supplier: {
+                razaoSocial: emitRazaoSocial,
+                nomeFantasia: null,
+                cnpj: emitCnpj,
+                telefone: emitTelefone,
+                email: emitEmail,
+                logradouro: emitLogradouro,
+                numero: emitNumero,
+                complemento: emitComplemento,
+                bairro: emitBairro,
+                cep: emitCep,
+                cidade: emitCidade,
+                estado: emitEstado
+            },
+            items
+        };
+    }
+    catch (error) {
+        console.error('Error parsing NFS-e XML:', error);
+        throw new Error('Falha ao processar a estrutura do arquivo XML de NFS-e.');
+    }
+}
 // Parse NFe XML using regex
 function parseNfeXml(xmlText) {
+    // Detecta NFS-e de serviços (layout Barueri/SP)
+    if (/<InfNfeServPrestado\b|<ConsultarNfeServPrestadoResposta\b/i.test(xmlText)) {
+        return parseNfseServicoXml(xmlText);
+    }
     try {
         // 1. Chave de acesso
         let chaveAcesso = tagContent(xmlText, 'chNFe');

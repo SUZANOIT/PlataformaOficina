@@ -52,7 +52,7 @@ function checkLicense(moduleKey) {
                     'clientes', 'veiculos', 'plataformas', 'ordens_servico', 'orcamentos', 'dashboard_basico',
                     'contas_receber', 'contas_pagar', 'fluxo_caixa', 'estoque', 'fornecedores', 'xml', 'documentos',
                     'emissao_fiscal', 'rede_credenciada', 'rh', 'adiantamentos', 'aprovacao_niveis', 'auditoria',
-                    'multiempresa', 'api', 'bi', 'integracoes', 'whatsapp', 'receitaws', 'fipe'
+                    'multiempresa', 'bi', 'integracoes', 'whatsapp', 'receitaws'
                 ]
             };
             const allowedModules = planModules[planName] || [];

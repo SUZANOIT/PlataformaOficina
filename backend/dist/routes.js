@@ -376,8 +376,9 @@ routes.post('/api/saas/admin/users/reset-password', saas_auth_middleware_1.saasA
 routes.get('/api/saas/admin/roles', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('usuarios'), saas_portal_controller_1.SaaSPortalController.listRoles);
 // Financeiro
 routes.get('/api/saas/admin/financial-stats', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('financeiro'), saas_portal_controller_1.SaaSPortalController.getFinancialStats);
-// Auditoria
+// Auditoria (paginação server-side: ?page=0&size=20&sort=dataHora,desc)
 routes.get('/api/saas/admin/audit-logs', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('auditoria'), saas_portal_controller_1.SaaSPortalController.listAuditLogs);
+routes.get('/api/auditoria', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('auditoria'), saas_portal_controller_1.SaaSPortalController.listAuditLogs);
 // Monitoramento & Configurações
 routes.get('/api/saas/admin/telemetry', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.getTelemetry);
 routes.get('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.getSettings);
@@ -386,3 +387,6 @@ routes.post('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddlewar
 routes.get('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.createNotification);
 routes.post('/api/saas/admin/notifications/:id/read', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.markAsRead);
+// Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)
+routes.get('/notifications/active', authMiddleware, saas_portal_controller_1.SaaSPortalController.listActiveNotificationsForCompany);
+routes.post('/notifications/:id/read', authMiddleware, saas_portal_controller_1.SaaSPortalController.markNotificationReadForCompany);

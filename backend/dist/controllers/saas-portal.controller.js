@@ -739,6 +739,7 @@ exports.SaaSPortalController = {
     async listModules(req, res) {
         try {
             const modules = await prisma_1.prisma.saaSModule.findMany({
+                where: { chave: { notIn: ['api', 'mobile', 'fipe'] } }, // módulos descontinuados
                 orderBy: { nome: 'asc' }
             });
             return res.json(modules);
@@ -1008,6 +1009,14 @@ exports.SaaSPortalController = {
             const user = req.query.user;
             const acao = req.query.acao;
             const search = req.query.search;
+            // Paginação server-side: ?page=0&size=20&sort=dataHora,desc
+            const page = Math.max(0, parseInt(req.query.page || '0', 10) || 0);
+            const allowedSizes = [10, 20, 50, 100];
+            let size = parseInt(req.query.size || '20', 10) || 20;
+            if (!allowedSizes.includes(size))
+                size = 20;
+            const sortParam = (req.query.sort || 'dataHora,desc').split(',');
+            const sortDirection = sortParam[1]?.toLowerCase() === 'asc' ? 'asc' : 'desc';
             const where = {};
             if (user) {
                 where.usuario = { contains: user, mode: 'insensitive' };
@@ -1021,12 +1030,22 @@ exports.SaaSPortalController = {
                     { ip: { contains: search, mode: 'insensitive' } }
                 ];
             }
-            const logs = await prisma_1.prisma.saaSAuditLog.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                take: 100 // Limite para desempenho
+            const [totalElements, content] = await Promise.all([
+                prisma_1.prisma.saaSAuditLog.count({ where }),
+                prisma_1.prisma.saaSAuditLog.findMany({
+                    where,
+                    orderBy: { createdAt: sortDirection },
+                    skip: page * size,
+                    take: size
+                })
+            ]);
+            return res.json({
+                content,
+                totalElements,
+                totalPages: Math.ceil(totalElements / size),
+                page,
+                size
             });
-            return res.json(logs);
         }
         catch (error) {
             console.error(error);
@@ -1043,8 +1062,8 @@ exports.SaaSPortalController = {
             const cpus = os_1.default.cpus();
             const load = os_1.default.loadavg()[0];
             const cpuUsage = Math.min(100, Math.max(1, (load / (cpus.length || 1)) * 100)).toFixed(1) + '%';
-            // Real database size in PostgreSQL
-            let dbSize = '18.4 MB';
+            // Tamanho real do banco PostgreSQL (null se indisponível)
+            let dbSize = null;
             try {
                 const dbSizeResult = await prisma_1.prisma.$queryRawUnsafe(`SELECT pg_size_pretty(pg_database_size(current_database())) as size`);
                 if (dbSizeResult && dbSizeResult[0]?.size) {
@@ -1054,8 +1073,8 @@ exports.SaaSPortalController = {
             catch (e) {
                 console.error('Failed to read db size:', e);
             }
-            // Real disk usage using df -h
-            let diskUsage = '14.2 GB / 100 GB (14%)';
+            // Uso real de disco via df -h (null se indisponível)
+            let diskUsage = null;
             try {
                 const stdout = (0, child_process_1.execSync)('df -h / | tail -1').toString();
                 const parts = stdout.split(/\s+/);
@@ -1066,24 +1085,14 @@ exports.SaaSPortalController = {
             catch (e) {
                 console.error('Failed to read disk usage:', e);
             }
+            // Apenas métricas reais do servidor/banco. Integrações externas (APIs,
+            // gateways, filas) só são reportadas quando efetivamente configuradas.
             const telemetry = {
                 cpuUsage,
                 memoryUsage: (memoryUsage.heapUsed / 1024 / 1024).toFixed(1) + ' MB / ' + (memoryUsage.heapTotal / 1024 / 1024).toFixed(1) + ' MB',
                 postgresSize: dbSize,
                 diskUsage,
-                processingQueue: {
-                    activeJobs: 0,
-                    pendingJobs: 0,
-                    failedJobs: 2
-                },
-                apis: [
-                    { name: 'ReceitaWS', status: 'ONLINE', ping: '124ms' },
-                    { name: 'NF-e Sefaz', status: 'ONLINE', ping: '240ms' },
-                    { name: 'Tabela FIPE', status: 'ONLINE', ping: '89ms' },
-                    { name: 'Stripe Gateway', status: 'ONLINE', ping: '110ms' },
-                    { name: 'Asaas Gateway', status: 'ONLINE', ping: '135ms' },
-                    { name: 'WhatsApp API', status: 'ONLINE', ping: '95ms' }
-                ]
+                apis: []
             };
             return res.json(telemetry);
         }
@@ -1152,12 +1161,20 @@ exports.SaaSPortalController = {
         const schema = zod_1.z.object({
             titulo: zod_1.z.string(),
             mensagem: zod_1.z.string(),
-            tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR'])
+            tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
+            prioridade: zod_1.z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
+            expiraEm: zod_1.z.string().datetime().optional().nullable()
         });
         try {
-            const data = schema.parse(req.body);
+            const parsed = schema.parse(req.body);
             const alert = await prisma_1.prisma.saaSNotification.create({
-                data
+                data: {
+                    titulo: parsed.titulo,
+                    mensagem: parsed.mensagem,
+                    tipo: parsed.tipo,
+                    prioridade: parsed.prioridade,
+                    expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null
+                }
             });
             await logSaaSAuditoria(adminEmail, 'Disparo Notificação', `Enviou alerta geral: '${alert.titulo}'`);
             return res.status(201).json(alert);
@@ -1183,6 +1200,73 @@ exports.SaaSPortalController = {
         catch (error) {
             console.error(error);
             return res.status(500).json({ error: 'Erro ao marcar alerta como lido.' });
+        }
+    },
+    // Alertas ativos para a tela inicial da Oficina (por empresa logada)
+    async listActiveNotificationsForCompany(req, res) {
+        try {
+            const companyId = req.companyId;
+            if (!companyId) {
+                return res.json([]);
+            }
+            const now = new Date();
+            const alerts = await prisma_1.prisma.saaSNotification.findMany({
+                where: {
+                    OR: [{ expiraEm: null }, { expiraEm: { gte: now } }]
+                },
+                include: {
+                    leituras: { where: { companyId }, select: { id: true, createdAt: true } }
+                }
+            });
+            const priorityWeight = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
+            const result = alerts
+                .map(a => ({
+                id: a.id,
+                titulo: a.titulo,
+                mensagem: a.mensagem,
+                tipo: a.tipo,
+                prioridade: a.prioridade,
+                createdAt: a.createdAt,
+                expiraEm: a.expiraEm,
+                lida: a.leituras.length > 0,
+                lidaEm: a.leituras[0]?.createdAt || null
+            }))
+                .sort((a, b) => {
+                const wa = priorityWeight[a.prioridade] ?? 1;
+                const wb = priorityWeight[b.prioridade] ?? 1;
+                if (wa !== wb)
+                    return wa - wb;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+            return res.json(result);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao carregar alertas e comunicados.' });
+        }
+    },
+    // Registra leitura de um alerta pela oficina (empresa) logada
+    async markNotificationReadForCompany(req, res) {
+        try {
+            const companyId = req.companyId;
+            const id = req.params.id;
+            if (!companyId) {
+                return res.status(400).json({ error: 'Empresa não identificada na requisição.' });
+            }
+            const notification = await prisma_1.prisma.saaSNotification.findUnique({ where: { id } });
+            if (!notification) {
+                return res.status(404).json({ error: 'Alerta não encontrado.' });
+            }
+            await prisma_1.prisma.saaSNotificationRead.upsert({
+                where: { notificationId_companyId: { notificationId: id, companyId } },
+                update: {},
+                create: { notificationId: id, companyId }
+            });
+            return res.json({ success: true });
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao registrar leitura do alerta.' });
         }
     },
     async acessarTenant(req, res) {

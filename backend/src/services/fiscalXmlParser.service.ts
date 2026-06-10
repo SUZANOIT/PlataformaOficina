@@ -61,11 +61,11 @@ export function classifyTipoDocumento(
   const totalIss = items.reduce((sum, item) => sum + (item.issValor || 0), 0);
   const hasIssItems = totalIss > 0 || items.some(i => (i.issValor || 0) > 0);
 
-  if (mod === '99' || hasIssItems) {
-    return 'SERVICO';
-  }
-
   const isSaida = emitClean === companyClean && emitClean.length === 14;
+
+  if (mod === '99' || hasIssItems) {
+    return isSaida ? 'SERVICO' : 'ENTRADA';
+  }
 
   if (isSaida) {
     return 'SAIDA';

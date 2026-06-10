@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, AlertTriangle, ArrowRight, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, ArrowRight, RefreshCw, X, Eye, Ban, Calendar, User, DollarSign, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
@@ -209,6 +209,30 @@ export function NfeImport() {
         fetchHistory();
       } else {
         handleApiError(response, 'Erro ao cancelar importação. Verifique suas permissões.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro de conexão.');
+    }
+  };
+
+  // Delete NFe (admin only)
+  const handleDeleteNfe = async (id: string, number: string) => {
+    if (!window.confirm(`ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE a importação da NF-e Nº ${number}? Esta ação não pode ser desfeita e os registros serão removidos do sistema.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/fiscal/nfe/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        toast.success('Importação excluída com sucesso!');
+        fetchHistory();
+      } else {
+        handleApiError(response, 'Erro ao excluir importação. Verifique suas permissões de administrador.');
       }
     } catch (error) {
       console.error(error);
@@ -523,13 +547,22 @@ export function NfeImport() {
                         </span>
                       </td>
                       <td className="p-4 text-center hidden sm:table-cell truncate">
-                        <button
-                          onClick={() => handleViewDetails(nfe.id)}
-                          className="p-1.5 bg-muted text-foreground hover:bg-secondary rounded transition shrink-0 inline-flex items-center justify-center"
-                          title="Visualizar Detalhes"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleViewDetails(nfe.id)}
+                            className="p-1.5 bg-muted text-foreground hover:bg-secondary rounded transition shrink-0 inline-flex items-center justify-center"
+                            title="Visualizar Detalhes"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNfe(nfe.id, nfe.numeroNf)}
+                            className="p-1.5 bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white rounded transition shrink-0 inline-flex items-center justify-center"
+                            title="Excluir Definitivamente"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

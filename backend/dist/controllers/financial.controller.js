@@ -327,8 +327,15 @@ exports.FinancialController = {
             const whereClause = {};
             if (companyId)
                 whereClause.companyId = companyId;
-            if (status)
-                whereClause.status = status;
+            if (status) {
+                const statusStr = status;
+                if (statusStr.includes(',')) {
+                    whereClause.status = { in: statusStr.split(',') };
+                }
+                else {
+                    whereClause.status = statusStr;
+                }
+            }
             if (category)
                 whereClause.categoria = category;
             if (costCenter)
@@ -699,8 +706,15 @@ exports.FinancialController = {
             const whereClause = {};
             if (companyId)
                 whereClause.companyId = companyId;
-            if (status)
-                whereClause.status = status;
+            if (status) {
+                const statusStr = status;
+                if (statusStr.includes(',')) {
+                    whereClause.status = { in: statusStr.split(',') };
+                }
+                else {
+                    whereClause.status = statusStr;
+                }
+            }
             if (category)
                 whereClause.categoria = category;
             if (origemTipo)
