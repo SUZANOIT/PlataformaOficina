@@ -546,8 +546,8 @@ export function Tenants() {
 
       {/* CREATE TENANT MODAL (Wizard) */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-2xl border border-slate-800 bg-slate-900 rounded-2xl shadow-2xl p-6 overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 py-10 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-2xl border border-slate-800 bg-slate-900 rounded-2xl shadow-2xl p-6 flex flex-col">
             <button
               onClick={() => setIsCreateOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
@@ -557,7 +557,7 @@ export function Tenants() {
 
             <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">Adicionar Nova Empresa</h3>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4 overflow-y-auto flex-1 pr-2 scrollbar-thin">
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
               {/* Seção 1: Dados da Empresa */}
               <div className="space-y-3">
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 border-b border-slate-800 pb-1">1. Dados da Empresa</h4>
@@ -757,8 +757,8 @@ export function Tenants() {
 
       {/* EDIT TENANT MODAL */}
       {isEditOpen && selectedTenant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-xl border border-slate-800 bg-slate-900 rounded-2xl shadow-2xl p-6 overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 py-10 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-3xl border border-slate-800 bg-slate-900 rounded-2xl shadow-2xl p-6 flex flex-col">
             <button
               onClick={() => setIsEditOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
@@ -768,7 +768,7 @@ export function Tenants() {
 
             <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">Editar Cadastro da Empresa</h3>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4 overflow-y-auto pr-2 scrollbar-thin">
+            <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Razão Social</label>

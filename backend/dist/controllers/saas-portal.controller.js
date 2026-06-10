@@ -436,7 +436,7 @@ exports.SaaSPortalController = {
                         email: data.email,
                         statusAssinatura: data.status,
                         dataVencimento: vencimento,
-                        plano_id: data.planoId
+                        planoId: data.planoId
                     }
                 });
             }
