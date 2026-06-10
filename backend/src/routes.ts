@@ -419,6 +419,7 @@ routes.post('/api/saas/admin/tenants/reactivate', saasAuthMiddleware, saasPermis
 routes.post('/api/saas/admin/tenants/reset-password', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.resetTenantAdminPassword);
 routes.get('/api/saas/admin/tenants/:id/history', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.getTenantHistory);
 routes.post('/api/saas/admin/tenants/acessar', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.acessarTenant);
+routes.get('/api/saas/admin/cnpj/:cnpj', saasAuthMiddleware, saasPermissionGuard('empresas'), SaaSPortalController.consultarCnpj);
 
 
 // CRUD Planos

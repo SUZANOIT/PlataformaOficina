@@ -106,6 +106,11 @@ export const SaaSAPIService = {
     return response.data;
   },
 
+  async consultarCnpj(cnpj: string) {
+    const response = await saasApi.get(`/api/saas/admin/cnpj/${cnpj}`);
+    return response.data;
+  },
+
   // Planos
   async listPlans() {
     const response = await saasApi.get('/api/saas/admin/plans');

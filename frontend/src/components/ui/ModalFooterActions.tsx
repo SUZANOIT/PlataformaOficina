@@ -15,6 +15,7 @@ export interface ModalFooterActionsProps {
   flush?: boolean;
   embedded?: boolean;
   className?: string;
+  formId?: string;
 }
 
 const cancelBtnClass =
@@ -45,6 +46,7 @@ export function ModalFooterActions({
   flush = false,
   embedded = false,
   className = '',
+  formId,
 }: ModalFooterActionsProps) {
   const isPrimaryDisabled = disabled || loading;
 
@@ -73,6 +75,7 @@ export function ModalFooterActions({
           onClick={primaryType === 'button' ? onPrimary : undefined}
           disabled={isPrimaryDisabled}
           className={primaryBtnClass}
+          form={formId}
         >
           {loading ? (
             <>

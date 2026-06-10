@@ -62,6 +62,32 @@ export function Tenants() {
     adminPassword: ''
   });
 
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
+
+  const handleCnpjBlur = async () => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) return;
+
+    setIsLoadingCnpj(true);
+    const loadingToast = toast.loading('Consultando CNPJ...');
+    try {
+      const data = await SaaSAPIService.consultarCnpj(cleanCnpj);
+      setFormData(prev => ({
+        ...prev,
+        razaoSocial: prev.razaoSocial || data.razaoSocial || '',
+        nomeFantasia: prev.nomeFantasia || data.nomeFantasia || '',
+        telefone: prev.telefone || data.telefone || '',
+        email: prev.email || data.email || ''
+      }));
+      toast.success('Dados da empresa preenchidos automaticamente!', { id: loadingToast });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Erro ao consultar CNPJ.', { id: loadingToast });
+    } finally {
+      setIsLoadingCnpj(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -220,11 +246,7 @@ export function Tenants() {
       localStorage.setItem('token', data.token);
       toast.success(`Acessando a oficina de ${tenant.razaoSocial}...`);
       
-      if (data.workshopId) {
-        window.location.href = `/fleet/workshops?workshopId=${data.workshopId}`;
-      } else {
-        window.location.href = `/fleet/workshops`;
-      }
+      window.location.href = '/';
     } catch (err: any) {
       toast.dismiss();
       console.error(err);
@@ -561,16 +583,23 @@ export function Tenants() {
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                     />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CNPJ *</label>
                     <input
                       type="text"
                       value={formData.cnpj}
                       onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                      onBlur={handleCnpjBlur}
+                      disabled={isLoadingCnpj}
                       placeholder="00.000.000/0001-00"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all disabled:opacity-50"
                       required
                     />
+                    {isLoadingCnpj && (
+                      <div className="absolute right-3 top-8">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></div>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">E-mail Comercial *</label>
@@ -865,6 +894,47 @@ export function Tenants() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="mt-6">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 border-b border-slate-800 pb-1 mb-3">Usuários Vinculados</h4>
+                {selectedTenant.users && selectedTenant.users.length > 0 ? (
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-900">
+                          <th className="p-3">Nome / E-mail</th>
+                          <th className="p-3">Perfil</th>
+                          <th className="p-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850 text-xs">
+                        {selectedTenant.users.map((user: any) => (
+                          <tr key={user.id} className="hover:bg-slate-800/10">
+                            <td className="p-3 truncate">
+                              <div className="font-bold text-slate-200 truncate max-w-[150px] sm:max-w-[200px]">{user.name}</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[150px] sm:max-w-[200px]">{user.email}</div>
+                            </td>
+                            <td className="p-3">
+                              <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-extrabold truncate">
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${user.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'} truncate`}>
+                                {user.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center text-[11px] text-slate-400 font-medium">
+                    Nenhum usuário vinculado a esta empresa.
+                  </div>
+                )}
               </div>
 
               <ModalFooterActions

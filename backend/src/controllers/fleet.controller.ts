@@ -1455,8 +1455,10 @@ export const fleetController = {
       }
 
       // Calculate Total Costs
-      const events = await prisma.vehicleEvent.findMany();
-      const totalCosts = events.reduce((sum, e) => sum + (e.valor || 0), 0);
+      const eventsAgg = await prisma.vehicleEvent.aggregate({
+        _sum: { valor: true }
+      });
+      const totalCosts = eventsAgg._sum.valor || 0;
 
       // Monthly costs breakdown for the last 6 months
       const sixMonthsAgo = new Date();

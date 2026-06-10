@@ -539,9 +539,9 @@ exports.NfeController = {
                             ncm: item.ncm,
                             cest: item.cest,
                             cfopEntrada: item.cfop,
-                            tributacaoMunicipalId: item.tributacaoMunicipalId,
-                            tributacaoEstadualId: item.tributacaoEstadualId,
-                            tributacaoFederalId: item.tributacaoFederalId,
+                            tributacaoMunicipalId: item.tributacaoMunicipalId || null,
+                            tributacaoEstadualId: item.tributacaoEstadualId || null,
+                            tributacaoFederalId: item.tributacaoFederalId || null,
                             companyId
                         }
                     });
@@ -777,6 +777,46 @@ exports.NfeController = {
         catch (error) {
             console.error('Error downloading NFe XML:', error);
             return res.status(500).json({ error: 'Erro ao baixar XML da nota fiscal.' });
+        }
+    },
+    // 6. Delete Imported NFe (Admin only)
+    async delete(req, res) {
+        try {
+            const id = req.params.id;
+            const companyId = req.companyId || null;
+            const userId = req.userId || null;
+            // Rule check: only admin can delete
+            const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
+            if (!user || (!user.roleAdmin)) {
+                return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem excluir notas fiscais importadas.' });
+            }
+            const nfe = await prisma_1.prisma.nfeImport.findFirst({
+                where: { id, companyId }
+            });
+            if (!nfe)
+                return res.status(404).json({ error: 'Nota fiscal não localizada.' });
+            // Delete the NFE Import. Cascade will handle NfeItem.
+            // StockMovements remain as audit trail, but you might need manual adjustments if required.
+            await prisma_1.prisma.nfeImport.delete({
+                where: { id }
+            });
+            // Write audit log
+            await prisma_1.prisma.fiscalAudit.create({
+                data: {
+                    userId,
+                    userName: user.name,
+                    userEmail: user.email,
+                    userProfile: 'ADMINISTRADOR',
+                    action: 'EXCLUSAO_NFE',
+                    details: `Deleted NF-e ${nfe.numeroNf} (Access Key: ${nfe.chaveAcesso}, Total: R$ ${nfe.valorTotal.toFixed(2)})`,
+                    ipAddress: req.ip || '127.0.0.1'
+                }
+            });
+            return res.status(204).send();
+        }
+        catch (error) {
+            console.error('Error deleting NFe import:', error);
+            return res.status(500).json({ error: 'Erro ao excluir importação de nota fiscal.' });
         }
     }
 };

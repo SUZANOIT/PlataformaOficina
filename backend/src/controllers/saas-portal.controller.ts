@@ -175,18 +175,59 @@ export const SaaSPortalController = {
         orderBy: { createdAt: 'desc' }
       });
 
+      // Fetch all operational users for these companies in a single query
+      const companyIds = tenants.map(t => t.companyId).filter(Boolean) as string[];
+      const allUsers = await prisma.user.findMany({
+        where: { companyId: { in: companyIds } },
+        select: { id: true, name: true, email: true, role: true, status: true, companyId: true, roleAdmin: true, roleOrcamentista: true, roleContabilidade: true }
+      });
+
+      // Bulk group counts to avoid N+1 memory issues
+      const vehicleCounts = await prisma.vehicle.groupBy({
+        by: ['companyId'],
+        _count: { id: true },
+        where: { companyId: { in: companyIds } }
+      });
+      const workshopCounts = await prisma.oficina.groupBy({
+        by: ['companyId'],
+        _count: { id: true },
+        where: { companyId: { in: companyIds } }
+      });
+      const osCounts = await prisma.quote.groupBy({
+        by: ['companyId'],
+        _count: { id: true },
+        where: { companyId: { in: companyIds } }
+      });
+
+      const countMap = (arr: any[]) => arr.reduce((acc, curr) => {
+        if (curr.companyId) acc[curr.companyId] = curr._count.id;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const vehicleMap = countMap(vehicleCounts);
+      const workshopMap = countMap(workshopCounts);
+      const osMap = countMap(osCounts);
+
       // Anexar contagens operacionais reais
-      const result = await Promise.all(tenants.map(async (t) => {
+      const result = tenants.map((t) => {
         let usersCount = 0;
         let vehiclesCount = 0;
         let workshopsCount = 0;
         let osCount = 0;
+        let users: any[] = [];
 
         if (t.companyId) {
-          usersCount = await prisma.user.count({ where: { companyId: t.companyId } });
-          vehiclesCount = await prisma.vehicle.count({ where: { companyId: t.companyId } });
-          workshopsCount = await prisma.oficina.count({ where: { companyId: t.companyId } });
-          osCount = await prisma.quote.count({ where: { companyId: t.companyId } });
+          users = allUsers.filter(u => u.companyId === t.companyId).map(u => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            status: u.status,
+            role: u.roleAdmin ? 'Administrador' : u.roleOrcamentista ? 'Orçamentista' : u.roleContabilidade ? 'Contabilidade' : u.role
+          }));
+          usersCount = users.length;
+          vehiclesCount = vehicleMap[t.companyId] || 0;
+          workshopsCount = workshopMap[t.companyId] || 0;
+          osCount = osMap[t.companyId] || 0;
         }
 
         return {
@@ -194,9 +235,10 @@ export const SaaSPortalController = {
           usersCount,
           vehiclesCount,
           workshopsCount,
-          osCount
+          osCount,
+          users
         };
-      }));
+      });
 
       return res.json(result);
     } catch (error) {
@@ -227,9 +269,21 @@ export const SaaSPortalController = {
       let vehiclesCount = 0;
       let workshopsCount = 0;
       let osCount = 0;
+      let users: any[] = [];
 
       if (t.companyId) {
-        usersCount = await prisma.user.count({ where: { companyId: t.companyId } });
+        const rawUsers = await prisma.user.findMany({ 
+          where: { companyId: t.companyId },
+          select: { id: true, name: true, email: true, role: true, status: true, roleAdmin: true, roleOrcamentista: true, roleContabilidade: true }
+        });
+        users = rawUsers.map(u => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            status: u.status,
+            role: u.roleAdmin ? 'Administrador' : u.roleOrcamentista ? 'Orçamentista' : u.roleContabilidade ? 'Contabilidade' : u.role
+        }));
+        usersCount = users.length;
         vehiclesCount = await prisma.vehicle.count({ where: { companyId: t.companyId } });
         workshopsCount = await prisma.oficina.count({ where: { companyId: t.companyId } });
         osCount = await prisma.quote.count({ where: { companyId: t.companyId } });
@@ -240,7 +294,8 @@ export const SaaSPortalController = {
         usersCount,
         vehiclesCount,
         workshopsCount,
-        osCount
+        osCount,
+        users
       });
     } catch (error) {
       console.error(error);
@@ -563,12 +618,67 @@ export const SaaSPortalController = {
     try {
       const logs = await prisma.saaSAuditLog.findMany({
         where: { tenant: id },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 100
       });
       return res.json(logs);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Erro ao obter histórico de auditoria da empresa.' });
+    }
+  },
+
+  async consultarCnpj(req: Request, res: Response) {
+    let cnpj = String(req.params.cnpj).replace(/\D/g, '');
+
+    if (cnpj.length !== 14) {
+      return res.status(400).json({ error: 'CNPJ inválido' });
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      // Usando BrasilAPI que é gratuita, rápida e não tem bloqueio agressivo
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return res.status(404).json({ error: 'CNPJ não encontrado na base de dados.' });
+        }
+        throw new Error(`BrasilAPI HTTP error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const empresaData = {
+        razaoSocial: data.razao_social,
+        nomeFantasia: data.nome_fantasia || data.razao_social,
+        cnpj: data.cnpj,
+        situacaoCadastral: data.descricao_situacao_cadastral,
+        dataAbertura: data.data_inicio_atividade,
+        cnaePrincipal: data.cnae_fiscal_descricao,
+        cep: data.cep,
+        endereco: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.municipio,
+        estado: data.uf,
+        telefone: data.ddd_telefone_1 || data.ddd_telefone_2 || '',
+        email: data.email || ''
+      };
+
+      return res.json(empresaData);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return res.status(504).json({ error: 'A consulta demorou muito. Tente novamente ou preencha manualmente.' });
+      }
+      console.error('Erro ao consultar CNPJ na BrasilAPI:', error.message);
+      return res.status(500).json({ error: 'Erro ao consultar CNPJ. O serviço pode estar indisponível no momento.' });
     }
   },
 

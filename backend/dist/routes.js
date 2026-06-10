@@ -79,6 +79,33 @@ const authMiddleware = async (req, res, next) => {
                 });
             }
         }
+        // Usuários cujo único nível de acesso é Orçamentista só podem acessar Orçamentos e rotas de suporte
+        const isOrcamentistaOnly = user.roleOrcamentista
+            && !user.roleAdmin
+            && !user.roleContabilidade
+            && !user.roleContasPagar
+            && !user.roleContasReceber
+            && !user.roleRh
+            && !user.roleColaborador;
+        if (isOrcamentistaOnly) {
+            const path = req.originalUrl.split('?')[0];
+            const isAllowed = path === '/auth/me' ||
+                path.startsWith('/quotes') ||
+                path.startsWith('/registry/clients') ||
+                path.startsWith('/registry/platforms') ||
+                path.startsWith('/fleet/vehicles') ||
+                path.startsWith('/fleet/workshops') ||
+                path.startsWith('/api/fleet/vehicles') ||
+                path.startsWith('/api/fleet/workshops') ||
+                path.startsWith('/products') ||
+                path.startsWith('/companies');
+            if (!isAllowed) {
+                return res.status(403).json({
+                    error: 'Acesso restrito: seu nível de acesso permite apenas o uso do módulo de Orçamentos.',
+                    code: 'ORCAMENTISTA_ONLY',
+                });
+            }
+        }
         req.companyId = user.companyId;
         const { tenantContext } = require('./lib/tenant-context');
         return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => {
@@ -253,18 +280,10 @@ routes.post('/fiscal/documents/download-batch', fiscal_controller_1.FiscalContro
 routes.get('/fiscal/audits', fiscal_controller_1.FiscalController.listAudits);
 routes.get('/fiscal/dashboard', fiscal_controller_1.FiscalController.getDashboard);
 // Módulo Contabilidade - Regras de Tributação
-routes.get('/fiscal/tributacao/municipal', tax_controller_1.TaxController.listMunicipal);
-routes.post('/fiscal/tributacao/municipal', tax_controller_1.TaxController.createMunicipal);
-routes.put('/fiscal/tributacao/municipal/:id', tax_controller_1.TaxController.updateMunicipal);
-routes.delete('/fiscal/tributacao/municipal/:id', tax_controller_1.TaxController.deleteMunicipal);
-routes.get('/fiscal/tributacao/estadual', tax_controller_1.TaxController.listEstadual);
-routes.post('/fiscal/tributacao/estadual', tax_controller_1.TaxController.createEstadual);
-routes.put('/fiscal/tributacao/estadual/:id', tax_controller_1.TaxController.updateEstadual);
-routes.delete('/fiscal/tributacao/estadual/:id', tax_controller_1.TaxController.deleteEstadual);
-routes.get('/fiscal/tributacao/federal', tax_controller_1.TaxController.listFederal);
-routes.post('/fiscal/tributacao/federal', tax_controller_1.TaxController.createFederal);
-routes.put('/fiscal/tributacao/federal/:id', tax_controller_1.TaxController.updateFederal);
-routes.delete('/fiscal/tributacao/federal/:id', tax_controller_1.TaxController.deleteFederal);
+routes.get('/fiscal/tributacao', tax_controller_1.TaxController.list);
+routes.post('/fiscal/tributacao', tax_controller_1.TaxController.create);
+routes.put('/fiscal/tributacao/:id', tax_controller_1.TaxController.update);
+routes.delete('/fiscal/tributacao/:id', tax_controller_1.TaxController.delete);
 // Módulo Contabilidade - Importação de Notas Fiscais de Entrada
 routes.get('/fiscal/nfe', nfe_controller_1.NfeController.list);
 routes.get('/fiscal/nfe/:id/xml', nfe_controller_1.NfeController.downloadXml);
@@ -272,6 +291,7 @@ routes.get('/fiscal/nfe/:id', nfe_controller_1.NfeController.getOne);
 routes.post('/fiscal/nfe/upload', nfe_controller_1.NfeController.upload);
 routes.post('/fiscal/nfe/confirm', nfe_controller_1.NfeController.confirm);
 routes.post('/fiscal/nfe/:id/cancel', nfe_controller_1.NfeController.cancel);
+routes.delete('/fiscal/nfe/:id', nfe_controller_1.NfeController.delete);
 // Módulo de Cadastro de Produtos
 routes.use('/products', authMiddleware);
 routes.get('/products', product_controller_1.ProductController.list);
@@ -355,6 +375,7 @@ routes.post('/api/saas/admin/tenants/reactivate', saas_auth_middleware_1.saasAut
 routes.post('/api/saas/admin/tenants/reset-password', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.resetTenantAdminPassword);
 routes.get('/api/saas/admin/tenants/:id/history', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.getTenantHistory);
 routes.post('/api/saas/admin/tenants/acessar', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.acessarTenant);
+routes.get('/api/saas/admin/cnpj/:cnpj', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('empresas'), saas_portal_controller_1.SaaSPortalController.consultarCnpj);
 // CRUD Planos
 routes.get('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.listPlans);
 routes.post('/api/saas/admin/plans', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('planos'), saas_portal_controller_1.SaaSPortalController.createPlan);
