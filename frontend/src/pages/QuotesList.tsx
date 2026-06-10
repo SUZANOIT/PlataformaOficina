@@ -12,6 +12,7 @@ export function QuotesList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
+  const [vehiclePlateFilter, setVehiclePlateFilter] = useState('');
   const [showClientsDropdown, setShowClientsDropdown] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -65,7 +66,7 @@ export function QuotesList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId, selectedClientId]);
+  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId, selectedClientId, vehiclePlateFilter]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Tem certeza de que deseja excluir este orçamento?')) {
@@ -119,6 +120,14 @@ export function QuotesList() {
       const numStr = String(quote.numeroOrcamento);
       const clientName = quote.client?.nome?.toLowerCase() || '';
       if (!numStr.includes(cleanSearch) && !clientName.includes(cleanSearch)) {
+        return false;
+      }
+    }
+    
+    if (vehiclePlateFilter) {
+      const cleanPlate = vehiclePlateFilter.trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const quotePlate = quote.veiculoPlaca?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || '';
+      if (!quotePlate.includes(cleanPlate)) {
         return false;
       }
     }
@@ -187,7 +196,7 @@ export function QuotesList() {
           </div>
 
           {/* Filtros Avançados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 pt-2">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-muted-foreground">Número ou Termo</label>
               <div className="relative">
@@ -266,6 +275,19 @@ export function QuotesList() {
                   )}
                 </div>
               )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-muted-foreground">Placa Veículo</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Ex: ABC1D23"
+                  value={vehiclePlateFilter}
+                  onChange={(e) => setVehiclePlateFilter(e.target.value.toUpperCase())}
+                  className="w-full bg-background border border-border rounded-lg pl-3 pr-3 py-1.5 text-sm outline-none focus:border-primary transition"
+                />
+              </div>
             </div>
 
             <div className="space-y-1">
