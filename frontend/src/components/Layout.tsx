@@ -85,10 +85,18 @@ export function Layout() {
     return true;
   };
 
-  // Usuários cujo único nível de acesso é Contabilidade só podem acessar o Portal Contabilidade Externa
   const isContabilidadeOnly = !!user?.roleContabilidade
     && !user?.roleAdmin
     && !user?.roleOrcamentista
+    && !user?.roleContasPagar
+    && !user?.roleContasReceber
+    && !user?.roleRh
+    && !user?.roleColaborador;
+
+  // Usuários cujo único nível de acesso é Orçamentista só podem acessar Orçamentos
+  const isOrcamentistaOnly = !!user?.roleOrcamentista
+    && !user?.roleAdmin
+    && !user?.roleContabilidade
     && !user?.roleContasPagar
     && !user?.roleContasReceber
     && !user?.roleRh
@@ -98,7 +106,14 @@ export function Layout() {
     if (isContabilidadeOnly && location.pathname !== '/accounting/xml-export') {
       navigate('/accounting/xml-export', { replace: true });
     }
-  }, [isContabilidadeOnly, location.pathname, navigate]);
+    
+    if (isOrcamentistaOnly) {
+      const isAllowed = location.pathname.startsWith('/quotes');
+      if (!isAllowed) {
+        navigate('/quotes', { replace: true });
+      }
+    }
+  }, [isContabilidadeOnly, isOrcamentistaOnly, location.pathname, navigate]);
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -143,14 +158,16 @@ export function Layout() {
             
             {isOficinaOpen && (
               <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
+                {!isOrcamentistaOnly && (
+                  <Link 
+                    to="/" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                )}
                 <Link 
                   to="/quotes/new" 
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -167,7 +184,7 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos</span>
                 </Link>
-                {hasModule('clientes') && (
+                {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/clients" 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -177,7 +194,7 @@ export function Layout() {
                     <span>Clientes</span>
                   </Link>
                 )}
-                {hasModule('fornecedores') && (
+                {!isOrcamentistaOnly && hasModule('fornecedores') && (
                   <Link 
                     to="/suppliers" 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -187,7 +204,7 @@ export function Layout() {
                     <span>Fornecedores</span>
                   </Link>
                 )}
-                {hasModule('clientes') && (
+                {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/platforms" 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -197,7 +214,7 @@ export function Layout() {
                     <span>Plataformas de Gestão</span>
                   </Link>
                 )}
-                {hasModule('fiscal') && (
+                {!isOrcamentistaOnly && hasModule('fiscal') && (
                   <Link 
                     to="/products" 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -212,7 +229,7 @@ export function Layout() {
           </div>
           )}
                    {/* Categoria 2: Gestão Financeira */}
-          {!isContabilidadeOnly && hasModule('financeiro') && (
+          {!isContabilidadeOnly && !isOrcamentistaOnly && hasModule('financeiro') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFinancialOpen(!isFinancialOpen)}
@@ -291,7 +308,7 @@ export function Layout() {
           )}
 
           {/* Categoria 2.5: Contabilidade */}
-          {user?.roleContabilidade && hasModule('fiscal') && (
+          {!isOrcamentistaOnly && user?.roleContabilidade && hasModule('fiscal') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
@@ -333,28 +350,12 @@ export function Layout() {
                         <span>Notas Fiscais de Entrada</span>
                       </Link>
                       <Link 
-                        to="/accounting/taxes/municipal" 
+                        to="/accounting/taxes" 
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                       >
                         <Percent size={16} className="text-amber-500" />
-                        <span>Tributação Municipal</span>
-                      </Link>
-                      <Link 
-                        to="/accounting/taxes/estadual" 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                      >
-                        <Percent size={16} className="text-orange-500" />
-                        <span>Tributação Estadual</span>
-                      </Link>
-                      <Link 
-                        to="/accounting/taxes/federal" 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                      >
-                        <Percent size={16} className="text-red-500" />
-                        <span>Tributação Federal</span>
+                        <span>Tributação</span>
                       </Link>
                     </>
                   )}
@@ -569,13 +570,15 @@ export function Layout() {
             
             {isOficinaOpen && (
               <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
-                <Link 
-                  to="/" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <LayoutDashboard size={16} className="text-muted-foreground" />
-                  <span>Painel Geral</span>
-                </Link>
+                {!isOrcamentistaOnly && (
+                  <Link 
+                    to="/" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel Geral</span>
+                  </Link>
+                )}
                 <Link 
                   to="/quotes/new" 
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -590,7 +593,7 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos</span>
                 </Link>
-                {hasModule('clientes') && (
+                {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/clients" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -599,7 +602,7 @@ export function Layout() {
                     <span>Clientes</span>
                   </Link>
                 )}
-                {hasModule('fornecedores') && (
+                {!isOrcamentistaOnly && hasModule('fornecedores') && (
                   <Link 
                     to="/suppliers" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -608,7 +611,7 @@ export function Layout() {
                     <span>Fornecedores</span>
                   </Link>
                 )}
-                {hasModule('clientes') && (
+                {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/platforms" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -617,7 +620,7 @@ export function Layout() {
                     <span>Plataformas de Gestão</span>
                   </Link>
                 )}
-                {hasModule('fiscal') && (
+                {!isOrcamentistaOnly && hasModule('fiscal') && (
                   <Link 
                     to="/products" 
                     className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
@@ -632,7 +635,7 @@ export function Layout() {
           )}
 
           {/* Categoria 2: Gestão Financeira */}
-          {!isContabilidadeOnly && hasModule('financeiro') && (
+          {!isContabilidadeOnly && !isOrcamentistaOnly && hasModule('financeiro') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFinancialOpen(!isFinancialOpen)}
@@ -704,7 +707,7 @@ export function Layout() {
           )}
 
           {/* Categoria 2.5: Contabilidade */}
-          {user?.roleContabilidade && hasModule('fiscal') && (
+          {!isOrcamentistaOnly && user?.roleContabilidade && hasModule('fiscal') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsContabilidadeOpen(!isContabilidadeOpen)}
@@ -743,25 +746,11 @@ export function Layout() {
                         <span>Notas Fiscais de Entrada</span>
                       </Link>
                       <Link 
-                        to="/accounting/taxes/municipal" 
+                        to="/accounting/taxes" 
                         className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                       >
                         <Percent size={16} className="text-amber-500" />
-                        <span>Tributação Municipal</span>
-                      </Link>
-                      <Link 
-                        to="/accounting/taxes/estadual" 
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                      >
-                        <Percent size={16} className="text-orange-500" />
-                        <span>Tributação Estadual</span>
-                      </Link>
-                      <Link 
-                        to="/accounting/taxes/federal" 
-                        className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                      >
-                        <Percent size={16} className="text-red-500" />
-                        <span>Tributação Federal</span>
+                        <span>Tributação</span>
                       </Link>
                     </>
                   )}
@@ -771,7 +760,7 @@ export function Layout() {
           )}
 
           {/* Categoria 2.7: Recursos Humanos */}
-          {!isContabilidadeOnly && hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
+          {!isContabilidadeOnly && !isOrcamentistaOnly && hasModule('rh') && (user?.roleAdmin || user?.roleRh || user?.roleColaborador || user?.roleContasPagar || user?.roleContasReceber) && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsRhOpen(!isRhOpen)}
@@ -819,7 +808,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Gestão de Frotas */}
-          {!isContabilidadeOnly && hasModule('frotas') && (
+          {!isContabilidadeOnly && !isOrcamentistaOnly && hasModule('frotas') && (
             <div className="pt-2 border-t border-border/40">
               <button 
                 onClick={() => setIsFleetOpen(!isFleetOpen)}
@@ -868,7 +857,7 @@ export function Layout() {
           )}
 
           {/* Categoria 3: Configurações & Administração */}
-          {!isContabilidadeOnly && (
+          {!isContabilidadeOnly && !isOrcamentistaOnly && (
           <div className="pt-2 border-t border-border/40">
             <button 
               onClick={() => setIsAdminOpen(!isAdminOpen)}

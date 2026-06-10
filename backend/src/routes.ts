@@ -82,6 +82,36 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       }
     }
 
+    // Usuários cujo único nível de acesso é Orçamentista só podem acessar Orçamentos e rotas de suporte
+    const isOrcamentistaOnly = user.roleOrcamentista
+      && !user.roleAdmin
+      && !user.roleContabilidade
+      && !user.roleContasPagar
+      && !user.roleContasReceber
+      && !user.roleRh
+      && !user.roleColaborador;
+
+    if (isOrcamentistaOnly) {
+      const path = req.originalUrl.split('?')[0];
+      const isAllowed = path === '/auth/me' ||
+                        path.startsWith('/quotes') ||
+                        path.startsWith('/registry/clients') ||
+                        path.startsWith('/registry/platforms') ||
+                        path.startsWith('/fleet/vehicles') ||
+                        path.startsWith('/fleet/workshops') ||
+                        path.startsWith('/api/fleet/vehicles') ||
+                        path.startsWith('/api/fleet/workshops') ||
+                        path.startsWith('/products') ||
+                        path.startsWith('/companies');
+      
+      if (!isAllowed) {
+        return res.status(403).json({
+          error: 'Acesso restrito: seu nível de acesso permite apenas o uso do módulo de Orçamentos.',
+          code: 'ORCAMENTISTA_ONLY',
+        });
+      }
+    }
+
     (req as any).companyId = user.companyId;
     const { tenantContext } = require('./lib/tenant-context');
     return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => {

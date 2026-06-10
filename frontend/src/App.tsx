@@ -38,9 +38,7 @@ import { AbsenceControl } from './pages/rh/AbsenceControl';
 import { MonthlyClosing } from './pages/rh/MonthlyClosing';
 import { Products } from './pages/Products';
 import { NfeImport } from './pages/accounting/NfeImport';
-import { MunicipalTaxes } from './pages/accounting/taxes/MunicipalTaxes';
-import { EstadualTaxes } from './pages/accounting/taxes/EstadualTaxes';
-import { FederalTaxes } from './pages/accounting/taxes/FederalTaxes';
+import { Taxes } from './pages/accounting/taxes/Taxes';
 
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
@@ -128,9 +126,7 @@ function App() {
               <Route path="accounting/xml-export" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FiscalAccountingPortal /></ModuleGuard>} />
               <Route path="products" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Products /></ModuleGuard>} />
               <Route path="accounting/nfe-import" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><NfeImport /></ModuleGuard>} />
-              <Route path="accounting/taxes/municipal" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><MunicipalTaxes /></ModuleGuard>} />
-              <Route path="accounting/taxes/estadual" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><EstadualTaxes /></ModuleGuard>} />
-              <Route path="accounting/taxes/federal" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><FederalTaxes /></ModuleGuard>} />
+              <Route path="accounting/taxes" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Taxes /></ModuleGuard>} />
 
 
               {/* Rotas de Gestão de Frotas */}
