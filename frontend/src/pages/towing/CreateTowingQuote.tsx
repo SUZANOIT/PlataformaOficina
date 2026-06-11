@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Truck, MapPin, DollarSign, Save, Calculator, Car } from 'lucide-react';
+import { Truck, MapPin, DollarSign, Save, Calculator, Car, User } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { googleMapsService } from '../../services/google-maps.service';
+import { api } from '../../services/api';
 import { toast } from 'sonner';
 
 export function CreateTowingQuote() {
@@ -45,10 +46,12 @@ export function CreateTowingQuote() {
   });
 
   const [rates, setRates] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     towingService.listRates().then(setRates).catch(console.error);
+    api.get('/registry/clients').then(res => setClients(res.data)).catch(console.error);
     if (isEditing) {
       towingService.getQuote(id).then(setFormData).catch(console.error);
     }
@@ -65,6 +68,17 @@ export function CreateTowingQuote() {
           next.taxaSaida = rate.taxaSaida;
           next.valorKm = rate.valorKm;
           next.valorHoraParada = rate.valorHoraParada;
+        }
+      }
+
+      // Auto-fill client details
+      if (field === 'clienteNome') {
+        const client = clients.find(c => c.nome === value || c.nomeFantasia === value);
+        if (client) {
+          next.clienteTelefone = client.telefone || '';
+          next.clienteEmail = client.email || '';
+          next.clienteDoc = client.cpfCnpj || '';
+          next.clienteEmpresa = client.razaoSocial || client.nomeFantasia || '';
         }
       }
       return next;
@@ -136,8 +150,25 @@ export function CreateTowingQuote() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Origem e Destino */}
+        {/* Cliente, Origem e Destino */}
         <div className="space-y-6">
+          <div className="bg-card border p-4 rounded shadow-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-4"><User /> Dados do Cliente</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <input 
+                list="client-list"
+                placeholder="Nome do Cliente (Selecione ou Digite novo)" 
+                value={formData.clienteNome} 
+                onChange={e => handleChange('clienteNome', e.target.value)} 
+                className="input-field col-span-2" 
+              />
+              <datalist id="client-list">
+                {clients.map(c => <option key={c.id} value={c.nome || c.nomeFantasia}>{c.cpfCnpj}</option>)}
+              </datalist>
+              <input placeholder="Telefone" value={formData.clienteTelefone} onChange={e => handleChange('clienteTelefone', e.target.value)} className="input-field" />
+              <input placeholder="Email" value={formData.clienteEmail} onChange={e => handleChange('clienteEmail', e.target.value)} className="input-field" />
+            </div>
+          </div>
           <div className="bg-card border p-4 rounded shadow-sm">
             <h2 className="font-semibold flex items-center gap-2 mb-4"><MapPin /> Origem</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -177,10 +208,16 @@ export function CreateTowingQuote() {
             <div className="grid grid-cols-2 gap-3">
               <input placeholder="Placa do Veículo" value={formData.veiculoPlaca} onChange={e => handleChange('veiculoPlaca', e.target.value)} className="input-field" />
               <input placeholder="Marca/Modelo" value={formData.veiculoModelo} onChange={e => handleChange('veiculoModelo', e.target.value)} className="input-field" />
-              <select value={formData.tipoGuincho} onChange={e => handleChange('tipoGuincho', e.target.value)} className="input-field col-span-2">
-                <option value="">Selecione o Tipo de Guincho</option>
-                {rates.map(r => <option key={r.id} value={r.tipoGuincho}>{r.tipoGuincho}</option>)}
-              </select>
+              <input 
+                list="guincho-list"
+                placeholder="Tipo de Guincho (Selecione ou Digite)" 
+                value={formData.tipoGuincho} 
+                onChange={e => handleChange('tipoGuincho', e.target.value)} 
+                className="input-field col-span-2" 
+              />
+              <datalist id="guincho-list">
+                {rates.map(r => <option key={r.id} value={r.tipoGuincho} />)}
+              </datalist>
             </div>
           </div>
 
