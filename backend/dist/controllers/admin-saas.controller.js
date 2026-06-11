@@ -234,7 +234,7 @@ exports.AdminSaaSController = {
     },
     createEmpresa: async (req, res) => {
         const userEmail = req.userEmail || 'admin';
-        const { razaoSocial, nomeFantasia, cnpj, email, telefone, responsavel, planoId, limiteUsuarios, limiteVeiculos, limiteOs, limiteArmazenamento, adminName, adminEmail, adminPassword } = req.body;
+        const { razaoSocial, nomeFantasia, cnpj, email, telefone, responsavel, planoId, limiteUsuarios, limiteVeiculos, limiteOs, limiteArmazenamento, adminName, adminEmail, adminPassword, type } = req.body;
         try {
             const existing = await prisma_1.prisma.saaSEmpresa.findUnique({ where: { cnpj } });
             if (existing) {
@@ -250,6 +250,7 @@ exports.AdminSaaSController = {
                     cnpjSemMascara: cleanCnpj,
                     telefone,
                     email,
+                    type: type || 'OFICINA',
                     statusAssinatura: 'Trial',
                     dataVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
                 }
@@ -313,7 +314,7 @@ exports.AdminSaaSController = {
     updateEmpresa: async (req, res) => {
         const userEmail = req.userEmail || 'admin';
         const id = req.params.id;
-        const { razaoSocial, nomeFantasia, cnpj, email, telefone, responsavel, status, planoId, limiteUsuarios, limiteVeiculos, limiteOs, limiteArmazenamento, dataVencimento } = req.body;
+        const { razaoSocial, nomeFantasia, cnpj, email, telefone, responsavel, status, planoId, limiteUsuarios, limiteVeiculos, limiteOs, limiteArmazenamento, dataVencimento, type } = req.body;
         try {
             const empresa = await prisma_1.prisma.saaSEmpresa.findUnique({ where: { id } });
             if (!empresa) {
@@ -348,6 +349,7 @@ exports.AdminSaaSController = {
                         cnpjSemMascara: cnpj.replace(/\D/g, ''),
                         telefone,
                         email,
+                        type: type || 'OFICINA',
                         dataVencimento: dataVencimento ? new Date(dataVencimento) : undefined
                     }
                 });

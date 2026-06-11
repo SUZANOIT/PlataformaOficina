@@ -44,8 +44,8 @@ export const TowingRateController = {
         });
         return res.status(201).json(rate);
       }
-    } catch (error) {
-      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
       return res.status(500).json({ error: 'Internal error' });
     }
   }

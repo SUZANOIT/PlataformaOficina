@@ -44,8 +44,8 @@ export const TowingFleetController = {
         data: { ...data, companyId }
       });
       return res.status(201).json(driver);
-    } catch (error) {
-      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
       return res.status(500).json({ error: 'Internal error' });
     }
   },
@@ -72,8 +72,8 @@ export const TowingFleetController = {
         data: { ...data, companyId }
       });
       return res.status(201).json(vehicle);
-    } catch (error) {
-      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
       return res.status(500).json({ error: 'Internal error' });
     }
   }

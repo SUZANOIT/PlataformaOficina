@@ -21,6 +21,9 @@ const saas_controller_1 = require("./controllers/saas.controller");
 const product_controller_1 = require("./controllers/product.controller");
 const tax_controller_1 = require("./controllers/tax.controller");
 const nfe_controller_1 = require("./controllers/nfe.controller");
+const towing_quote_controller_1 = require("./controllers/towing-quote.controller");
+const towing_fleet_controller_1 = require("./controllers/towing-fleet.controller");
+const towing_rate_controller_1 = require("./controllers/towing-rate.controller");
 const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const admin_saas_controller_1 = require("./controllers/admin-saas.controller");
 const super_admin_middleware_1 = require("./middlewares/super-admin.middleware");
@@ -138,6 +141,21 @@ routes.get('/debug/run-migrate', async (req, res) => {
 routes.post('/auth/register', auth_controller_1.AuthController.register);
 routes.post('/auth/login', auth_controller_1.AuthController.login);
 routes.get('/auth/me', authMiddleware, auth_controller_1.AuthController.me);
+// --- SaaS Client App Routes ---
+// TOWING MODULE
+routes.get('/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.list);
+routes.get('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.show);
+routes.post('/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.create);
+routes.put('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.update);
+routes.delete('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.delete);
+routes.get('/towing/dashboard', authMiddleware, towing_quote_controller_1.TowingQuoteController.getDashboardStats);
+routes.get('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.listDrivers);
+routes.post('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.createDriver);
+routes.get('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.listVehicles);
+routes.post('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.createVehicle);
+routes.get('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.list);
+routes.post('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.save);
+routes.get('/nfe/imports', authMiddleware, nfe_controller_1.NfeController.list);
 routes.post('/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
 routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPassword);
 routes.post('/api/auth/login', auth_controller_1.AuthController.login);

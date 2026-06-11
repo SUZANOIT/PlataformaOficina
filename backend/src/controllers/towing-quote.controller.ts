@@ -95,7 +95,7 @@ export const TowingQuoteController = {
 
   async show(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const companyId = (req as any).companyId;
 
       const quote = await prisma.towingQuote.findUnique({
@@ -131,19 +131,19 @@ export const TowingQuoteController = {
 
       // Update formatted number
       const ano = quote.createdAt.getFullYear();
-      const numFormatado = \`ORC-GUI-\${ano}-\${quote.numeroOrcamento.toString().padStart(6, '0')}\`;
+      const numFormatado = `ORC-GUI-${ano}-${quote.numeroOrcamento.toString().padStart(6, '0')}`;
 
       const updatedQuote = await prisma.towingQuote.update({
         where: { id: quote.id },
         data: { numeroFormatado: numFormatado }
       });
 
-      AuditLogger.log(userId, companyId, 'CREATE_TOWING_QUOTE', \`Orçamento de guincho \${numFormatado} criado\`, 'SUCCESS');
+      AuditLogger.log(userId, companyId, 'CREATE_TOWING_QUOTE', `Orçamento de guincho ${numFormatado} criado`, 'SUCCESS');
 
       return res.status(201).json(updatedQuote);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       console.error(error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -152,7 +152,7 @@ export const TowingQuoteController = {
 
   async update(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const companyId = (req as any).companyId;
       const userId = (req as any).userId;
 
@@ -171,12 +171,12 @@ export const TowingQuoteController = {
         data
       });
 
-      AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', \`Orçamento de guincho \${existingQuote.numeroFormatado} atualizado\`, 'SUCCESS');
+      AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} atualizado`, 'SUCCESS');
 
       return res.json(updatedQuote);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({ error: (error as any).errors });
       }
       console.error(error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -185,7 +185,7 @@ export const TowingQuoteController = {
   
   async delete(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const companyId = (req as any).companyId;
       const userId = (req as any).userId;
 
@@ -201,7 +201,7 @@ export const TowingQuoteController = {
         where: { id }
       });
 
-      AuditLogger.log(userId, companyId, 'DELETE_TOWING_QUOTE', \`Orçamento de guincho \${existingQuote.numeroFormatado} deletado\`, 'SUCCESS');
+      AuditLogger.log(userId, companyId, 'DELETE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} deletado`, 'SUCCESS');
 
       return res.status(204).send();
     } catch (error) {

@@ -509,6 +509,7 @@ exports.AuthController = {
                 company: user.company ? {
                     id: user.company.id,
                     nome: companyName,
+                    type: user.company.type,
                     cnpj: user.company.cnpj,
                     endereco: user.company.endereco,
                     telefone: user.company.telefone,
