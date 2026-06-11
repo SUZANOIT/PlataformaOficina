@@ -58,6 +58,14 @@ import { Notificacoes as SaaSNotificacoes } from './pages/administracao/Notifica
 import { Monitoramento as SaaSMonitoramento } from './pages/administracao/Monitoramento';
 import { Configuracoes as SaaSConfiguracoes } from './pages/administracao/Configuracoes';
 
+// Towing Pages
+import { CreateTowingQuote } from './pages/towing/CreateTowingQuote';
+import { TowingQuotesList } from './pages/towing/TowingQuotesList';
+import { TowingRates } from './pages/towing/TowingRates';
+import { TowingFleet } from './pages/towing/TowingFleet';
+import { TowingDrivers } from './pages/towing/TowingDrivers';
+import { TowingDashboard } from './pages/towing/TowingDashboard';
+
 function App() {
   return (
     <BrowserRouter>
@@ -142,6 +150,15 @@ function App() {
 
               {/* Rota Administrativa do SaaS (Apenas Platform Admin) */}
               <Route path="saas-dashboard" element={<SaaSAdminGuard><SaaSDashboard /></SaaSAdminGuard>} />
+
+              {/* Rotas de Guincho (GUINCHO_PROVIDER) */}
+              <Route path="towing/dashboard" element={<TowingDashboard />} />
+              <Route path="towing/quotes/new" element={<CreateTowingQuote />} />
+              <Route path="towing/quotes/edit/:id" element={<CreateTowingQuote />} />
+              <Route path="towing/quotes" element={<TowingQuotesList />} />
+              <Route path="towing/fleet" element={<TowingFleet />} />
+              <Route path="towing/drivers" element={<TowingDrivers />} />
+              <Route path="towing/rates" element={<TowingRates />} />
             </Route>
           </Routes>
           <Toaster position="top-right" richColors />

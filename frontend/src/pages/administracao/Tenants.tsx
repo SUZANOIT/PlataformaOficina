@@ -45,6 +45,7 @@ export function Tenants() {
 
   // Tenant Form
   const [formData, setFormData] = useState({
+    type: 'OFICINA',
     razaoSocial: '',
     nomeFantasia: '',
     cnpj: '',
@@ -138,6 +139,7 @@ export function Tenants() {
       setIsCreateOpen(false);
       // Reset form
       setFormData({
+        type: 'OFICINA',
         razaoSocial: '',
         nomeFantasia: '',
         cnpj: '',
@@ -582,6 +584,18 @@ export function Tenants() {
                       placeholder="Ex: Oficina do João"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tipo de Empresa *</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                      required
+                    >
+                      <option value="OFICINA">Oficina Mecânica</option>
+                      <option value="GUINCHO_PROVIDER">Guincho - Prestador de Serviços</option>
+                    </select>
                   </div>
                   <div className="space-y-1 relative">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CNPJ *</label>

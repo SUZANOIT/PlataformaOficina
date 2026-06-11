@@ -25,8 +25,6 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
   const subtotalPecas = pecas.reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
   const subtotalMaoDeObra = maoDeObra.reduce((acc: number, item: any) => acc + (Number(item.quantidade) * Number(item.valorUnitario)), 0);
 
-  const dataAtual = new Date().toLocaleDateString('pt-BR');
-  
   const isMca = company?.cnpj?.replace(/\D/g, '') === '30021766000113' || 
                 company?.razaoSocial?.toLowerCase().includes('mca') || 
                 company?.nomeFantasia?.toLowerCase().includes('mca') ||
@@ -109,16 +107,15 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                   Orçamento de Serviços
                 </span>
                 <h1 className="text-3xl font-black text-indigo-950 mt-2.5 tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', serif" }}>
-                  ORÇAMENTO {data.numeroOrcamento ? `#${data.numeroOrcamento}` : ''}
+                  ORÇAMENTO
                 </h1>
               </div>
               <div className="mt-4 space-y-1">
                 {data.numeroOrcamento && (
-                  <p className="text-[12px] font-extrabold text-indigo-700 uppercase tracking-wider">
-                    OS Nº: {new Date(data.createdAt || Date.now()).getFullYear()}-{data.numeroOrcamento.toString().padStart(6, '0')}
+                  <p className="text-[14px] font-extrabold text-indigo-700 uppercase tracking-wider">
+                    ORÇAMENTO Nº ORC-{new Date(data.createdAt || Date.now()).getFullYear()}-{data.numeroOrcamento.toString().padStart(6, '0')}
                   </p>
                 )}
-                <p className="text-xs text-slate-500 font-medium">Data de Emissão: {dataAtual}</p>
                 {data.osExterna && (
                   <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide">
                     OS Externa: {data.osExterna}
@@ -541,16 +538,15 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
         <div className="flex flex-row justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
           <div className="text-left">
             <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight uppercase">
-              ORÇAMENTO {data.numeroOrcamento ? `#${data.numeroOrcamento}` : ''}
+              ORÇAMENTO
             </h1>
             {data.numeroOrcamento && (
-              <p className="text-[15px] font-extrabold text-slate-700 mt-1.5 uppercase tracking-wide">
-                OS Nº: {new Date(data.createdAt || Date.now()).getFullYear()}-{data.numeroOrcamento.toString().padStart(6, '0')}
+              <p className="text-[18px] font-extrabold text-slate-700 mt-2 uppercase tracking-wide">
+                ORÇAMENTO Nº ORC-{new Date(data.createdAt || Date.now()).getFullYear()}-{data.numeroOrcamento.toString().padStart(6, '0')}
               </p>
             )}
-            <p className="text-sm text-slate-500 mt-1.5 font-medium">Data de Emissão: {dataAtual}</p>
             {data.osExterna && (
-              <p className="text-[12px] font-bold text-indigo-600 mt-1 uppercase">
+              <p className="text-[12px] font-bold text-indigo-600 mt-2 uppercase">
                 OS Externa: {data.osExterna}
               </p>
             )}

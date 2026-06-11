@@ -1363,7 +1363,9 @@ export const SaaSPortalController = {
       mensagem: z.string(),
       tipo: z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
       prioridade: z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
-      expiraEm: z.string().datetime().optional().nullable()
+      expiraEm: z.string().datetime().optional().nullable(),
+      targetCompanyId: z.string().optional().nullable(),
+      targetRole: z.string().optional().nullable()
     });
 
     try {
@@ -1374,7 +1376,9 @@ export const SaaSPortalController = {
           mensagem: parsed.mensagem,
           tipo: parsed.tipo,
           prioridade: parsed.prioridade,
-          expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null
+          expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
+          targetCompanyId: parsed.targetCompanyId || null,
+          targetRole: parsed.targetRole || null
         }
       });
 
@@ -1409,14 +1413,28 @@ export const SaaSPortalController = {
   async listActiveNotificationsForCompany(req: Request, res: Response) {
     try {
       const companyId = (req as any).companyId as string | null;
+      const userId = (req as any).userId as string | null;
       if (!companyId) {
         return res.json([]);
+      }
+
+      let userRole: string | null = null;
+      if (userId) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user) {
+          // Define standard role names like in the frontend / Notificacoes dropdown
+          userRole = user.roleAdmin ? 'Administrador' : user.roleOrcamentista ? 'Orçamentista' : user.roleContabilidade ? 'Contabilidade' : user.role;
+        }
       }
 
       const now = new Date();
       const alerts = await prisma.saaSNotification.findMany({
         where: {
-          OR: [{ expiraEm: null }, { expiraEm: { gte: now } }]
+          AND: [
+            { OR: [{ expiraEm: null }, { expiraEm: { gte: now } }] },
+            { OR: [{ targetCompanyId: null }, { targetCompanyId: companyId }] },
+            { OR: [{ targetRole: null }, { targetRole: userRole }] }
+          ]
         },
         include: {
           leituras: { where: { companyId }, select: { id: true, createdAt: true } }

@@ -20,6 +20,7 @@ export function Notificacoes() {
   const [isLoading, setIsLoading] = useState(true);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -27,7 +28,10 @@ export function Notificacoes() {
     mensagem: '',
     tipo: 'INFO' as 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR',
     prioridade: 'MEDIA' as 'ALTA' | 'MEDIA' | 'BAIXA',
-    expiraEm: ''
+    expiraEm: '',
+    targetType: 'ALL' as 'ALL' | 'COMPANY' | 'ROLE',
+    targetCompanyId: '',
+    targetRole: ''
   });
 
   const loadNotifications = async () => {
@@ -43,8 +47,18 @@ export function Notificacoes() {
     }
   };
 
+  const loadTenants = async () => {
+    try {
+      const data = await SaaSAPIService.listTenants();
+      setTenants(data);
+    } catch (err) {
+      console.error('Erro ao carregar empresas', err);
+    }
+  };
+
   useEffect(() => {
     loadNotifications();
+    loadTenants();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +75,9 @@ export function Notificacoes() {
         mensagem: formData.mensagem,
         tipo: formData.tipo,
         prioridade: formData.prioridade,
-        expiraEm: formData.expiraEm ? new Date(formData.expiraEm).toISOString() : null
+        expiraEm: formData.expiraEm ? new Date(formData.expiraEm).toISOString() : null,
+        targetCompanyId: formData.targetType === 'COMPANY' && formData.targetCompanyId ? formData.targetCompanyId : null,
+        targetRole: formData.targetType === 'ROLE' && formData.targetRole ? formData.targetRole : null
       });
       toast.success('Alerta global disparado com sucesso!');
       setIsComposerOpen(false);
@@ -70,7 +86,10 @@ export function Notificacoes() {
         mensagem: '',
         tipo: 'INFO',
         prioridade: 'MEDIA',
-        expiraEm: ''
+        expiraEm: '',
+        targetType: 'ALL',
+        targetCompanyId: '',
+        targetRole: ''
       });
       loadNotifications();
     } catch (err: any) {
@@ -275,6 +294,56 @@ export function Notificacoes() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-3 p-3 bg-slate-950/50 border border-slate-800 rounded-xl">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Público Alvo *</label>
+                  <select
+                    value={formData.targetType}
+                    onChange={(e) => setFormData({ ...formData, targetType: e.target.value as any, targetCompanyId: '', targetRole: '' })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                  >
+                    <option value="ALL">Todas as Empresas (Global)</option>
+                    <option value="COMPANY">Empresa Específica</option>
+                    <option value="ROLE">Nível de Acesso Específico</option>
+                  </select>
+                </div>
+
+                {formData.targetType === 'COMPANY' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Selecione a Empresa *</label>
+                    <select
+                      value={formData.targetCompanyId}
+                      onChange={(e) => setFormData({ ...formData, targetCompanyId: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      {tenants.map(t => (
+                        <option key={t.companyId || t.id} value={t.companyId || t.id}>{t.razaoSocial} ({t.cnpj})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {formData.targetType === 'ROLE' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Selecione o Perfil *</label>
+                    <select
+                      value={formData.targetRole}
+                      onChange={(e) => setFormData({ ...formData, targetRole: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                      required
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Administrador">Administrador</option>
+                      <option value="Orçamentista">Orçamentista</option>
+                      <option value="Contabilidade">Contabilidade</option>
+                      <option value="Mecânico">Mecânico</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">

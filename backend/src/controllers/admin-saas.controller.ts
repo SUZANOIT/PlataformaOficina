@@ -261,7 +261,8 @@ export const AdminSaaSController = {
       limiteArmazenamento,
       adminName,
       adminEmail,
-      adminPassword
+      adminPassword,
+      type
     } = req.body;
 
     try {
@@ -280,6 +281,7 @@ export const AdminSaaSController = {
           cnpjSemMascara: cleanCnpj,
           telefone,
           email,
+          type: type || 'OFICINA',
           statusAssinatura: 'Trial',
           dataVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         }
@@ -361,7 +363,8 @@ export const AdminSaaSController = {
       limiteVeiculos,
       limiteOs,
       limiteArmazenamento,
-      dataVencimento
+      dataVencimento,
+      type
     } = req.body;
 
     try {
@@ -400,6 +403,7 @@ export const AdminSaaSController = {
             cnpjSemMascara: cnpj.replace(/\D/g, ''),
             telefone,
             email,
+            type: type || 'OFICINA',
             dataVencimento: dataVencimento ? new Date(dataVencimento) : undefined
           }
         });

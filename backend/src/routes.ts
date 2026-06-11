@@ -15,6 +15,9 @@ import { SaaSController } from './controllers/saas.controller';
 import { ProductController } from './controllers/product.controller';
 import { TaxController } from './controllers/tax.controller';
 import { NfeController } from './controllers/nfe.controller';
+import { TowingQuoteController } from './controllers/towing-quote.controller';
+import { TowingFleetController } from './controllers/towing-fleet.controller';
+import { TowingRateController } from './controllers/towing-rate.controller';
 
 import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
 import { AdminSaaSController } from './controllers/admin-saas.controller';
@@ -145,6 +148,27 @@ routes.get('/debug/run-migrate', async (req: Request, res: Response) => {
 routes.post('/auth/register', AuthController.register);
 routes.post('/auth/login', AuthController.login);
 routes.get('/auth/me', authMiddleware, AuthController.me);
+
+// --- SaaS Client App Routes ---
+
+// TOWING MODULE
+routes.get('/towing/quotes', authMiddleware, TowingQuoteController.list);
+routes.get('/towing/quotes/:id', authMiddleware, TowingQuoteController.show);
+routes.post('/towing/quotes', authMiddleware, TowingQuoteController.create);
+routes.put('/towing/quotes/:id', authMiddleware, TowingQuoteController.update);
+routes.delete('/towing/quotes/:id', authMiddleware, TowingQuoteController.delete);
+routes.get('/towing/dashboard', authMiddleware, TowingQuoteController.getDashboardStats);
+
+routes.get('/towing/drivers', authMiddleware, TowingFleetController.listDrivers);
+routes.post('/towing/drivers', authMiddleware, TowingFleetController.createDriver);
+
+routes.get('/towing/vehicles', authMiddleware, TowingFleetController.listVehicles);
+routes.post('/towing/vehicles', authMiddleware, TowingFleetController.createVehicle);
+
+routes.get('/towing/rates', authMiddleware, TowingRateController.list);
+routes.post('/towing/rates', authMiddleware, TowingRateController.save);
+
+routes.get('/nfe/imports', authMiddleware, NfeController.list);
 routes.post('/auth/forgot-password', AuthController.forgotPassword);
 routes.post('/auth/reset-password', AuthController.resetPassword);
 routes.post('/api/auth/login', AuthController.login);

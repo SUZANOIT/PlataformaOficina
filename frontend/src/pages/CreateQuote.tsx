@@ -77,6 +77,7 @@ export function CreateQuote() {
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [numeroOrcamento, setNumeroOrcamento] = useState<number | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
+  const pendingPdfGeneration = useRef<boolean>(false);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
 
   const [isMobile, setIsMobile] = useState(false);
@@ -91,7 +92,7 @@ export function CreateQuote() {
 
   const [workshops, setWorkshops] = useState<any[]>([]);
 
-  const { register, control, watch, handleSubmit, setValue, reset } = useForm<QuoteFormValues>({
+  const { register, control, watch, handleSubmit, setValue, reset, formState: { isSubmitting } } = useForm<QuoteFormValues>({
     defaultValues: {
       items: [{ descricao: '', quantidade: 1, valorUnitario: 0, tipo: 'Peça' }],
       validade: 'Proposta válida por 7 dias',
@@ -586,7 +587,7 @@ ${bankingText}`;
 
       toast.loading(isEditing ? 'Atualizando orçamento...' : 'Salvando orçamento...', { id: 'save-quote' });
       
-      let savedData;
+      let savedData: any;
       if (isEditing && id) {
         savedData = await quoteService.updateQuote(id, payload);
         reset(buildFormDataFromQuote(savedData));
@@ -600,7 +601,17 @@ ${bankingText}`;
         savedData = await quoteService.saveQuote(payload);
         setNumeroOrcamento(savedData.numeroOrcamento);
         toast.success('Orçamento salvo com sucesso!', { id: 'save-quote' });
-        navigate(`/quotes/edit/${savedData.id}`, { replace: true });
+        
+        if (pendingPdfGeneration.current) {
+          pendingPdfGeneration.current = false;
+          // Aguarda um pequeno ciclo para a re-renderização do numeroOrcamento em tela antes do PDF
+          setTimeout(() => {
+            handleGeneratePDF(savedData.numeroOrcamento);
+            navigate(`/quotes/edit/${savedData.id}`, { replace: true });
+          }, 300);
+        } else {
+          navigate(`/quotes/edit/${savedData.id}`, { replace: true });
+        }
       }
 
     } catch (error: any) {
@@ -612,7 +623,7 @@ ${bankingText}`;
     }
   };
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = async (overrideNumero?: number) => {
     const data = watch();
     
     const company = companies.find(c => c.id === data.companyId);
@@ -626,7 +637,11 @@ ${bankingText}`;
     const year = today.getFullYear();
     const formattedDate = `${day}_${month}_${year}`;
     
-    const quoteNum = numeroOrcamento || 'novo';
+    const quoteNum = overrideNumero || numeroOrcamento;
+    if (!quoteNum) {
+      toast.error('Erro: Número do orçamento ausente.', { id: 'pdf-toast' });
+      return;
+    }
     const pdfFilename = `${quoteNum}_orcamento_${companySlug}_${formattedDate}.pdf`;
 
     toast.loading('Gerando PDF...', { id: 'pdf-toast' });
@@ -676,8 +691,17 @@ ${bankingText}`;
           )}
           <button 
             type="button"
-            onClick={handleGeneratePDF}
-            disabled={isGeneratingPdf}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!numeroOrcamento) {
+                toast.loading('Salvando orçamento para gerar número...', { id: 'pdf-toast' });
+                pendingPdfGeneration.current = true;
+                handleSubmit(onSubmit)();
+              } else {
+                handleGeneratePDF();
+              }
+            }}
+            disabled={isGeneratingPdf || isSubmitting}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition shadow-sm disabled:opacity-50"
           >
             {isGeneratingPdf ? <Loader2 size={20} className="animate-spin" /> : <FileDown size={20} />}

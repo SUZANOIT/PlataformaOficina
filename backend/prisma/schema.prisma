@@ -33,12 +33,15 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  towingQuotes TowingQuote[]
+
   @@index([email])
   @@index([companyId])
 }
 
 model Company {
   id                String  @id @default(uuid())
+  type              String  @default("OFICINA") // OFICINA, GUINCHO_PROVIDER
   razaoSocial       String
   nomeFantasia      String?
   cnpj              String  @unique
@@ -89,6 +92,11 @@ model Company {
   nfeImports            NfeImport[]
   tributacoes           Tributacao[] @relation("CompanyToTributacao")
 
+  towingQuotes          TowingQuote[]
+  towingDrivers         TowingDriver[]
+  towingVehicles        TowingVehicle[]
+  towingRates           TowingRate[]
+
   @@index([cnpj])
   @@index([parentCompanyId])
 }
@@ -123,6 +131,7 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   quotes    Quote[]
+  towingQuotes TowingQuote[]
 
   @@index([email])
   @@index([cnpj])
@@ -1102,6 +1111,9 @@ model SaaSNotification {
   lida       Boolean   @default(false)
   createdAt  DateTime  @default(now()) @map("created_at")
 
+  targetCompanyId String? @map("target_company_id")
+  targetRole      String? @map("target_role")
+
   leituras SaaSNotificationRead[]
 
   @@map("saas_notifications")
@@ -1374,4 +1386,144 @@ model Tributacao {
 
   @@unique([companyId, esfera, codigo])
   @@index([companyId])
+}
+
+model TowingDriver {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  nome        String
+  cpf         String   @unique
+  cnh         String
+  categoria   String
+  validadeCnh DateTime
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  quotes      TowingQuote[]
+
+  @@index([companyId])
+}
+
+model TowingVehicle {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  placa       String   @unique
+  modelo      String
+  tipo        String
+  capacidade  String?
+  status      String   @default("ATIVO") // ATIVO, INATIVO, MANUTENCAO
+  
+  // ANTT/RNTRC
+  rntrcNumero String?
+  rntrcStatus String?
+  rntrcValidade DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  quotes      TowingQuote[]
+
+  @@index([companyId])
+}
+
+model TowingRate {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  tipoGuincho    String   @unique // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
+  taxaSaida      Float    @default(0)
+  valorKm        Float    @default(0)
+  valorHoraParada Float    @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model TowingQuote {
+  id              String   @id @default(uuid())
+  numeroOrcamento Int      @unique @default(autoincrement())
+  numeroFormatado String?  // ORC-GUI-2026-000001
+  status          String   @default("Orçamento") // Orçamento, Aprovado, Rejeitado, Em Andamento, Concluído
+
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id])
+  
+  clientId        String?
+  client          Client?  @relation(fields: [clientId], references: [id])
+  
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+
+  // Dados do Cliente Ad-Hoc
+  clienteNome     String?
+  clienteEmpresa  String?
+  clienteTelefone String?
+  clienteEmail    String?
+  clienteDoc      String? // CPF/CNPJ
+  
+  // Origem
+  origemCep         String?
+  origemEndereco    String?
+  origemNumero      String?
+  origemComplemento String?
+  origemCidade      String?
+  origemEstado      String?
+  
+  // Destino
+  destinoCep         String?
+  destinoEndereco    String?
+  destinoNumero      String?
+  destinoComplemento String?
+  destinoCidade      String?
+  destinoEstado      String?
+  
+  // Rota e Distância
+  distanciaKm       Float?
+  tempoEstimadoMin  Int?
+  
+  // Veículo Transportado
+  veiculoPlaca      String?
+  veiculoMarca      String?
+  veiculoModelo     String?
+  veiculoAno        String?
+  veiculoCor        String?
+  
+  // Configuração Guincho
+  tipoGuincho       String?
+  
+  // Motorista / Veículo de Guincho vinculado
+  driverId          String?
+  driver            TowingDriver?  @relation(fields: [driverId], references: [id])
+  
+  vehicleId         String?
+  vehicle           TowingVehicle? @relation(fields: [vehicleId], references: [id])
+  
+  // Composição Financeira
+  taxaSaida         Float @default(0)
+  valorKm           Float @default(0)
+  horasParadas      Int   @default(0)
+  valorHoraParada   Float @default(0)
+  pedagios          Float @default(0)
+  despesasExtras    Float @default(0)
+  descontos         Float @default(0)
+  acrescimos        Float @default(0)
+  
+  valorTotal        Float @default(0)
+  
+  observacoes       String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([userId])
 }

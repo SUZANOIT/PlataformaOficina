@@ -142,8 +142,77 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+          {/* Categoria: Guincho (GUINCHO_PROVIDER) */}
+          {user?.company?.type === 'GUINCHO_PROVIDER' && (
+            <div>
+              <button 
+                onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão de Guincho</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isOficinaOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/towing/dashboard" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel de Guincho</span>
+                  </Link>
+                  <Link 
+                    to="/towing/quotes/new" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-muted-foreground" />
+                    <span>Novo Orçamento</span>
+                  </Link>
+                  <Link 
+                    to="/towing/quotes" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-muted-foreground" />
+                    <span>Orçamentos de Guincho</span>
+                  </Link>
+                  <Link 
+                    to="/towing/fleet" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Truck size={16} className="text-muted-foreground" />
+                    <span>Frota de Guinchos</span>
+                  </Link>
+                  <Link 
+                    to="/towing/drivers" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <UserCheck size={16} className="text-muted-foreground" />
+                    <span>Motoristas</span>
+                  </Link>
+                  <Link 
+                    to="/towing/rates" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <DollarSign size={16} className="text-muted-foreground" />
+                    <span>Tabelas de Frete</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && (
+          {!isContabilidadeOnly && user?.company?.type !== 'GUINCHO_PROVIDER' && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -554,8 +623,71 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+          {/* Categoria: Guincho (GUINCHO_PROVIDER) */}
+          {user?.company?.type === 'GUINCHO_PROVIDER' && (
+            <div>
+              <button 
+                onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+                className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={20} className="text-primary" />
+                  <span className="font-semibold text-foreground text-sm">Gestão de Guincho</span>
+                </div>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isOficinaOpen && (
+                <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/towing/dashboard" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <LayoutDashboard size={16} className="text-muted-foreground" />
+                    <span>Painel de Guincho</span>
+                  </Link>
+                  <Link 
+                    to="/towing/quotes/new" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-muted-foreground" />
+                    <span>Novo Orçamento</span>
+                  </Link>
+                  <Link 
+                    to="/towing/quotes" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <FileText size={16} className="text-muted-foreground" />
+                    <span>Orçamentos de Guincho</span>
+                  </Link>
+                  <Link 
+                    to="/towing/fleet" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Truck size={16} className="text-muted-foreground" />
+                    <span>Frota de Guinchos</span>
+                  </Link>
+                  <Link 
+                    to="/towing/drivers" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <UserCheck size={16} className="text-muted-foreground" />
+                    <span>Motoristas</span>
+                  </Link>
+                  <Link 
+                    to="/towing/rates" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <DollarSign size={16} className="text-muted-foreground" />
+                    <span>Tabelas de Frete</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && (
+          {!isContabilidadeOnly && user?.company?.type !== 'GUINCHO_PROVIDER' && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}

@@ -1263,7 +1263,9 @@ exports.SaaSPortalController = {
             mensagem: zod_1.z.string(),
             tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
             prioridade: zod_1.z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
-            expiraEm: zod_1.z.string().datetime().optional().nullable()
+            expiraEm: zod_1.z.string().datetime().optional().nullable(),
+            targetCompanyId: zod_1.z.string().optional().nullable(),
+            targetRole: zod_1.z.string().optional().nullable()
         });
         try {
             const parsed = schema.parse(req.body);
@@ -1273,7 +1275,9 @@ exports.SaaSPortalController = {
                     mensagem: parsed.mensagem,
                     tipo: parsed.tipo,
                     prioridade: parsed.prioridade,
-                    expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null
+                    expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
+                    targetCompanyId: parsed.targetCompanyId || null,
+                    targetRole: parsed.targetRole || null
                 }
             });
             await logSaaSAuditoria(adminEmail, 'Disparo Notificação', `Enviou alerta geral: '${alert.titulo}'`);
@@ -1306,13 +1310,26 @@ exports.SaaSPortalController = {
     async listActiveNotificationsForCompany(req, res) {
         try {
             const companyId = req.companyId;
+            const userId = req.userId;
             if (!companyId) {
                 return res.json([]);
+            }
+            let userRole = null;
+            if (userId) {
+                const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
+                if (user) {
+                    // Define standard role names like in the frontend / Notificacoes dropdown
+                    userRole = user.roleAdmin ? 'Administrador' : user.roleOrcamentista ? 'Orçamentista' : user.roleContabilidade ? 'Contabilidade' : user.role;
+                }
             }
             const now = new Date();
             const alerts = await prisma_1.prisma.saaSNotification.findMany({
                 where: {
-                    OR: [{ expiraEm: null }, { expiraEm: { gte: now } }]
+                    AND: [
+                        { OR: [{ expiraEm: null }, { expiraEm: { gte: now } }] },
+                        { OR: [{ targetCompanyId: null }, { targetCompanyId: companyId }] },
+                        { OR: [{ targetRole: null }, { targetRole: userRole }] }
+                    ]
                 },
                 include: {
                     leituras: { where: { companyId }, select: { id: true, createdAt: true } }

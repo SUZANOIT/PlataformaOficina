@@ -129,42 +129,40 @@ export function Dashboard() {
   const paginatedQuotes = filteredQuotes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Status Chart calculations
-  const statusTotals: Record<string, number> = {
-    'Aguardando Aprovação': 0,
-    'Aprovado': 0,
-    'Aguardando Pagamento': 0,
-    'Emitir Nota Fiscal': 0,
-    'Cobertura': 0,
-    'Pago': 0,
-    'Cancelado': 0
+  const statusTotals: Record<string, { value: number; count: number }> = {
+    'Aguardando Aprovação': { value: 0, count: 0 },
+    'Aprovado': { value: 0, count: 0 },
+    'Aguardando Pagamento': { value: 0, count: 0 },
+    'Emitir Nota Fiscal': { value: 0, count: 0 },
+    'Cobertura': { value: 0, count: 0 },
+    'Pago': { value: 0, count: 0 }
   };
 
   const quotesForChart = (selectedCompanyId === 'all' 
     ? quotes 
     : quotes.filter((q: any) => q.company?.id === selectedCompanyId)
   ).filter((q: any) => {
-    const company = q.company;
-    if (!company) return false;
-    const cnpjClean = company.cnpj ? company.cnpj.replace(/\D/g, '') : '';
-    const ieClean = company.inscricaoEstadual ? company.inscricaoEstadual.replace(/\D/g, '') : '';
-    const matchesCnpj = cnpjClean === '30021766000113' || cnpjClean === '98765432000110';
-    const matchesIe = ieClean === '119214099114' || ieClean === '987654321000';
-    const matchesName = company.razaoSocial?.toLowerCase().includes('mca') || 
-                        company.nomeFantasia?.toLowerCase().includes('mca');
-    return matchesCnpj || matchesIe || matchesName;
+    if (!q.status || q.status === 'Cancelado' || q.status === 'Excluído' || q.status === 'Arquivado') return false;
+    const value = Number(q.total) || 0;
+    return value > 0;
   });
+
+  let totalGeralForChart = 0;
 
   quotesForChart.forEach((q: any) => {
     let status = q.status || 'Aguardando Aprovação';
     if (status === 'Orçamento' || status === 'Em Andamento') {
       status = 'Aguardando Aprovação';
     }
+    const val = Number(q.total) || 0;
     if (statusTotals.hasOwnProperty(status)) {
-      statusTotals[status] += Number(q.total) || 0;
+      statusTotals[status].value += val;
+      statusTotals[status].count += 1;
+      totalGeralForChart += val;
     }
   });
 
-  const maxVal = Math.max(...Object.values(statusTotals), 1);
+  const maxVal = Math.max(...Object.values(statusTotals).map(s => s.value), 1);
 
   const statusConfig: Record<string, { colorClass: string; textClass: string }> = {
     'Aguardando Aprovação': { colorClass: 'bg-purple-500', textClass: 'text-purple-600' },
@@ -280,16 +278,20 @@ export function Dashboard() {
 
             <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
               <div className="h-64 flex items-end justify-between gap-3 pt-16 px-2 min-w-[500px] sm:min-w-0">
-                {Object.entries(statusTotals).map(([status, totalValue]) => {
+                {Object.entries(statusTotals).map(([status, stats]) => {
+                  const totalValue = stats.value;
                   const pct = (totalValue / maxVal) * 100;
+                  const totalPct = totalGeralForChart > 0 ? (totalValue / totalGeralForChart) * 100 : 0;
                   const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
                   
                   return (
                     <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                       {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
-                        <span>{status}</span>
-                        <span className={`text-sm ${config.textClass}`}>{formatCurrency(totalValue)}</span>
+                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center gap-0.5">
+                        <span className="text-muted-foreground">{status}</span>
+                        <span className={`text-[13px] ${config.textClass}`}>{formatCurrency(totalValue)}</span>
+                        <span className="text-foreground">{totalPct.toFixed(1)}%</span>
+                        <span className="font-normal text-muted-foreground">{stats.count} Orçamento{stats.count !== 1 ? 's' : ''}</span>
                       </div>
 
                       {/* Bar */}
@@ -324,7 +326,7 @@ export function Dashboard() {
                   <div key={status} className="flex items-center gap-1.5">
                     <span className={`w-2.5 h-2.5 rounded-full ${config.colorClass}`}></span>
                     <span className="font-semibold text-foreground">{status}:</span>
-                    <span>{formatCurrency(totalValue)}</span>
+                    <span>{formatCurrency(totalValue.value)}</span>
                   </div>
                 );
               })}

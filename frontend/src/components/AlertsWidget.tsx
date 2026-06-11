@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BellRing, Check, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { BellRing, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AlertItem {
@@ -146,14 +146,22 @@ export function AlertsWidget() {
                     </div>
 
                     {!alert.lida && (
-                      <button
-                        onClick={() => handleMarkAsRead(alert.id)}
-                        disabled={markingId === alert.id}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted text-foreground transition disabled:opacity-50"
-                      >
-                        <Check size={13} />
-                        <span>{markingId === alert.id ? 'Salvando...' : 'Lido'}</span>
-                      </button>
+                      <div className="shrink-0 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-muted text-foreground transition">
+                        <input
+                          type="checkbox"
+                          id={`read-check-${alert.id}`}
+                          checked={markingId === alert.id}
+                          disabled={markingId === alert.id}
+                          onChange={() => handleMarkAsRead(alert.id)}
+                          className="w-4 h-4 rounded border-slate-700 text-indigo-500 focus:ring-indigo-500/20 bg-slate-950 cursor-pointer disabled:opacity-50"
+                        />
+                        <label 
+                          htmlFor={`read-check-${alert.id}`}
+                          className={`cursor-pointer ${markingId === alert.id ? 'opacity-50' : ''}`}
+                        >
+                          {markingId === alert.id ? 'Salvando...' : 'Marcar como lido'}
+                        </label>
+                      </div>
                     )}
                   </div>
                 );
