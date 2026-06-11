@@ -575,7 +575,8 @@ export const AdminSaaSController = {
       possuiApi,
       possuiIntegracoes,
       possuiWhatsapp,
-      possuiBi
+      possuiBi,
+      tipoPlano
     } = req.body;
 
     try {
@@ -594,6 +595,7 @@ export const AdminSaaSController = {
           possuiIntegracoes: Boolean(possuiIntegracoes),
           possuiWhatsapp: Boolean(possuiWhatsapp),
           possuiBi: Boolean(possuiBi),
+          tipoPlano: tipoPlano || 'OFICINA',
           ativo: true
         }
       });
@@ -622,6 +624,7 @@ export const AdminSaaSController = {
       possuiIntegracoes,
       possuiWhatsapp,
       possuiBi,
+      tipoPlano,
       ativo
     } = req.body;
 
@@ -642,6 +645,7 @@ export const AdminSaaSController = {
           possuiIntegracoes: Boolean(possuiIntegracoes),
           possuiWhatsapp: Boolean(possuiWhatsapp),
           possuiBi: Boolean(possuiBi),
+          tipoPlano: tipoPlano || 'OFICINA',
           ativo: Boolean(ativo)
         }
       });

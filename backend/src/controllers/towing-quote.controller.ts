@@ -47,6 +47,14 @@ const createTowingQuoteSchema = z.object({
   valorTotal: z.number().optional().default(0),
 
   observacoes: z.string().optional(),
+
+  // Validação ANTT
+  anttTipoCarga: z.string().optional(),
+  anttEixos: z.number().optional().nullable(),
+  anttComposicao: z.boolean().optional(),
+  anttAltoDesempenho: z.boolean().optional(),
+  anttRetornoVazio: z.boolean().optional(),
+  anttPisoMinimo: z.number().optional(),
 });
 
 export const TowingQuoteController = {
@@ -79,13 +87,39 @@ export const TowingQuoteController = {
       const closedQuotes = quotes.filter(q => q.status === 'Aprovado' || q.status === 'Concluído');
       const closedRevenue = closedQuotes.reduce((acc, q) => acc + q.valorTotal, 0);
 
+      // ANTT Stats
+      const quotesWithAntt = quotes.filter(q => q.anttPisoMinimo && q.anttPisoMinimo > 0);
+      const avgAnttFloor = quotesWithAntt.length > 0 ? quotesWithAntt.reduce((acc, q) => acc + q.anttPisoMinimo!, 0) / quotesWithAntt.length : 0;
+      
+      let belowAntt = 0;
+      let aboveAntt = 0;
+      let totalDiff = 0;
+
+      quotesWithAntt.forEach(q => {
+        const diff = q.valorTotal - q.anttPisoMinimo!;
+        totalDiff += diff;
+        if (q.valorTotal < q.anttPisoMinimo!) {
+          belowAntt++;
+        } else {
+          aboveAntt++;
+        }
+      });
+
+      const avgAnttDiff = quotesWithAntt.length > 0 ? totalDiff / quotesWithAntt.length : 0;
+
       return res.json({
         totalQuotes,
         totalRevenue,
         ticketMedio,
         totalKm,
         closedQuotes: closedQuotes.length,
-        closedRevenue
+        closedRevenue,
+        anttStats: {
+          avgAnttFloor,
+          avgAnttDiff,
+          belowAntt,
+          aboveAntt
+        }
       });
     } catch (error) {
       console.error(error);

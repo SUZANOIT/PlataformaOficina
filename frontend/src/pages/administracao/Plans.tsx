@@ -35,6 +35,7 @@ export function Plans() {
     limiteOficinas: 3,
     limiteOs: 100,
     beneficios: '',
+    tipoPlano: 'OFICINA',
     ativo: true
   });
 
@@ -78,6 +79,7 @@ export function Plans() {
         limiteOficinas: 3,
         limiteOs: 100,
         beneficios: '',
+        tipoPlano: 'OFICINA',
         ativo: true
       });
       loadPlans();
@@ -178,7 +180,12 @@ export function Plans() {
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-base font-extrabold text-white">{plan.nome}</h3>
+                    <h3 className="text-base font-extrabold text-white">
+                      {plan.nome} 
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        {plan.tipoPlano === 'AMBOS' ? 'OFICINA + GUINCHO' : plan.tipoPlano === 'GUINCHO_PROVIDER' ? 'GUINCHO' : 'OFICINA'}
+                      </span>
+                    </h3>
                     <p className="text-[11px] text-slate-400 font-medium mt-1 min-h-[32px] line-clamp-2">{plan.descricao || 'Sem descrição'}</p>
                   </div>
                   <Layers className={`shrink-0 ${plan.ativo ? 'text-indigo-400' : 'text-slate-500'}`} size={20} />
@@ -303,6 +310,18 @@ export function Plans() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all resize-none"
                   />
                 </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tipo de Serviços Inclusos *</label>
+                  <select
+                    value={formData.tipoPlano}
+                    onChange={(e) => setFormData({ ...formData, tipoPlano: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                  >
+                    <option value="OFICINA">Apenas Oficina</option>
+                    <option value="GUINCHO_PROVIDER">Apenas Guincho</option>
+                    <option value="AMBOS">Oficina e Guincho (Ambos)</option>
+                  </select>
+                </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preço Mensal (R$) *</label>
                   <input
@@ -417,6 +436,18 @@ export function Plans() {
                     rows={2}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all resize-none"
                   />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tipo de Serviços Inclusos *</label>
+                  <select
+                    value={selectedPlan.tipoPlano || 'OFICINA'}
+                    onChange={(e) => setSelectedPlan({ ...selectedPlan, tipoPlano: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                  >
+                    <option value="OFICINA">Apenas Oficina</option>
+                    <option value="GUINCHO_PROVIDER">Apenas Guincho</option>
+                    <option value="AMBOS">Oficina e Guincho (Ambos)</option>
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Preço Mensal (R$) *</label>

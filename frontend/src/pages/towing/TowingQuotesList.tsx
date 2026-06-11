@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Truck, Plus, Search, Edit3, Trash2 } from 'lucide-react';
+import { Truck, Plus, Search, Edit3, Trash2, FileText } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
+import { useRef } from 'react';
+import { authStorage } from '../../utils/auth';
+import html2pdf from 'html2pdf.js';
+import { TowingPdfTemplate } from '../../components/TowingPdfTemplate';
 
 export function TowingQuotesList() {
   const navigate = useNavigate();
+  const user = authStorage.getUser();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // PDF state
+  const pdfRef = useRef<HTMLDivElement>(null);
+  const [printingQuote, setPrintingQuote] = useState<any>(null);
 
   useEffect(() => {
     loadQuotes();
@@ -36,6 +45,30 @@ export function TowingQuotesList() {
         toast.error('Erro ao excluir orçamento');
       }
     }
+  };
+
+  const handlePrint = async (quote: any) => {
+    setPrintingQuote(quote);
+    // Give react time to render the template
+    setTimeout(() => {
+      const element = pdfRef.current;
+      if (!element) {
+        setPrintingQuote(null);
+        return;
+      }
+      const opt = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `Orcamento_Guincho_${quote.numeroFormatado || quote.numeroSequencial || quote.id.substring(0, 8)}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        setPrintingQuote(null);
+        toast.success('PDF gerado com sucesso!');
+      });
+    }, 500);
   };
 
   const filteredQuotes = quotes.filter(q => 
@@ -130,6 +163,13 @@ export function TowingQuotesList() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
+                          onClick={() => handlePrint(quote)}
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+                          title="Imprimir PDF"
+                        >
+                          <FileText size={16} />
+                        </button>
+                        <button 
                           onClick={() => navigate(`/towing/quotes/edit/${quote.id}`)}
                           className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded transition-colors"
                           title="Editar"
@@ -151,6 +191,17 @@ export function TowingQuotesList() {
             </tbody>
           </table>
         </div>
+      </div>
+      
+      {/* Hidden container for PDF rendering */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        {printingQuote && (
+          <TowingPdfTemplate 
+            ref={pdfRef} 
+            quote={printingQuote} 
+            company={user?.company}
+          />
+        )}
       </div>
     </div>
   );

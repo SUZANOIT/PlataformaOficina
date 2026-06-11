@@ -142,8 +142,8 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
-          {/* Categoria: Guincho (GUINCHO_PROVIDER) */}
-          {user?.company?.type === 'GUINCHO_PROVIDER' && (
+          {/* Categoria: Guincho (GUINCHO_PROVIDER ou AMBOS) */}
+          {['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '') && (
             <div>
               <button 
                 onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -212,7 +212,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && user?.company?.type !== 'GUINCHO_PROVIDER' && (
+          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', '', undefined].includes(user?.company?.type) && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -623,8 +623,8 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
-          {/* Categoria: Guincho (GUINCHO_PROVIDER) */}
-          {user?.company?.type === 'GUINCHO_PROVIDER' && (
+          {/* Categoria: Guincho (GUINCHO_PROVIDER ou AMBOS) */}
+          {['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '') && (
             <div>
               <button 
                 onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -687,7 +687,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && user?.company?.type !== 'GUINCHO_PROVIDER' && (
+          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', '', undefined].includes(user?.company?.type) && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}

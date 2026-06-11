@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Truck, FileText, DollarSign, Users } from 'lucide-react';
+import { LayoutDashboard, Truck, FileText, DollarSign, Users, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 
 export function TowingDashboard() {
@@ -7,7 +7,13 @@ export function TowingDashboard() {
     totalQuotes: 0,
     totalRevenue: 0,
     totalDrivers: 0,
-    totalVehicles: 0
+    totalVehicles: 0,
+    anttStats: {
+      avgAnttFloor: 0,
+      avgAnttDiff: 0,
+      belowAntt: 0,
+      aboveAntt: 0
+    }
   });
 
   const [loading, setLoading] = useState(true);
@@ -74,6 +80,49 @@ export function TowingDashboard() {
           </div>
           <span className="text-sm font-semibold text-muted-foreground">Motoristas</span>
           <span className="text-3xl font-bold text-foreground">{stats.totalDrivers}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mt-8 mb-4">
+        <Scale className="text-primary" />
+        <h2 className="text-xl font-bold">Validação Legal ANTT</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-card border rounded-xl p-6 shadow-sm flex flex-col items-center justify-center space-y-2">
+          <div className="p-3 bg-slate-500/10 text-slate-500 rounded-full">
+            <Scale size={24} />
+          </div>
+          <span className="text-sm font-semibold text-muted-foreground text-center">Piso Médio ANTT</span>
+          <span className="text-2xl font-bold text-foreground">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.anttStats.avgAnttFloor)}
+          </span>
+        </div>
+
+        <div className="bg-card border rounded-xl p-6 shadow-sm flex flex-col items-center justify-center space-y-2">
+          <div className={`p-3 rounded-full ${stats.anttStats.avgAnttDiff >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+            <DollarSign size={24} />
+          </div>
+          <span className="text-sm font-semibold text-muted-foreground text-center">Diferença Média (Orç vs Piso)</span>
+          <span className={`text-2xl font-bold ${stats.anttStats.avgAnttDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.anttStats.avgAnttDiff)}
+          </span>
+        </div>
+
+        <div className="bg-card border border-red-200 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center space-y-2">
+          <div className="p-3 bg-red-500/10 text-red-500 rounded-full">
+            <AlertTriangle size={24} />
+          </div>
+          <span className="text-sm font-semibold text-red-600 text-center">Orçamentos Abaixo do Piso</span>
+          <span className="text-3xl font-bold text-red-600">{stats.anttStats.belowAntt}</span>
+        </div>
+
+        <div className="bg-card border border-green-200 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center space-y-2">
+          <div className="p-3 bg-green-500/10 text-green-500 rounded-full">
+            <CheckCircle2 size={24} />
+          </div>
+          <span className="text-sm font-semibold text-green-600 text-center">Orçamentos Acima do Piso</span>
+          <span className="text-3xl font-bold text-green-600">{stats.anttStats.aboveAntt}</span>
         </div>
       </div>
 

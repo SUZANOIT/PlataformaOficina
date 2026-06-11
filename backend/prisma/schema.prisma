@@ -981,6 +981,7 @@ model SaaSPlan {
   limiteOficinas Int      @map("limite_oficinas")
   limiteOs       Int      @map("limite_os")
   beneficios     String?  @db.Text
+  tipoPlano      String   @default("OFICINA") @map("tipo_plano") // OFICINA, GUINCHO_PROVIDER, AMBOS
   ativo          Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -1519,6 +1520,14 @@ model TowingQuote {
   valorTotal        Float @default(0)
   
   observacoes       String?
+
+  // Validação ANTT
+  anttTipoCarga      String?
+  anttEixos          Int?
+  anttComposicao     Boolean @default(false)
+  anttAltoDesempenho Boolean @default(false)
+  anttRetornoVazio   Boolean @default(false)
+  anttPisoMinimo     Float   @default(0)
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

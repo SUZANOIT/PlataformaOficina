@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Truck, MapPin, DollarSign, Save, Calculator, Car, User } from 'lucide-react';
+import { Truck, MapPin, DollarSign, Save, Calculator, Car, User, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { googleMapsService } from '../../services/google-maps.service';
+import { anttService } from '../../services/antt.service';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
 
@@ -42,15 +43,25 @@ export function CreateTowingQuote() {
     descontos: 0,
     acrescimos: 0,
     valorTotal: 0,
-    observacoes: ''
+    observacoes: '',
+
+    // ANTT
+    anttTipoCarga: 'Veículos',
+    anttEixos: 2,
+    anttComposicao: false,
+    anttAltoDesempenho: false,
+    anttRetornoVazio: false,
+    anttPisoMinimo: 0
   });
 
   const [rates, setRates] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     towingService.listRates().then(setRates).catch(console.error);
+    towingService.listVehicles().then(setVehicles).catch(console.error);
     api.get('/registry/clients').then(res => setClients(res.data)).catch(console.error);
     if (isEditing) {
       towingService.getQuote(id).then(setFormData).catch(console.error);
@@ -61,9 +72,13 @@ export function CreateTowingQuote() {
     setFormData((prev: any) => {
       const next = { ...prev, [field]: value };
       
-      // Auto-update rates based on guincho selection
+      // Auto-update rates based on guincho selection (from vehicle type or direct type)
       if (field === 'tipoGuincho') {
-        const rate = rates.find(r => r.tipoGuincho === value);
+        // Try to match vehicle plate first
+        const vehicle = vehicles.find(v => v.placa === value || v.tipo === value);
+        const rateType = vehicle ? vehicle.tipo : value;
+        const rate = rates.find(r => r.tipoGuincho === rateType);
+        
         if (rate) {
           next.taxaSaida = rate.taxaSaida;
           next.valorKm = rate.valorKm;
@@ -112,11 +127,26 @@ export function CreateTowingQuote() {
       Number(formData.acrescimos || 0) - 
       Number(formData.descontos || 0);
       
-    setFormData((prev: any) => prev.valorTotal === total ? prev : { ...prev, valorTotal: total });
+    // Calculate ANTT Floor
+    const anttFloor = anttService.calculateFloor(
+      Number(formData.distanciaKm || 0),
+      Number(formData.anttEixos || 2),
+      formData.anttTipoCarga as any,
+      formData.anttRetornoVazio,
+      formData.anttAltoDesempenho,
+      formData.anttComposicao
+    );
+      
+    setFormData((prev: any) => {
+      if (prev.valorTotal === total && prev.anttPisoMinimo === anttFloor) return prev;
+      return { ...prev, valorTotal: total, anttPisoMinimo: anttFloor };
+    });
   }, [
     formData.taxaSaida, formData.distanciaKm, formData.valorKm, 
     formData.horasParadas, formData.valorHoraParada, formData.pedagios, 
-    formData.despesasExtras, formData.acrescimos, formData.descontos
+    formData.despesasExtras, formData.acrescimos, formData.descontos,
+    formData.anttTipoCarga, formData.anttEixos, formData.anttComposicao,
+    formData.anttAltoDesempenho, formData.anttRetornoVazio
   ]);
 
   const handleSave = async () => {
@@ -135,26 +165,26 @@ export function CreateTowingQuote() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+    <div className="p-4 max-w-7xl mx-auto space-y-4">
+      <div className="flex justify-between items-center bg-card p-3 rounded shadow-sm border">
+        <h1 className="text-xl font-bold flex items-center gap-2">
           <Truck className="text-primary" /> 
           {isEditing ? 'Editar Orçamento de Guincho' : 'Novo Orçamento de Guincho'}
         </h1>
         <div className="flex gap-2">
-          <button onClick={() => navigate('/towing/quotes')} className="btn-secondary">Cancelar</button>
-          <button onClick={handleSave} className="bg-primary text-white px-4 py-2 rounded flex items-center gap-2">
+          <button onClick={() => navigate('/towing/quotes')} className="btn-secondary text-sm">Cancelar</button>
+          <button onClick={handleSave} className="bg-primary text-white px-4 py-2 rounded flex items-center gap-2 text-sm">
             <Save size={16} /> Salvar
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Cliente, Origem e Destino */}
-        <div className="space-y-6">
-          <div className="bg-card border p-4 rounded shadow-sm">
-            <h2 className="font-semibold flex items-center gap-2 mb-4"><User /> Dados do Cliente</h2>
-            <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Coluna 1: Cliente e Rotas */}
+        <div className="space-y-4">
+          <div className="bg-card border p-3 rounded shadow-sm text-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><User size={16} /> Dados do Cliente</h2>
+            <div className="grid grid-cols-2 gap-2">
               <input 
                 list="client-list"
                 placeholder="Nome do Cliente (Selecione ou Digite novo)" 
@@ -169,9 +199,9 @@ export function CreateTowingQuote() {
               <input placeholder="Email" value={formData.clienteEmail} onChange={e => handleChange('clienteEmail', e.target.value)} className="input-field" />
             </div>
           </div>
-          <div className="bg-card border p-4 rounded shadow-sm">
-            <h2 className="font-semibold flex items-center gap-2 mb-4"><MapPin /> Origem</h2>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card border p-3 rounded shadow-sm text-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><MapPin size={16} /> Origem</h2>
+            <div className="grid grid-cols-2 gap-2">
               <input placeholder="CEP" value={formData.origemCep} onChange={e => handleChange('origemCep', e.target.value)} className="input-field" />
               <input placeholder="Cidade" value={formData.origemCidade} onChange={e => handleChange('origemCidade', e.target.value)} className="input-field" />
               <input placeholder="Endereço" value={formData.origemEndereco} onChange={e => handleChange('origemEndereco', e.target.value)} className="input-field col-span-2" />
@@ -180,9 +210,9 @@ export function CreateTowingQuote() {
             </div>
           </div>
 
-          <div className="bg-card border p-4 rounded shadow-sm">
-            <h2 className="font-semibold flex items-center gap-2 mb-4"><MapPin /> Destino</h2>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card border p-3 rounded shadow-sm text-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><MapPin size={16} /> Destino</h2>
+            <div className="grid grid-cols-2 gap-2">
               <input placeholder="CEP" value={formData.destinoCep} onChange={e => handleChange('destinoCep', e.target.value)} className="input-field" />
               <input placeholder="Cidade" value={formData.destinoCidade} onChange={e => handleChange('destinoCidade', e.target.value)} className="input-field" />
               <input placeholder="Endereço" value={formData.destinoEndereco} onChange={e => handleChange('destinoEndereco', e.target.value)} className="input-field col-span-2" />
@@ -191,67 +221,120 @@ export function CreateTowingQuote() {
             </div>
           </div>
 
-          <button onClick={calculateRoute} disabled={isCalculating} className="w-full bg-blue-600 text-white py-2 rounded flex items-center justify-center gap-2">
+          <button onClick={calculateRoute} disabled={isCalculating} className="w-full bg-blue-600 text-white py-2 rounded flex items-center justify-center gap-2 text-sm">
             <Calculator size={16} /> {isCalculating ? 'Calculando...' : 'Calcular Rota e Distância'}
           </button>
           
-          <div className="flex gap-4 p-4 bg-muted rounded">
-            <div><span className="text-xs text-muted-foreground block">Distância KM</span><strong className="text-lg">{formData.distanciaKm} km</strong></div>
-            <div><span className="text-xs text-muted-foreground block">Tempo Estimado</span><strong className="text-lg">{formData.tempoEstimadoMin} min</strong></div>
+          <div className="flex gap-4 p-3 bg-muted rounded">
+            <div><span className="text-[10px] text-muted-foreground block">Distância KM</span><strong className="text-base">{formData.distanciaKm} km</strong></div>
+            <div><span className="text-[10px] text-muted-foreground block">Tempo Estimado</span><strong className="text-base">{formData.tempoEstimadoMin} min</strong></div>
           </div>
         </div>
 
-        {/* Informações do Guincho e Financeiro */}
-        <div className="space-y-6">
-          <div className="bg-card border p-4 rounded shadow-sm">
-            <h2 className="font-semibold flex items-center gap-2 mb-4"><Car /> Veículo e Guincho</h2>
-            <div className="grid grid-cols-2 gap-3">
+        {/* Coluna 2: Veículo e ANTT */}
+        <div className="space-y-4">
+          <div className="bg-card border p-3 rounded shadow-sm text-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><Car size={16} /> Veículo e Guincho</h2>
+            <div className="grid grid-cols-2 gap-2">
               <input placeholder="Placa do Veículo" value={formData.veiculoPlaca} onChange={e => handleChange('veiculoPlaca', e.target.value)} className="input-field" />
               <input placeholder="Marca/Modelo" value={formData.veiculoModelo} onChange={e => handleChange('veiculoModelo', e.target.value)} className="input-field" />
               <input 
                 list="guincho-list"
-                placeholder="Tipo de Guincho (Selecione ou Digite)" 
+                placeholder="Selecione o Veículo da Frota ou Digite" 
                 value={formData.tipoGuincho} 
                 onChange={e => handleChange('tipoGuincho', e.target.value)} 
                 className="input-field col-span-2" 
               />
               <datalist id="guincho-list">
+                {vehicles.map(v => <option key={v.id} value={v.placa}>{v.tipo} ({v.marca})</option>)}
                 {rates.map(r => <option key={r.id} value={r.tipoGuincho} />)}
               </datalist>
             </div>
           </div>
 
-          <div className="bg-card border p-4 rounded shadow-sm">
-            <h2 className="font-semibold flex items-center gap-2 mb-4"><DollarSign /> Composição Financeira</h2>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="bg-card border p-3 rounded shadow-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><Scale size={16} /> Validação de Frete ANTT</h2>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="col-span-2 md:col-span-1">
+                <label className="font-semibold text-muted-foreground uppercase">Tipo de Carga</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input type="checkbox" id="anttRetornoVazio" checked={formData.anttRetornoVazio} onChange={e => handleChange('anttRetornoVazio', e.target.checked)} />
+                <label htmlFor="anttRetornoVazio">Retorno Vazio</label>
+              </div>
+              
+              <div className="flex items-center gap-2 mt-1">
+                <input type="checkbox" id="anttAltoDesempenho" checked={formData.anttAltoDesempenho} onChange={e => handleChange('anttAltoDesempenho', e.target.checked)} />
+                <label htmlFor="anttAltoDesempenho">Alto Desempenho</label>
+              </div>
+              
+              <div className="flex items-center gap-2 mt-1 col-span-2">
+                <input type="checkbox" id="anttComposicao" checked={formData.anttComposicao} onChange={e => handleChange('anttComposicao', e.target.checked)} />
+                <label htmlFor="anttComposicao">Composição Veicular</label>
+              </div>
+            </div>
+            {formData.anttPisoMinimo > 0 && formData.valorTotal < formData.anttPisoMinimo && (
+              <div className="mt-3 p-2 bg-red-50 border border-red-200 text-red-800 rounded flex gap-2 items-start text-xs">
+                <AlertTriangle className="shrink-0" size={14} />
+                <p>O valor está abaixo do piso mínimo da ANTT.</p>
+              </div>
+            )}
+            {formData.anttPisoMinimo > 0 && formData.valorTotal >= formData.anttPisoMinimo && (
+              <div className="mt-3 p-2 bg-green-50 border border-green-200 text-green-800 rounded flex gap-2 items-center text-xs">
+                <CheckCircle2 className="shrink-0" size={14} />
+                <p>Valor compatível com o piso ANTT.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Coluna 3: Financeiro */}
+        <div className="space-y-4">
+          <div className="bg-card border p-3 rounded shadow-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-3"><DollarSign size={16} /> Composição Financeira</h2>
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <label>Taxa de Saída</label>
-                <input type="number" value={formData.taxaSaida} onChange={e => handleChange('taxaSaida', e.target.value)} className="input-field w-full" />
+                <input type="number" value={formData.taxaSaida} onChange={e => handleChange('taxaSaida', e.target.value)} className="input-field w-full py-1" />
               </div>
               <div>
                 <label>Valor por KM</label>
-                <input type="number" value={formData.valorKm} onChange={e => handleChange('valorKm', e.target.value)} className="input-field w-full" />
+                <input type="number" value={formData.valorKm} onChange={e => handleChange('valorKm', e.target.value)} className="input-field w-full py-1" />
               </div>
               <div>
                 <label>Horas Paradas</label>
-                <input type="number" value={formData.horasParadas} onChange={e => handleChange('horasParadas', e.target.value)} className="input-field w-full" />
+                <input type="number" value={formData.horasParadas} onChange={e => handleChange('horasParadas', e.target.value)} className="input-field w-full py-1" />
               </div>
               <div>
                 <label>Valor Hora Parada</label>
-                <input type="number" value={formData.valorHoraParada} onChange={e => handleChange('valorHoraParada', e.target.value)} className="input-field w-full" />
+                <input type="number" value={formData.valorHoraParada} onChange={e => handleChange('valorHoraParada', e.target.value)} className="input-field w-full py-1" />
               </div>
               <div>
                 <label>Pedágios / Extras</label>
-                <input type="number" value={formData.pedagios} onChange={e => handleChange('pedagios', e.target.value)} className="input-field w-full" />
+                <input type="number" value={formData.pedagios} onChange={e => handleChange('pedagios', e.target.value)} className="input-field w-full py-1" />
+              </div>
+              <div>
+                <label>Descontos</label>
+                <input type="number" value={formData.descontos} onChange={e => handleChange('descontos', e.target.value)} className="input-field w-full py-1" />
               </div>
             </div>
             
-            <div className="mt-6 p-4 bg-green-50 text-green-900 rounded border border-green-200">
-              <div className="flex justify-between items-center text-xl font-bold">
-                <span>Total Estimado:</span>
-                <span>R$ {Number(formData.valorTotal).toFixed(2)}</span>
+            <div className="mt-4 p-3 bg-muted rounded border border-border">
+              <div className="flex justify-between items-center text-xs mb-1">
+                <span className="text-muted-foreground">Orçamento Calculado:</span>
+                <span className="font-semibold">R$ {Number(formData.valorTotal).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs mb-1">
+                <span className="text-muted-foreground">Piso Mínimo ANTT:</span>
+                <span className="font-semibold">R$ {Number(formData.anttPisoMinimo).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-2 border-t border-border/50">
+                <span className="font-bold">Total Final:</span>
+                <span className="font-bold text-base text-green-600">
+                  R$ {(formData.valorTotal).toFixed(2)}
+                </span>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
