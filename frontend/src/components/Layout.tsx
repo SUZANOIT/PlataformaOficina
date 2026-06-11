@@ -243,7 +243,7 @@ export function Layout() {
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                 >
                   <FileText size={16} className="text-muted-foreground" />
-                  <span>Novo Orçamento</span>
+                  <span>Novo Orç. da Oficina</span>
                 </Link>
                 <Link 
                   to="/quotes" 
@@ -251,7 +251,7 @@ export function Layout() {
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                 >
                   <FileText size={16} className="text-muted-foreground" />
-                  <span>Orçamentos</span>
+                  <span>Orçamentos da Oficina</span>
                 </Link>
                 {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
@@ -716,14 +716,14 @@ export function Layout() {
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                 >
                   <FileText size={16} className="text-muted-foreground" />
-                  <span>Novo Orçamento</span>
+                  <span>Novo Orç. da Oficina</span>
                 </Link>
                 <Link 
                   to="/quotes" 
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                 >
                   <FileText size={16} className="text-muted-foreground" />
-                  <span>Orçamentos</span>
+                  <span>Orçamentos da Oficina</span>
                 </Link>
                 {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
