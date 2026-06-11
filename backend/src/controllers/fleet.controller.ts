@@ -1153,7 +1153,9 @@ export const fleetController = {
   // ==========================================
   async listWorkshops(req: Request, res: Response) {
     try {
+      const companyId = (req as any).companyId || null;
       let workshops = await prisma.oficina.findMany({
+        where: { companyId },
         orderBy: { nome: 'asc' },
       });
 
@@ -1169,7 +1171,8 @@ export const fleetController = {
             email: "contato@mca.com",
             endereco: "Av. Principal, 1000 - São Paulo/SP",
             servicosRealizados: "Manutenção Geral, Troca de Óleo, Revisões",
-            observacoes: "Oficina Padrão MCA"
+            observacoes: "Oficina Padrão MCA",
+            companyId
           }
         });
         workshops = [mca];

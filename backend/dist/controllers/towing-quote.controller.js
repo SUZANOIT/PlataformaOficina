@@ -40,6 +40,13 @@ const createTowingQuoteSchema = zod_1.z.object({
     acrescimos: zod_1.z.number().optional().default(0),
     valorTotal: zod_1.z.number().optional().default(0),
     observacoes: zod_1.z.string().optional(),
+    // Validação ANTT
+    anttTipoCarga: zod_1.z.string().optional(),
+    anttEixos: zod_1.z.number().optional().nullable(),
+    anttComposicao: zod_1.z.boolean().optional(),
+    anttAltoDesempenho: zod_1.z.boolean().optional(),
+    anttRetornoVazio: zod_1.z.boolean().optional(),
+    anttPisoMinimo: zod_1.z.number().optional(),
 });
 exports.TowingQuoteController = {
     async list(req, res) {
@@ -68,13 +75,36 @@ exports.TowingQuoteController = {
             const totalKm = quotes.reduce((acc, q) => acc + (q.distanciaKm || 0), 0);
             const closedQuotes = quotes.filter(q => q.status === 'Aprovado' || q.status === 'Concluído');
             const closedRevenue = closedQuotes.reduce((acc, q) => acc + q.valorTotal, 0);
+            // ANTT Stats
+            const quotesWithAntt = quotes.filter(q => q.anttPisoMinimo && q.anttPisoMinimo > 0);
+            const avgAnttFloor = quotesWithAntt.length > 0 ? quotesWithAntt.reduce((acc, q) => acc + q.anttPisoMinimo, 0) / quotesWithAntt.length : 0;
+            let belowAntt = 0;
+            let aboveAntt = 0;
+            let totalDiff = 0;
+            quotesWithAntt.forEach(q => {
+                const diff = q.valorTotal - q.anttPisoMinimo;
+                totalDiff += diff;
+                if (q.valorTotal < q.anttPisoMinimo) {
+                    belowAntt++;
+                }
+                else {
+                    aboveAntt++;
+                }
+            });
+            const avgAnttDiff = quotesWithAntt.length > 0 ? totalDiff / quotesWithAntt.length : 0;
             return res.json({
                 totalQuotes,
                 totalRevenue,
                 ticketMedio,
                 totalKm,
                 closedQuotes: closedQuotes.length,
-                closedRevenue
+                closedRevenue,
+                anttStats: {
+                    avgAnttFloor,
+                    avgAnttDiff,
+                    belowAntt,
+                    aboveAntt
+                }
             });
         }
         catch (error) {

@@ -499,7 +499,7 @@ exports.AdminSaaSController = {
     },
     createPlano: async (req, res) => {
         const userEmail = req.userEmail || 'admin';
-        const { nome, descricao, valorMensal, valorAnual, limiteUsuarios, limiteVeiculos, limiteOs, limiteOrcamentos, limiteArmazenamento, possuiApi, possuiIntegracoes, possuiWhatsapp, possuiBi } = req.body;
+        const { nome, descricao, valorMensal, valorAnual, limiteUsuarios, limiteVeiculos, limiteOs, limiteOrcamentos, limiteArmazenamento, possuiApi, possuiIntegracoes, possuiWhatsapp, possuiBi, tipoPlano } = req.body;
         try {
             const plano = await prisma_1.prisma.saaSPlano.create({
                 data: {
@@ -516,6 +516,7 @@ exports.AdminSaaSController = {
                     possuiIntegracoes: Boolean(possuiIntegracoes),
                     possuiWhatsapp: Boolean(possuiWhatsapp),
                     possuiBi: Boolean(possuiBi),
+                    tipoPlano: tipoPlano || 'OFICINA',
                     ativo: true
                 }
             });
@@ -530,7 +531,7 @@ exports.AdminSaaSController = {
     updatePlano: async (req, res) => {
         const userEmail = req.userEmail || 'admin';
         const id = req.params.id;
-        const { nome, descricao, valorMensal, valorAnual, limiteUsuarios, limiteVeiculos, limiteOs, limiteOrcamentos, limiteArmazenamento, possuiApi, possuiIntegracoes, possuiWhatsapp, possuiBi, ativo } = req.body;
+        const { nome, descricao, valorMensal, valorAnual, limiteUsuarios, limiteVeiculos, limiteOs, limiteOrcamentos, limiteArmazenamento, possuiApi, possuiIntegracoes, possuiWhatsapp, possuiBi, tipoPlano, ativo } = req.body;
         try {
             const plano = await prisma_1.prisma.saaSPlano.update({
                 where: { id },
@@ -548,6 +549,7 @@ exports.AdminSaaSController = {
                     possuiIntegracoes: Boolean(possuiIntegracoes),
                     possuiWhatsapp: Boolean(possuiWhatsapp),
                     possuiBi: Boolean(possuiBi),
+                    tipoPlano: tipoPlano || 'OFICINA',
                     ativo: Boolean(ativo)
                 }
             });

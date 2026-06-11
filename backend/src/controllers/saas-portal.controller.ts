@@ -390,6 +390,7 @@ export const SaaSPortalController = {
               status: data.status === 'Trial' ? 'Pendente' : 'Ativa',
               dataInicio: new Date(),
               dataRenovacao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            }
           });
       }
 

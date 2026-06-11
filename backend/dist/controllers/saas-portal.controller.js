@@ -306,6 +306,15 @@ exports.SaaSPortalController = {
             if (existing) {
                 return res.status(400).json({ error: 'CNPJ já cadastrado no SaaS' });
             }
+            // Descobrir o tipo do plano
+            let companyType = 'OFICINA';
+            let plan = null;
+            if (data.planoId) {
+                plan = await prisma_1.prisma.saaSPlan.findUnique({ where: { id: data.planoId } });
+                if (plan && plan.tipoPlano) {
+                    companyType = plan.tipoPlano;
+                }
+            }
             // 1. Criar empresa correspondente no ambiente operacional
             const cleanCnpj = data.cnpj.replace(/\D/g, '');
             const operationalCompany = await prisma_1.prisma.company.create({
@@ -317,6 +326,7 @@ exports.SaaSPortalController = {
                     telefone: data.telefone,
                     email: data.email,
                     statusAssinatura: data.status,
+                    type: companyType,
                     dataVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
                 }
             });
@@ -340,22 +350,19 @@ exports.SaaSPortalController = {
                 }
             });
             // 3. Criar Assinatura vinculada no SaaS
-            if (data.planoId) {
-                const plan = await prisma_1.prisma.saaSPlan.findUnique({ where: { id: data.planoId } });
-                if (plan) {
-                    await prisma_1.prisma.saaSSubscription.create({
-                        data: {
-                            id: tenant.id,
-                            tenantId: tenant.id,
-                            planoId: plan.id,
-                            valor: plan.valorMensal,
-                            formaPagamento: 'Pix',
-                            status: data.status === 'Trial' ? 'Pendente' : 'Ativa',
-                            dataInicio: new Date(),
-                            dataRenovacao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                        }
-                    });
-                }
+            if (plan) {
+                await prisma_1.prisma.saaSSubscription.create({
+                    data: {
+                        id: tenant.id,
+                        tenantId: tenant.id,
+                        planoId: plan.id,
+                        valor: plan.valorMensal,
+                        formaPagamento: 'Pix',
+                        status: data.status === 'Trial' ? 'Pendente' : 'Ativa',
+                        dataInicio: new Date(),
+                        dataRenovacao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                    }
+                });
             }
             // 4. Criar Administrador operacional da empresa
             const hashedPassword = await bcrypt_1.default.hash(data.adminPassword, 10);
@@ -425,6 +432,13 @@ exports.SaaSPortalController = {
             });
             // Sincronizar com a empresa operacional
             if (tenant.companyId) {
+                let companyType = 'OFICINA';
+                if (data.planoId) {
+                    const plan = await prisma_1.prisma.saaSPlan.findUnique({ where: { id: data.planoId } });
+                    if (plan && plan.tipoPlano) {
+                        companyType = plan.tipoPlano;
+                    }
+                }
                 await prisma_1.prisma.company.update({
                     where: { id: tenant.companyId },
                     data: {
@@ -436,7 +450,8 @@ exports.SaaSPortalController = {
                         email: data.email,
                         statusAssinatura: data.status,
                         dataVencimento: vencimento,
-                        planoId: data.planoId
+                        planoId: data.planoId,
+                        type: companyType
                     }
                 });
             }

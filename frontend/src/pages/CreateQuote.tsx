@@ -452,31 +452,31 @@ ${bankingText}`;
   };
 
   const watchStatus = watch('status');
-  const watchCompanyId = watch('companyId');
+
   const watchOficinaId = watch('oficinaId');
 
-  // Automatically find and set corresponding workshop when company (Emitente) is selected
+  // Automatically set companyId when an Oficina is selected
   useEffect(() => {
-    if (watchCompanyId && workshops.length > 0 && companies.length > 0) {
-      const selectedCompany = companies.find(c => c.id === watchCompanyId);
-      if (selectedCompany) {
-        const companyCnpjClean = (selectedCompany.cnpj || '').replace(/\D/g, '');
-        let matchingWorkshop = workshops.find(w => (w.cnpj || '').replace(/\D/g, '') === companyCnpjClean);
-        
-        if (!matchingWorkshop) {
-          const companyName = (selectedCompany.nomeFantasia || selectedCompany.razaoSocial || '').toLowerCase();
-          matchingWorkshop = workshops.find(w => 
-            (w.nome || '').toLowerCase().includes(companyName) || 
-            companyName.includes((w.nome || '').toLowerCase())
-          );
-        }
-
-        if (matchingWorkshop) {
-          setValue('oficinaId', matchingWorkshop.id);
+    if (watchOficinaId && workshops.length > 0) {
+      const selectedOficina = workshops.find(w => w.id === watchOficinaId);
+      if (selectedOficina && selectedOficina.companyId) {
+        setValue('companyId', selectedOficina.companyId);
+      } else {
+        // Fallback to the token's companyId
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.companyId) {
+              setValue('companyId', payload.companyId);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse token for companyId", e);
         }
       }
     }
-  }, [watchCompanyId, workshops, companies, setValue]);
+  }, [watchOficinaId, workshops, setValue]);
 
   // Generate description when status is changed to 'Aguardando Pagamento' or 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
@@ -720,17 +720,19 @@ ${bankingText}`;
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Selecione a Empresa</label>
+              <label className="text-sm font-medium">Selecione a Oficina Emitente</label>
               <select 
-                {...register('companyId')}
+                {...register('oficinaId')}
                 disabled={isViewing || isCloned}
                 className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-75 disabled:cursor-not-allowed"
               >
                 <option value="">Selecione...</option>
-                {companies.map(c => (
-                  <option key={c.id} value={c.id}>{c.razaoSocial} ({c.cnpj})</option>
+                {workshops.map(w => (
+                  <option key={w.id} value={w.id}>{w.nome} ({w.cnpj})</option>
                 ))}
               </select>
+              {/* Hidden companyId field to satisfy schema */}
+              <input type="hidden" {...register('companyId')} />
             </div>
           </div>
         </div>
