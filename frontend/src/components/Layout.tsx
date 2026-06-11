@@ -212,7 +212,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', '', undefined].includes(user?.company?.type) && (
+          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -687,7 +687,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', '', undefined].includes(user?.company?.type) && (
+          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
