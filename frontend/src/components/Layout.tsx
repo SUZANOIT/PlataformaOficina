@@ -32,6 +32,7 @@ export function Layout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOficinaOpen, setIsOficinaOpen] = useState(true);
+  const [isGuinchoOpen, setIsGuinchoOpen] = useState(true);
   const [isFinancialOpen, setIsFinancialOpen] = useState(true);
   const [isContabilidadeOpen, setIsContabilidadeOpen] = useState(true);
   const [isFleetOpen, setIsFleetOpen] = useState(true);
@@ -102,6 +103,10 @@ export function Layout() {
     && !user?.roleRh
     && !user?.roleColaborador;
 
+  const isMcaAdmin = user?.companyId === 'mca-padrao-company-uuid-000000000001';
+  const showGuincho = isMcaAdmin || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '');
+  const showOficina = isMcaAdmin || ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '');
+
   useEffect(() => {
     if (isContabilidadeOnly && location.pathname !== '/accounting/xml-export') {
       navigate('/accounting/xml-export', { replace: true });
@@ -142,21 +147,21 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
-          {/* Categoria: Guincho (GUINCHO_PROVIDER ou AMBOS) */}
-          {['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '') && (
+          {/* Categoria: Guincho */}
+          {showGuincho && (
             <div>
               <button 
-                onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+                onClick={() => setIsGuinchoOpen(!isGuinchoOpen)}
                 className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Truck size={20} className="text-primary" />
                   <span className="font-semibold text-foreground text-sm">Gestão de Guincho</span>
                 </div>
-                <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isGuinchoOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               
-              {isOficinaOpen && (
+              {isGuinchoOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
                   <Link 
                     to="/towing/dashboard" 
@@ -212,7 +217,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') && (
+          {!isContabilidadeOnly && showOficina && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
@@ -623,21 +628,21 @@ export function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
-          {/* Categoria: Guincho (GUINCHO_PROVIDER ou AMBOS) */}
-          {['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '') && (
+          {/* Categoria: Guincho */}
+          {showGuincho && (
             <div>
               <button 
-                onClick={() => setIsOficinaOpen(!isOficinaOpen)}
+                onClick={() => setIsGuinchoOpen(!isGuinchoOpen)}
                 className="flex items-center justify-between px-3 py-2 w-full text-left rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Truck size={20} className="text-primary" />
                   <span className="font-semibold text-foreground text-sm">Gestão de Guincho</span>
                 </div>
-                <span className="text-[10px] transition-transform duration-200" style={{ transform: isOficinaOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                <span className="text-[10px] transition-transform duration-200" style={{ transform: isGuinchoOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               
-              {isOficinaOpen && (
+              {isGuinchoOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
                   <Link 
                     to="/towing/dashboard" 
@@ -687,7 +692,7 @@ export function Layout() {
           )}
 
           {/* Categoria 1: Gestão da Oficina */}
-          {!isContabilidadeOnly && ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') && (
+          {!isContabilidadeOnly && showOficina && (
           <div>
             <button 
               onClick={() => setIsOficinaOpen(!isOficinaOpen)}
