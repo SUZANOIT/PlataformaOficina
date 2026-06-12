@@ -32,14 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: 'session-expired-toast', // Avoids duplicate toast notifications
         duration: 5000,
       });
-      // Safe redirect avoiding loops
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/session-expired')) {
-        window.location.href = `/session-expired?from=${encodeURIComponent(window.location.pathname)}`;
-      }
-    } else {
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
+    }
+
+    if (!window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
     }
   }, []);
 
