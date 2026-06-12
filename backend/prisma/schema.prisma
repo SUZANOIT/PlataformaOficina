@@ -1417,6 +1417,8 @@ model TowingVehicle {
   modelo      String
   tipo        String
   capacidade  String?
+  eixos       Int?
+  consumoMedio Float?
   status      String   @default("ATIVO") // ATIVO, INATIVO, MANUTENCAO
   
   // ANTT/RNTRC
@@ -1513,6 +1515,8 @@ model TowingQuote {
   horasParadas      Int   @default(0)
   valorHoraParada   Float @default(0)
   pedagios          Float @default(0)
+  qtdPedagios       Int   @default(0)
+  pedagiosDetalhes  Json?
   despesasExtras    Float @default(0)
   descontos         Float @default(0)
   acrescimos        Float @default(0)

@@ -15,6 +15,8 @@ const vehicleSchema = zod_1.z.object({
     modelo: zod_1.z.string(),
     tipo: zod_1.z.string(),
     capacidade: zod_1.z.string().optional(),
+    eixos: zod_1.z.coerce.number().optional(),
+    consumoMedio: zod_1.z.coerce.number().optional(),
     status: zod_1.z.string().default('ATIVO'),
     rntrcNumero: zod_1.z.string().optional(),
     rntrcStatus: zod_1.z.string().optional(),

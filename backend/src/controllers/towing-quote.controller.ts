@@ -41,6 +41,8 @@ const createTowingQuoteSchema = z.object({
   horasParadas: z.number().optional().default(0),
   valorHoraParada: z.number().optional().default(0),
   pedagios: z.number().optional().default(0),
+  qtdPedagios: z.number().optional().default(0),
+  pedagiosDetalhes: z.any().optional(),
   despesasExtras: z.number().optional().default(0),
   descontos: z.number().optional().default(0),
   acrescimos: z.number().optional().default(0),

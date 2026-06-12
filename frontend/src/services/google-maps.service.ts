@@ -1,35 +1,59 @@
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 export const googleMapsService = {
-  getDistanceMatrix: async (origin: string, destination: string) => {
+  computeRouteWithTolls: async (origin: string, destination: string) => {
     if (!GOOGLE_MAPS_API_KEY) {
-      // Mocked calculation if no API Key
-      console.warn("Using mocked distance calculation because no Google API Key is provided.");
-      return {
-        distanceKm: Math.floor(Math.random() * 100) + 10,
-        durationMin: Math.floor(Math.random() * 120) + 20
-      };
+      throw new Error("Google Maps API Key não configurada.");
     }
 
+    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    const body = {
+      origin: { address: origin },
+      destination: { address: destination },
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_AWARE",
+      computeAlternativeRoutes: false,
+      extraComputations: ["TOLLS"],
+      languageCode: "pt-BR",
+      units: "METRIC"
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+      'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration,routes.travelAdvisory,routes.polyline.encodedPolyline'
+    };
+
     try {
-      // Since Distance Matrix API block CORS directly from frontend, typically it is proxied via backend.
-      // But for this project scope, if there is a way or using a CORS proxy.
-      // Assuming we have a proxy or we use the Google Maps JS SDK.
-      // Since it's a direct API call:
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
       const data = await response.json();
-      
-      if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
-        const element = data.rows[0].elements[0];
-        return {
-          distanceKm: element.distance.value / 1000,
-          durationMin: Math.ceil(element.duration.value / 60)
-        };
+
+      if (!response.ok || !data.routes || data.routes.length === 0) {
+        throw new Error(data.error?.message || "Rota não encontrada");
       }
-      throw new Error("Unable to calculate distance");
+
+      const route = data.routes[0];
+      const distanceKm = route.distanceMeters ? route.distanceMeters / 1000 : 0;
+      const durationMin = route.duration ? Math.ceil(parseInt(route.duration) / 60) : 0;
+      
+      let tollCost = 0;
+      if (route.travelAdvisory?.tollInfo?.estimatedPrice?.length > 0) {
+        const toll = route.travelAdvisory.tollInfo.estimatedPrice.find((p: any) => p.currencyCode === 'BRL') || route.travelAdvisory.tollInfo.estimatedPrice[0];
+        tollCost = parseFloat(toll.units || '0') + (toll.nanos ? toll.nanos / 1e9 : 0);
+      }
+
+      return {
+        distanceKm,
+        durationMin,
+        tollCost, // Custo estimado total (geralmente carro de passeio)
+        encodedPolyline: route.polyline?.encodedPolyline || ''
+      };
     } catch (error) {
-      console.error(error);
+      console.error('Google Routes API Error:', error);
       throw error;
     }
   },

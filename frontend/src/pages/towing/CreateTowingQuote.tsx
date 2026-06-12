@@ -58,6 +58,7 @@ export function CreateTowingQuote() {
   const [clients, setClients] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [routeMap, setRouteMap] = useState<{ origin: string; destination: string } | null>(null);
 
   useEffect(() => {
     towingService.listRates().then(setRates).catch(console.error);
@@ -101,16 +102,43 @@ export function CreateTowingQuote() {
   };
 
   const calculateRoute = async () => {
+    if (!formData.tipoGuincho) {
+      toast.error('Selecione um caminhão (pela placa) antes de calcular a rota.');
+      return;
+    }
+    const selectedVehicle = vehicles.find((v: any) => v.placa === formData.tipoGuincho);
+    if (!selectedVehicle) {
+      toast.error('Caminhão não encontrado na frota. Selecione um veículo válido.');
+      return;
+    }
+
     const origin = `${formData.origemEndereco}, ${formData.origemNumero}, ${formData.origemCidade} - ${formData.origemEstado}`;
     const destination = `${formData.destinoEndereco}, ${formData.destinoNumero}, ${formData.destinoCidade} - ${formData.destinoEstado}`;
 
+    if (!formData.origemEndereco || !formData.origemCidade || !formData.destinoEndereco || !formData.destinoCidade) {
+      toast.error('Preencha os dados de origem e destino corretamente.');
+      return;
+    }
+
     setIsCalculating(true);
     try {
-      const { distanceKm, durationMin } = await googleMapsService.getDistanceMatrix(origin, destination);
-      setFormData((prev: any) => ({ ...prev, distanciaKm: distanceKm, tempoEstimadoMin: durationMin }));
-      toast.success(`Rota calculada: ${distanceKm.toFixed(2)} km (${durationMin} min)`);
-    } catch (error) {
-      toast.error('Erro ao calcular rota');
+      const { distanceKm, durationMin, tollCost } = await googleMapsService.computeRouteWithTolls(origin, destination);
+      
+      const eixos = selectedVehicle.eixos || 2;
+      const baseTollPerAxle = tollCost / 2; // O Google estima o pedágio para um veículo padrão de 2 eixos
+      const finalToll = baseTollPerAxle * eixos;
+
+      setFormData((prev: any) => ({ 
+        ...prev, 
+        distanciaKm: distanceKm, 
+        tempoEstimadoMin: durationMin,
+        pedagios: finalToll,
+        qtdPedagios: tollCost > 0 ? 1 : 0
+      }));
+      setRouteMap({ origin, destination });
+      toast.success(`Rota calculada: ${distanceKm.toFixed(2)} km (${durationMin} min). Pedágios: R$ ${finalToll.toFixed(2)}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao calcular rota.');
     } finally {
       setIsCalculating(false);
     }
@@ -338,6 +366,58 @@ export function CreateTowingQuote() {
           </div>
         </div>
       </div>
+
+      {/* Rota e Mapa */}
+      {routeMap && (
+        <div className="bg-card border p-4 rounded shadow-sm">
+          <h2 className="font-semibold flex items-center gap-2 mb-4"><MapPin size={16} /> Mapa da Rota e Resumo</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="h-64 lg:h-full bg-muted rounded overflow-hidden min-h-[300px]">
+              <iframe
+                title="Google Maps Route"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(routeMap.origin)}&destination=${encodeURIComponent(routeMap.destination)}&mode=driving`}
+              ></iframe>
+            </div>
+            <div className="flex flex-col justify-center space-y-3 bg-secondary/20 p-4 rounded border">
+              <h3 className="font-bold border-b pb-2">Resumo da Rota</h3>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Origem:</span>
+                <strong className="text-right ml-4">{routeMap.origin}</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Destino:</span>
+                <strong className="text-right ml-4">{routeMap.destination}</strong>
+              </div>
+              <div className="flex justify-between text-sm mt-2">
+                <span className="text-muted-foreground">Distância Total:</span>
+                <strong>{Number(formData.distanciaKm || 0).toFixed(2)} km</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tempo Estimado:</span>
+                <strong>{formData.tempoEstimadoMin} min</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Valor dos Pedágios:</span>
+                <strong>R$ {Number(formData.pedagios || 0).toFixed(2)}</strong>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Caminhão Utilizado:</span>
+                <strong>{formData.tipoGuincho}</strong>
+              </div>
+              <div className="flex justify-between text-sm border-t pt-2 mt-2">
+                <span className="font-bold text-muted-foreground">Valor Total da Viagem:</span>
+                <strong className="text-green-600 text-lg">R$ {Number(formData.valorTotal || 0).toFixed(2)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
