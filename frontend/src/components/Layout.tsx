@@ -104,7 +104,7 @@ export function Layout() {
     && !user?.roleColaborador;
 
   const isMcaAdmin = user?.companyId === 'mca-padrao-company-uuid-000000000001';
-  const showGuincho = isMcaAdmin || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || '');
+  const showGuincho = !isOrcamentistaOnly && (isMcaAdmin || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || ''));
   const showOficina = isMcaAdmin || ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '');
 
   useEffect(() => {
@@ -242,14 +242,7 @@ export function Layout() {
                     <span>Painel Geral</span>
                   </Link>
                 )}
-                <Link 
-                  to="/quotes/new" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <FileText size={16} className="text-muted-foreground" />
-                  <span>Novo Orç. da Oficina</span>
-                </Link>
+
                 <Link 
                   to="/quotes" 
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -716,13 +709,7 @@ export function Layout() {
                     <span>Painel Geral</span>
                   </Link>
                 )}
-                <Link 
-                  to="/quotes/new" 
-                  className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                >
-                  <FileText size={16} className="text-muted-foreground" />
-                  <span>Novo Orç. da Oficina</span>
-                </Link>
+
                 <Link 
                   to="/quotes" 
                   className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
