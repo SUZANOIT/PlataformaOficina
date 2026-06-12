@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Search, Download, FileText, FileDown, FileUp, Loader2, CheckCircle2, Clock, History, Ban, User, Info, DollarSign } from 'lucide-react';
+import { api } from '../services/api';
 
 interface HistoryEvent {
   id: string;
@@ -61,14 +62,8 @@ export const QuoteHistoryModal: React.FC<QuoteHistoryModalProps> = ({ isOpen, on
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/quotes/${quoteId}/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data);
-      }
+      const res = await api.get(`/quotes/${quoteId}/history`);
+      setHistory(res.data);
     } catch (err) {
       console.error('Failed to fetch history', err);
     } finally {

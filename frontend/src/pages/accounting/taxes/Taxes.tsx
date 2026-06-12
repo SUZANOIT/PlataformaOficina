@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, X, Search, Percent, Building2, Map, Landmark } from
 import { toast } from 'sonner';
 import { handleApiError } from '../../../utils/toast.helper';
 import { ModalFooterActions } from '../../../components/ui/ModalFooterActions';
+import { api } from '../../../services/api';
 
 export function Taxes() {
   const [taxes, setTaxes] = useState<any[]>([]);
@@ -46,16 +47,11 @@ export function Taxes() {
   const [aliquotaIpi, setAliquotaIpi] = useState<number>(0);
   const [naturezaReceita, setNaturezaReceita] = useState('');
 
-  const token = localStorage.getItem('token');
 
   const fetchTaxes = async () => {
     try {
-      const response = await fetch('/fiscal/tributacao', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        setTaxes(await response.json());
-      }
+      const response = await api.get('/fiscal/tributacao');
+      setTaxes(response.data);
     } catch (error) {
       console.error('Failed to fetch taxes', error);
       toast.error('Erro ao carregar regras de tributação.');
@@ -167,24 +163,13 @@ export function Taxes() {
 
     try {
       const url = selectedTax ? `/fiscal/tributacao/${selectedTax.id}` : '/fiscal/tributacao';
-      const method = selectedTax ? 'PUT' : 'POST';
+      const method = selectedTax ? 'put' : 'post';
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      await api[method](url, payload);
 
-      if (response.ok) {
-        toast.success(selectedTax ? 'Tributação atualizada!' : 'Tributação cadastrada!');
-        handleCloseModal();
-        fetchTaxes();
-      } else {
-        handleApiError(response, 'Erro ao salvar regra.');
-      }
+      toast.success(selectedTax ? 'Tributação atualizada!' : 'Tributação criada com sucesso!');
+      handleCloseModal();
+      fetchTaxes();
     } catch (error) {
       console.error('Failed to save tax', error);
       handleApiError(error, 'Erro de conexão.');
@@ -199,17 +184,9 @@ export function Taxes() {
     }
 
     try {
-      const response = await fetch(`/fiscal/tributacao/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        toast.success('Regra excluída com sucesso!');
-        fetchTaxes();
-      } else {
-        handleApiError(response, 'Não foi possível excluir. O registro pode estar vinculado a produtos.');
-      }
+      await api.delete(`/fiscal/tributacao/${id}`);
+      toast.success('Tributação excluída com sucesso!');
+      fetchTaxes();
     } catch (error) {
       console.error('Failed to delete tax', error);
       toast.error('Erro de conexão ao excluir.');

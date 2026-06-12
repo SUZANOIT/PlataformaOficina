@@ -11,6 +11,7 @@ import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 import { calculateTaxes } from '../utils/taxCalculator';
+import { api } from '../services/api';
 
 type QuoteFormValues = {
   companyId: string;
@@ -138,28 +139,16 @@ export function CreateQuote() {
     };
     const fetchWorkshopsList = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/fleet/workshops', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setWorkshops(data || []);
-        }
+        const res = await api.get('/fleet/workshops');
+        setWorkshops(res.data || []);
       } catch (error) {
         console.error("Failed to load workshops", error);
       }
     };
     const fetchTaxes = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/fiscal/tributacao', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setActiveTaxes(data.filter((t: any) => t.status === 'ATIVO') || []);
-        }
+        const res = await api.get('/fiscal/tributacao');
+        setActiveTaxes(res.data.filter((t: any) => t.status === 'ATIVO') || []);
       } catch (error) {
         console.error("Failed to load taxes", error);
       }
@@ -214,13 +203,9 @@ export function CreateQuote() {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/companies?scope=orcamento', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
+        const response = await api.get('/companies?scope=orcamento');
+        const data = response.data;
+        setCompanies(data);
           if (cloneId && !isEditing && !isViewing) {
             const curio = data.find((c: any) => {
               const name = (c.razaoSocial || c.nomeFantasia || '').toLowerCase();
@@ -230,7 +215,6 @@ export function CreateQuote() {
               setValue('companyId', curio.id);
             }
           }
-        }
       } catch (error) {
         console.error("Failed to load companies", error);
       }
@@ -956,15 +940,9 @@ ${bankingText}`;
                   
                   if (val.trim().length >= 3) {
                     try {
-                      const token = localStorage.getItem('token');
-                      const response = await fetch(`/registry/clients?search=${encodeURIComponent(val)}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-                      if (response.ok) {
-                        const data = await response.json();
-                        setSuggestedClients(data);
-                        setShowClientsDropdown(true);
-                      }
+                      const response = await api.get(`/registry/clients?search=${encodeURIComponent(val)}`);
+                      setSuggestedClients(response.data);
+                      setShowClientsDropdown(true);
                     } catch (error) {
                       console.error('Error searching clients:', error);
                     }
@@ -1434,6 +1412,15 @@ ${bankingText}`;
                 <p>Subtotal Peças: <strong className="text-foreground">{formatCurrency(subtotalPecas)}</strong></p>
                 <p>Subtotal Mão de Obra: <strong className="text-foreground">{formatCurrency(subtotalMaoDeObra)}</strong></p>
               </div>
+              {taxSummary.total > 0 && (
+                <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 text-xs text-muted-foreground mb-3 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                  <span>Tributos Aproximados:</span>
+                  <span title="Federal">Fed: {formatCurrency(taxSummary.federal)}</span>
+                  <span title="Estadual">Est: {formatCurrency(taxSummary.estadual)}</span>
+                  <span title="Municipal">Mun: {formatCurrency(taxSummary.municipal)}</span>
+                  <span className="font-semibold text-foreground">Total: {formatCurrency(taxSummary.total)} ({taxSummary.percentual.toFixed(2)}%)</span>
+                </div>
+              )}
               <p className="text-muted-foreground text-sm font-medium">Total Geral</p>
               <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
             </div>
