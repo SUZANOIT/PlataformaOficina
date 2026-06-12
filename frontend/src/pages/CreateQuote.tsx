@@ -1413,12 +1413,12 @@ ${bankingText}`;
                 <p>Subtotal Mão de Obra: <strong className="text-foreground">{formatCurrency(subtotalMaoDeObra)}</strong></p>
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 text-xs text-muted-foreground mb-3 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 text-xs text-white mb-3 bg-slate-800 dark:bg-slate-900 p-2 rounded-lg border border-slate-700">
                 <span>Tributos Aproximados:</span>
                 <span title="Federal">Fed: {formatCurrency(taxSummary.federal)}</span>
                 <span title="Estadual">Est: {formatCurrency(taxSummary.estadual)}</span>
                 <span title="Municipal">Mun: {formatCurrency(taxSummary.municipal)}</span>
-                <span className="font-semibold text-foreground">Total: {formatCurrency(taxSummary.total)} ({taxSummary.percentual.toFixed(2)}%)</span>
+                <span className="font-semibold text-white">Total: {formatCurrency(taxSummary.total)} ({taxSummary.percentual.toFixed(2)}%)</span>
               </div>
               
               <p className="text-muted-foreground text-sm font-medium">Total Geral</p>
