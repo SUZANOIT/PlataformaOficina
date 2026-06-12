@@ -380,7 +380,7 @@ export function CreateTowingQuote() {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                src={`https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(routeMap.origin)}&destination=${encodeURIComponent(routeMap.destination)}&mode=driving`}
+                src={`https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyB3IJ6vI1b4ACGNZTJ7wG_1A-au_Mw2KBg'}&origin=${encodeURIComponent(routeMap.origin)}&destination=${encodeURIComponent(routeMap.destination)}&mode=driving`}
               ></iframe>
             </div>
             <div className="flex flex-col justify-center space-y-3 bg-secondary/20 p-4 rounded border">
