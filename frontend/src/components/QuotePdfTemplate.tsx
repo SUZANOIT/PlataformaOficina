@@ -490,7 +490,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               </div>
             )}
             
-            {data.taxSummary && data.taxSummary.total > 0 && (
+            {data.taxSummary && (
               <div className="text-[10px] text-slate-600 mt-5 p-3 bg-indigo-50/10 border border-indigo-100 rounded-lg shadow-xs">
                 <span className="font-bold text-indigo-950 block mb-1 uppercase tracking-wide">Resumo Tributário Aproximado (Lei 12.741/12)</span>
                 <div className="grid grid-cols-3 gap-2 mt-2">
@@ -950,7 +950,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             </div>
           )}
           
-          {data.taxSummary && data.taxSummary.total > 0 && (
+          {data.taxSummary && (
             <div className="text-[10px] text-slate-500 mt-5 p-3 border border-slate-200 rounded-lg shadow-sm">
               <span className="font-bold text-slate-700 block mb-1 uppercase tracking-wide">Resumo Tributário Aproximado (Lei 12.741/12)</span>
               <div className="grid grid-cols-3 gap-2 mt-2">
