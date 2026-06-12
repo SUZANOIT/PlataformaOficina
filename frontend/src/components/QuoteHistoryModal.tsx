@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Search, Filter, Download, FileText, FileDown, FileUp, Loader2, CheckCircle2, Clock, History, Ban, User, Info, DollarSign } from 'lucide-react';
+import { X, Search, Download, FileText, FileDown, FileUp, Loader2, CheckCircle2, Clock, History, Ban, User, Info, DollarSign } from 'lucide-react';
 
 interface HistoryEvent {
   id: string;
@@ -15,7 +15,7 @@ interface QuoteHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   quoteId: string;
-  numeroOrcamento?: number;
+  numeroOrcamento?: number | null;
 }
 
 const actionColors: Record<string, string> = {
@@ -246,7 +246,7 @@ export const QuoteHistoryModal: React.FC<QuoteHistoryModalProps> = ({ isOpen, on
             </div>
           ) : (
             <div className="relative pl-4 sm:pl-6 border-l-2 border-indigo-100/60 space-y-8 pb-8">
-              {filteredHistory.map((event, index) => (
+              {filteredHistory.map((event) => (
                 <div key={event.id} className="relative">
                   <div className={`absolute -left-[21px] sm:-left-[29px] top-1 w-10 h-10 rounded-full flex items-center justify-center ring-4 ring-slate-50 ${actionColors[event.action] || 'bg-slate-100 text-slate-500 border-slate-200'} border`}>
                     {actionIcons[event.action] || <Info className="w-4 h-4" />}
