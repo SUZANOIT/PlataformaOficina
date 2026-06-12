@@ -5,6 +5,7 @@ const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const audit_logger_1 = require("../utils/audit.logger");
+const quoteHistory_helper_1 = require("../utils/quoteHistory.helper");
 const createQuoteSchema = zod_1.z.object({
     companyId: zod_1.z.string(),
     client: zod_1.z.object({
@@ -453,6 +454,21 @@ exports.QuoteController = {
                     audit_logger_1.AuditLogger.log(userId, companyId, 'ADD_PART', `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`, 'SUCCESS');
                 });
             }
+            try {
+                const userId = req.userId || undefined;
+                const userName = req.userName || 'Sistema';
+                await prisma_1.prisma.quoteHistory.create({
+                    data: quoteHistory_helper_1.QuoteHistoryHelper.createEvent({
+                        quoteId: quote.id,
+                        companyId: finalCompanyId,
+                        userId,
+                        userName
+                    }, 'CRIADO', 'ORÇAMENTO CRIADO')
+                });
+            }
+            catch (err) {
+                console.error('Failed to log quote history on create:', err);
+            }
             return res.status(201).json(quote);
         }
         catch (error) {
@@ -483,7 +499,11 @@ exports.QuoteController = {
                     client: true,
                     company: true,
                     plataformaGestao: true,
-                    oficina: true
+                    oficina: true,
+                    history: {
+                        orderBy: { createdAt: 'desc' },
+                        take: 1
+                    }
                 }
             });
             if (!quote) {
@@ -512,7 +532,7 @@ exports.QuoteController = {
             }
             const existingQuote = await prisma_1.prisma.quote.findUnique({
                 where: { id },
-                include: { client: true }
+                include: { client: true, items: true }
             });
             if (!existingQuote) {
                 return res.status(404).json({ error: 'Quote not found' });
@@ -639,6 +659,19 @@ exports.QuoteController = {
                         oficina: true
                     }
                 });
+                try {
+                    const userId = req.userId || undefined;
+                    const userName = req.userName || 'Sistema';
+                    const historyEvents = quoteHistory_helper_1.QuoteHistoryHelper.generateDiff(existingQuote, { ...data, items: quoteItems }, { quoteId: id, companyId: existingQuote.companyId, userId, userName });
+                    if (historyEvents.length > 0) {
+                        await tx.quoteHistory.createMany({
+                            data: historyEvents
+                        });
+                    }
+                }
+                catch (err) {
+                    console.error('Failed to log quote history on update:', err);
+                }
                 return updatedQuote;
             });
             if (data.companyId && data.companyId !== existingQuote.companyId) {
@@ -722,6 +755,20 @@ exports.QuoteController = {
                 error: 'Internal server error',
                 details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
             });
+        }
+    },
+    async getHistory(req, res) {
+        try {
+            const id = req.params.id;
+            const history = await prisma_1.prisma.quoteHistory.findMany({
+                where: { quoteId: id },
+                orderBy: { createdAt: 'desc' }
+            });
+            return res.json(history);
+        }
+        catch (error) {
+            console.error('Error fetching quote history:', error);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 };

@@ -499,6 +499,7 @@ export const QuoteController = {
             'ADD_PART',
             `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`,
             'SUCCESS'
+          );
         });
       }
 
