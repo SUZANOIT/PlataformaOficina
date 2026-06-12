@@ -490,28 +490,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               </div>
             )}
             
-            {data.taxSummary && (
-              <div className="text-[10px] text-slate-600 mt-5 p-3 bg-indigo-50/10 border border-indigo-100 rounded-lg shadow-xs">
-                <span className="font-bold text-indigo-950 block mb-1 uppercase tracking-wide">Resumo Tributário Aproximado (Lei 12.741/12)</span>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <div>
-                    <span className="block font-semibold">Municipais (ISS):</span>
-                    <span>{formatCurrency(data.taxSummary.municipal)}</span>
-                  </div>
-                  <div>
-                    <span className="block font-semibold">Estaduais (ICMS):</span>
-                    <span>{formatCurrency(data.taxSummary.estadual)}</span>
-                  </div>
-                  <div>
-                    <span className="block font-semibold">Federais (PIS/COFINS/IPI):</span>
-                    <span>{formatCurrency(data.taxSummary.federal)}</span>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-indigo-100 text-indigo-950">
-                  <span className="font-bold">Total Aproximado de Tributos:</span> {formatCurrency(data.taxSummary.total)} ({data.taxSummary.percentual.toFixed(2)}%)
-                </div>
-              </div>
-            )}
+
 
             {data.observacao && (
               <div className="text-xs text-slate-600 mt-6 p-4 bg-indigo-50/20 border-l-4 border-indigo-900 rounded-r-lg shadow-xs whitespace-pre-wrap leading-relaxed">
@@ -950,28 +929,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             </div>
           )}
           
-          {data.taxSummary && (
-            <div className="text-[10px] text-slate-500 mt-5 p-3 border border-slate-200 rounded-lg shadow-sm">
-              <span className="font-bold text-slate-700 block mb-1 uppercase tracking-wide">Resumo Tributário Aproximado (Lei 12.741/12)</span>
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                <div>
-                  <span className="block font-semibold">Municipais (ISS):</span>
-                  <span>{formatCurrency(data.taxSummary.municipal)}</span>
-                </div>
-                <div>
-                  <span className="block font-semibold">Estaduais (ICMS):</span>
-                  <span>{formatCurrency(data.taxSummary.estadual)}</span>
-                </div>
-                <div>
-                  <span className="block font-semibold">Federais (PIS/COFINS/IPI):</span>
-                  <span>{formatCurrency(data.taxSummary.federal)}</span>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-slate-800">
-                <span className="font-bold">Total Aproximado de Tributos:</span> {formatCurrency(data.taxSummary.total)} ({data.taxSummary.percentual.toFixed(2)}%)
-              </div>
-            </div>
-          )}
+
 
           {data.observacao && (
             <div className="text-xs text-slate-600 mt-5 p-4 bg-slate-50/80 border-l-4 border-slate-900 rounded-lg whitespace-pre-wrap shadow-sm leading-relaxed">
