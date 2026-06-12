@@ -269,7 +269,7 @@ export function CreateQuote() {
     veiculoSubfrota: data.veiculoSubfrota || '',
     veiculoHodometro: data.veiculoHodometro || '',
     veiculoTipo: data.veiculoTipo || '',
-    oficinaId: data.oficinaId || '',
+    oficinaId: (!isEditing && cloneId) ? '' : (data.oficinaId || ''),
     plataformaGestaoId: data.plataformaGestaoId || '',
     osExterna: data.osExterna || '',
     notaFiscalDescricao: data.notaFiscalDescricao || '',

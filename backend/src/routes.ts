@@ -115,9 +115,14 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       }
     }
 
-    (req as any).companyId = user.companyId;
+    let effectiveCompanyId = user.companyId;
+    if (user.roleAdmin && req.query.tenantId) {
+      effectiveCompanyId = req.query.tenantId as string;
+    }
+    
+    (req as any).companyId = effectiveCompanyId;
     const { tenantContext } = require('./lib/tenant-context');
-    return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => {
+    return tenantContext.run({ companyId: effectiveCompanyId, userId: decoded.id }, () => {
       return next();
     });
   } catch (error: any) {

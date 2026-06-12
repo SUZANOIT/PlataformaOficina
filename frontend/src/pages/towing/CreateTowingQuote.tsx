@@ -97,6 +97,44 @@ export function CreateTowingQuote() {
           next.clienteEmpresa = client.razaoSocial || client.nomeFantasia || '';
         }
       }
+      // Auto-fill CEP Origem
+      if (field === 'origemCep') {
+        const cep = value.replace(/\D/g, '');
+        if (cep.length === 8) {
+          fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(res => res.json())
+            .then(data => {
+              if (!data.erro) {
+                setFormData((p: any) => ({
+                  ...p,
+                  origemEndereco: data.logradouro,
+                  origemCidade: data.localidade,
+                  origemEstado: data.uf,
+                }));
+              }
+            }).catch(console.error);
+        }
+      }
+
+      // Auto-fill CEP Destino
+      if (field === 'destinoCep') {
+        const cep = value.replace(/\D/g, '');
+        if (cep.length === 8) {
+          fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(res => res.json())
+            .then(data => {
+              if (!data.erro) {
+                setFormData((p: any) => ({
+                  ...p,
+                  destinoEndereco: data.logradouro,
+                  destinoCidade: data.localidade,
+                  destinoEstado: data.uf,
+                }));
+              }
+            }).catch(console.error);
+        }
+      }
+
       return next;
     });
   };
