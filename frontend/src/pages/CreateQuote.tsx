@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, Trash2, FileDown, Search, Loader2 } from 'lucide-react';
@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import { quoteService } from '../services/quoteService';
 import { platformService } from '../services/platformService';
 import { QuotePdfTemplate } from '../components/QuotePdfTemplate';
+import { QuoteHistoryModal } from '../components/QuoteHistoryModal';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
+import { calculateTaxes } from '../utils/taxCalculator';
 
 type QuoteFormValues = {
   companyId: string;
@@ -76,6 +78,7 @@ export function CreateQuote() {
   const [isClonedQuote, setIsClonedQuote] = useState(false);
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [numeroOrcamento, setNumeroOrcamento] = useState<number | null>(null);
+  const [activeTaxes, setActiveTaxes] = useState<any[]>([]);
   const pdfRef = useRef<HTMLDivElement>(null);
   const pendingPdfGeneration = useRef<boolean>(false);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
@@ -83,6 +86,10 @@ export function CreateQuote() {
   const [isMobile, setIsMobile] = useState(false);
   const [suggestedClients, setSuggestedClients] = useState<any[]>([]);
   const [showClientsDropdown, setShowClientsDropdown] = useState(false);
+
+  // History states
+  const [lastHistoryEvent, setLastHistoryEvent] = useState<any>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Platform Integration States
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -143,9 +150,28 @@ export function CreateQuote() {
         console.error("Failed to load workshops", error);
       }
     };
+    const fetchTaxes = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/fiscal/tributacao', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setActiveTaxes(data.filter((t: any) => t.status === 'ATIVO') || []);
+        }
+      } catch (error) {
+        console.error("Failed to load taxes", error);
+      }
+    };
     fetchPlatformsList();
     fetchWorkshopsList();
+    fetchTaxes();
   }, []);
+
+  const taxSummary = useMemo(() => {
+    return calculateTaxes(watch('items'), activeTaxes);
+  }, [watch('items'), activeTaxes]);
 
   const handleSelectClient = (client: any) => {
     setValue('client.nome', client.nome || '');
@@ -315,6 +341,11 @@ export function CreateQuote() {
 
         reset(buildFormDataFromQuote(data));
         isInitialStatusEffect.current = true;
+        
+        if (data.history && data.history.length > 0) {
+          setLastHistoryEvent(data.history[0]);
+        }
+
         if (data.plataformaGestao) {
           setSelectedPlatform(data.plataformaGestao);
           setSearchPlatformTerm(data.plataformaGestao.nomeFantasia);
@@ -666,9 +697,15 @@ ${bankingText}`;
               </span>
             )}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {isViewing ? 'Visualização dos detalhes do orçamento.' : isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
-          </p>
+          {lastHistoryEvent && (isViewing || isEditing) ? (
+            <p className="text-muted-foreground text-sm mt-1">
+              Última alteração: {new Date(lastHistoryEvent.createdAt).toLocaleString('pt-BR')} por <span className="font-medium text-foreground">{lastHistoryEvent.userName}</span>
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-sm mt-1">
+              {isViewing ? 'Visualização dos detalhes do orçamento.' : isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
+            </p>
+          )}
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           {isViewing ? (
@@ -1562,12 +1599,45 @@ ${bankingText}`;
           </div>
         </div>
 
+        {/* Footer Actions */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-border">
+          {(isEditing || isViewing) && id ? (
+            <button
+              type="button"
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="text-sm font-medium text-primary hover:underline flex items-center gap-2"
+            >
+              🔍 Ver Histórico do Orçamento
+            </button>
+          ) : <div />}
+
+          <div className="flex gap-3 w-full sm:w-auto">
+            {!isViewing && (
+              <button 
+                type="button"
+                onClick={handleSubmit(onSubmit)}
+                disabled={isGeneratingPdf}
+                className="flex-1 md:flex-none text-center px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium transition disabled:opacity-50"
+              >
+                {isEditing ? 'Atualizar Orçamento' : 'Salvar Orçamento'}
+              </button>
+            )}
+          </div>
+        </div>
+
       </form>
+      
+      <QuoteHistoryModal 
+        isOpen={isHistoryModalOpen} 
+        onClose={() => setIsHistoryModalOpen(false)} 
+        quoteId={id as string} 
+        numeroOrcamento={numeroOrcamento} 
+      />
       
       <div className="absolute left-[-9999px] top-[-9999px]" aria-hidden="true">
         <QuotePdfTemplate 
           ref={pdfRef} 
-          data={watch()} 
+          data={{ ...watch(), numeroOrcamento, taxSummary }} 
           company={companies.find(c => c.id === watch('companyId'))} 
           workshops={workshops}
         />

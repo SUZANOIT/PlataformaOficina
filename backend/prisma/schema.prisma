@@ -34,6 +34,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   towingQuotes TowingQuote[]
+  quoteHistories QuoteHistory[]
 
   @@index([email])
   @@index([companyId])
@@ -96,6 +97,7 @@ model Company {
   towingDrivers         TowingDriver[]
   towingVehicles        TowingVehicle[]
   towingRates           TowingRate[]
+  quoteHistories        QuoteHistory[]
 
   @@index([cnpj])
   @@index([parentCompanyId])
@@ -198,11 +200,32 @@ model Quote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  history QuoteHistory[] @relation("QuoteHistoryToQuote")
+
   @@index([companyId])
   @@index([clientId])
   @@index([plataformaGestaoId])
   @@index([oficinaId])
   @@index([veiculoId])
+}
+
+model QuoteHistory {
+  id          String   @id @default(uuid())
+  quoteId     String
+  quote       Quote    @relation("QuoteHistoryToQuote", fields: [quoteId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName    String   @db.VarChar(255)
+  action      String   @db.VarChar(100) // ex: CRIADO, STATUS_ALTERADO, PECA_ADICIONADA
+  description String   @db.Text
+  details     String?  @db.Text // JSON contendo De/Para
+  createdAt   DateTime @default(now())
+
+  @@index([quoteId])
+  @@index([companyId])
+  @@index([userId])
 }
 
 model QuoteItem {

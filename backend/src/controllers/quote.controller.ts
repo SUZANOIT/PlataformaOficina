@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma, basePrisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
+import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 
 const createQuoteSchema = z.object({
   companyId: z.string(),
@@ -498,8 +499,22 @@ export const QuoteController = {
             'ADD_PART',
             `Peça adicionada no orçamento #${quote.numeroOrcamento}: Descrição: ${part.descricao}, Código: ${part.codigoPeca}, Tipo: ${part.tipoPeca}, Qtd: ${part.quantidade}, Valor: ${part.valorUnitario}`,
             'SUCCESS'
-          );
         });
+      }
+
+      try {
+        const userId = (req as any).userId || undefined;
+        const userName = (req as any).userName || 'Sistema';
+        await prisma.quoteHistory.create({
+          data: QuoteHistoryHelper.createEvent({
+            quoteId: quote.id,
+            companyId: finalCompanyId,
+            userId,
+            userName
+          }, 'CRIADO', 'ORÇAMENTO CRIADO')
+        });
+      } catch (err) {
+        console.error('Failed to log quote history on create:', err);
       }
 
       return res.status(201).json(quote);
@@ -532,7 +547,11 @@ export const QuoteController = {
           client: true,
           company: true,
           plataformaGestao: true,
-          oficina: true
+          oficina: true,
+          history: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
         }
       });
 
@@ -565,7 +584,7 @@ export const QuoteController = {
 
       const existingQuote = await prisma.quote.findUnique({
         where: { id },
-        include: { client: true }
+        include: { client: true, items: true }
       });
 
       if (!existingQuote) {
@@ -702,6 +721,25 @@ export const QuoteController = {
           }
         });
 
+        try {
+          const userId = (req as any).userId || undefined;
+          const userName = (req as any).userName || 'Sistema';
+          
+          const historyEvents = QuoteHistoryHelper.generateDiff(
+            existingQuote as any, 
+            { ...data, items: quoteItems } as any, 
+            { quoteId: id, companyId: existingQuote.companyId, userId, userName }
+          );
+
+          if (historyEvents.length > 0) {
+            await tx.quoteHistory.createMany({
+              data: historyEvents
+            });
+          }
+        } catch (err) {
+          console.error('Failed to log quote history on update:', err);
+        }
+
         return updatedQuote;
       });
 
@@ -807,6 +845,20 @@ export const QuoteController = {
         error: 'Internal server error',
         details: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.message : undefined,
       });
+    }
+  },
+
+  async getHistory(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const history = await prisma.quoteHistory.findMany({
+        where: { quoteId: id },
+        orderBy: { createdAt: 'desc' }
+      });
+      return res.json(history);
+    } catch (error) {
+      console.error('Error fetching quote history:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 };

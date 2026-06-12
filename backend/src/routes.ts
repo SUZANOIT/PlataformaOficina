@@ -253,6 +253,7 @@ routes.use('/quotes', authMiddleware);
 routes.get('/quotes', QuoteController.list);
 routes.post('/quotes', QuoteController.create);
 routes.get('/quotes/:id', QuoteController.show);
+routes.get('/quotes/:id/history', QuoteController.getHistory);
 routes.put('/quotes/:id', QuoteController.update);
 routes.delete('/quotes/:id', QuoteController.delete);
 routes.post('/quotes/:id/send-email', EmailController.sendQuote);

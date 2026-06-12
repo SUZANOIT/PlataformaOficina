@@ -26,7 +26,7 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
         </div>
         <div className="text-right">
           <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">Orçamento de Guincho</h1>
-          <p className="text-sm font-semibold mt-1">Nº: {quote.numeroFormatado || quote.numeroSequencial || '-'}</p>
+          <p className="text-sm font-semibold mt-1">Nº: {quote.numeroFormatado || (quote.numeroOrcamento ? `ORC-GUI-${new Date(quote.createdAt || Date.now()).getFullYear()}-${quote.numeroOrcamento.toString().padStart(6, '0')}` : '-')}</p>
           <p className="text-xs text-slate-500 mt-1">
             Data: {new Date(quote.createdAt || new Date()).toLocaleDateString('pt-BR')}
           </p>
