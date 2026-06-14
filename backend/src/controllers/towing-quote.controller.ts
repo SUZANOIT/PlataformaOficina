@@ -49,6 +49,7 @@ const createTowingQuoteSchema = z.object({
   despesasExtras: z.coerce.number().optional().default(0),
   descontos: z.coerce.number().optional().default(0),
   acrescimos: z.coerce.number().optional().default(0),
+  impostos: z.coerce.number().optional().default(0),
   valorTotal: z.coerce.number().optional().default(0),
 
   observacoes: z.string().optional(),

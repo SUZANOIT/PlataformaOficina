@@ -1602,6 +1602,7 @@ model TowingQuote {
   despesasExtras    Float @default(0)
   descontos         Float @default(0)
   acrescimos        Float @default(0)
+  impostos          Float @default(0)
   
   valorTotal        Float @default(0)
   
