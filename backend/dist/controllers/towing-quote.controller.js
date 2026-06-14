@@ -30,6 +30,8 @@ const createTowingQuoteSchema = zod_1.z.object({
     veiculoAno: zod_1.z.string().optional(),
     veiculoCor: zod_1.z.string().optional(),
     tipoGuincho: zod_1.z.string().optional(),
+    driverId: zod_1.z.string().optional().nullable(),
+    vehicleId: zod_1.z.string().optional().nullable(),
     taxaSaida: zod_1.z.number().optional().default(0),
     valorKm: zod_1.z.number().optional().default(0),
     horasParadas: zod_1.z.number().optional().default(0),

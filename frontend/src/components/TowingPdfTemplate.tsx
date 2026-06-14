@@ -197,6 +197,12 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
           </div>
         </div>
       </div>
+
+      {/* Rodapé Institucional */}
+      <div className="mt-16 border-t border-slate-200 pt-4 flex justify-between items-center text-[10px] text-slate-450 font-medium font-sans">
+        <span>{company?.nomeFantasia || company?.razaoSocial} — Central de Atendimento: {company?.telefone || '—'}</span>
+        <span>MCA Sistemas Integrados</span>
+      </div>
     </div>
   );
 });

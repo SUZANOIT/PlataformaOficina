@@ -72,7 +72,8 @@ export function TowingQuotesList() {
   };
 
   const filteredQuotes = quotes.filter(q => 
-    q.numeroSequencial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.numeroFormatado?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.numeroSequencial?.toString().includes(searchTerm) ||
     q.clienteNome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     q.veiculoPlaca?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -134,7 +135,7 @@ export function TowingQuotesList() {
                 filteredQuotes.map((quote) => (
                   <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 font-medium text-primary whitespace-nowrap">
-                      {quote.numeroSequencial || '-'}
+                      {quote.numeroFormatado || quote.numeroSequencial || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(quote.createdAt).toLocaleDateString('pt-BR')}

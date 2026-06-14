@@ -169,9 +169,14 @@ routes.post('/towing/drivers', authMiddleware, TowingFleetController.createDrive
 
 routes.get('/towing/vehicles', authMiddleware, TowingFleetController.listVehicles);
 routes.post('/towing/vehicles', authMiddleware, TowingFleetController.createVehicle);
+routes.put('/towing/vehicles/:id', authMiddleware, TowingFleetController.updateVehicle);
+routes.delete('/towing/vehicles/:id', authMiddleware, TowingFleetController.deleteVehicle);
+
+routes.get('/towing/types', authMiddleware, TowingFleetController.listTypes);
 
 routes.get('/towing/rates', authMiddleware, TowingRateController.list);
 routes.post('/towing/rates', authMiddleware, TowingRateController.save);
+routes.get('/towing/rates/:id/history', authMiddleware, TowingRateController.getHistory);
 
 routes.get('/nfe/imports', authMiddleware, NfeController.list);
 routes.post('/auth/forgot-password', AuthController.forgotPassword);

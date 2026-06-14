@@ -34,6 +34,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   towingQuotes TowingQuote[]
+  towingRateHistories TowingRateHistory[]
   quoteHistories QuoteHistory[]
 
   @@index([email])
@@ -97,6 +98,8 @@ model Company {
   towingDrivers         TowingDriver[]
   towingVehicles        TowingVehicle[]
   towingRates           TowingRate[]
+  towingTypes           TowingType[]
+  towingRateHistories   TowingRateHistory[]
   quoteHistories        QuoteHistory[]
 
   @@index([cnpj])
@@ -1437,12 +1440,17 @@ model TowingVehicle {
   company     Company  @relation(fields: [companyId], references: [id])
   
   placa       String   @unique
+  marca       String?
   modelo      String
+  ano         Int?
   tipo        String
   capacidade  String?
   eixos       Int?
   consumoMedio Float?
   status      String   @default("ATIVO") // ATIVO, INATIVO, MANUTENCAO
+  
+  towingTypeId String?
+  towingType   TowingType? @relation(fields: [towingTypeId], references: [id], onDelete: SetNull)
   
   // ANTT/RNTRC
   rntrcNumero String?
@@ -1462,16 +1470,67 @@ model TowingRate {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   
-  tipoGuincho    String   @unique // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
+  tipoGuincho    String   // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
   taxaSaida      Float    @default(0)
   valorKm        Float    @default(0)
   valorHoraParada Float    @default(0)
+  status         String   @default("ATIVO") // ATIVO, INATIVO
   
+  towingTypeId   String?
+  towingType     TowingType? @relation(fields: [towingTypeId], references: [id], onDelete: Cascade)
+  
+  history        TowingRateHistory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([companyId, towingTypeId])
   @@index([companyId])
 }
+
+model TowingType {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicles    TowingVehicle[]
+  rates       TowingRate[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model TowingRateHistory {
+  id             String     @id @default(uuid())
+  towingRateId   String
+  towingRate     TowingRate @relation(fields: [towingRateId], references: [id], onDelete: Cascade)
+  
+  companyId      String
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  userId         String?
+  user           User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName       String     @db.VarChar(255)
+  
+  taxaSaidaAnterior      Float
+  taxaSaidaNova          Float
+  valorKmAnterior        Float
+  valorKmNovo            Float
+  valorHoraParadaAnterior Float
+  valorHoraParadaNovo    Float
+  statusAnterior         String?
+  statusNovo             String?
+  
+  createdAt      DateTime   @default(now())
+  
+  @@index([towingRateId])
+  @@index([companyId])
+  @@index([userId])
+}
+
 
 model TowingQuote {
   id              String   @id @default(uuid())

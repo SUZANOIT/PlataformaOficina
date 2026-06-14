@@ -157,8 +157,12 @@ routes.get('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFl
 routes.post('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.createDriver);
 routes.get('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.listVehicles);
 routes.post('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.createVehicle);
+routes.put('/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateVehicle);
+routes.delete('/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteVehicle);
+routes.get('/towing/types', authMiddleware, towing_fleet_controller_1.TowingFleetController.listTypes);
 routes.get('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.list);
 routes.post('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.save);
+routes.get('/towing/rates/:id/history', authMiddleware, towing_rate_controller_1.TowingRateController.getHistory);
 routes.get('/nfe/imports', authMiddleware, nfe_controller_1.NfeController.list);
 routes.post('/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
 routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPassword);

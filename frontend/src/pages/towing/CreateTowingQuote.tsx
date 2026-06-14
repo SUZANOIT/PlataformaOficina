@@ -34,6 +34,8 @@ export function CreateTowingQuote() {
     veiculoModelo: '',
     veiculoCor: '',
     tipoGuincho: '',
+    driverId: null,
+    vehicleId: null,
     taxaSaida: 0,
     valorKm: 0,
     horasParadas: 0,
@@ -57,12 +59,15 @@ export function CreateTowingQuote() {
   const [rates, setRates] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [routeMap, setRouteMap] = useState<{ origin: string; destination: string } | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     towingService.listRates().then(setRates).catch(console.error);
     towingService.listVehicles().then(setVehicles).catch(console.error);
+    towingService.listDrivers().then(setDrivers).catch(console.error);
     api.get('/registry/clients').then(res => setClients(res.data)).catch(console.error);
     if (isEditing) {
       towingService.getQuote(id).then(setFormData).catch(console.error);
@@ -75,16 +80,19 @@ export function CreateTowingQuote() {
       
       // Auto-update rates based on guincho selection (from vehicle type or direct type)
       if (field === 'tipoGuincho') {
-        // Try to match vehicle plate first
         const vehicle = vehicles.find(v => v.placa === value || v.tipo === value);
-        const rateType = vehicle ? vehicle.tipo : value;
-        const rate = rates.find(r => r.tipoGuincho === rateType);
+        const rateType = vehicle ? (vehicle.towingType?.name || vehicle.tipo) : value;
+        const rate = rates.find(r => 
+          (vehicle && (r.towingTypeId === vehicle.towingTypeId || r.tipoGuincho === rateType)) || 
+          r.tipoGuincho.toLowerCase() === value.toLowerCase()
+        );
         
         if (rate) {
           next.taxaSaida = rate.taxaSaida;
           next.valorKm = rate.valorKm;
           next.valorHoraParada = rate.valorHoraParada;
         }
+        next.vehicleId = vehicle ? vehicle.id : null;
       }
 
       // Auto-fill client details
@@ -230,6 +238,17 @@ export function CreateTowingQuote() {
     }
   };
 
+  const filteredVehiclesForDropdown = vehicles.filter(v => {
+    if (!formData.tipoGuincho) return true;
+    const query = formData.tipoGuincho.toLowerCase();
+    return (
+      v.placa?.toLowerCase().includes(query) ||
+      v.modelo?.toLowerCase().includes(query) ||
+      v.marca?.toLowerCase().includes(query) ||
+      (v.towingType?.name || v.tipo || '').toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-4">
       <div className="flex justify-between items-center bg-card p-3 rounded shadow-sm border">
@@ -304,17 +323,83 @@ export function CreateTowingQuote() {
             <div className="grid grid-cols-2 gap-2">
               <input placeholder="Placa do Veículo" value={formData.veiculoPlaca} onChange={e => handleChange('veiculoPlaca', e.target.value)} className="input-field" />
               <input placeholder="Marca/Modelo" value={formData.veiculoModelo} onChange={e => handleChange('veiculoModelo', e.target.value)} className="input-field" />
-              <input 
-                list="guincho-list"
-                placeholder="Selecione o Veículo da Frota ou Digite" 
-                value={formData.tipoGuincho} 
-                onChange={e => handleChange('tipoGuincho', e.target.value)} 
-                className="input-field col-span-2" 
-              />
-              <datalist id="guincho-list">
-                {vehicles.map(v => <option key={v.id} value={v.placa}>{v.tipo} ({v.marca})</option>)}
-                {rates.map(r => <option key={r.id} value={r.tipoGuincho} />)}
-              </datalist>
+              <div className="relative col-span-2">
+                <input 
+                  type="text"
+                  placeholder="Selecione o veículo da frota ou digite" 
+                  value={formData.tipoGuincho} 
+                  onFocus={() => setIsDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                  onChange={e => handleChange('tipoGuincho', e.target.value)} 
+                  className="input-field w-full pr-8" 
+                />
+                {formData.tipoGuincho && (
+                  <button
+                    type="button"
+                    onClick={() => handleChange('tipoGuincho', '')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+                
+                {isDropdownOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-card border border-border rounded-lg shadow-lg divide-y divide-border">
+                    {filteredVehiclesForDropdown.length === 0 ? (
+                      <div className="p-3 text-xs text-muted-foreground text-center">
+                        Nenhum veículo correspondente. Continue digitando para definir um guincho personalizado.
+                      </div>
+                    ) : (
+                      filteredVehiclesForDropdown.map((v) => (
+                        <div
+                          key={v.id}
+                          onMouseDown={() => handleChange('tipoGuincho', v.placa)}
+                          className="p-3 hover:bg-muted/40 cursor-pointer transition-colors text-xs flex justify-between items-center"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-primary bg-primary/5 border border-primary/10 px-1.5 py-0.5 rounded text-[10px]">
+                                {v.placa}
+                              </span>
+                              <span className="font-semibold text-foreground">
+                                {v.marca ? `${v.marca} ` : ''}{v.modelo}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Tipo: <span className="font-medium text-slate-650">{v.towingType?.name || v.tipo || '-'}</span>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            v.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'
+                          }`}>
+                            {v.status === 'ATIVO' ? 'Ativo' : v.status === 'INATIVO' ? 'Inativo' : 'Manutenção'}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {formData.vehicleId && (
+                <div className="col-span-2 mt-1 flex items-center gap-1 text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded w-fit">
+                  <CheckCircle2 size={10} /> Veículo de Guincho Vinculado à Frota
+                </div>
+              )}
+
+              <div className="col-span-2 mt-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Motorista Escalado</label>
+                <select
+                  value={formData.driverId || ''}
+                  onChange={e => handleChange('driverId', e.target.value || null)}
+                  className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm mt-1 text-foreground"
+                >
+                  <option value="">Nenhum motorista selecionado</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>{d.nome} (CNH: {d.categoria})</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
