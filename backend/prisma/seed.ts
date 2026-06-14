@@ -494,6 +494,28 @@ async function main() {
     });
   }
 
+  // 10. Seed Towing Types
+  console.log('🌱 Iniciando seed dos Tipos de Guincho...');
+  const defaultTypes = ["Plataforma leve", "Plataforma pesada", "Lança", "Munck", "Prancha"];
+  for (const comp of companies) {
+    for (const name of defaultTypes) {
+      await prisma.towingType.upsert({
+        where: {
+          companyId_name: {
+            companyId: comp.id,
+            name
+          }
+        },
+        update: {},
+        create: {
+          companyId: comp.id,
+          name
+        }
+      });
+    }
+  }
+  console.log('✅ Tipos de Guincho semeados.');
+
   console.log('✅ SaaS Seed concluído!');
   console.log('');
   console.log('🎉 Seed concluído com sucesso!');
