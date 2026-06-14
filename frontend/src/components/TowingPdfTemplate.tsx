@@ -18,7 +18,19 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
   };
 
   return (
-    <div ref={ref} className="w-[800px] bg-white p-8 font-sans text-slate-800 text-sm hidden-print-container" style={{ margin: '0 auto' }}>
+    <div ref={ref} className="bg-white text-slate-900 p-12 w-[718px] min-h-[1012px] flex flex-col justify-between shadow-lg" style={{ fontFamily: "'Outfit', 'Inter', sans-serif", margin: '0 auto' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        tr {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .avoid-page-break {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+      `}</style>
+      <div>
       {/* Cabeçalho */}
       <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4 mb-6">
         <div className="w-48">
@@ -180,28 +192,32 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
         </div>
       )}
 
-      {/* Assinaturas */}
-      <div className="mt-16 pt-8 flex justify-between gap-8 text-center text-xs">
-        <div className="flex-1">
-          <div className="border-t border-slate-400 mx-8 pt-2">
-            <p className="font-bold uppercase text-slate-800">{getSignatureName()}</p>
-            <p className="text-slate-500">Prestador de Serviço</p>
-          </div>
-        </div>
-        <div className="flex-1">
-          <div className="border-t border-slate-400 mx-8 pt-2">
-            <p className="font-bold uppercase text-slate-800">
-              {quote.clienteNome || quote.clienteEmpresa || 'Assinatura do Cliente'}
-            </p>
-            <p className="text-slate-500">Cliente Autorizado</p>
-          </div>
-        </div>
       </div>
 
-      {/* Rodapé Institucional */}
-      <div className="mt-16 border-t border-slate-200 pt-4 flex justify-between items-center text-[10px] text-slate-450 font-medium font-sans">
-        <span>{company?.nomeFantasia || company?.razaoSocial} — Central de Atendimento: {company?.telefone || '—'}</span>
-        <span>MCA Sistemas Integrados</span>
+      <div>
+        {/* Assinaturas */}
+        <div className="mt-16 pt-8 flex justify-between gap-8 text-center text-xs">
+          <div className="flex-1">
+            <div className="border-t border-slate-400 mx-8 pt-2">
+              <p className="font-bold uppercase text-slate-800">{getSignatureName()}</p>
+              <p className="text-slate-500">Prestador de Serviço</p>
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="border-t border-slate-400 mx-8 pt-2">
+              <p className="font-bold uppercase text-slate-800">
+                {quote.clienteNome || quote.clienteEmpresa || 'Assinatura do Cliente'}
+              </p>
+              <p className="text-slate-500">Cliente Autorizado</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé Institucional */}
+        <div className="mt-16 border-t border-slate-200 pt-4 flex justify-between items-center text-[10px] text-slate-450 font-medium font-sans">
+          <span>{company?.nomeFantasia || company?.razaoSocial} — Central de Atendimento: {company?.telefone || '—'}</span>
+          <span>MCA Sistemas Integrados</span>
+        </div>
       </div>
     </div>
   );

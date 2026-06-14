@@ -229,10 +229,10 @@ export function CreateTowingQuote() {
         await towingService.updateQuote(id, formData);
         toast.success('Orçamento atualizado!');
       } else {
-        const res = await towingService.createQuote(formData);
+        await towingService.createQuote(formData);
         toast.success('Orçamento criado!');
-        navigate(`/towing/quotes/${res.id}`);
       }
+      navigate('/towing/quotes');
     } catch (error) {
       toast.error('Erro ao salvar orçamento');
     }
