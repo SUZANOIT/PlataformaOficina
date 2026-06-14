@@ -156,6 +156,8 @@ routes.delete('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.To
 routes.get('/towing/dashboard', authMiddleware, towing_quote_controller_1.TowingQuoteController.getDashboardStats);
 routes.get('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.listDrivers);
 routes.post('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.createDriver);
+routes.put('/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateDriver);
+routes.delete('/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteDriver);
 routes.get('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.listVehicles);
 routes.post('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.createVehicle);
 routes.put('/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateVehicle);

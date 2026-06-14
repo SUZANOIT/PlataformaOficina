@@ -55,6 +55,52 @@ export const TowingFleetController = {
     }
   },
 
+  async updateDriver(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId;
+      const id = req.params.id as string;
+      const data = driverSchema.parse(req.body);
+
+      const existing = await prisma.towingDriver.findFirst({
+        where: { id, companyId }
+      });
+      if (!existing) {
+        return res.status(404).json({ error: 'Motorista não encontrado' });
+      }
+
+      const driver = await prisma.towingDriver.update({
+        where: { id },
+        data
+      });
+      return res.json(driver);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  },
+
+  async deleteDriver(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId;
+      const id = req.params.id as string;
+
+      const existing = await prisma.towingDriver.findFirst({
+        where: { id, companyId }
+      });
+      if (!existing) {
+        return res.status(404).json({ error: 'Motorista não encontrado' });
+      }
+
+      await prisma.towingDriver.delete({
+        where: { id }
+      });
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  },
+
+
   // --- VEHICLES ---
   async listVehicles(req: Request, res: Response) {
     try {

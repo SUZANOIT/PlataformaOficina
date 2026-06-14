@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Truck, Plus, Search, Edit3, Trash2, FileText } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Trash2, FileText } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
 import { useRef } from 'react';
@@ -162,24 +162,24 @@ export function TowingQuotesList() {
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(quote.valorTotal || 0)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex gap-1.5 justify-end items-center">
                         <button 
                           onClick={() => handlePrint(quote)}
-                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+                          className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                           title="Imprimir PDF"
                         >
                           <FileText size={16} />
                         </button>
                         <button 
                           onClick={() => navigate(`/towing/quotes/edit/${quote.id}`)}
-                          className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                          className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                           title="Editar"
                         >
-                          <Edit3 size={16} />
+                          <Edit size={16} />
                         </button>
                         <button 
                           onClick={() => handleDelete(quote.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                           title="Excluir"
                         >
                           <Trash2 size={16} />

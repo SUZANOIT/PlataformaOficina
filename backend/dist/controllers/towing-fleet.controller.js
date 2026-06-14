@@ -55,6 +55,48 @@ exports.TowingFleetController = {
             return res.status(500).json({ error: 'Internal error' });
         }
     },
+    async updateDriver(req, res) {
+        try {
+            const companyId = req.companyId;
+            const id = req.params.id;
+            const data = driverSchema.parse(req.body);
+            const existing = await prisma_1.prisma.towingDriver.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(404).json({ error: 'Motorista não encontrado' });
+            }
+            const driver = await prisma_1.prisma.towingDriver.update({
+                where: { id },
+                data
+            });
+            return res.json(driver);
+        }
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError)
+                return res.status(400).json({ error: error.errors });
+            return res.status(500).json({ error: 'Internal error' });
+        }
+    },
+    async deleteDriver(req, res) {
+        try {
+            const companyId = req.companyId;
+            const id = req.params.id;
+            const existing = await prisma_1.prisma.towingDriver.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(404).json({ error: 'Motorista não encontrado' });
+            }
+            await prisma_1.prisma.towingDriver.delete({
+                where: { id }
+            });
+            return res.status(204).send();
+        }
+        catch (error) {
+            return res.status(500).json({ error: 'Internal error' });
+        }
+    },
     // --- VEHICLES ---
     async listVehicles(req, res) {
         try {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserCheck, Save } from 'lucide-react';
+import { UserCheck, Save, Edit, Trash2 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
 
@@ -31,22 +31,65 @@ export function TowingDrivers() {
     }
   };
 
+  const handleEdit = (driver: any) => {
+    setFormData({
+      id: driver.id,
+      nome: driver.nome || '',
+      cpf: driver.cpf || '',
+      cnh: driver.cnh || '',
+      categoria: driver.categoria || '',
+      validadeCnh: driver.validadeCnh ? new Date(driver.validadeCnh).toISOString().split('T')[0] : ''
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setFormData({
+      id: '',
+      nome: '',
+      cpf: '',
+      cnh: '',
+      categoria: '',
+      validadeCnh: ''
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        nome: formData.nome,
+        cpf: formData.cpf,
+        cnh: formData.cnh,
+        categoria: formData.categoria,
+        validadeCnh: formData.validadeCnh
+      };
+
       if (formData.id) {
-        toast.info('Edição de motoristas será implementada em breve.');
-        return;
+        await towingService.updateDriver(formData.id, payload);
+        toast.success('Motorista atualizado com sucesso!');
       } else {
-        await towingService.createDriver(formData);
+        await towingService.createDriver(payload);
         toast.success('Motorista cadastrado com sucesso!');
       }
       loadDrivers();
-      setFormData({
-        id: '', nome: '', cpf: '', cnh: '', categoria: '', validadeCnh: ''
-      });
+      handleCancelEdit();
     } catch (error) {
       toast.error('Erro ao salvar motorista');
+    }
+  };
+
+  const handleDelete = async (driver: any) => {
+    if (window.confirm(`Tem certeza que deseja excluir o motorista ${driver.nome}?`)) {
+      try {
+        await towingService.deleteDriver(driver.id);
+        toast.success('Motorista excluído com sucesso!');
+        loadDrivers();
+        if (formData.id === driver.id) {
+          handleCancelEdit();
+        }
+      } catch (error) {
+        toast.error('Erro ao excluir motorista');
+      }
     }
   };
 
@@ -61,7 +104,9 @@ export function TowingDrivers() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 bg-card border rounded-xl p-4 shadow-sm h-fit">
-          <h2 className="font-semibold mb-4 text-lg">Novo Motorista</h2>
+          <h2 className="font-semibold mb-4 text-lg">
+            {formData.id ? 'Editar Motorista' : 'Novo Motorista'}
+          </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-muted-foreground uppercase">Nome Completo *</label>
@@ -115,9 +160,20 @@ export function TowingDrivers() {
                 />
               </div>
             </div>
-            <button type="submit" className="w-full bg-primary text-white py-2 rounded-lg flex items-center justify-center gap-2">
-              <Save size={16} /> Salvar
-            </button>
+            <div className="flex gap-2">
+              {formData.id && (
+                <button 
+                  type="button" 
+                  onClick={handleCancelEdit}
+                  className="w-full bg-muted border border-border text-foreground py-2 rounded-lg hover:bg-muted/80 transition text-sm font-semibold"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button type="submit" className="w-full bg-primary text-white py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold">
+                <Save size={16} /> Salvar
+              </button>
+            </div>
           </form>
         </div>
 
@@ -130,6 +186,7 @@ export function TowingDrivers() {
                 <th className="px-4 py-3 font-medium">CNH</th>
                 <th className="px-4 py-3 font-medium text-center">Categoria</th>
                 <th className="px-4 py-3 font-medium">Validade CNH</th>
+                <th className="px-4 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -144,11 +201,29 @@ export function TowingDrivers() {
                   <td className="px-4 py-3">
                     {new Date(d.validadeCnh).toLocaleDateString('pt-BR')}
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1.5 justify-end">
+                      <button 
+                        onClick={() => handleEdit(d)}
+                        className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
+                        title="Editar"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(d)}
+                        className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {drivers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum motorista cadastrado</td>
+                  <td colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum motorista cadastrado</td>
                 </tr>
               )}
             </tbody>

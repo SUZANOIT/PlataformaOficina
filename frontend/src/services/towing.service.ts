@@ -36,6 +36,14 @@ export const towingService = {
     const response = await api.post('/towing/drivers', data);
     return response.data;
   },
+  updateDriver: async (id: string, data: any) => {
+    const response = await api.put(`/towing/drivers/${id}`, data);
+    return response.data;
+  },
+  deleteDriver: async (id: string) => {
+    const response = await api.delete(`/towing/drivers/${id}`);
+    return response.data;
+  },
 
   listVehicles: async () => {
     const response = await api.get('/towing/vehicles');
