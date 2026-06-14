@@ -98,6 +98,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       const path = req.originalUrl.split('?')[0];
       const isAllowed = path === '/auth/me' ||
                         path.startsWith('/quotes') ||
+                        path.startsWith('/towing') ||
                         path.startsWith('/registry/clients') ||
                         path.startsWith('/registry/platforms') ||
                         path.startsWith('/fleet/vehicles') ||

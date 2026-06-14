@@ -94,6 +94,7 @@ const authMiddleware = async (req, res, next) => {
             const path = req.originalUrl.split('?')[0];
             const isAllowed = path === '/auth/me' ||
                 path.startsWith('/quotes') ||
+                path.startsWith('/towing') ||
                 path.startsWith('/registry/clients') ||
                 path.startsWith('/registry/platforms') ||
                 path.startsWith('/fleet/vehicles') ||
