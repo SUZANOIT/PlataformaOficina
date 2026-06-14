@@ -5,8 +5,8 @@ import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { authStorage } from '../../utils/auth';
-import html2pdf from 'html2pdf.js';
 import { TowingPdfTemplate } from '../../components/TowingPdfTemplate';
+import { useGeneratePdf } from '../../hooks/useGeneratePdf';
 
 export function TowingQuotesList() {
   const navigate = useNavigate();
@@ -18,6 +18,7 @@ export function TowingQuotesList() {
   // PDF state
   const pdfRef = useRef<HTMLDivElement>(null);
   const [printingQuote, setPrintingQuote] = useState<any>(null);
+  const { generatePdf } = useGeneratePdf();
 
   useEffect(() => {
     loadQuotes();
@@ -50,26 +51,25 @@ export function TowingQuotesList() {
   const handlePrint = async (quote: any) => {
     setPrintingQuote(quote);
     // Give react time to render the template
-    setTimeout(() => {
+    setTimeout(async () => {
       const element = pdfRef.current;
       if (!element) {
         setPrintingQuote(null);
         return;
       }
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `Orcamento_Guincho_${quote.numeroFormatado || quote.numeroSequencial || quote.id.substring(0, 8)}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-      };
-
-      html2pdf().set(opt).from(element).save().then(() => {
+      
+      const filename = `Orcamento_Guincho_${quote.numeroFormatado || quote.numeroSequencial || quote.id.substring(0, 8)}.pdf`;
+      
+      try {
+        await generatePdf(element, filename);
+      } catch (error) {
+        console.error(error);
+      } finally {
         setPrintingQuote(null);
-        toast.success('PDF gerado com sucesso!');
-      });
+      }
     }, 500);
   };
+
 
   const filteredQuotes = quotes.filter(q => 
     q.numeroFormatado?.toLowerCase().includes(searchTerm.toLowerCase()) ||

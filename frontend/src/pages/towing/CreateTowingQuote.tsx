@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Truck, MapPin, DollarSign, Save, Calculator, Car, User, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Truck, MapPin, DollarSign, Save, Calculator, Car, User, Scale, AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { googleMapsService } from '../../services/google-maps.service';
 import { anttService } from '../../services/antt.service';
@@ -485,6 +485,16 @@ export function CreateTowingQuote() {
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="bg-card border p-3 rounded shadow-sm text-sm">
+            <h2 className="font-semibold flex items-center gap-2 mb-2"><FileText size={16} /> Descrição / Observações</h2>
+            <textarea 
+              placeholder="Digite aqui observações ou descrição do orçamento..." 
+              value={formData.observacoes || ''} 
+              onChange={e => handleChange('observacoes', e.target.value)} 
+              className="input-field w-full h-24 py-2 px-3 text-xs resize-none"
+            />
           </div>
           </div>
         </div>
