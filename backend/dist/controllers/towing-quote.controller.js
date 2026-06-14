@@ -44,6 +44,7 @@ const createTowingQuoteSchema = zod_1.z.object({
     acrescimos: zod_1.z.coerce.number().optional().default(0),
     valorTotal: zod_1.z.coerce.number().optional().default(0),
     observacoes: zod_1.z.string().optional(),
+    status: zod_1.z.string().optional(),
     // Validação ANTT
     anttTipoCarga: zod_1.z.string().optional(),
     anttEixos: zod_1.z.coerce.number().optional().nullable(),
@@ -138,10 +139,18 @@ exports.TowingQuoteController = {
             const companyId = req.companyId;
             const userId = req.userId;
             const data = createTowingQuoteSchema.parse(req.body);
+            const company = await prisma_1.prisma.company.findUnique({
+                where: { id: companyId }
+            });
+            const isCurio = company && ((company.razaoSocial || '').toLowerCase().includes('curio') ||
+                (company.razaoSocial || '').toLowerCase().includes('curió') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curió'));
             // A sequence format: ORC-GUI-2026-XXXXXX is handled using the DB autoincrement ID
             const quote = await prisma_1.prisma.towingQuote.create({
                 data: {
                     ...data,
+                    status: isCurio ? 'Cobertura' : (data.status || 'Orçamento'),
                     companyId,
                     userId,
                 }
@@ -176,9 +185,19 @@ exports.TowingQuoteController = {
             if (!existingQuote || existingQuote.companyId !== companyId) {
                 return res.status(404).json({ error: 'Quote not found' });
             }
+            const company = await prisma_1.prisma.company.findUnique({
+                where: { id: companyId }
+            });
+            const isCurio = company && ((company.razaoSocial || '').toLowerCase().includes('curio') ||
+                (company.razaoSocial || '').toLowerCase().includes('curió') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curió'));
             const updatedQuote = await prisma_1.prisma.towingQuote.update({
                 where: { id },
-                data
+                data: {
+                    ...data,
+                    status: isCurio ? 'Cobertura' : (data.status || existingQuote.status),
+                }
             });
             audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} atualizado`, 'SUCCESS');
             return res.json(updatedQuote);

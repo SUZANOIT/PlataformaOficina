@@ -52,6 +52,7 @@ const createTowingQuoteSchema = z.object({
   valorTotal: z.coerce.number().optional().default(0),
 
   observacoes: z.string().optional(),
+  status: z.string().optional(),
 
   // Validação ANTT
   anttTipoCarga: z.string().optional(),
@@ -159,10 +160,21 @@ export const TowingQuoteController = {
 
       const data = createTowingQuoteSchema.parse(req.body);
 
+      const company = await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+      const isCurio = company && (
+        (company.razaoSocial || '').toLowerCase().includes('curio') ||
+        (company.razaoSocial || '').toLowerCase().includes('curió') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curió')
+      );
+
       // A sequence format: ORC-GUI-2026-XXXXXX is handled using the DB autoincrement ID
       const quote = await prisma.towingQuote.create({
         data: {
           ...data,
+          status: isCurio ? 'Cobertura' : (data.status || 'Orçamento'),
           companyId,
           userId,
         }
@@ -205,9 +217,22 @@ export const TowingQuoteController = {
         return res.status(404).json({ error: 'Quote not found' });
       }
 
+      const company = await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+      const isCurio = company && (
+        (company.razaoSocial || '').toLowerCase().includes('curio') ||
+        (company.razaoSocial || '').toLowerCase().includes('curió') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curió')
+      );
+
       const updatedQuote = await prisma.towingQuote.update({
         where: { id },
-        data
+        data: {
+          ...data,
+          status: isCurio ? 'Cobertura' : (data.status || existingQuote.status),
+        }
       });
 
       AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} atualizado`, 'SUCCESS');

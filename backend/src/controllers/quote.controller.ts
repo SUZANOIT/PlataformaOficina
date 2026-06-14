@@ -289,6 +289,13 @@ export const QuoteController = {
         include: { plan: true }
       });
 
+      const isCurio = company && (
+        (company.razaoSocial || '').toLowerCase().includes('curio') ||
+        (company.razaoSocial || '').toLowerCase().includes('curió') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curió')
+      );
+
       if (company && company.plan) {
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
@@ -471,7 +478,7 @@ export const QuoteController = {
           clonedFromId: data.clonedFromId,
           subtotal: data.subtotal,
           total: data.total,
-          status: data.status,
+          status: isCurio ? 'Cobertura' : data.status,
           items: {
             create: data.items,
           },
@@ -598,6 +605,17 @@ export const QuoteController = {
         }
       }
 
+      const targetCompanyId = data.companyId || existingQuote.companyId;
+      const company = await prisma.company.findUnique({
+        where: { id: targetCompanyId }
+      });
+      const isCurio = company && (
+        (company.razaoSocial || '').toLowerCase().includes('curio') ||
+        (company.razaoSocial || '').toLowerCase().includes('curió') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+        (company.nomeFantasia || '').toLowerCase().includes('curió')
+      );
+
       const client = await resolveClientForQuote(data.client, existingQuote.client);
 
       // Resolve or create vehicle
@@ -707,7 +725,7 @@ export const QuoteController = {
             notaFiscalDescricao: data.notaFiscalDescricao || null,
             subtotal: data.subtotal,
             total: data.total,
-            status: data.status,
+            status: isCurio ? 'Cobertura' : data.status,
             items: {
               deleteMany: {},
               create: quoteItems,

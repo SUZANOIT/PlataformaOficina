@@ -470,6 +470,8 @@ ${bankingText}`;
 
   const watchOficinaId = watch('oficinaId');
 
+  const watchCompanyId = watch('companyId');
+
   // Automatically set companyId when an Oficina is selected
   useEffect(() => {
     if (watchOficinaId && workshops.length > 0) {
@@ -492,6 +494,16 @@ ${bankingText}`;
       }
     }
   }, [watchOficinaId, workshops, setValue]);
+
+  useEffect(() => {
+    if (watchCompanyId && companies.length > 0) {
+      const company = companies.find(c => c.id === watchCompanyId);
+      const companyName = (company?.razaoSocial || company?.nomeFantasia || '').toLowerCase();
+      if (companyName.includes('curio') || companyName.includes('curió')) {
+        setValue('status', 'Cobertura');
+      }
+    }
+  }, [watchCompanyId, companies, setValue]);
 
   // Generate description when status is changed to 'Aguardando Pagamento' or 'Emitir Nota Fiscal' or workshop changes
   useEffect(() => {
@@ -1452,12 +1464,24 @@ ${bankingText}`;
               <label className="text-sm font-medium">Status do Orçamento</label>
               <select 
                 {...register('status')}
-                disabled={isViewing}
-                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+                disabled={isViewing || (() => {
+                  const company = companies.find(c => c.id === watchCompanyId);
+                  const companyName = (company?.razaoSocial || company?.nomeFantasia || '').toLowerCase();
+                  return companyName.includes('curio') || companyName.includes('curió');
+                })()}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg disabled:opacity-85 disabled:cursor-not-allowed"
               >
-                {QUOTE_STATUS_OPTIONS.map(st => (
-                  <option key={st} value={st}>{st}</option>
-                ))}
+                {(() => {
+                  const company = companies.find(c => c.id === watchCompanyId);
+                  const companyName = (company?.razaoSocial || company?.nomeFantasia || '').toLowerCase();
+                  const isCurio = companyName.includes('curio') || companyName.includes('curió');
+                  if (isCurio) {
+                    return <option value="Cobertura">Cobertura</option>;
+                  }
+                  return QUOTE_STATUS_OPTIONS.map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ));
+                })()}
               </select>
             </div>
 

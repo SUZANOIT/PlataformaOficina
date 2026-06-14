@@ -263,6 +263,10 @@ exports.QuoteController = {
                 where: { id: finalCompanyId },
                 include: { plan: true }
             });
+            const isCurio = company && ((company.razaoSocial || '').toLowerCase().includes('curio') ||
+                (company.razaoSocial || '').toLowerCase().includes('curió') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curió'));
             if (company && company.plan) {
                 const startOfMonth = new Date();
                 startOfMonth.setDate(1);
@@ -431,7 +435,7 @@ exports.QuoteController = {
                     clonedFromId: data.clonedFromId,
                     subtotal: data.subtotal,
                     total: data.total,
-                    status: data.status,
+                    status: isCurio ? 'Cobertura' : data.status,
                     items: {
                         create: data.items,
                     },
@@ -542,6 +546,14 @@ exports.QuoteController = {
                     return res.status(400).json({ error: 'Não é permitido alterar a empresa de um orçamento clonado.' });
                 }
             }
+            const targetCompanyId = data.companyId || existingQuote.companyId;
+            const company = await prisma_1.prisma.company.findUnique({
+                where: { id: targetCompanyId }
+            });
+            const isCurio = company && ((company.razaoSocial || '').toLowerCase().includes('curio') ||
+                (company.razaoSocial || '').toLowerCase().includes('curió') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curio') ||
+                (company.nomeFantasia || '').toLowerCase().includes('curió'));
             const client = await resolveClientForQuote(data.client, existingQuote.client);
             // Resolve or create vehicle
             let veiculoId = null;
@@ -645,7 +657,7 @@ exports.QuoteController = {
                         notaFiscalDescricao: data.notaFiscalDescricao || null,
                         subtotal: data.subtotal,
                         total: data.total,
-                        status: data.status,
+                        status: isCurio ? 'Cobertura' : data.status,
                         items: {
                             deleteMany: {},
                             create: quoteItems,
