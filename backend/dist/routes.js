@@ -134,7 +134,7 @@ const authMiddleware = async (req, res, next) => {
 // Route to run prisma db push in production environment
 routes.get('/debug/run-migrate', async (req, res) => {
     const { exec } = require('child_process');
-    exec('npx prisma db push', (err, stdout, stderr) => {
+    exec('npx prisma db push --accept-data-loss', (err, stdout, stderr) => {
         return res.json({
             error: err?.message || null,
             stdout: stdout || '',
