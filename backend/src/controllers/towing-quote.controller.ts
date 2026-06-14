@@ -25,8 +25,8 @@ const createTowingQuoteSchema = z.object({
   destinoCidade: z.string().optional(),
   destinoEstado: z.string().optional(),
 
-  distanciaKm: z.number().optional(),
-  tempoEstimadoMin: z.number().optional(),
+  distanciaKm: z.coerce.number().optional(),
+  tempoEstimadoMin: z.coerce.number().optional(),
 
   veiculoPlaca: z.string().optional(),
   veiculoMarca: z.string().optional(),
@@ -39,27 +39,27 @@ const createTowingQuoteSchema = z.object({
   driverId: z.string().optional().nullable(),
   vehicleId: z.string().optional().nullable(),
 
-  taxaSaida: z.number().optional().default(0),
-  valorKm: z.number().optional().default(0),
-  horasParadas: z.number().optional().default(0),
-  valorHoraParada: z.number().optional().default(0),
-  pedagios: z.number().optional().default(0),
-  qtdPedagios: z.number().optional().default(0),
+  taxaSaida: z.coerce.number().optional().default(0),
+  valorKm: z.coerce.number().optional().default(0),
+  horasParadas: z.coerce.number().optional().default(0),
+  valorHoraParada: z.coerce.number().optional().default(0),
+  pedagios: z.coerce.number().optional().default(0),
+  qtdPedagios: z.coerce.number().optional().default(0),
   pedagiosDetalhes: z.any().optional(),
-  despesasExtras: z.number().optional().default(0),
-  descontos: z.number().optional().default(0),
-  acrescimos: z.number().optional().default(0),
-  valorTotal: z.number().optional().default(0),
+  despesasExtras: z.coerce.number().optional().default(0),
+  descontos: z.coerce.number().optional().default(0),
+  acrescimos: z.coerce.number().optional().default(0),
+  valorTotal: z.coerce.number().optional().default(0),
 
   observacoes: z.string().optional(),
 
   // Validação ANTT
   anttTipoCarga: z.string().optional(),
-  anttEixos: z.number().optional().nullable(),
+  anttEixos: z.coerce.number().optional().nullable(),
   anttComposicao: z.boolean().optional(),
   anttAltoDesempenho: z.boolean().optional(),
   anttRetornoVazio: z.boolean().optional(),
-  anttPisoMinimo: z.number().optional(),
+  anttPisoMinimo: z.coerce.number().optional(),
 });
 
 export const TowingQuoteController = {
