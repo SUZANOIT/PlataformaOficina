@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npm install --prefix frontend && npm run --prefix frontend build && npm install --prefix backend && npm run --prefix backend build"
   },
   "deploy": {
-    "preDeployCommand": "node backend/prisma/resolve-migration.js && npx prisma migrate deploy --schema=backend/prisma/schema.prisma",
+    "preDeployCommand": "cd backend && node prisma/resolve-migration.js && npx prisma migrate deploy --schema=prisma/schema.prisma",
     "startCommand": "npm start"
   }
 }

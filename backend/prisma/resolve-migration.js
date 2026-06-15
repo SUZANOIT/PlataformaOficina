@@ -10,13 +10,18 @@ async function main() {
     );
     console.log(`✅ [Resolve Migration] Limpeza concluída. Registros removidos: ${result}`);
   } catch (err) {
-    console.warn('⚠️ [Resolve Migration] Aviso ao tentar limpar tabela _prisma_migrations:', err.message);
+    if (err.message.includes('relation "_prisma_migrations" does not exist') || err.message.includes('42P01')) {
+      console.log('🔍 [Resolve Migration] Tabela _prisma_migrations ainda não existe no banco. Ignorando...');
+    } else {
+      console.error('❌ [Resolve Migration] Falha crítica ao interagir com o banco de dados:', err);
+      process.exit(1); // Força falha para exibir o log de erro real no Railway
+    }
   } finally {
     await prisma.$disconnect();
   }
 }
 
 main().catch(err => {
-  console.error('❌ [Resolve Migration] Erro crítico na execução:', err);
-  process.exit(0); // Garante que o build/deploy não quebre caso o script falhe por indisponibilidade temporária
+  console.error('❌ [Resolve Migration] Erro crítico não tratado:', err);
+  process.exit(1);
 });
