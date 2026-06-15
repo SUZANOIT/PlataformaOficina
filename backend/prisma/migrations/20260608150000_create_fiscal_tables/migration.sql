@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS "FiscalDocument_companyId_idx" ON "FiscalDocument"("c
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.constraint_column_usage WHERE table_name = 'FiscalDocument' AND constraint_name = 'FiscalDocument_companyId_fkey') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FiscalDocument_companyId_fkey') THEN
         ALTER TABLE "FiscalDocument" ADD CONSTRAINT "FiscalDocument_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
 END $$;
