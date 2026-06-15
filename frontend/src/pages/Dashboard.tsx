@@ -86,7 +86,7 @@ export function Dashboard() {
 
   // Filter recent quotes
   const filteredQuotes = quotes.filter((quote: any) => {
-    if (selectedCompanyId !== 'all' && quote.company?.id !== selectedCompanyId) {
+    if (selectedCompanyId !== 'all' && quote.companyId !== selectedCompanyId) {
       return false;
     }
     
@@ -140,7 +140,7 @@ export function Dashboard() {
 
   const quotesForChart = (selectedCompanyId === 'all' 
     ? quotes 
-    : quotes.filter((q: any) => q.company?.id === selectedCompanyId)
+    : quotes.filter((q: any) => q.companyId === selectedCompanyId)
   ).filter((q: any) => {
     if (!q.status || q.status === 'Cancelado' || q.status === 'Excluído' || q.status === 'Arquivado') return false;
     const value = Number(q.total) || 0;
