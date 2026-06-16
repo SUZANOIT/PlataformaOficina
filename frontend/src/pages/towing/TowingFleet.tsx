@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Search, Edit, Trash2, X, Eye, ChevronLeft, ChevronRight, Save, Info, Building } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Trash2, X, Eye, ChevronLeft, ChevronRight, Save, Building, Scale } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { api } from '../../services/api';
 import { authStorage } from '../../utils/auth';
@@ -591,7 +591,7 @@ export function TowingFleet() {
 
               <div className="border-t border-border pt-4 mt-2">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Info size={14} /> Credenciamento ANTT / RNTRC
+                  <Scale size={14} className="text-primary" /> Credenciamento ANTT / RNTRC
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1 col-span-2">
@@ -728,7 +728,9 @@ export function TowingFleet() {
 
               {(selectedVehicle.rntrcNumero) && (
                 <div className="border-t border-border pt-4">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Credenciamento ANTT / RNTRC</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Scale size={14} className="text-primary" /> Credenciamento ANTT / RNTRC
+                  </h4>
                   <div className="grid grid-cols-2 gap-y-3 gap-x-6 bg-slate-50 border p-3 rounded-lg text-xs">
                     <div className="col-span-2">
                       <span className="text-muted-foreground font-semibold">Número do Registro:</span>{' '}
