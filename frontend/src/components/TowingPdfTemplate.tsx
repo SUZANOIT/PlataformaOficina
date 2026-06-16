@@ -162,7 +162,6 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
                   <p className="text-slate-600 text-[11px]">{quote.destinoCidade || '-'} - {quote.destinoEstado || '-'} | CEP: {quote.destinoCep || '-'}</p>
                 </div>
                 <div>
-                  <p className="font-bold text-amber-900/70 uppercase text-[8px] tracking-wider mb-0.5">Veículo e Equipamento:</p>
                   <p className="text-slate-600 text-[11px]">Veículo Transportado: <span className="font-bold text-slate-800">{quote.veiculoModelo || '-'} ({quote.veiculoPlaca || '-'})</span></p>
                   <p className="text-slate-600 text-[11px]">Tipo do Guincho: <span className="font-bold text-slate-800">{quote.tipoGuincho || '-'}</span></p>
                 </div>
@@ -401,7 +400,6 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
                 <p className="text-slate-650 text-[11px]">{quote.destinoCidade || '-'} - {quote.destinoEstado || '-'} | CEP: {quote.destinoCep || '-'}</p>
               </div>
               <div>
-                <p className="font-semibold text-slate-500 uppercase text-[8px] tracking-wider mb-0.5">Veículo e Equipamento:</p>
                 <p className="text-slate-650 text-[11px]">Veículo Transportado: <span className="font-semibold text-slate-800">{quote.veiculoModelo || '-'} ({quote.veiculoPlaca || '-'})</span></p>
                 <p className="text-slate-650 text-[11px]">Tipo do Guincho: <span className="font-semibold text-slate-800">{quote.tipoGuincho || '-'}</span></p>
               </div>
