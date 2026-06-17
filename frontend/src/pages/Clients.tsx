@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle } from 'lucide-react';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  X, 
+  Search, 
+  Building, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Globe, 
+  CheckCircle,
+  Users,
+  User,
+  Briefcase
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
@@ -260,111 +275,185 @@ export function Clients() {
     );
   });
 
+  const totalClients = clients.length;
+  const pjClients = clients.filter(c => {
+    const doc = (c.cnpj || '').replace(/\D/g, '');
+    return doc.length !== 11;
+  }).length;
+  const pfClients = clients.filter(c => {
+    const doc = (c.cnpj || '').replace(/\D/g, '');
+    return doc.length === 11;
+  }).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-gradient-to-r from-card to-background p-6 rounded-2xl border border-border shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-          <p className="text-muted-foreground text-sm">Gerenciamento completo de parceiros e clientes da oficina.</p>
+          <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
+            <Users className="text-primary" size={26} />
+            Clientes
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Gerenciamento completo de parceiros, pessoas físicas e jurídicas da oficina.</p>
         </div>
         <button 
           onClick={handleOpenCreateModal}
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-primary/20 hover:bg-primary/95 transition duration-200 w-full sm:w-auto text-sm"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Novo Cliente</span>
         </button>
       </div>
 
-      {/* Filtros e Busca */}
-      <div className="bg-card border border-border p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center">
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm flex items-center gap-4 hover:border-primary/20 transition-all duration-300">
+          <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold">
+            <Users size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total de Clientes</p>
+            <h3 className="text-2xl font-black text-foreground mt-0.5">{totalClients}</h3>
+          </div>
+        </div>
+        
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm flex items-center gap-4 hover:border-emerald-500/20 transition-all duration-300">
+          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center font-bold">
+            <Briefcase size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pessoa Jurídica (PJ)</p>
+            <h3 className="text-2xl font-black text-foreground mt-0.5">{pjClients}</h3>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-sm flex items-center gap-4 hover:border-blue-500/20 transition-all duration-300">
+          <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center font-bold">
+            <User size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pessoa Física (PF)</p>
+            <h3 className="text-2xl font-black text-foreground mt-0.5">{pfClients}</h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="bg-card border border-border p-4 rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 text-muted-foreground" size={18} />
+          <Search className="absolute left-3.5 top-3 text-muted-foreground" size={16} />
           <input
             type="text"
-            placeholder="Buscar por nome, empresa, CNPJ ou e-mail..."
+            placeholder="Buscar por nome, empresa, documento ou e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-background border border-border pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-primary text-sm"
+            className="w-full bg-background border border-border pl-11 pr-4 py-2.5 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm transition"
           />
         </div>
       </div>
 
-      {/* Listagem Desktop/Tablet */}
-      <div className="hidden md:block bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Desktop/Tablet List */}
+      <div className="hidden md:block bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         <div className="w-full">
           <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="p-4 font-medium w-4/12 lg:w-3/12">Nome / Empresa</th>
-                <th className="p-4 font-medium hidden lg:table-cell w-2/12">Documento</th>
-                <th className="p-4 font-medium w-4/12 lg:w-3/12">Contato</th>
-                <th className="p-4 font-medium hidden xl:table-cell w-3/12">Localização</th>
-                <th className="p-4 font-medium w-4/12 lg:w-1/12 text-center lg:text-left">Ações</th>
+              <tr className="bg-muted/40 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                <th className="p-4 w-4/12 lg:w-3.12">Nome / Razão Social</th>
+                <th className="p-4 hidden lg:table-cell w-2/12">Documento</th>
+                <th className="p-4 w-4/12 lg:w-3.5/12">Contato</th>
+                <th className="p-4 hidden xl:table-cell w-3/12">Localização</th>
+                <th className="p-4 w-4/12 lg:w-1.3/12 text-center lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="p-4 truncate">
-                    <div className="flex items-center gap-3 truncate">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-                        {client.nome.charAt(0).toUpperCase()}
+              {filteredClients.map((client) => {
+                const docCleaned = (client.cnpj || '').replace(/\D/g, '');
+                const isPF = docCleaned.length === 11;
+                return (
+                  <tr key={client.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                    <td className="p-4 truncate">
+                      <div className="flex items-center gap-3 truncate">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 text-sm shadow-sm ${
+                          isPF ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
+                        }`}>
+                          {isPF ? <User size={18} /> : <Building size={18} />}
+                        </div>
+                        <div className="truncate">
+                          <div className="font-bold text-foreground truncate text-sm">{client.nome}</div>
+                          {client.empresa && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                              <Building className="shrink-0 text-muted-foreground/75" size={12} /> 
+                              <span className="truncate">{client.empresa}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="truncate">
-                        <div className="font-semibold text-foreground truncate">{client.nome}</div>
-                        {client.empresa && <div className="text-xs text-muted-foreground flex items-center gap-1 truncate"><Building className="shrink-0" size={12} /> <span className="truncate">{client.empresa}</span></div>}
+                    </td>
+                    <td className="p-4 text-sm text-foreground hidden lg:table-cell truncate">
+                      {client.cnpj ? (
+                        <div className="flex flex-col gap-0.5 truncate">
+                          <span className={`text-[9px] font-black uppercase tracking-wider ${
+                            isPF ? 'text-blue-500' : 'text-emerald-500'
+                          }`}>
+                            {isPF ? 'CPF' : 'CNPJ'}
+                          </span>
+                          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border w-fit font-semibold">{client.cnpj}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Não informado</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs space-y-1.5 truncate">
+                      {client.email && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                          <Mail className="shrink-0 text-muted-foreground/70" size={13} /> 
+                          <span className="truncate">{client.email}</span>
+                        </div>
+                      )}
+                      {client.telefone && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                          <Phone className="shrink-0 text-muted-foreground/70" size={13} /> 
+                          <span className="truncate">{client.telefone}</span>
+                        </div>
+                      )}
+                      {!client.email && !client.telefone && (
+                        <span className="text-muted-foreground italic text-xs">Sem contatos</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs hidden xl:table-cell truncate">
+                      {client.cidade ? (
+                        <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                          <MapPin className="shrink-0 text-muted-foreground/70" size={13} /> 
+                          <span className="truncate font-medium">{client.cidade} - {client.estado || ''}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">-</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex gap-2 justify-center lg:justify-start">
+                        <button 
+                          onClick={() => handleOpenEditModal(client)}
+                          className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition shadow-sm"
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(client.id, client.nome)}
+                          className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 transition shadow-sm"
+                          title="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-4 text-sm text-foreground hidden lg:table-cell truncate">
-                    {client.cnpj ? (
-                      <div className="flex flex-col gap-0.5 truncate">
-                        <span className="text-[9px] text-muted-foreground font-black uppercase">
-                          {client.cnpj.replace(/\D/g, '').length === 11 ? 'CPF' : 'CNPJ'}
-                        </span>
-                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border w-fit truncate">{client.cnpj}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs italic">Não informado</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-xs space-y-1 truncate">
-                    {client.email && <div className="flex items-center gap-1 text-muted-foreground truncate"><Mail className="shrink-0" size={12} /> <span className="truncate">{client.email}</span></div>}
-                    {client.telefone && <div className="flex items-center gap-1 text-muted-foreground truncate"><Phone className="shrink-0" size={12} /> <span className="truncate">{client.telefone}</span></div>}
-                  </td>
-                  <td className="p-4 text-xs hidden xl:table-cell truncate">
-                    {client.cidade ? (
-                      <div className="flex items-center gap-1 text-muted-foreground truncate">
-                        <MapPin className="shrink-0" size={12} /> <span className="truncate">{client.cidade} - {client.estado || ''}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground italic">-</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <div className="flex gap-2 justify-center lg:justify-start">
-                      <button 
-                        onClick={() => handleOpenEditModal(client)}
-                        className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
-                        title="Editar"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(client.id, client.nome)}
-                        className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="p-10 text-center text-muted-foreground font-medium text-sm">
                     Nenhum cliente cadastrado ou localizado com estes filtros.
                   </td>
                 </tr>
@@ -374,55 +463,83 @@ export function Clients() {
         </div>
       </div>
 
-      {/* Listagem Mobile */}
+      {/* Mobile Card List */}
       <div className="block md:hidden space-y-4">
-        {filteredClients.map((client) => (
-          <div key={client.id} className="bg-card border border-border p-4 rounded-xl space-y-3 shadow-sm hover:border-primary/30 transition">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold flex-shrink-0">
-                {client.nome.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-foreground truncate">{client.nome}</h4>
-                {client.empresa && <p className="text-xs text-muted-foreground truncate flex items-center gap-1"><Building size={10} /> {client.empresa}</p>}
-              </div>
-            </div>
-
-            <div className="text-xs space-y-1.5 bg-muted/30 p-2.5 rounded-lg border border-border/50">
-              {client.cnpj && (
-                <div className="font-mono text-[10px]">
-                  <span className="text-muted-foreground font-sans">
-                    {client.cnpj.replace(/\D/g, '').length === 11 ? 'CPF: ' : 'CNPJ: '}
-                  </span>
-                  {client.cnpj}
+        {filteredClients.map((client) => {
+          const docCleaned = (client.cnpj || '').replace(/\D/g, '');
+          const isPF = docCleaned.length === 11;
+          return (
+            <div key={client.id} className="bg-card border border-border p-5 rounded-2xl space-y-4 shadow-sm hover:border-primary/30 transition duration-200">
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0 text-sm shadow-sm ${
+                  isPF ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
+                }`}>
+                  {isPF ? <User size={18} /> : <Building size={18} />}
                 </div>
-              )}
-              {client.email && <div className="truncate flex items-center gap-1 text-muted-foreground"><Mail size={10} /> {client.email}</div>}
-              {client.telefone && <div className="flex items-center gap-1 text-muted-foreground"><Phone size={10} /> {client.telefone}</div>}
-              {client.cidade && <div className="flex items-center gap-1 text-muted-foreground"><MapPin size={10} /> {client.cidade} - {client.estado}</div>}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-foreground truncate text-sm">{client.nome}</h4>
+                  {client.empresa && (
+                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-0.5">
+                      <Building size={11} className="text-muted-foreground/75" /> 
+                      {client.empresa}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            <div className="flex justify-between items-center pt-2.5 border-t border-border/50">
-              <span className="text-[10px] text-muted-foreground">Criado em: {new Date(client.createdAt).toLocaleDateString('pt-BR')}</span>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => handleOpenEditModal(client)}
-                  className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
-                >
-                  <Edit size={12} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(client.id, client.nome)}
-                  className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
-                >
-                  <Trash2 size={12} />
-                </button>
+              <div className="text-xs space-y-2 bg-muted/40 p-3.5 rounded-xl border border-border/50">
+                {client.cnpj && (
+                  <div className="font-mono text-[10px] flex items-center gap-2">
+                    <span className={`text-[9px] font-black uppercase tracking-wider ${
+                      isPF ? 'text-blue-500' : 'text-emerald-500'
+                    }`}>
+                      {isPF ? 'CPF' : 'CNPJ'}:
+                    </span>
+                    <span className="font-semibold text-foreground">{client.cnpj}</span>
+                  </div>
+                )}
+                {client.email && (
+                  <div className="truncate flex items-center gap-2 text-muted-foreground">
+                    <Mail size={12} className="text-muted-foreground/70" /> 
+                    {client.email}
+                  </div>
+                )}
+                {client.telefone && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone size={12} className="text-muted-foreground/70" /> 
+                    {client.telefone}
+                  </div>
+                )}
+                {client.cidade && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin size={12} className="text-muted-foreground/70" /> 
+                    {client.cidade} - {client.estado}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t border-border/50">
+                <span className="text-[10px] text-muted-foreground font-medium">Criado em: {new Date(client.createdAt).toLocaleDateString('pt-BR')}</span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleOpenEditModal(client)}
+                    className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition shadow-sm"
+                  >
+                    <Edit size={13} />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(client.id, client.nome)}
+                    className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 transition shadow-sm"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {filteredClients.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-xl">
+          <div className="p-10 text-center text-muted-foreground bg-card border border-border rounded-2xl font-medium text-sm">
             Nenhum cliente cadastrado.
           </div>
         )}
@@ -434,21 +551,21 @@ export function Clients() {
           <div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8 relative">
             <button 
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition z-50 animate-in fade-in duration-300"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted/50 transition z-50 animate-in fade-in duration-300"
               aria-label="Fechar"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
             <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
-              <div className="flex items-center gap-2 mr-8">
-                <Building className="text-primary" size={22} />
-                <h3 className="text-lg font-bold text-foreground">
+              <div className="flex items-center gap-2.5 mr-8">
+                <Building className="text-primary" size={20} />
+                <h3 className="text-base font-bold text-foreground">
                   {selectedClient ? 'Editar Cliente' : 'Novo Cliente'}
                 </h3>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
               
               {/* Resumo do Cliente (Orçamentos) se for edição */}
               {selectedClient && (
@@ -462,59 +579,63 @@ export function Clients() {
                 </div>
               )}
               
-              {/* Seletor Tipo de Pessoa */}
-              <div className="flex justify-center gap-6 pb-4 border-b border-border">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-foreground">
-                  <input
-                    type="radio"
-                    name="tipoPessoa"
-                    checked={tipoPessoa === 'PF'}
-                    onChange={() => {
-                      setTipoPessoa('PF');
-                      setEmpresa('');
-                    }}
-                    className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
-                  />
-                  Pessoa Física (CPF)
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-foreground">
-                  <input
-                    type="radio"
-                    name="tipoPessoa"
-                    checked={tipoPessoa === 'PJ'}
-                    onChange={() => setTipoPessoa('PJ')}
-                    className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
-                  />
+              {/* Type Switcher tabs */}
+              <div className="flex bg-muted p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoPessoa('PJ');
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+                    tipoPessoa === 'PJ'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Building size={15} />
                   Pessoa Jurídica (CNPJ)
-                </label>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoPessoa('PF');
+                    setEmpresa('');
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+                    tipoPessoa === 'PF'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <User size={15} />
+                  Pessoa Física (CPF)
+                </button>
               </div>
 
-              {/* Seção CNPJ Lookup (Somente para PJ) */}
+              {/* CNPJ Lookup for PJ */}
               {tipoPessoa === 'PJ' && (
                 <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wide">
                     <Globe size={14} /> CONSULTA AUTOMÁTICA CNPJ (RECEITA FEDERAL)
                   </div>
                   <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        placeholder="Digite o CNPJ para preenchimento (ex: 00000000000191)"
-                        value={cnpj}
-                        onChange={(e) => setCnpj(e.target.value)}
-                        className="w-full bg-background border border-border pl-3 pr-4 py-2 rounded-lg focus:outline-none focus:border-primary text-sm font-mono"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      placeholder="Digite o CNPJ para preenchimento (ex: 00000000000191)"
+                      value={cnpj}
+                      onChange={(e) => setCnpj(e.target.value)}
+                      className="flex-1 bg-background border border-border px-3 py-2 rounded-lg focus:outline-none focus:border-primary text-sm font-mono font-semibold"
+                    />
                     <button
                       type="button"
                       disabled={isLoadingCNPJ}
                       onClick={handleCNPJLookup}
-                      className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition text-sm flex items-center gap-2 disabled:opacity-50"
+                      className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold shadow hover:bg-primary/95 transition text-sm flex items-center gap-2 disabled:opacity-50"
                     >
-                      {isLoadingCNPJ ? 'Buscando...' : 'Consultar CNPJ'}
+                      {isLoadingCNPJ ? 'Buscando...' : 'Consultar'}
                     </button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground/90 font-medium">
                     Insira apenas números. O sistema consultará a Receita Federal e auto-preencherá Razão Social, Fantasia, Contatos e Endereço.
                   </p>
                 </div>
@@ -522,8 +643,8 @@ export function Clients() {
 
               {/* Informações Básicas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wide">
                     {tipoPessoa === 'PF' ? 'Nome Completo *' : 'Razão Social *'}
                   </label>
                   <input
@@ -531,28 +652,28 @@ export function Clients() {
                     required
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                   />
                 </div>
                 {tipoPessoa === 'PF' ? (
-                  <div className="space-y-1 animate-in fade-in duration-200">
-                    <label className="text-xs font-semibold text-foreground">CPF</label>
+                  <div className="space-y-1.5 animate-in fade-in duration-200">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">CPF</label>
                     <input
                       type="text"
                       placeholder="Digite o CPF (ex: 000.000.000-00)"
                       value={cnpj}
                       onChange={(e) => setCnpj(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm font-mono"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
                 ) : (
-                  <div className="space-y-1 animate-in fade-in duration-200">
-                    <label className="text-xs font-semibold text-foreground">Nome Fantasia / Empresa</label>
+                  <div className="space-y-1.5 animate-in fade-in duration-200">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Nome Fantasia / Empresa</label>
                     <input
                       type="text"
                       value={empresa}
                       onChange={(e) => setEmpresa(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
                 )}
@@ -560,35 +681,35 @@ export function Clients() {
 
               {/* Contatos */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">E-mail</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wide">E-mail</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Telefone</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wide">Telefone</label>
                   <input
                     type="text"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                   />
                 </div>
               </div>
 
               {/* Endereço */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Informações de Endereço</h4>
+              <div className="border-t border-border pt-4 space-y-4">
+                <h4 className="text-xs font-black text-muted-foreground uppercase tracking-wider">Informações de Endereço</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                   <div className="space-y-1 md:col-span-1 relative">
-                    <label className="text-xs font-semibold text-foreground flex justify-between items-center">
+                  <div className="space-y-1.5 md:col-span-1 relative">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide flex justify-between items-center">
                       <span>CEP</span>
-                      {isLoadingCEP && <span className="text-[10px] text-primary animate-pulse font-medium">Buscando...</span>}
+                      {isLoadingCEP && <span className="text-[10px] text-primary animate-pulse font-bold normal-case">Buscando...</span>}
                     </label>
                     <input
                       type="text"
@@ -605,67 +726,67 @@ export function Clients() {
                       onBlur={() => {
                         handleCEPLookup(cep);
                       }}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm font-mono"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-semibold"
                     />
                   </div>
-                  <div className="space-y-1 md:col-span-3">
-                    <label className="text-xs font-semibold text-foreground">Logradouro (Rua, Av, etc.)</label>
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Logradouro (Rua, Av, etc.)</label>
                     <input
                       type="text"
                       value={logradouro}
                       onChange={(e) => setLogradouro(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Número</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Número</label>
                     <input
                       type="text"
                       value={numero}
                       onChange={(e) => setNumero(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Complemento</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Complemento</label>
                     <input
                       type="text"
                       value={complemento}
                       onChange={(e) => setComplemento(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Bairro</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Bairro</label>
                     <input
                       type="text"
                       value={bairro}
                       onChange={(e) => setBairro(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Cidade</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Cidade</label>
                     <input
                       type="text"
                       value={cidade}
                       onChange={(e) => setCidade(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Estado (UF)</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Estado (UF)</label>
                     <input
                       type="text"
                       value={estado}
                       onChange={(e) => setEstado(e.target.value)}
-                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                      className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
                     />
                   </div>
                 </div>
@@ -674,11 +795,11 @@ export function Clients() {
               {/* Detalhes Adicionais da Consulta */}
               {(atividadePrincipal || dataSituacao) && (
                 <div className="bg-muted/40 p-4 rounded-xl border border-border text-xs space-y-2 mt-4">
-                  <div className="font-bold text-muted-foreground uppercase">Ficha Cadastral Complementar</div>
+                  <div className="font-bold text-muted-foreground uppercase tracking-wider">Ficha Cadastral Complementar</div>
                   {dataSituacao && (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-semibold">Situação:</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
                         dataSituacao === 'ATIVA' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
                       }`}>
                         <CheckCircle size={10} /> {dataSituacao}
@@ -688,7 +809,7 @@ export function Clients() {
                   {atividadePrincipal && (
                     <div>
                       <span className="text-muted-foreground font-semibold">Atividade Principal:</span>
-                      <p className="text-foreground mt-0.5">{atividadePrincipal}</p>
+                      <p className="text-foreground mt-0.5 leading-relaxed">{atividadePrincipal}</p>
                     </div>
                   )}
                 </div>
