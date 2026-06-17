@@ -78,5 +78,19 @@ export const towingService = {
   getRateHistory: async (id: string) => {
     const response = await api.get(`/towing/rates/${id}/history`);
     return response.data;
+  },
+
+  // TRANSPORTATION GUIDES
+  getGuia: async (quoteId: string) => {
+    const response = await api.get(`/towing/quotes/${quoteId}/guia`);
+    return response.data;
+  },
+  logGuiaAudit: async (guiaId: string, acao: string, detalhes?: string) => {
+    const response = await api.post(`/towing/guias/${guiaId}/audit`, { acao, detalhes });
+    return response.data;
+  },
+  sendGuiaEmail: async (guiaId: string, email?: string) => {
+    const response = await api.post(`/towing/guias/${guiaId}/email`, { email });
+    return response.data;
   }
 };

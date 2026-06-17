@@ -137,6 +137,7 @@ model Client {
   updatedAt DateTime @updatedAt
   quotes    Quote[]
   towingQuotes TowingQuote[]
+  guiaTransportes GuiaTransporte[]
 
   @@index([email])
   @@index([cnpj])
@@ -1580,6 +1581,8 @@ model TowingQuote {
   veiculoModelo     String?
   veiculoAno        String?
   veiculoCor        String?
+  veiculoChassi     String?
+  veiculoValorAproximado Float?
   
   // Configuração Guincho
   tipoGuincho       String?
@@ -1619,7 +1622,41 @@ model TowingQuote {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  guiaTransporte    GuiaTransporte?
+
   @@index([companyId])
   @@index([clientId])
   @@index([userId])
+}
+
+model GuiaTransporte {
+  id              String      @id @default(uuid())
+  numeroGuia      Int         @unique @default(autoincrement())
+  numeroFormatado String?     // e.g. "GT-2026-000001"
+  orcamentoId     String      @unique
+  orcamento       TowingQuote @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  clienteId       String?
+  client          Client?     @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  dataEmissao     DateTime    @default(now())
+  valorTotal      Float
+  status          String      @default("APROVADO")
+  pdfUrl          String?
+  
+  audits          GuiaTransporteAudit[]
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("guias_transporte")
+}
+
+model GuiaTransporteAudit {
+  id               String         @id @default(uuid())
+  guiaTransporteId String
+  guiaTransporte   GuiaTransporte @relation(fields: [guiaTransporteId], references: [id], onDelete: Cascade)
+  acao             String         // "APROVAÇÃO_ORÇAMENTO", "GERAÇÃO_GUIA", "DOWNLOAD_PDF", "IMPRESSÃO", "ENVIO_EMAIL", "ENVIO_WHATSAPP"
+  detalhes         String?
+  createdAt        DateTime       @default(now())
+
+  @@map("guias_transporte_audits")
 }

@@ -18,6 +18,7 @@ import { NfeController } from './controllers/nfe.controller';
 import { TowingQuoteController } from './controllers/towing-quote.controller';
 import { TowingFleetController } from './controllers/towing-fleet.controller';
 import { TowingRateController } from './controllers/towing-rate.controller';
+import { GuiaTransporteController } from './controllers/guia-transporte.controller';
 
 import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
 import { AdminSaaSController } from './controllers/admin-saas.controller';
@@ -180,6 +181,11 @@ routes.get('/towing/types', authMiddleware, TowingFleetController.listTypes);
 routes.get('/towing/rates', authMiddleware, TowingRateController.list);
 routes.post('/towing/rates', authMiddleware, TowingRateController.save);
 routes.get('/towing/rates/:id/history', authMiddleware, TowingRateController.getHistory);
+
+// Towing Transport Guides (Guia de Transporte)
+routes.get('/towing/quotes/:id/guia', authMiddleware, GuiaTransporteController.getGuiaByQuoteId);
+routes.post('/towing/guias/:id/audit', authMiddleware, GuiaTransporteController.logAuditAction);
+routes.post('/towing/guias/:id/email', authMiddleware, GuiaTransporteController.sendEmail);
 
 routes.get('/nfe/imports', authMiddleware, NfeController.list);
 routes.post('/auth/forgot-password', AuthController.forgotPassword);

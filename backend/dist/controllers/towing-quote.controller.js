@@ -29,6 +29,8 @@ const createTowingQuoteSchema = zod_1.z.object({
     veiculoModelo: zod_1.z.string().optional(),
     veiculoAno: zod_1.z.string().optional(),
     veiculoCor: zod_1.z.string().optional(),
+    veiculoChassi: zod_1.z.string().optional(),
+    veiculoValorAproximado: zod_1.z.coerce.number().optional().nullable(),
     tipoGuincho: zod_1.z.string().optional(),
     driverId: zod_1.z.string().optional().nullable(),
     vehicleId: zod_1.z.string().optional().nullable(),
@@ -60,6 +62,17 @@ exports.TowingQuoteController = {
             const companyId = req.companyId;
             const quotes = await prisma_1.prisma.towingQuote.findMany({
                 where: { companyId },
+                include: {
+                    driver: true,
+                    vehicle: true,
+                    guiaTransporte: {
+                        include: {
+                            audits: {
+                                orderBy: { createdAt: 'desc' }
+                            }
+                        }
+                    }
+                },
                 orderBy: { createdAt: 'desc' }
             });
             return res.json(quotes);
@@ -123,7 +136,18 @@ exports.TowingQuoteController = {
             const id = req.params.id;
             const companyId = req.companyId;
             const quote = await prisma_1.prisma.towingQuote.findUnique({
-                where: { id }
+                where: { id },
+                include: {
+                    driver: true,
+                    vehicle: true,
+                    guiaTransporte: {
+                        include: {
+                            audits: {
+                                orderBy: { createdAt: 'desc' }
+                            }
+                        }
+                    }
+                }
             });
             if (!quote || quote.companyId !== companyId) {
                 return res.status(404).json({ error: 'Quote not found' });
@@ -163,6 +187,30 @@ exports.TowingQuoteController = {
                 where: { id: quote.id },
                 data: { numeroFormatado: numFormatado }
             });
+            // Automatic GuiaTransporte Generation
+            if (updatedQuote.status === 'Aprovado') {
+                const guia = await prisma_1.prisma.guiaTransporte.create({
+                    data: {
+                        orcamentoId: updatedQuote.id,
+                        clienteId: updatedQuote.clientId,
+                        valorTotal: updatedQuote.valorTotal,
+                        status: 'APROVADO',
+                    }
+                });
+                const anoGuia = guia.createdAt.getFullYear();
+                const numGuiaFormatado = `GT-${anoGuia}-${guia.numeroGuia.toString().padStart(6, '0')}`;
+                await prisma_1.prisma.guiaTransporte.update({
+                    where: { id: guia.id },
+                    data: { numeroFormatado: numGuiaFormatado }
+                });
+                await prisma_1.prisma.guiaTransporteAudit.create({
+                    data: {
+                        guiaTransporteId: guia.id,
+                        acao: 'APROVAÇÃO_ORÇAMENTO',
+                        detalhes: `Orçamento de guincho ${numFormatado} criado e aprovado. Guia ${numGuiaFormatado} gerada automaticamente.`
+                    }
+                });
+            }
             audit_logger_1.AuditLogger.log(userId, companyId, 'CREATE_TOWING_QUOTE', `Orçamento de guincho ${numFormatado} criado`, 'SUCCESS');
             return res.status(201).json(updatedQuote);
         }
@@ -200,6 +248,35 @@ exports.TowingQuoteController = {
                     status: isCurio ? 'Cobertura' : (data.status || existingQuote.status),
                 }
             });
+            // Automatic GuiaTransporte Generation Hook on Update
+            if (updatedQuote.status === 'Aprovado') {
+                const existingGuia = await prisma_1.prisma.guiaTransporte.findUnique({
+                    where: { orcamentoId: updatedQuote.id }
+                });
+                if (!existingGuia) {
+                    const guia = await prisma_1.prisma.guiaTransporte.create({
+                        data: {
+                            orcamentoId: updatedQuote.id,
+                            clienteId: updatedQuote.clientId,
+                            valorTotal: updatedQuote.valorTotal,
+                            status: 'APROVADO',
+                        }
+                    });
+                    const anoGuia = guia.createdAt.getFullYear();
+                    const numGuiaFormatado = `GT-${anoGuia}-${guia.numeroGuia.toString().padStart(6, '0')}`;
+                    await prisma_1.prisma.guiaTransporte.update({
+                        where: { id: guia.id },
+                        data: { numeroFormatado: numGuiaFormatado }
+                    });
+                    await prisma_1.prisma.guiaTransporteAudit.create({
+                        data: {
+                            guiaTransporteId: guia.id,
+                            acao: 'APROVAÇÃO_ORÇAMENTO',
+                            detalhes: `Orçamento de guincho ${updatedQuote.numeroFormatado} aprovado. Guia ${numGuiaFormatado} gerada automaticamente.`
+                        }
+                    });
+                }
+            }
             audit_logger_1.AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} atualizado`, 'SUCCESS');
             return res.json(updatedQuote);
         }

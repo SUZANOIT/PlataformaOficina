@@ -164,10 +164,21 @@ exports.QuoteController = {
     async getDashboardStats(req, res) {
         try {
             const quotesCount = await prisma_1.prisma.quote.count();
+            // Find MCA company dynamically
+            const mcaCompany = await prisma_1.prisma.company.findFirst({
+                where: {
+                    OR: [
+                        { razaoSocial: { contains: 'mca', mode: 'insensitive' } },
+                        { nomeFantasia: { contains: 'mca', mode: 'insensitive' } }
+                    ]
+                }
+            });
+            const mcaCompanyId = mcaCompany?.id || 'mca-padrao-company-uuid-000000000001';
             const quotes = await prisma_1.prisma.quote.findMany({
                 where: {
+                    companyId: mcaCompanyId,
                     status: {
-                        in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
+                        in: ['Aprovado', 'Emitir Nota Fiscal', 'Pago']
                     }
                 },
                 select: { total: true }
@@ -181,14 +192,14 @@ exports.QuoteController = {
                     company: true
                 }
             });
-            // Calculate breakdown by company
+            // Calculate breakdown by company excluding Cobertura
             const companies = await prisma_1.prisma.company.findMany();
             const companyBreakdown = await Promise.all(companies.map(async (company) => {
                 const companyQuotes = await prisma_1.prisma.quote.findMany({
                     where: {
                         companyId: company.id,
                         status: {
-                            in: ['Aprovado', 'Emitir Nota Fiscal', 'Cobertura', 'Pago']
+                            in: ['Aprovado', 'Emitir Nota Fiscal', 'Pago']
                         }
                     },
                     select: { total: true }

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Truck, MapPin, DollarSign, Save, Calculator, Car, User, 
-  Scale, AlertTriangle, CheckCircle2, FileText, Calendar, 
-  Building, UserCheck, Play, ClipboardCheck
+  ShieldCheck, AlertTriangle, CheckCircle2, FileText, Calendar, 
+  Building, UserCheck, Play, ClipboardCheck, ArrowLeftRight, Zap, Link2,
+  Eye
 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
+import { GuiaTransporteModal } from '../../components/GuiaTransporteModal';
 import { googleMapsService } from '../../services/google-maps.service';
 import { anttService } from '../../services/antt.service';
 import { api } from '../../services/api';
@@ -18,6 +20,7 @@ export function CreateTowingQuote() {
   const isEditing = !!id;
   const user = authStorage.getUser();
 
+  const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({
     clienteNome: '',
     clienteEmpresa: '',
@@ -43,6 +46,8 @@ export function CreateTowingQuote() {
     veiculoModelo: '',
     veiculoCor: '',
     veiculoAno: '',
+    veiculoChassi: '',
+    veiculoValorAproximado: '',
     tipoGuincho: '', // Placa do guincho da frota
     towingTypeId: '', // ID do tipo de guincho
     driverId: null,
@@ -158,18 +163,25 @@ export function CreateTowingQuote() {
   };
 
   const handleVehicleChange = (placa: string) => {
-    const vehicle = vehicles.find(v => v.placa === placa);
+    const query = placa.trim().toUpperCase();
+    const vehicle = vehicles.find(v => v.placa.trim().toUpperCase() === query);
     setFormData((prev: any) => {
       const next = { ...prev, tipoGuincho: placa, vehicleId: vehicle ? vehicle.id : null };
       if (vehicle) {
-        next.towingTypeId = vehicle.towingTypeId || '';
+        let tId = vehicle.towingTypeId || '';
+        if (!tId && vehicle.tipo) {
+          const matchedType = towingTypes.find(t => t.name.toLowerCase() === vehicle.tipo.toLowerCase());
+          if (matchedType) {
+            tId = matchedType.id;
+          }
+        }
+        next.towingTypeId = tId;
         next.anttEixos = vehicle.eixos || 2;
-        // Auto-escalate driver if vehicle has one assigned (if schema/db supported, else keep current)
         // Find rate for this towing type
         const rate = rates.find(r => 
-          (r.towingTypeId && r.towingTypeId === vehicle.towingTypeId) || 
-          r.tipoGuincho.toLowerCase() === vehicle.towingType?.name?.toLowerCase() ||
-          r.tipoGuincho.toLowerCase() === vehicle.tipo?.toLowerCase()
+          (tId && r.towingTypeId === tId) || 
+          (vehicle.towingType?.name && r.tipoGuincho.toLowerCase() === vehicle.towingType.name.toLowerCase()) ||
+          (vehicle.tipo && r.tipoGuincho.toLowerCase() === vehicle.tipo.toLowerCase())
         );
         if (rate) {
           next.taxaSaida = rate.taxaSaida;
@@ -581,10 +593,9 @@ export function CreateTowingQuote() {
               </div>
             </div>
 
-            {/* Veículo a ser Transportado (Cliente) */}
             <div className="border-t border-border pt-4 mt-4 space-y-3">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Veículo Transportado (Do Cliente)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Placa</label>
                   <input 
@@ -628,6 +639,25 @@ export function CreateTowingQuote() {
                     placeholder="Ex: Prata" 
                     value={formData.veiculoCor} 
                     onChange={e => handleChange('veiculoCor', e.target.value)} 
+                    className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Chassi</label>
+                  <input 
+                    placeholder="Chassi" 
+                    value={formData.veiculoChassi || ''} 
+                    onChange={e => handleChange('veiculoChassi', e.target.value.toUpperCase())} 
+                    className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs uppercase font-mono" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Valor Aprox.</label>
+                  <input 
+                    type="number"
+                    placeholder="Valor" 
+                    value={formData.veiculoValorAproximado || ''} 
+                    onChange={e => handleChange('veiculoValorAproximado', e.target.value)} 
                     className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs" 
                   />
                 </div>
@@ -845,42 +875,71 @@ export function CreateTowingQuote() {
           {/* VALIDAÇÃO ANTT */}
           <div className="bg-card border border-border p-5 rounded-2xl shadow-sm space-y-4">
             <h2 className="font-bold text-foreground text-base flex items-center gap-2 border-b pb-2">
-              <Scale className="text-primary" size={18} />
+              <ShieldCheck className="text-primary" size={18} />
               Validação ANTT
             </h2>
-            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-              <div className="flex flex-wrap gap-6 text-sm">
-                <label className="flex items-center gap-2.5 font-semibold text-foreground cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.anttRetornoVazio} 
-                    onChange={e => handleChange('anttRetornoVazio', e.target.checked)}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
-                  />
-                  <span>Retorno Vazio</span>
-                </label>
-                <label className="flex items-center gap-2.5 font-semibold text-foreground cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.anttAltoDesempenho} 
-                    onChange={e => handleChange('anttAltoDesempenho', e.target.checked)}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
-                  />
-                  <span>Alto Desempenho</span>
-                </label>
-                <label className="flex items-center gap-2.5 font-semibold text-foreground cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.anttComposicao} 
-                    onChange={e => handleChange('anttComposicao', e.target.checked)}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
-                  />
-                  <span>Composição Veicular</span>
-                </label>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                {/* Retorno Vazio */}
+                <div className={`p-4 border rounded-xl flex flex-col gap-2 transition-all ${formData.anttRetornoVazio ? 'bg-primary/5 border-primary shadow-xs' : 'bg-background border-border hover:bg-muted/30'}`}>
+                  <label className="flex items-center gap-2.5 font-bold text-foreground cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.anttRetornoVazio} 
+                      onChange={e => handleChange('anttRetornoVazio', e.target.checked)}
+                      className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
+                    />
+                    <span className="flex items-center gap-1.5 text-sm">
+                      <ArrowLeftRight size={16} className="text-primary" />
+                      Retorno Vazio
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-6">
+                    Aplica-se quando o veículo de guincho precisa retornar à base sem transportar nenhuma carga.
+                  </p>
+                </div>
+
+                {/* Alto Desempenho */}
+                <div className={`p-4 border rounded-xl flex flex-col gap-2 transition-all ${formData.anttAltoDesempenho ? 'bg-primary/5 border-primary shadow-xs' : 'bg-background border-border hover:bg-muted/30'}`}>
+                  <label className="flex items-center gap-2.5 font-bold text-foreground cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.anttAltoDesempenho} 
+                      onChange={e => handleChange('anttAltoDesempenho', e.target.checked)}
+                      className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
+                    />
+                    <span className="flex items-center gap-1.5 text-sm">
+                      <Zap size={16} className="text-primary" />
+                      Alto Desempenho
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-6">
+                    Aplica-se a operações com tempo de carga/descarga reduzido ou condições que exigem alta performance.
+                  </p>
+                </div>
+
+                {/* Composição Veicular */}
+                <div className={`p-4 border rounded-xl flex flex-col gap-2 transition-all ${formData.anttComposicao ? 'bg-primary/5 border-primary shadow-xs' : 'bg-background border-border hover:bg-muted/30'}`}>
+                  <label className="flex items-center gap-2.5 font-bold text-foreground cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.anttComposicao} 
+                      onChange={e => handleChange('anttComposicao', e.target.checked)}
+                      className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-offset-2"
+                    />
+                    <span className="flex items-center gap-1.5 text-sm">
+                      <Link2 size={16} className="text-primary" />
+                      Composição Veicular
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-6">
+                    Aplica-se ao uso de combinações de veículos de carga (ex: reboques acoplados ou multi-eixos).
+                  </p>
+                </div>
               </div>
 
               {formData.anttPisoMinimo > 0 && (
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border self-start ${
                   formData.valorTotal < formData.anttPisoMinimo 
                     ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' 
                     : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
@@ -1081,8 +1140,34 @@ export function CreateTowingQuote() {
               </div>
             )}
           </div>
+
+          {/* WIDGET GUIA DE TRANSPORTE */}
+          {formData.status === 'Aprovado' && isEditing && (
+            <div className="bg-card border border-primary/20 rounded-2xl shadow-md p-5 space-y-4 text-left">
+              <h2 className="font-bold text-foreground text-base border-b pb-2 flex items-center gap-1.5">
+                <FileText size={18} className="text-primary" />
+                Guia de Transporte
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Esta guia foi gerada automaticamente. Use as opções abaixo para visualizar ou compartilhar.
+              </p>
+              <button 
+                onClick={() => setIsGuiaModalOpen(true)}
+                className="w-full px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition flex items-center justify-center gap-1.5 shadow"
+              >
+                <Eye size={14} /> Visualizar Guia
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      <GuiaTransporteModal 
+        isOpen={isGuiaModalOpen}
+        onClose={() => setIsGuiaModalOpen(false)}
+        quote={formData}
+        company={user?.company}
+      />
     </div>
   );
 }

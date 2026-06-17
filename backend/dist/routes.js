@@ -24,6 +24,7 @@ const nfe_controller_1 = require("./controllers/nfe.controller");
 const towing_quote_controller_1 = require("./controllers/towing-quote.controller");
 const towing_fleet_controller_1 = require("./controllers/towing-fleet.controller");
 const towing_rate_controller_1 = require("./controllers/towing-rate.controller");
+const guia_transporte_controller_1 = require("./controllers/guia-transporte.controller");
 const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const admin_saas_controller_1 = require("./controllers/admin-saas.controller");
 const super_admin_middleware_1 = require("./middlewares/super-admin.middleware");
@@ -166,6 +167,10 @@ routes.get('/towing/types', authMiddleware, towing_fleet_controller_1.TowingFlee
 routes.get('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.list);
 routes.post('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.save);
 routes.get('/towing/rates/:id/history', authMiddleware, towing_rate_controller_1.TowingRateController.getHistory);
+// Towing Transport Guides (Guia de Transporte)
+routes.get('/towing/quotes/:id/guia', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.getGuiaByQuoteId);
+routes.post('/towing/guias/:id/audit', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.logAuditAction);
+routes.post('/towing/guias/:id/email', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.sendEmail);
 routes.get('/nfe/imports', authMiddleware, nfe_controller_1.NfeController.list);
 routes.post('/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
 routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPassword);

@@ -33,6 +33,8 @@ const createTowingQuoteSchema = z.object({
   veiculoModelo: z.string().optional(),
   veiculoAno: z.string().optional(),
   veiculoCor: z.string().optional(),
+  veiculoChassi: z.string().optional(),
+  veiculoValorAproximado: z.coerce.number().optional().nullable(),
 
   tipoGuincho: z.string().optional(),
   
@@ -70,6 +72,17 @@ export const TowingQuoteController = {
       const companyId = (req as any).companyId;
       const quotes = await prisma.towingQuote.findMany({
         where: { companyId },
+        include: {
+          driver: true,
+          vehicle: true,
+          guiaTransporte: {
+            include: {
+              audits: {
+                orderBy: { createdAt: 'desc' }
+              }
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       });
       return res.json(quotes);
@@ -140,7 +153,18 @@ export const TowingQuoteController = {
       const companyId = (req as any).companyId;
 
       const quote = await prisma.towingQuote.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+          driver: true,
+          vehicle: true,
+          guiaTransporte: {
+            include: {
+              audits: {
+                orderBy: { createdAt: 'desc' }
+              }
+            }
+          }
+        }
       });
 
       if (!quote || quote.companyId !== companyId) {
@@ -190,6 +214,31 @@ export const TowingQuoteController = {
         data: { numeroFormatado: numFormatado }
       });
 
+      // Automatic GuiaTransporte Generation
+      if (updatedQuote.status === 'Aprovado') {
+        const guia = await prisma.guiaTransporte.create({
+          data: {
+            orcamentoId: updatedQuote.id,
+            clienteId: updatedQuote.clientId,
+            valorTotal: updatedQuote.valorTotal,
+            status: 'APROVADO',
+          }
+        });
+        const anoGuia = guia.createdAt.getFullYear();
+        const numGuiaFormatado = `GT-${anoGuia}-${guia.numeroGuia.toString().padStart(6, '0')}`;
+        await prisma.guiaTransporte.update({
+          where: { id: guia.id },
+          data: { numeroFormatado: numGuiaFormatado }
+        });
+        await prisma.guiaTransporteAudit.create({
+          data: {
+            guiaTransporteId: guia.id,
+            acao: 'APROVAÇÃO_ORÇAMENTO',
+            detalhes: `Orçamento de guincho ${numFormatado} criado e aprovado. Guia ${numGuiaFormatado} gerada automaticamente.`
+          }
+        });
+      }
+
       AuditLogger.log(userId, companyId, 'CREATE_TOWING_QUOTE', `Orçamento de guincho ${numFormatado} criado`, 'SUCCESS');
 
       return res.status(201).json(updatedQuote);
@@ -235,6 +284,36 @@ export const TowingQuoteController = {
           status: isCurio ? 'Cobertura' : (data.status || existingQuote.status),
         }
       });
+
+      // Automatic GuiaTransporte Generation Hook on Update
+      if (updatedQuote.status === 'Aprovado') {
+        const existingGuia = await prisma.guiaTransporte.findUnique({
+          where: { orcamentoId: updatedQuote.id }
+        });
+        if (!existingGuia) {
+          const guia = await prisma.guiaTransporte.create({
+            data: {
+              orcamentoId: updatedQuote.id,
+              clienteId: updatedQuote.clientId,
+              valorTotal: updatedQuote.valorTotal,
+              status: 'APROVADO',
+            }
+          });
+          const anoGuia = guia.createdAt.getFullYear();
+          const numGuiaFormatado = `GT-${anoGuia}-${guia.numeroGuia.toString().padStart(6, '0')}`;
+          await prisma.guiaTransporte.update({
+            where: { id: guia.id },
+            data: { numeroFormatado: numGuiaFormatado }
+          });
+          await prisma.guiaTransporteAudit.create({
+            data: {
+              guiaTransporteId: guia.id,
+              acao: 'APROVAÇÃO_ORÇAMENTO',
+              detalhes: `Orçamento de guincho ${updatedQuote.numeroFormatado} aprovado. Guia ${numGuiaFormatado} gerada automaticamente.`
+            }
+          });
+        }
+      }
 
       AuditLogger.log(userId, companyId, 'UPDATE_TOWING_QUOTE', `Orçamento de guincho ${existingQuote.numeroFormatado} atualizado`, 'SUCCESS');
 

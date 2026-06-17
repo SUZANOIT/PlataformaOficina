@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "TowingQuote" ADD COLUMN "impostos" DOUBLE PRECISION NOT NULL DEFAULT 0;
