@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Truck, Plus, Search, Edit, Trash2, FileText } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Trash2, FileText, ClipboardCheck } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 import { authStorage } from '../../utils/auth';
 import { TowingPdfTemplate } from '../../components/TowingPdfTemplate';
 import { useGeneratePdf } from '../../hooks/useGeneratePdf';
+import { GuiaTransporteModal } from '../../components/GuiaTransporteModal';
 
 export function TowingQuotesList() {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ export function TowingQuotesList() {
   const pdfRef = useRef<HTMLDivElement>(null);
   const [printingQuote, setPrintingQuote] = useState<any>(null);
   const { generatePdf } = useGeneratePdf();
+
+  const [selectedQuoteForGuia, setSelectedQuoteForGuia] = useState<any>(null);
+  const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
 
   useEffect(() => {
     loadQuotes();
@@ -135,7 +139,16 @@ export function TowingQuotesList() {
                 filteredQuotes.map((quote) => (
                   <tr key={quote.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 font-medium text-primary whitespace-nowrap">
-                      {quote.numeroFormatado || quote.numeroSequencial || '-'}
+                      <div>{quote.numeroFormatado || quote.numeroSequencial || '-'}</div>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-black uppercase mt-1 ${
+                        quote.status === 'Aprovado'
+                          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/10'
+                          : quote.status === 'Rejeitado'
+                          ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10'
+                          : 'bg-blue-500/10 text-blue-600 border border-blue-500/10'
+                      }`}>
+                        {quote.status || 'Orçamento'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
@@ -163,6 +176,18 @@ export function TowingQuotesList() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-1.5 justify-end items-center">
+                        {quote.status === 'Aprovado' && (
+                          <button 
+                            onClick={() => {
+                              setSelectedQuoteForGuia(quote);
+                              setIsGuiaModalOpen(true);
+                            }}
+                            className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
+                            title="Guia de Transporte"
+                          >
+                            <ClipboardCheck size={16} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => handlePrint(quote)}
                           className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
@@ -204,6 +229,16 @@ export function TowingQuotesList() {
           />
         )}
       </div>
+
+      <GuiaTransporteModal 
+        isOpen={isGuiaModalOpen}
+        onClose={() => {
+          setIsGuiaModalOpen(false);
+          setSelectedQuoteForGuia(null);
+        }}
+        quote={selectedQuoteForGuia}
+        company={user?.company}
+      />
     </div>
   );
 }

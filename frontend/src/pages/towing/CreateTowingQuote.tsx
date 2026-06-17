@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Truck, MapPin, DollarSign, Save, Calculator, Car, User, 
   ShieldCheck, AlertTriangle, CheckCircle2, FileText, Calendar, 
-  Building, UserCheck, Play, ClipboardCheck, ArrowLeftRight, Zap, Link2
+  Building, UserCheck, Play, ClipboardCheck, ArrowLeftRight, Zap, Link2,
+  Eye
 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
+import { GuiaTransporteModal } from '../../components/GuiaTransporteModal';
 import { googleMapsService } from '../../services/google-maps.service';
 import { anttService } from '../../services/antt.service';
 import { api } from '../../services/api';
@@ -18,6 +20,7 @@ export function CreateTowingQuote() {
   const isEditing = !!id;
   const user = authStorage.getUser();
 
+  const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({
     clienteNome: '',
     clienteEmpresa: '',
@@ -43,6 +46,8 @@ export function CreateTowingQuote() {
     veiculoModelo: '',
     veiculoCor: '',
     veiculoAno: '',
+    veiculoChassi: '',
+    veiculoValorAproximado: '',
     tipoGuincho: '', // Placa do guincho da frota
     towingTypeId: '', // ID do tipo de guincho
     driverId: null,
@@ -588,10 +593,9 @@ export function CreateTowingQuote() {
               </div>
             </div>
 
-            {/* Veículo a ser Transportado (Cliente) */}
             <div className="border-t border-border pt-4 mt-4 space-y-3">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Veículo Transportado (Do Cliente)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Placa</label>
                   <input 
@@ -635,6 +639,25 @@ export function CreateTowingQuote() {
                     placeholder="Ex: Prata" 
                     value={formData.veiculoCor} 
                     onChange={e => handleChange('veiculoCor', e.target.value)} 
+                    className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Chassi</label>
+                  <input 
+                    placeholder="Chassi" 
+                    value={formData.veiculoChassi || ''} 
+                    onChange={e => handleChange('veiculoChassi', e.target.value.toUpperCase())} 
+                    className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs uppercase font-mono" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Valor Aprox.</label>
+                  <input 
+                    type="number"
+                    placeholder="Valor" 
+                    value={formData.veiculoValorAproximado || ''} 
+                    onChange={e => handleChange('veiculoValorAproximado', e.target.value)} 
                     className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs" 
                   />
                 </div>
@@ -1117,8 +1140,34 @@ export function CreateTowingQuote() {
               </div>
             )}
           </div>
+
+          {/* WIDGET GUIA DE TRANSPORTE */}
+          {formData.status === 'Aprovado' && isEditing && (
+            <div className="bg-card border border-primary/20 rounded-2xl shadow-md p-5 space-y-4 text-left">
+              <h2 className="font-bold text-foreground text-base border-b pb-2 flex items-center gap-1.5">
+                <FileText size={18} className="text-primary" />
+                Guia de Transporte
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Esta guia foi gerada automaticamente. Use as opções abaixo para visualizar ou compartilhar.
+              </p>
+              <button 
+                onClick={() => setIsGuiaModalOpen(true)}
+                className="w-full px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition flex items-center justify-center gap-1.5 shadow"
+              >
+                <Eye size={14} /> Visualizar Guia
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      <GuiaTransporteModal 
+        isOpen={isGuiaModalOpen}
+        onClose={() => setIsGuiaModalOpen(false)}
+        quote={formData}
+        company={user?.company}
+      />
     </div>
   );
 }
