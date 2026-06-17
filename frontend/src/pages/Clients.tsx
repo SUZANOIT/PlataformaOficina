@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Edit, 
-  Trash2, 
   X, 
   Search, 
   Building, 
@@ -18,10 +16,20 @@ import {
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { TableActionMenu } from '../components/ui/TableActionMenu';
+import { TablePagination } from '../components/ui/TablePagination';
 
 export function Clients() {
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Deletion modal state
+  const [clientToDelete, setClientToDelete] = useState<any>(null);
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,6 +74,10 @@ export function Clients() {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleOpenCreateModal = () => {
     setSelectedClient(null);
@@ -241,11 +253,7 @@ export function Clients() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza de que deseja excluir o cliente "${name}"?`)) {
-      return;
-    }
-
+  const confirmDeleteClient = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/registry/clients/${id}`, {
@@ -274,6 +282,13 @@ export function Clients() {
       client.email?.toLowerCase().includes(search)
     );
   });
+
+  const totalCount = filteredClients.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const totalClients = clients.length;
   const pjClients = clients.filter(c => {
@@ -362,11 +377,11 @@ export function Clients() {
                 <th className="p-4 hidden lg:table-cell w-2/12">Documento</th>
                 <th className="p-4 w-4/12 lg:w-3.5/12">Contato</th>
                 <th className="p-4 hidden xl:table-cell w-3/12">Localização</th>
-                <th className="p-4 w-4/12 lg:w-1.3/12 text-center lg:text-left">Ações</th>
+                <th className="p-4 w-4/12 lg:w-1.3/12 text-right lg:text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredClients.map((client) => {
+              {paginatedClients.map((client) => {
                 const docCleaned = (client.cnpj || '').replace(/\D/g, '');
                 const isPF = docCleaned.length === 11;
                 return (
@@ -431,27 +446,15 @@ export function Clients() {
                       )}
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-2 justify-center lg:justify-start">
-                        <button 
-                          onClick={() => handleOpenEditModal(client)}
-                          className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition shadow-sm"
-                          title="Editar"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(client.id, client.nome)}
-                          className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 transition shadow-sm"
-                          title="Excluir"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      <TableActionMenu
+                        onEdit={() => handleOpenEditModal(client)}
+                        onDelete={() => setClientToDelete(client)}
+                      />
                     </td>
                   </tr>
                 );
               })}
-              {filteredClients.length === 0 && (
+              {paginatedClients.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-10 text-center text-muted-foreground font-medium text-sm">
                     Nenhum cliente cadastrado ou localizado com estes filtros.
@@ -461,11 +464,19 @@ export function Clients() {
             </tbody>
           </table>
         </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          totalCount={totalCount}
+        />
       </div>
 
       {/* Mobile Card List */}
       <div className="block md:hidden space-y-4">
-        {filteredClients.map((client) => {
+        {paginatedClients.map((client) => {
           const docCleaned = (client.cnpj || '').replace(/\D/g, '');
           const isPF = docCleaned.length === 11;
           return (
@@ -520,29 +531,27 @@ export function Clients() {
 
               <div className="flex justify-between items-center pt-3 border-t border-border/50">
                 <span className="text-[10px] text-muted-foreground font-medium">Criado em: {new Date(client.createdAt).toLocaleDateString('pt-BR')}</span>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => handleOpenEditModal(client)}
-                    className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition shadow-sm"
-                  >
-                    <Edit size={13} />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(client.id, client.nome)}
-                    className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 transition shadow-sm"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                <TableActionMenu
+                  onEdit={() => handleOpenEditModal(client)}
+                  onDelete={() => setClientToDelete(client)}
+                />
               </div>
             </div>
           );
         })}
-        {filteredClients.length === 0 && (
+        {paginatedClients.length === 0 && (
           <div className="p-10 text-center text-muted-foreground bg-card border border-border rounded-2xl font-medium text-sm">
             Nenhum cliente cadastrado.
           </div>
         )}
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          totalCount={totalCount}
+        />
       </div>
 
       {/* Modal Cadastro/Edição */}
@@ -826,6 +835,18 @@ export function Clients() {
           </div>
         </div>
       )}
+      {/* CONFIRMATION DIALOG */}
+      <ConfirmModal
+        isOpen={!!clientToDelete}
+        onClose={() => setClientToDelete(null)}
+        onConfirm={() => {
+          if (clientToDelete) confirmDeleteClient(clientToDelete.id);
+        }}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o cliente "${clientToDelete?.nome || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        isDanger={true}
+      />
     </div>
   );
 }

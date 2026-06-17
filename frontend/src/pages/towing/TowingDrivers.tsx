@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { UserCheck, Save, Edit, Trash2 } from 'lucide-react';
+import { UserCheck, Save } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { TableActionMenu } from '../../components/ui/TableActionMenu';
+import { TablePagination } from '../../components/ui/TablePagination';
 
 export function TowingDrivers() {
   const [drivers, setDrivers] = useState<any[]>([]);
@@ -14,6 +17,13 @@ export function TowingDrivers() {
     categoria: '',
     validadeCnh: ''
   });
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Deletion modal state
+  const [driverToDelete, setDriverToDelete] = useState<any>(null);
 
   useEffect(() => {
     loadDrivers();
@@ -78,20 +88,26 @@ export function TowingDrivers() {
     }
   };
 
-  const handleDelete = async (driver: any) => {
-    if (window.confirm(`Tem certeza que deseja excluir o motorista ${driver.nome}?`)) {
-      try {
-        await towingService.deleteDriver(driver.id);
-        toast.success('Motorista excluído com sucesso!');
-        loadDrivers();
-        if (formData.id === driver.id) {
-          handleCancelEdit();
-        }
-      } catch (error) {
-        toast.error('Erro ao excluir motorista');
+  const confirmDeleteDriver = async (id: string) => {
+    try {
+      await towingService.deleteDriver(id);
+      toast.success('Motorista excluído com sucesso!');
+      loadDrivers();
+      if (formData.id === id) {
+        handleCancelEdit();
       }
+    } catch (error) {
+      toast.error('Erro ao excluir motorista');
     }
   };
+
+  // Pagination calculations
+  const totalCount = drivers.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedDrivers = drivers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -177,59 +193,70 @@ export function TowingDrivers() {
           </form>
         </div>
 
-        <div className="md:col-span-2 bg-card border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 font-medium">Nome</th>
-                <th className="px-4 py-3 font-medium">CPF</th>
-                <th className="px-4 py-3 font-medium">CNH</th>
-                <th className="px-4 py-3 font-medium text-center">Categoria</th>
-                <th className="px-4 py-3 font-medium">Validade CNH</th>
-                <th className="px-4 py-3 font-medium text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {drivers.map(d => (
-                <tr key={d.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium text-primary">{d.nome}</td>
-                  <td className="px-4 py-3">{d.cpf}</td>
-                  <td className="px-4 py-3">{d.cnh}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-1 bg-secondary rounded text-xs font-bold">{d.categoria}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {new Date(d.validadeCnh).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5 justify-end">
-                      <button 
-                        onClick={() => handleEdit(d)}
-                        className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
-                        title="Editar"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(d)}
-                        className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {drivers.length === 0 && (
+        <div className="md:col-span-2 bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col justify-between">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
                 <tr>
-                  <td colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum motorista cadastrado</td>
+                  <th className="px-4 py-3 font-medium">Nome</th>
+                  <th className="px-4 py-3 font-medium">CPF</th>
+                  <th className="px-4 py-3 font-medium">CNH</th>
+                  <th className="px-4 py-3 font-medium text-center">Categoria</th>
+                  <th className="px-4 py-3 font-medium">Validade CNH</th>
+                  <th className="px-4 py-3 font-medium text-right">Ações</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {paginatedDrivers.map(d => (
+                  <tr key={d.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3 font-medium text-primary">{d.nome}</td>
+                    <td className="px-4 py-3">{d.cpf}</td>
+                    <td className="px-4 py-3">{d.cnh}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="px-2 py-1 bg-secondary rounded text-xs font-bold">{d.categoria}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(d.validadeCnh).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <TableActionMenu
+                        onEdit={() => handleEdit(d)}
+                        onDelete={() => setDriverToDelete(d)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {paginatedDrivers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum motorista cadastrado</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+            totalCount={totalCount}
+          />
         </div>
       </div>
+
+      {/* CONFIRMATION DIALOG */}
+      <ConfirmModal
+        isOpen={!!driverToDelete}
+        onClose={() => setDriverToDelete(null)}
+        onConfirm={() => {
+          if (driverToDelete) confirmDeleteDriver(driverToDelete.id);
+        }}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o motorista ${driverToDelete?.nome || ''}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        isDanger={true}
+      />
     </div>
   );
 }

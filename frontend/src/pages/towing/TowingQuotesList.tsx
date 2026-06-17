@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Truck, Plus, Search, Edit, Trash2, FileText, ClipboardCheck,
-  CheckCircle2, DollarSign, RefreshCw
+  Truck, Plus, Search, ClipboardCheck, CheckCircle2, DollarSign, RefreshCw 
 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { toast } from 'sonner';
@@ -10,6 +9,9 @@ import { authStorage } from '../../utils/auth';
 import { TowingPdfTemplate } from '../../components/TowingPdfTemplate';
 import { useGeneratePdf } from '../../hooks/useGeneratePdf';
 import { GuiaTransporteModal } from '../../components/GuiaTransporteModal';
+import { TableActionMenu } from '../../components/ui/TableActionMenu';
+import { TablePagination } from '../../components/ui/TablePagination';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export function TowingQuotesList() {
   const navigate = useNavigate();
@@ -27,9 +29,20 @@ export function TowingQuotesList() {
   const [selectedQuoteForGuia, setSelectedQuoteForGuia] = useState<any>(null);
   const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Delete modal state
+  const [quoteToDelete, setQuoteToDelete] = useState<any>(null);
+
   useEffect(() => {
     loadQuotes();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const loadQuotes = async () => {
     try {
@@ -43,15 +56,13 @@ export function TowingQuotesList() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este orçamento?')) {
-      try {
-        await towingService.deleteQuote(id);
-        toast.success('Orçamento excluído com sucesso!');
-        loadQuotes();
-      } catch (error) {
-        toast.error('Erro ao excluir orçamento');
-      }
+  const confirmDelete = async (id: string) => {
+    try {
+      await towingService.deleteQuote(id);
+      toast.success('Orçamento excluído com sucesso!');
+      loadQuotes();
+    } catch (error) {
+      toast.error('Erro ao excluir orçamento');
     }
   };
 
@@ -98,11 +109,19 @@ export function TowingQuotesList() {
     );
   });
 
+  // Pagination calculations
+  const totalCount = filteredQuotes.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const paginatedQuotes = filteredQuotes.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   // Calculate Metrics
-  const totalCount = quotes.length;
+  const totalCountAll = quotes.length;
   const approvedQuotes = quotes.filter(q => q.status === 'Aprovado');
   const approvedCount = approvedQuotes.length;
-  const approvedRatio = totalCount > 0 ? (approvedCount / totalCount) * 100 : 0;
+  const approvedRatio = totalCountAll > 0 ? (approvedCount / totalCountAll) * 100 : 0;
   
   const estimatedRevenue = quotes
     .filter(q => q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Emitir Nota Fiscal')
@@ -145,11 +164,11 @@ export function TowingQuotesList() {
         {/* Metric Card 1 */}
         <div className="bg-card border border-border p-4.5 rounded-2xl shadow-xs flex items-center gap-4">
           <div className="p-3 bg-primary/10 text-primary rounded-xl shrink-0">
-            <FileText size={22} />
+            <Truck size={22} />
           </div>
           <div className="space-y-0.5 text-left">
             <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">Total de Orçamentos</span>
-            <span className="text-2xl font-black text-foreground">{totalCount}</span>
+            <span className="text-2xl font-black text-foreground">{totalCountAll}</span>
             <span className="text-[10px] text-muted-foreground block">Cadastrados no sistema</span>
           </div>
         </div>
@@ -240,14 +259,14 @@ export function TowingQuotesList() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredQuotes.length === 0 ? (
+              ) : paginatedQuotes.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-xs">
                     Nenhum orçamento de guincho localizado com os filtros selecionados.
                   </td>
                 </tr>
               ) : (
-                filteredQuotes.map((quote) => (
+                paginatedQuotes.map((quote) => (
                   <tr key={quote.id} className="hover:bg-muted/15 transition-colors group">
                     
                     {/* ID & STATUS BADGE */}
@@ -304,41 +323,24 @@ export function TowingQuotesList() {
 
                     {/* ACTION BUTTONS */}
                     <td className="px-5 py-3.5 text-right">
-                      <div className="flex gap-1 justify-end items-center">
-                        {quote.status === 'Aprovado' && (
-                          <button 
-                            onClick={() => {
-                              setSelectedQuoteForGuia(quote);
-                              setIsGuiaModalOpen(true);
-                            }}
-                            className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/20 hover:scale-105 transition active:scale-95 duration-100 flex items-center justify-center shrink-0"
-                            title="Guia de Transporte"
-                          >
-                            <ClipboardCheck size={14} />
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => handlePrint(quote)}
-                          className="p-1.5 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 hover:scale-105 transition active:scale-95 duration-100 flex items-center justify-center shrink-0"
-                          title="Imprimir PDF"
-                        >
-                          <FileText size={14} />
-                        </button>
-                        <button 
-                          onClick={() => navigate(`/towing/quotes/edit/${quote.id}`)}
-                          className="p-1.5 bg-slate-500/10 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-500/20 hover:scale-105 transition active:scale-95 duration-100 flex items-center justify-center shrink-0"
-                          title="Editar"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(quote.id)}
-                          className="p-1.5 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 hover:scale-105 transition active:scale-95 duration-100 flex items-center justify-center shrink-0"
-                          title="Excluir"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      <TableActionMenu
+                        onEdit={() => navigate(`/towing/quotes/edit/${quote.id}`)}
+                        onPrint={() => handlePrint(quote)}
+                        onDelete={() => setQuoteToDelete(quote)}
+                        extraActions={
+                          quote.status === 'Aprovado' ? [
+                            {
+                              label: 'Guia de Transporte',
+                              icon: <ClipboardCheck size={14} />,
+                              onClick: () => {
+                                setSelectedQuoteForGuia(quote);
+                                setIsGuiaModalOpen(true);
+                              },
+                              className: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+                            }
+                          ] : []
+                        }
+                      />
                     </td>
 
                   </tr>
@@ -347,6 +349,16 @@ export function TowingQuotesList() {
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION BAR */}
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          totalCount={totalCount}
+        />
       </div>
       
       {/* Hidden container for PDF rendering */}
@@ -368,6 +380,19 @@ export function TowingQuotesList() {
         }}
         quote={selectedQuoteForGuia}
         company={user?.company}
+      />
+
+      {/* CONFIRMATION DIALOG */}
+      <ConfirmModal
+        isOpen={!!quoteToDelete}
+        onClose={() => setQuoteToDelete(null)}
+        onConfirm={() => {
+          if (quoteToDelete) confirmDelete(quoteToDelete.id);
+        }}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o orçamento ${quoteToDelete?.numeroFormatado || quoteToDelete?.numeroSequencial || ''}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        isDanger={true}
       />
     </div>
   );

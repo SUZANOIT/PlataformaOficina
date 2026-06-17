@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Truck, Plus, Search, Edit, Trash2, X, Eye, ChevronLeft, ChevronRight, Save, Building, ShieldCheck } from 'lucide-react';
+import { Truck, Plus, Search, X, Save, Building, ShieldCheck } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { api } from '../../services/api';
 import { authStorage } from '../../utils/auth';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { TableActionMenu } from '../../components/ui/TableActionMenu';
+import { TablePagination } from '../../components/ui/TablePagination';
 
 export function TowingFleet() {
   const user = authStorage.getUser();
@@ -21,7 +24,10 @@ export function TowingFleet() {
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [pageSize, setPageSize] = useState(10);
+
+  // Deletion modal state
+  const [vehicleToDelete, setVehicleToDelete] = useState<any>(null);
 
   // Sorting States
   const [sortField, setSortField] = useState('placa');
@@ -160,15 +166,13 @@ export function TowingFleet() {
     }
   };
 
-  const handleDelete = async (vehicle: any) => {
-    if (window.confirm(`Tem certeza que deseja excluir o veículo de placa ${vehicle.placa}?`)) {
-      try {
-        await towingService.deleteVehicle(vehicle.id);
-        toast.success('Veículo excluído com sucesso!');
-        loadData();
-      } catch (error) {
-        toast.error('Erro ao excluir veículo');
-      }
+  const confirmDeleteVehicle = async (id: string) => {
+    try {
+      await towingService.deleteVehicle(id);
+      toast.success('Veículo excluído com sucesso!');
+      loadData();
+    } catch (error) {
+      toast.error('Erro ao excluir veículo');
     }
   };
 
@@ -223,8 +227,8 @@ export function TowingFleet() {
     setCurrentPage(1);
   }, [searchTerm, typeFilter, companyFilter]);
 
-  const totalPages = Math.ceil(sortedVehicles.length / itemsPerPage);
-  const paginatedVehicles = sortedVehicles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(sortedVehicles.length / pageSize);
+  const paginatedVehicles = sortedVehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -338,29 +342,11 @@ export function TowingFleet() {
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="flex gap-1.5 justify-end">
-                      <button 
-                        onClick={() => handleOpenViewModal(v)}
-                        className="p-1.5 bg-secondary text-muted-foreground rounded hover:bg-muted transition"
-                        title="Visualizar"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleOpenEditModal(v)}
-                        className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
-                        title="Editar"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(v)}
-                        className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    <TableActionMenu
+                      onView={() => handleOpenViewModal(v)}
+                      onEdit={() => handleOpenEditModal(v)}
+                      onDelete={() => setVehicleToDelete(v)}
+                    />
                   </td>
                 </tr>
               ))
@@ -406,24 +392,11 @@ export function TowingFleet() {
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
-                <button 
-                  onClick={() => handleOpenViewModal(v)}
-                  className="p-1.5 bg-secondary text-muted-foreground rounded hover:bg-muted transition text-xs flex items-center gap-1"
-                >
-                  <Eye size={12} /> Detalhes
-                </button>
-                <button 
-                  onClick={() => handleOpenEditModal(v)}
-                  className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition text-xs flex items-center gap-1"
-                >
-                  <Edit size={12} /> Editar
-                </button>
-                <button 
-                  onClick={() => handleDelete(v)}
-                  className="p-1.5 bg-rose-500/10 text-rose-600 rounded hover:bg-rose-500/20 transition text-xs flex items-center gap-1"
-                >
-                  <Trash2 size={12} /> Excluir
-                </button>
+                <TableActionMenu
+                  onView={() => handleOpenViewModal(v)}
+                  onEdit={() => handleOpenEditModal(v)}
+                  onDelete={() => setVehicleToDelete(v)}
+                />
               </div>
             </div>
           ))
@@ -431,33 +404,15 @@ export function TowingFleet() {
       </div>
 
       {/* Paginação */}
-      {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between bg-card border border-border p-4 rounded-xl shadow-sm gap-4">
-          <p className="text-sm text-muted-foreground text-center sm:text-left">
-            Mostrando <span className="font-medium text-foreground">{((currentPage - 1) * itemsPerPage) + 1}</span> a{' '}
-            <span className="font-medium text-foreground">{Math.min(currentPage * itemsPerPage, filteredVehicles.length)}</span> de{' '}
-            <span className="font-medium text-foreground">{filteredVehicles.length}</span> veículos
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition text-foreground"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-sm font-medium px-3 text-foreground">
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition text-foreground"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+      {!loading && (
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          totalCount={filteredVehicles.length}
+        />
       )}
 
       {/* Modal Cadastro/Edição */}
@@ -763,6 +718,18 @@ export function TowingFleet() {
           </div>
         </div>
       )}
+      {/* CONFIRMATION DIALOG */}
+      <ConfirmModal
+        isOpen={!!vehicleToDelete}
+        onClose={() => setVehicleToDelete(null)}
+        onConfirm={() => {
+          if (vehicleToDelete) confirmDeleteVehicle(vehicleToDelete.id);
+        }}
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o veículo de placa ${vehicleToDelete?.placa || ''}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        isDanger={true}
+      />
     </div>
   );
 }
