@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Truck, FileText, DollarSign, Users, Scale, AlertTriangle, CheckCircle2, BarChart3, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Truck, FileText, DollarSign, Users, Scale, ShieldCheck, AlertTriangle, CheckCircle2, BarChart3, TrendingUp } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 
 export function TowingDashboard() {
@@ -142,7 +142,7 @@ export function TowingDashboard() {
       </div>
 
       <div className="flex items-center gap-2 mt-8 mb-4">
-        <Scale className="text-primary" />
+        <ShieldCheck className="text-primary" />
         <h2 className="text-xl font-bold">Validação Legal ANTT</h2>
       </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Truck, MapPin, DollarSign, Save, Calculator, Car, User, 
-  Scale, AlertTriangle, CheckCircle2, FileText, Calendar, 
+  ShieldCheck, AlertTriangle, CheckCircle2, FileText, Calendar, 
   Building, UserCheck, Play, ClipboardCheck, ArrowLeftRight, Zap, Link2
 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
@@ -852,7 +852,7 @@ export function CreateTowingQuote() {
           {/* VALIDAÇÃO ANTT */}
           <div className="bg-card border border-border p-5 rounded-2xl shadow-sm space-y-4">
             <h2 className="font-bold text-foreground text-base flex items-center gap-2 border-b pb-2">
-              <Scale className="text-primary" size={18} />
+              <ShieldCheck className="text-primary" size={18} />
               Validação ANTT
             </h2>
             <div className="flex flex-col gap-4">
