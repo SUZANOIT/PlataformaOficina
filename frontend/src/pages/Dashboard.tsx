@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { 
   FileText, 
   Users, 
@@ -7,12 +6,13 @@ import {
   DollarSign, 
   Percent, 
   Activity, 
-  Eye,
   SlidersHorizontal
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { TableActionMenu } from '../components/ui/TableActionMenu';
 
+import { useState, useEffect } from 'react';
 export function Dashboard() {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
@@ -474,7 +474,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Chart Body */}
-                <div className="h-72 flex items-end justify-between gap-2 pt-10 px-2 overflow-x-auto scrollbar-none">
+                <div className="h-80 flex items-end justify-between gap-2 pt-16 px-2 overflow-x-auto scrollbar-none">
                   {s.monthlyBilling.map((m: any) => {
                     const paidPct = (m.valorPago / maxMonthlyPaid) * 80; // max 80% height
                     const qtyPct = (m.qtdServicos / maxMonthlyQty) * 80;
@@ -497,14 +497,14 @@ export function Dashboard() {
                         <div className="w-full flex justify-center items-end flex-1 gap-1">
                           {/* Revenue Bar */}
                           <div 
-                            style={{ height: `${Math.max(paidPct, 4)}%` }}
+                            style={{ height: m.valorPago > 0 ? `${Math.max(paidPct, 6)}%` : '0%' }}
                             className={`w-3.5 rounded-t-md transition-all duration-300 ${
                               m.valorPago > 0 ? 'bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
                             }`}
                           />
                           {/* Service Qty Bar */}
                           <div 
-                            style={{ height: `${Math.max(qtyPct, 4)}%` }}
+                            style={{ height: m.qtdServicos > 0 ? `${Math.max(qtyPct, 6)}%` : '0%' }}
                             className={`w-2.5 rounded-t-sm transition-all duration-300 ${
                               m.qtdServicos > 0 ? 'bg-slate-300 dark:bg-slate-700 shadow-xs' : 'bg-slate-100 dark:bg-slate-800'
                             }`}
@@ -569,7 +569,7 @@ export function Dashboard() {
                       <th className="p-4 text-right w-[150px]">Valor</th>
                       <th className="p-4 text-center w-[150px]">Status</th>
                       <th className="p-4 text-center w-[130px]">Data</th>
-                      <th className="p-4 text-center w-[70px] pr-6">Ações</th>
+                      <th className="p-4 text-right w-[100px] pr-6">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -598,14 +598,10 @@ export function Dashboard() {
                           </span>
                         </td>
                         <td className="p-4 text-center text-xs text-muted-foreground">{new Date(srv.data).toLocaleDateString('pt-BR')}</td>
-                        <td className="p-4 text-center pr-6">
-                          <button
-                            onClick={() => navigate(`/quotes/view/${srv.id}`)}
-                            className="p-1.5 bg-muted rounded-lg text-foreground hover:bg-muted-foreground/20 hover:text-primary transition"
-                            title="Ver detalhes"
-                          >
-                            <Eye size={14} />
-                          </button>
+                        <td className="p-4 text-right pr-6">
+                          <TableActionMenu
+                            onView={() => navigate(`/quotes/view/${srv.id}`)}
+                          />
                         </td>
                       </tr>
                     ))}
