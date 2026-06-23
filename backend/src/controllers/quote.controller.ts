@@ -993,6 +993,8 @@ export const QuoteController = {
         subfrota
       } = req.query as any;
 
+      const where: Prisma.QuoteWhereInput = companyId ? { companyId } : {};
+
       const where: Prisma.QuoteWhereInput = {
         companyId
       };
@@ -1000,7 +1002,7 @@ export const QuoteController = {
       if (clientId && clientId !== 'all') {
         where.clientId = clientId;
       }
-      if (placa && placa.trim() !== '') {
+      if (placa && placa !== 'all' && placa.trim() !== '') {
         where.veiculoPlaca = {
           contains: placa.trim(),
           mode: 'insensitive'
@@ -1012,7 +1014,7 @@ export const QuoteController = {
       if (status && status !== 'all') {
         where.status = status;
       }
-      if (subfrota && subfrota.trim() !== '') {
+      if (subfrota && subfrota !== 'all' && subfrota.trim() !== '') {
         where.veiculoSubfrota = {
           contains: subfrota.trim(),
           mode: 'insensitive'
