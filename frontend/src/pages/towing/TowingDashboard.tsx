@@ -492,14 +492,51 @@ export function TowingDashboard() {
                 </div>
 
                 {/* ANTT Info Box */}
-                <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mt-6">
-                  <span className="text-xs font-semibold text-primary uppercase tracking-wider block">ANTT — Piso Mínimo</span>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {s.anttStats.belowAntt > 0
-                      ? `⚠️ ${s.anttStats.belowAntt} orçamento(s) abaixo do piso ANTT. Revise os valores.`
-                      : 'Todos os orçamentos com ANTT estão acima do piso mínimo.'}
-                  </p>
-                </div>
+                {(() => {
+                  const belowAnttQuotes = quotes.filter(
+                    (q) => q.anttPisoMinimo && q.anttPisoMinimo > 0 && q.valorTotal < q.anttPisoMinimo
+                  );
+                  return belowAnttQuotes.length > 0 ? (
+                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4 mt-6 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle size={15} className="text-rose-500 shrink-0" />
+                        <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">
+                          ANTT — {belowAnttQuotes.length} orçamento(s) abaixo do piso mínimo
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {belowAnttQuotes.map((q) => (
+                          <button
+                            key={q.id}
+                            onClick={() => navigate(`/towing/quotes/edit/${q.id}`)}
+                            className="w-full flex items-center justify-between bg-background border border-rose-500/15 hover:border-rose-500/40 rounded-lg px-3 py-2 text-xs transition group"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-primary shrink-0">
+                                {q.numeroFormatado || `#${q.id.substring(0, 8)}`}
+                              </span>
+                              <span className="text-muted-foreground truncate">
+                                {q.clienteEmpresa || q.clienteNome || '—'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 ml-2 text-right">
+                              <span className="text-foreground font-semibold">{formatCurrency(q.valorTotal)}</span>
+                              <span className="text-muted-foreground">vs piso</span>
+                              <span className="font-bold text-rose-600">{formatCurrency(q.anttPisoMinimo)}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mt-6">
+                      <span className="text-xs font-semibold text-primary uppercase tracking-wider block">ANTT — Piso Mínimo</span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        ✅ Todos os orçamentos com ANTT estão acima do piso mínimo.
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
