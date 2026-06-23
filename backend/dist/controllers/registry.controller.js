@@ -60,6 +60,58 @@ exports.RegistryController = {
         try {
             const { search } = req.query;
             const companyId = req.companyId || null;
+            // Auto-deduplicate clients for the current company
+            try {
+                const allClients = await prisma_1.prisma.client.findMany({
+                    where: { companyId },
+                    include: { quotes: true }
+                });
+                const groups = {};
+                for (const client of allClients) {
+                    let key = '';
+                    if (client.cnpj && client.cnpj.trim().replace(/\D/g, '').length === 14) {
+                        key = `cnpj_${client.cnpj.trim().replace(/\D/g, '')}`;
+                    }
+                    else if (client.email && client.email.trim().includes('@')) {
+                        key = `email_${client.email.trim().toLowerCase()}`;
+                    }
+                    else {
+                        key = `nome_${client.nome.trim().toLowerCase()}`;
+                    }
+                    if (!groups[key]) {
+                        groups[key] = [];
+                    }
+                    groups[key].push(client);
+                }
+                for (const [key, group] of Object.entries(groups)) {
+                    if (group.length <= 1)
+                        continue;
+                    const survivor = group.reduce((prev, curr) => {
+                        if (curr.quotes.length > prev.quotes.length)
+                            return curr;
+                        if (curr.quotes.length < prev.quotes.length)
+                            return prev;
+                        const prevScore = (prev.cnpj ? 1 : 0) + (prev.email ? 1 : 0) + (prev.telefone ? 1 : 0) + (prev.cidade ? 1 : 0);
+                        const currScore = (curr.cnpj ? 1 : 0) + (curr.email ? 1 : 0) + (curr.telefone ? 1 : 0) + (curr.cidade ? 1 : 0);
+                        return currScore > prevScore ? curr : prev;
+                    });
+                    const duplicates = group.filter(c => c.id !== survivor.id);
+                    for (const duplicate of duplicates) {
+                        if (duplicate.quotes.length > 0) {
+                            await prisma_1.prisma.quote.updateMany({
+                                where: { clientId: duplicate.id, companyId },
+                                data: { clientId: survivor.id }
+                            });
+                        }
+                        await prisma_1.prisma.client.delete({
+                            where: { id: duplicate.id }
+                        });
+                    }
+                }
+            }
+            catch (dedupError) {
+                console.error('Error in client auto-deduplication:', dedupError);
+            }
             const whereClause = { companyId };
             if (search) {
                 whereClause.AND = [

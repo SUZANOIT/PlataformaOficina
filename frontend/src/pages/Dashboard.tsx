@@ -7,7 +7,6 @@ import {
   DollarSign, 
   Percent, 
   Activity, 
-  UserCheck,
   Eye,
   SlidersHorizontal
 } from 'lucide-react';
@@ -19,7 +18,7 @@ export function Dashboard() {
   const currentYear = new Date().getFullYear();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'financeiro' | 'clientes' | 'operacional'>('financeiro');
+  const [activeTab, setActiveTab] = useState<'financeiro' | 'clientes'>('financeiro');
 
   // Filter States
   const [selectedOficinaId, setSelectedOficinaId] = useState('all');
@@ -238,7 +237,7 @@ export function Dashboard() {
               className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
             >
               <option value="all">Todos os Clientes</option>
-              {clients.map(c => (
+              {Array.from(new Map(clients.map(c => [c.nome.trim().toLowerCase(), c])).values()).map(c => (
                 <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
@@ -446,17 +445,6 @@ export function Dashboard() {
           <Users size={16} />
           Clientes
         </button>
-        <button
-          onClick={() => setActiveTab('operacional')}
-          className={`px-6 py-3 font-semibold text-sm transition relative border-b-2 flex items-center gap-2 ${
-            activeTab === 'operacional'
-              ? 'text-primary border-primary font-bold'
-              : 'text-muted-foreground border-transparent hover:text-foreground'
-          }`}
-        >
-          <Wrench size={16} />
-          Operacional
-        </button>
       </div>
 
       {/* Tab Panels */}
@@ -464,103 +452,172 @@ export function Dashboard() {
         
         {/* Aba 1: Financeiro */}
         {activeTab === 'financeiro' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
-            {/* Monthly Billing Chart */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm p-6 lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <h3 className="font-bold text-foreground">Faturamento Mensal da Oficina</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Janeiro a Dezembro de {currentYear}</p>
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Monthly Billing Chart */}
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 lg:col-span-2 space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div>
+                    <h3 className="font-bold text-foreground">Faturamento Mensal da Oficina</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Janeiro a Dezembro de {currentYear}</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] font-medium">
+                    <div className="flex items-center gap-1.5 text-blue-600">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                      <span>Valor Pago (R$)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <span className="w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-700"></span>
+                      <span>Serviços Executados</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-[11px] font-medium">
-                  <div className="flex items-center gap-1.5 text-blue-600">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                    <span>Valor Pago (R$)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-700"></span>
-                    <span>Serviços Executados</span>
-                  </div>
+
+                {/* Chart Body */}
+                <div className="h-72 flex items-end justify-between gap-2 pt-10 px-2 overflow-x-auto scrollbar-none">
+                  {s.monthlyBilling.map((m: any) => {
+                    const paidPct = (m.valorPago / maxMonthlyPaid) * 80; // max 80% height
+                    const qtyPct = (m.qtdServicos / maxMonthlyQty) * 80;
+                    
+                    return (
+                      <div key={m.month} className="flex-1 flex flex-col items-center group relative h-full justify-end min-w-[32px]">
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-xl shadow-lg text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">{m.month} / {currentYear}</span>
+                          <span className="text-blue-600">Pago: {formatCurrency(m.valorPago)}</span>
+                          <span className="text-foreground">Serviços: {m.qtdServicos}</span>
+                          {m.percentualComparativo !== 0 && (
+                            <span className={`text-[10px] ${m.percentualComparativo > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {m.percentualComparativo > 0 ? '▲' : '▼'} {Math.abs(m.percentualComparativo).toFixed(1)}% vs. mês ant.
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bar columns */}
+                        <div className="w-full flex justify-center items-end flex-1 gap-1">
+                          {/* Revenue Bar */}
+                          <div 
+                            style={{ height: `${Math.max(paidPct, 4)}%` }}
+                            className={`w-3.5 rounded-t-md transition-all duration-300 ${
+                              m.valorPago > 0 ? 'bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
+                            }`}
+                          />
+                          {/* Service Qty Bar */}
+                          <div 
+                            style={{ height: `${Math.max(qtyPct, 4)}%` }}
+                            className={`w-2.5 rounded-t-sm transition-all duration-300 ${
+                              m.qtdServicos > 0 ? 'bg-slate-300 dark:bg-slate-700 shadow-xs' : 'bg-slate-100 dark:bg-slate-800'
+                            }`}
+                          />
+                        </div>
+
+                        {/* X Label */}
+                        <span className="text-[10px] text-muted-foreground font-semibold mt-2.5">
+                          {m.month}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Chart Body */}
-              <div className="h-72 flex items-end justify-between gap-2 pt-10 px-2 overflow-x-auto scrollbar-none">
-                {s.monthlyBilling.map((m: any) => {
-                  const paidPct = (m.valorPago / maxMonthlyPaid) * 80; // max 80% height
-                  const qtyPct = (m.qtdServicos / maxMonthlyQty) * 80;
-                  
-                  return (
-                    <div key={m.month} className="flex-1 flex flex-col items-center group relative h-full justify-end min-w-[32px]">
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-xl shadow-lg text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col gap-0.5">
-                        <span className="text-muted-foreground">{m.month} / {currentYear}</span>
-                        <span className="text-blue-600">Pago: {formatCurrency(m.valorPago)}</span>
-                        <span className="text-foreground">Serviços: {m.qtdServicos}</span>
-                        {m.percentualComparativo !== 0 && (
-                          <span className={`text-[10px] ${m.percentualComparativo > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {m.percentualComparativo > 0 ? '▲' : '▼'} {Math.abs(m.percentualComparativo).toFixed(1)}% vs. mês ant.
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Bar columns */}
-                      <div className="w-full flex justify-center items-end h-full gap-1">
-                        {/* Revenue Bar */}
-                        <div 
-                          style={{ height: `${Math.max(paidPct, 4)}%` }}
-                          className={`w-3.5 rounded-t-md transition-all duration-300 ${
-                            m.valorPago > 0 ? 'bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
-                          }`}
-                        />
-                        {/* Service Qty Bar */}
-                        <div 
-                          style={{ height: `${Math.max(qtyPct, 4)}%` }}
-                          className={`w-2.5 rounded-t-sm transition-all duration-300 ${
-                            m.qtdServicos > 0 ? 'bg-slate-300 dark:bg-slate-700 shadow-xs' : 'bg-slate-100 dark:bg-slate-800'
-                          }`}
-                        />
-                      </div>
-
-                      {/* X Label */}
-                      <span className="text-[10px] text-muted-foreground font-semibold mt-2.5">
-                        {m.month}
-                      </span>
+              {/* Financial Accumulators Side-Panel */}
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-foreground border-b border-border pb-3 mb-4">Resumo Acumulado</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-medium block">Faturamento Anual do Ano ({currentYear})</span>
+                      <strong className="text-3xl font-extrabold text-foreground block mt-0.5">{formatCurrency(s.faturamentoAcumuladoAno)}</strong>
+                      <span className="text-[10px] text-muted-foreground">Somatório de todos os orçamentos pagos</span>
                     </div>
-                  );
-                })}
+
+                    <div className="border-t border-border pt-4 grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-xs text-muted-foreground font-medium block">O.S. Faturadas</span>
+                        <strong className="text-lg font-bold text-foreground block">{s.monthlyBilling.reduce((acc: number, m: any) => acc + m.qtdServicos, 0)}</strong>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground font-medium block">Ticket Médio Anual</span>
+                        <strong className="text-lg font-bold text-foreground block">{formatCurrency(s.ticketMedio)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mt-6">
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider block">Nota Fiscal Automática</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Orçamentos aprovados alimentam as Contas a Receber e podem gerar descrições de NFs prontas para o financeiro.
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Financial Accumulators Side-Panel */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-foreground border-b border-border pb-3 mb-4">Resumo Acumulado</h3>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium block">Faturamento Anual do Ano ({currentYear})</span>
-                    <strong className="text-3xl font-extrabold text-foreground block mt-0.5">{formatCurrency(s.faturamentoAcumuladoAno)}</strong>
-                    <span className="text-[10px] text-muted-foreground">Somatório de todos os orçamentos pagos</span>
-                  </div>
-
-                  <div className="border-t border-border pt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-muted-foreground font-medium block">O.S. Faturadas</span>
-                      <strong className="text-lg font-bold text-foreground block">{s.monthlyBilling.reduce((acc: number, m: any) => acc + m.qtdServicos, 0)}</strong>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground font-medium block">Ticket Médio Anual</span>
-                      <strong className="text-lg font-bold text-foreground block">{formatCurrency(s.ticketMedio)}</strong>
-                    </div>
-                  </div>
-                </div>
+            {/* Services Grid (Ordens de Serviço) */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 className="font-bold text-foreground">Listagem Geral de Serviços e O.S.</h3>
               </div>
-
-              <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mt-6">
-                <span className="text-xs font-semibold text-primary uppercase tracking-wider block">Nota Fiscal Automática</span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Orçamentos aprovados alimentam as Contas a Receber e podem gerar descrições de NFs prontas para o financeiro.
-                </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                      <th className="p-4 pl-6 w-[90px]">OS</th>
+                      <th className="p-4">Cliente</th>
+                      {selectedOficinaId === 'all' && <th className="p-4 w-[25%]">Oficina</th>}
+                      <th className="p-4 text-right w-[150px]">Valor</th>
+                      <th className="p-4 text-center w-[150px]">Status</th>
+                      <th className="p-4 text-center w-[130px]">Data</th>
+                      <th className="p-4 text-center w-[70px] pr-6">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.servicesGrid.map((srv: any) => (
+                      <tr key={srv.id} className="border-b border-border hover:bg-muted/10 transition">
+                        <td className="p-4 pl-6 font-bold text-primary">#{String(srv.os).padStart(5, '0')}</td>
+                        <td className="p-4 font-semibold text-foreground truncate" title={srv.cliente}>{srv.cliente}</td>
+                        {selectedOficinaId === 'all' && (
+                          <td className="p-4 text-muted-foreground font-semibold truncate" title={srv.oficina}>
+                            {srv.oficina}
+                          </td>
+                        )}
+                        <td className="p-4 text-right font-extrabold text-emerald-600">{formatCurrency(srv.valor)}</td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
+                            (srv.status === 'Orçamento' || srv.status === 'Em Andamento' || srv.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
+                            srv.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                            srv.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                            srv.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
+                            srv.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
+                            srv.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
+                            srv.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                            'bg-slate-500/10 text-slate-600 border-slate-500/20'
+                          }`}>
+                            {srv.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center text-xs text-muted-foreground">{new Date(srv.data).toLocaleDateString('pt-BR')}</td>
+                        <td className="p-4 text-center pr-6">
+                          <button
+                            onClick={() => navigate(`/quotes/view/${srv.id}`)}
+                            className="p-1.5 bg-muted rounded-lg text-foreground hover:bg-muted-foreground/20 hover:text-primary transition"
+                            title="Ver detalhes"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {s.servicesGrid.length === 0 && (
+                      <tr>
+                        <td colSpan={selectedOficinaId === 'all' ? 7 : 6} className="p-8 text-center text-muted-foreground">
+                          Nenhum serviço correspondente registrado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -635,160 +692,6 @@ export function Dashboard() {
                     {s.clientsGrid.length === 0 && (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum cliente cadastrado no período.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Aba 3: Operacional */}
-        {activeTab === 'operacional' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* SLA Info & Mechanics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* SLA Cards Panel */}
-              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 space-y-5">
-                <h3 className="font-bold text-foreground border-b border-border pb-3">Prazos de Atendimento (SLA)</h3>
-                
-                <div className="space-y-4">
-                  {/* Approval SLA */}
-                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
-                    <div>
-                      <span className="text-xs text-muted-foreground font-semibold block">Tempo p/ Aprovação</span>
-                      <span className="text-[10px] text-muted-foreground">Orçamento → Aprovado</span>
-                    </div>
-                    <strong className="text-lg font-black text-primary">{formatDuration(s.tempoMedioAprovacao)}</strong>
-                  </div>
-
-                  {/* Execution SLA */}
-                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
-                    <div>
-                      <span className="text-xs text-muted-foreground font-semibold block">Tempo de Execução</span>
-                      <span className="text-[10px] text-muted-foreground">Aprovado → Concluído</span>
-                    </div>
-                    <strong className="text-lg font-black text-emerald-600">{formatDuration(s.tempoMedioExecucao)}</strong>
-                  </div>
-
-                  {/* Open OS count */}
-                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
-                    <div>
-                      <span className="text-xs text-muted-foreground font-semibold block">Serviços em Aberto</span>
-                      <span className="text-[10px] text-muted-foreground">Executando / Aguardando</span>
-                    </div>
-                    <strong className="text-lg font-black text-amber-500">
-                      {s.servicesGrid.filter((q: any) => ['Aprovado', 'Aguardando Pagamento'].includes(q.status)).length} OS
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mechanics Productivity Grid */}
-              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 md:col-span-2 space-y-4">
-                <h3 className="font-bold text-foreground border-b border-border pb-3 flex items-center gap-2">
-                  <UserCheck size={18} className="text-primary" />
-                  <span>Produtividade dos Mecânicos</span>
-                </h3>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-border text-muted-foreground text-xs font-bold uppercase pb-2">
-                        <th className="py-2 pl-2">Mecânico</th>
-                        <th className="py-2 text-center">Atendimentos Aprovados</th>
-                        <th className="py-2 text-right pr-2">Tempo Médio de Execução</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.strategicIndicators.topMechanics.map((m: any) => (
-                        <tr key={m.id} className="border-b border-border/50 hover:bg-muted/10 transition">
-                          <td className="py-3 pl-2 font-bold text-foreground">{m.name}</td>
-                          <td className="py-3 text-center font-medium">{m.atendimentos} O.S.</td>
-                          <td className="py-3 text-right pr-2 font-extrabold text-primary">{formatDuration(m.tempoMedioExecucaoHoras)}</td>
-                        </tr>
-                      ))}
-                      {s.strategicIndicators.topMechanics.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="py-6 text-center text-muted-foreground text-sm">Nenhum mecânico associado a orçamentos aprovados.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* Services Grid (Ordens de Serviço) */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="font-bold text-foreground">Listagem Geral de Serviços e O.S.</h3>
-                {selectedOficinaId !== 'all' && (
-                  <span className="self-start sm:self-center text-xs bg-primary/10 text-primary font-bold px-3 py-1 rounded-full border border-primary/20">
-                    Oficina: {workshops.find(w => w.id === selectedOficinaId)?.nome || 'Filtrada'}
-                  </span>
-                )}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[900px]">
-                  <thead>
-                    <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4 pl-6 w-[90px]">OS</th>
-                      <th className="p-4 w-[18%]">Cliente</th>
-                      {selectedOficinaId === 'all' && <th className="p-4 w-[15%]">Oficina</th>}
-                      <th className="p-4 w-[18%]">Veículo</th>
-                      <th className="p-4">Serviços Executados</th>
-                      <th className="p-4 text-right w-[120px]">Valor</th>
-                      <th className="p-4 text-center w-[150px]">Status</th>
-                      <th className="p-4 text-center w-[120px]">Data</th>
-                      <th className="p-4 text-center w-[70px] pr-6">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {s.servicesGrid.map((srv: any) => (
-                      <tr key={srv.id} className="border-b border-border hover:bg-muted/10 transition">
-                        <td className="p-4 pl-6 font-bold text-primary">#{String(srv.os).padStart(5, '0')}</td>
-                        <td className="p-4 font-semibold text-foreground truncate" title={srv.cliente}>{srv.cliente}</td>
-                        {selectedOficinaId === 'all' && (
-                          <td className="p-4 text-muted-foreground font-semibold truncate" title={srv.oficina}>
-                            {srv.oficina}
-                          </td>
-                        )}
-                        <td className="p-4 text-muted-foreground truncate" title={srv.veiculo}>{srv.veiculo}</td>
-                        <td className="p-4 text-foreground font-medium truncate max-w-[200px]" title={srv.servico}>{srv.servico}</td>
-                        <td className="p-4 text-right font-extrabold text-emerald-600">{formatCurrency(srv.valor)}</td>
-                        <td className="p-4 text-center">
-                          <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
-                            (srv.status === 'Orçamento' || srv.status === 'Em Andamento' || srv.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
-                            srv.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                            srv.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                            srv.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
-                            srv.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
-                            srv.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
-                            srv.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                            'bg-slate-500/10 text-slate-600 border-slate-500/20'
-                          }`}>
-                            {srv.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center text-xs text-muted-foreground">{new Date(srv.data).toLocaleDateString('pt-BR')}</td>
-                        <td className="p-4 text-center pr-6">
-                          <button
-                            onClick={() => navigate(`/quotes/view/${srv.id}`)}
-                            className="p-1.5 bg-muted rounded-lg text-foreground hover:bg-muted-foreground/20 hover:text-primary transition"
-                            title="Ver detalhes"
-                          >
-                            <Eye size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {s.servicesGrid.length === 0 && (
-                      <tr>
-                        <td colSpan={selectedOficinaId === 'all' ? 9 : 8} className="p-8 text-center text-muted-foreground">
-                          Nenhum serviço correspondente registrado.
-                        </td>
                       </tr>
                     )}
                   </tbody>
