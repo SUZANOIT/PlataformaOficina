@@ -164,6 +164,7 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
                 <div>
                   <p className="text-slate-600 text-[11px]">Veículo Transportado: <span className="font-bold text-slate-800">{quote.veiculoModelo || '-'} ({quote.veiculoPlaca || '-'})</span></p>
                   <p className="text-slate-600 text-[11px]">Tipo do Guincho: <span className="font-bold text-slate-800">{quote.tipoGuincho || '-'}</span></p>
+                  <p className="text-slate-600 text-[11px]">Valor do Veículo: <span className="font-bold text-slate-800">{quote.valorVeiculo ? formatCurrency(quote.valorVeiculo) : 'Não informado'}</span></p>
                 </div>
               </div>
             </div>
@@ -402,6 +403,7 @@ export const TowingPdfTemplate = forwardRef<HTMLDivElement, TowingPdfTemplatePro
               <div>
                 <p className="text-slate-655 text-[11px]">Veículo Transportado: <span className="font-semibold text-slate-800">{quote.veiculoModelo || '-'} ({quote.veiculoPlaca || '-'})</span></p>
                 <p className="text-slate-655 text-[11px]">Tipo do Guincho: <span className="font-semibold text-slate-800">{quote.tipoGuincho || '-'}</span></p>
+                <p className="text-slate-655 text-[11px]">Valor do Veículo: <span className="font-semibold text-slate-800">{quote.valorVeiculo ? formatCurrency(quote.valorVeiculo) : 'Não informado'}</span></p>
               </div>
             </div>
           </div>

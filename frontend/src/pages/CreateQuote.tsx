@@ -65,6 +65,7 @@ type QuoteFormValues = {
   plataformaGestao?: any;
   oficina?: any;
   oficinaId?: string;
+  mecanicoId?: string;
   notaFiscalDescricao?: string;
 };
 
@@ -99,6 +100,7 @@ export function CreateQuote() {
   const [selectedPlatform, setSelectedPlatform] = useState<any>(null);
 
   const [workshops, setWorkshops] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<any[]>([]);
 
   const { register, control, watch, handleSubmit, setValue, reset, formState: { isSubmitting } } = useForm<QuoteFormValues>({
     defaultValues: {
@@ -121,6 +123,7 @@ export function CreateQuote() {
       veiculoHodometro: '',
       veiculoTipo: '',
       oficinaId: '',
+      mecanicoId: '',
       status: 'Aguardando Aprovação',
       plataformaGestaoId: '',
       osExterna: '',
@@ -145,6 +148,14 @@ export function CreateQuote() {
         console.error("Failed to load workshops", error);
       }
     };
+    const fetchCollaboratorsList = async () => {
+      try {
+        const res = await api.get('/registry/collaborators');
+        setCollaborators(res.data || []);
+      } catch (error) {
+        console.error("Failed to load collaborators", error);
+      }
+    };
     const fetchTaxes = async () => {
       try {
         const res = await api.get('/fiscal/tributacao');
@@ -155,6 +166,7 @@ export function CreateQuote() {
     };
     fetchPlatformsList();
     fetchWorkshopsList();
+    fetchCollaboratorsList();
     fetchTaxes();
   }, []);
 
@@ -280,6 +292,7 @@ export function CreateQuote() {
     veiculoHodometro: data.veiculoHodometro || '',
     veiculoTipo: data.veiculoTipo || '',
     oficinaId: (!isEditing && cloneId) ? '' : (data.oficinaId || ''),
+    mecanicoId: (!isEditing && cloneId) ? '' : (data.mecanicoId || ''),
     plataformaGestaoId: data.plataformaGestaoId || '',
     osExterna: data.osExterna || '',
     notaFiscalDescricao: data.notaFiscalDescricao || '',
@@ -766,6 +779,34 @@ ${bankingText}`;
               </select>
               {/* Hidden companyId field to satisfy schema */}
               <input type="hidden" {...register('companyId')} />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mecânico Responsável</label>
+              <select 
+                {...register('mecanicoId')}
+                disabled={isViewing}
+                className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-75"
+              >
+                <option value="">Selecione...</option>
+                {collaborators
+                  .filter(c => c.status === 'ATIVO' && (c.cargo || '').toLowerCase().includes('mecan'))
+                  .map(c => (
+                    <option key={c.id} value={c.id}>{c.nome} ({c.cargo || 'Mecânico'})</option>
+                  ))
+                }
+                {collaborators.filter(c => c.status === 'ATIVO' && !(c.cargo || '').toLowerCase().includes('mecan')).length > 0 && (
+                  <>
+                    <option disabled>──────────</option>
+                    {collaborators
+                      .filter(c => c.status === 'ATIVO' && !(c.cargo || '').toLowerCase().includes('mecan'))
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.nome} ({c.cargo || 'Colaborador'})</option>
+                      ))
+                    }
+                  </>
+                )}
+              </select>
             </div>
           </div>
         </div>

@@ -280,20 +280,20 @@ export function TowingRates() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-1.5 justify-end">
                       <button 
                         onClick={() => handleViewHistory(r)} 
-                        className="p-1.5 bg-secondary text-muted-foreground rounded hover:bg-muted transition"
+                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
                         title="Ver Histórico"
                       >
-                        <History size={14} />
+                        <History size={16} />
                       </button>
                       <button 
                         onClick={() => handleEdit(r)} 
-                        className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
+                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
                         title="Editar"
                       >
-                        <Edit3 size={14} />
+                        <Edit3 size={16} />
                       </button>
                     </div>
                   </td>

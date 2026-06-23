@@ -203,6 +203,7 @@ routes.post('/companies', company_controller_1.CompanyController.create);
 routes.use('/registry', authMiddleware);
 routes.get('/registry/clients', registry_controller_1.RegistryController.listClients);
 routes.post('/registry/clients', registry_controller_1.RegistryController.createClient);
+routes.post('/registry/clients/deduplicate', registry_controller_1.RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', registry_controller_1.RegistryController.updateClient);
 routes.delete('/registry/clients/:id', registry_controller_1.RegistryController.deleteClient);
 routes.get('/registry/suppliers', registry_controller_1.RegistryController.listSuppliers);
@@ -222,6 +223,7 @@ routes.get('/registry/platforms', platform_controller_1.PlatformController.list)
 routes.post('/registry/platforms', platform_controller_1.PlatformController.create);
 routes.put('/registry/platforms/:id', platform_controller_1.PlatformController.update);
 routes.delete('/registry/platforms/:id', platform_controller_1.PlatformController.delete);
+routes.get('/registry/platforms/:id/history', platform_controller_1.PlatformController.listHistory);
 // RH - Gestão de Faltas e Fechamento
 routes.use('/rh', authMiddleware);
 routes.get('/rh/absences', absence_controller_1.AbsenceController.listAbsences);
@@ -236,6 +238,7 @@ routes.get('/rh/audit-logs', absence_controller_1.AbsenceController.listAuditLog
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard/workshop', quote_controller_1.QuoteController.getWorkshopDashboard);
 routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);
+routes.get('/dashboard/workshop', quote_controller_1.QuoteController.getWorkshopDashboardStats);
 // Orçamentos
 routes.use('/quotes', authMiddleware);
 routes.get('/quotes', quote_controller_1.QuoteController.list);

@@ -222,6 +222,7 @@ routes.post('/companies', CompanyController.create);
 routes.use('/registry', authMiddleware);
 routes.get('/registry/clients', RegistryController.listClients);
 routes.post('/registry/clients', RegistryController.createClient);
+routes.post('/registry/clients/deduplicate', RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', RegistryController.updateClient);
 routes.delete('/registry/clients/:id', RegistryController.deleteClient);
 
@@ -245,6 +246,7 @@ routes.get('/registry/platforms', PlatformController.list);
 routes.post('/registry/platforms', PlatformController.create);
 routes.put('/registry/platforms/:id', PlatformController.update);
 routes.delete('/registry/platforms/:id', PlatformController.delete);
+routes.get('/registry/platforms/:id/history', PlatformController.listHistory);
 
 // RH - Gestão de Faltas e Fechamento
 routes.use('/rh', authMiddleware);
@@ -260,7 +262,7 @@ routes.get('/rh/audit-logs', AbsenceController.listAuditLogs);
 
 // Dashboard
 routes.use('/dashboard', authMiddleware);
-routes.get('/dashboard/workshop', QuoteController.getWorkshopDashboard);
+routes.get('/dashboard/workshop', QuoteController.getWorkshopDashboardStats);
 routes.get('/dashboard', QuoteController.getDashboardStats);
 
 // Orçamentos

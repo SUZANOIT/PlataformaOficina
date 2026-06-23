@@ -303,7 +303,7 @@ export function Clients() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-gradient-to-r from-card to-background p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
             <Users className="text-primary" size={26} />
@@ -313,7 +313,7 @@ export function Clients() {
         </div>
         <button 
           onClick={handleOpenCreateModal}
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-primary/20 hover:bg-primary/95 transition duration-200 w-full sm:w-auto text-sm"
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition w-full sm:w-auto text-sm"
         >
           <Plus size={18} />
           <span>Novo Cliente</span>
@@ -377,7 +377,7 @@ export function Clients() {
                 <th className="p-4 hidden lg:table-cell w-2/12">Documento</th>
                 <th className="p-4 w-4/12 lg:w-3.5/12">Contato</th>
                 <th className="p-4 hidden xl:table-cell w-3/12">Localização</th>
-                <th className="p-4 w-4/12 lg:w-1.3/12 text-right lg:text-left">Ações</th>
+                <th className="p-4 w-4/12 lg:w-1.3/12 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -445,7 +445,7 @@ export function Clients() {
                         <span className="text-muted-foreground italic">-</span>
                       )}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 text-right">
                       <TableActionMenu
                         onEdit={() => handleOpenEditModal(client)}
                         onDelete={() => setClientToDelete(client)}

@@ -1,5 +1,4 @@
--- CreateTable
-CREATE TABLE "FiscalDocument" (
+CREATE TABLE IF NOT EXISTS "FiscalDocument" (
     "id" TEXT NOT NULL,
     "numeroDocumento" TEXT NOT NULL,
     "chaveAcesso" TEXT,
@@ -21,8 +20,7 @@ CREATE TABLE "FiscalDocument" (
     CONSTRAINT "FiscalDocument_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "FiscalAudit" (
+CREATE TABLE IF NOT EXISTS "FiscalAudit" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "userName" TEXT NOT NULL,
@@ -36,8 +34,11 @@ CREATE TABLE "FiscalAudit" (
     CONSTRAINT "FiscalAudit_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "FiscalDocument_companyId_idx" ON "FiscalDocument"("companyId");
+CREATE INDEX IF NOT EXISTS "FiscalDocument_companyId_idx" ON "FiscalDocument"("companyId");
 
--- AddForeignKey
-ALTER TABLE "FiscalDocument" ADD CONSTRAINT "FiscalDocument_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FiscalDocument_companyId_fkey') THEN
+        ALTER TABLE "FiscalDocument" ADD CONSTRAINT "FiscalDocument_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;

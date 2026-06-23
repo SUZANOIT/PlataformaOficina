@@ -47,6 +47,7 @@ const createQuoteSchema = z.object({
   osExterna: z.string().max(100).nullish(),
   oficinaId: z.string().nullish(),
   notaFiscalDescricao: z.string().nullish(),
+  mecanicoId: z.string().nullish(),
   isCloned: z.boolean().optional().default(false),
   clonedFromId: z.string().nullish(),
   items: z.array(z.object({
@@ -157,7 +158,8 @@ export const QuoteController = {
           company: true,
           items: true,
           plataformaGestao: true,
-          oficina: true
+          oficina: true,
+          mecanico: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -487,6 +489,7 @@ export const QuoteController = {
           osExterna: data.osExterna,
           oficinaId: data.oficinaId || null,
           notaFiscalDescricao: data.notaFiscalDescricao || null,
+          mecanicoId: data.mecanicoId || null,
           isCloned: data.isCloned || !!data.clonedFromId,
           clonedFromId: data.clonedFromId,
           subtotal: data.subtotal,
@@ -501,7 +504,8 @@ export const QuoteController = {
           client: true,
           company: true,
           plataformaGestao: true,
-          oficina: true
+          oficina: true,
+          mecanico: true
         }
       });
 
@@ -569,6 +573,7 @@ export const QuoteController = {
           company: true,
           plataformaGestao: true,
           oficina: true,
+          mecanico: true,
           history: {
             orderBy: { createdAt: 'desc' },
             take: 1
@@ -736,6 +741,7 @@ export const QuoteController = {
             osExterna: data.osExterna,
             oficinaId: data.oficinaId || null,
             notaFiscalDescricao: data.notaFiscalDescricao || null,
+            mecanicoId: data.mecanicoId || null,
             subtotal: data.subtotal,
             total: data.total,
             status: isCurio ? 'Cobertura' : data.status,
@@ -749,7 +755,8 @@ export const QuoteController = {
             client: true,
             company: true,
             plataformaGestao: true,
-            oficina: true
+            oficina: true,
+            mecanico: true
           }
         });
 
@@ -792,7 +799,8 @@ export const QuoteController = {
             client: true,
             company: true,
             plataformaGestao: true,
-            oficina: true
+            oficina: true,
+            mecanico: true
           }
         });
       }
@@ -894,57 +902,62 @@ export const QuoteController = {
     }
   },
 
-  async getWorkshopDashboard(req: Request, res: Response) {
+  async getWorkshopDashboardStats(req: Request, res: Response) {
     try {
-      const { clientId, placa, oficinaId, status, startDate, endDate, tipoServico, subfrota } = req.query as any;
+      const companyId = (req as any).companyId;
+      const {
+        clientId,
+        placa,
+        oficinaId,
+        status,
+        startDate,
+        endDate,
+        tipoServico,
+        subfrota
+      } = req.query as any;
 
-      const where: Prisma.QuoteWhereInput = {};
+      const where: Prisma.QuoteWhereInput = {
+        companyId
+      };
 
-      if (clientId && clientId !== 'all' && clientId.trim() !== '') {
+      if (clientId && clientId !== 'all') {
         where.clientId = clientId;
       }
-
-      if (placa && placa !== 'all' && placa.trim() !== '') {
+      if (placa && placa.trim() !== '') {
         where.veiculoPlaca = {
-          equals: placa.trim(),
+          contains: placa.trim(),
           mode: 'insensitive'
         };
       }
-
-      if (oficinaId && oficinaId !== 'all' && oficinaId.trim() !== '') {
+      if (oficinaId && oficinaId !== 'all') {
         where.oficinaId = oficinaId;
       }
-
-      if (status && status !== 'all' && status.trim() !== '') {
+      if (status && status !== 'all') {
         where.status = status;
       }
-
-      if (subfrota && subfrota !== 'all' && subfrota.trim() !== '') {
+      if (subfrota && subfrota.trim() !== '') {
         where.veiculoSubfrota = {
-          equals: subfrota.trim(),
+          contains: subfrota.trim(),
           mode: 'insensitive'
         };
       }
-
-      if (tipoServico && tipoServico !== 'all' && tipoServico.trim() !== '') {
-        where.items = {
-          some: {
-            tipo: {
-              equals: tipoServico,
-              mode: 'insensitive'
-            }
-          }
-        };
-      }
-
       if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) {
-          where.createdAt.gte = new Date(`${startDate}T00:00:00`);
+          where.createdAt.gte = new Date(startDate);
         }
         if (endDate) {
-          where.createdAt.lte = new Date(`${endDate}T23:59:59.999`);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          where.createdAt.lte = end;
         }
+      }
+      if (tipoServico && tipoServico !== 'all') {
+        where.items = {
+          some: {
+            tipo: tipoServico
+          }
+        };
       }
 
       const quotes = await prisma.quote.findMany({
@@ -954,11 +967,16 @@ export const QuoteController = {
           company: true,
           items: true,
           plataformaGestao: true,
-          oficina: true
+          oficina: true,
+          mecanico: true,
+          history: {
+            orderBy: { createdAt: 'asc' }
+          }
         },
         orderBy: { createdAt: 'desc' }
       });
 
+<<<<<<< HEAD
       const totalQuotesCount = quotes.length;
       const totalQuotesValue = quotes.reduce((acc, q) => acc + (q.total || 0), 0);
 
@@ -1012,6 +1030,321 @@ export const QuoteController = {
     } catch (error) {
       console.error('[QuoteController] Error in getWorkshopDashboard:', error);
       return res.status(500).json({ error: 'Erro ao gerar dados do dashboard da oficina' });
+=======
+      // Standard Approved list based on rules
+      const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago', 'Cobertura'];
+
+      // Cards Metrics
+      const totalQuotes = quotes.length;
+      
+      const approvedQuotes = quotes.filter(q => approvedStatuses.includes(q.status));
+      const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + q.total, 0);
+
+      const paidQuotes = quotes.filter(q => q.status === 'Pago');
+      const totalPaidValue = paidQuotes.reduce((acc, q) => acc + q.total, 0);
+
+      const approvedCount = approvedQuotes.length;
+      const ticketMedio = approvedCount > 0 ? totalApprovedValue / approvedCount : 0;
+
+      // Unique vehicles serviced in approved/completed quotes
+      const uniquePlates = new Set<string>();
+      approvedQuotes.forEach(q => {
+        if (q.veiculoPlaca) {
+          uniquePlates.add(q.veiculoPlaca.toUpperCase().trim());
+        }
+      });
+      const veiculosAtendidos = uniquePlates.size;
+
+      // SLA calculations
+      let totalToApproveTime = 0;
+      let countToApprove = 0;
+      let totalToExecuteTime = 0;
+      let countToExecute = 0;
+      let totalToAttendTime = 0;
+      let countToAttend = 0;
+
+      quotes.forEach(q => {
+        const createDate = new Date(q.createdAt).getTime();
+        let approveDate: number | null = null;
+        let completeDate: number | null = null;
+
+        q.history.forEach((h: any) => {
+          let details: any = {};
+          try {
+            if (h.details) details = JSON.parse(h.details);
+          } catch (_) {}
+
+          const newStatus = details.para || '';
+          const hDate = new Date(h.createdAt).getTime();
+
+          if (
+            newStatus === 'Aprovado' || 
+            newStatus === 'Aguardando Pagamento' || 
+            newStatus === 'Emitir Nota Fiscal' || 
+            newStatus === 'Pago'
+          ) {
+            if (!approveDate || hDate < approveDate) {
+              approveDate = hDate;
+            }
+          }
+
+          if (newStatus === 'Emitir Nota Fiscal' || newStatus === 'Pago') {
+            if (!completeDate || hDate < completeDate) {
+              completeDate = hDate;
+            }
+          }
+        });
+
+        if (approveDate) {
+          totalToApproveTime += (approveDate - createDate);
+          countToApprove++;
+        }
+
+        if (approveDate && completeDate && completeDate >= approveDate) {
+          totalToExecuteTime += (completeDate - approveDate);
+          countToExecute++;
+        }
+
+        if (completeDate) {
+          totalToAttendTime += (completeDate - createDate);
+          countToAttend++;
+        }
+      });
+
+      const avgApprovalTimeHours = countToApprove > 0 ? (totalToApproveTime / countToApprove) / (1000 * 60 * 60) : 0;
+      const avgExecutionTimeHours = countToExecute > 0 ? (totalToExecuteTime / countToExecute) / (1000 * 60 * 60) : 0;
+      const avgAttendTimeHours = countToAttend > 0 ? (totalToAttendTime / countToAttend) / (1000 * 60 * 60) : 0;
+
+      // Main Chart: Monthly Billing (January to December)
+      const currentYear = new Date().getFullYear();
+      const monthlyBilling = Array.from({ length: 12 }, (_, i) => ({
+        month: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][i],
+        valorPago: 0,
+        qtdServicos: 0,
+        percentualComparativo: 0
+      }));
+
+      quotes.forEach(q => {
+        const qDate = new Date(q.createdAt);
+        if (qDate.getFullYear() === currentYear) {
+          const m = qDate.getMonth();
+          const isApproved = approvedStatuses.includes(q.status);
+          const isPaid = q.status === 'Pago';
+
+          if (isPaid) {
+            monthlyBilling[m].valorPago += q.total;
+          }
+
+          if (isApproved) {
+            const serviceItems = q.items.filter(item => item.tipo !== 'Peça');
+            const totalQty = serviceItems.reduce((acc, item) => acc + item.quantidade, 0);
+            monthlyBilling[m].qtdServicos += totalQty > 0 ? totalQty : 1;
+          }
+        }
+      });
+
+      for (let i = 0; i < 12; i++) {
+        const currentPaid = monthlyBilling[i].valorPago;
+        const prevPaid = i > 0 ? monthlyBilling[i - 1].valorPago : 0;
+        if (i > 0) {
+          monthlyBilling[i].percentualComparativo = prevPaid > 0 
+            ? ((currentPaid - prevPaid) / prevPaid) * 100 
+            : currentPaid > 0 ? 100 : 0;
+        }
+      }
+
+      // Group Client rankings & Grid data (deduplicating by name/CNPJ)
+      const clientMap: Record<string, { clientId: string, name: string, totalPaid: number, countOS: number, uniqueVehicles: Set<string>, countQuotes: number, countApproved: number }> = {};
+
+      quotes.forEach(q => {
+        const clientId = q.clientId;
+        const clientName = q.client?.nome || 'Cliente não identificado';
+        const clientCnpj = q.client?.cnpj ? q.client.cnpj.trim().replace(/\D/g, '') : '';
+        const groupKey = clientCnpj ? `cnpj_${clientCnpj}` : `nome_${clientName.trim().toLowerCase()}`;
+        
+        const isApproved = approvedStatuses.includes(q.status);
+        const isPaid = q.status === 'Pago';
+
+        if (!clientMap[groupKey]) {
+          clientMap[groupKey] = {
+            clientId: clientId, // store the first seen id
+            name: clientName,
+            totalPaid: 0,
+            countOS: 0,
+            uniqueVehicles: new Set(),
+            countQuotes: 0,
+            countApproved: 0
+          };
+        }
+
+        clientMap[groupKey].countQuotes++;
+        if (isApproved) {
+          clientMap[groupKey].countApproved++;
+          if (q.veiculoPlaca) {
+            clientMap[groupKey].uniqueVehicles.add(q.veiculoPlaca.toUpperCase().trim());
+          }
+          clientMap[groupKey].countOS++;
+        }
+
+        if (isPaid) {
+          clientMap[groupKey].totalPaid += q.total;
+        }
+      });
+
+      const clientRanking = Object.values(clientMap)
+        .map((data) => ({
+          clientId: data.clientId,
+          name: data.name,
+          veiculosAtendidos: data.uniqueVehicles.size,
+          orcamentos: data.countQuotes,
+          aprovados: data.countApproved,
+          valorPago: data.totalPaid,
+          ticketMedio: data.countApproved > 0 ? data.totalPaid / data.countApproved : 0
+        }))
+        .sort((a, b) => b.valorPago - a.valorPago);
+
+      const topClients = clientRanking.map(c => ({
+        clientId: c.clientId,
+        name: c.name,
+        totalPaid: c.valorPago,
+        countOS: c.aprovados
+      })).slice(0, 10);
+
+      // Grid de Serviços
+      const servicesGrid = quotes.map(q => {
+        const servicosList = q.items
+          .filter(item => item.tipo !== 'Peça')
+          .map(item => item.descricao)
+          .join(', ');
+
+        return {
+          id: q.id,
+          os: q.numeroOrcamento,
+          cliente: q.client?.nome || 'N/A',
+          oficina: q.oficina?.nome || 'N/A',
+          veiculo: `${q.veiculoMarca || ''} ${q.veiculoModelo || ''} (${q.veiculoPlaca || 'N/A'})`.trim(),
+          servico: servicosList || 'Apenas Peças/Outros',
+          valor: q.total,
+          status: q.status,
+          data: q.createdAt
+        };
+      });
+
+      // Strategic indicators
+      // 1. Cliente que mais gera receita
+      const topClientData = clientRanking[0];
+      const clienteMaisReceita = topClientData ? { name: topClientData.name, value: topClientData.valorPago } : null;
+
+      // 2. Serviço mais vendido
+      const serviceFrequency: Record<string, { count: number, total: number }> = {};
+      quotes.forEach(q => {
+        const isApproved = approvedStatuses.includes(q.status);
+        if (isApproved) {
+          q.items.forEach(item => {
+            if (item.tipo !== 'Peça') {
+              const desc = item.descricao.trim();
+              if (!serviceFrequency[desc]) {
+                serviceFrequency[desc] = { count: 0, total: 0 };
+              }
+              serviceFrequency[desc].count += item.quantidade;
+              serviceFrequency[desc].total += item.valorTotal;
+            }
+          });
+        }
+      });
+      const rankedServices = Object.entries(serviceFrequency)
+        .map(([desc, data]) => ({
+          descricao: desc,
+          quantidade: data.count,
+          valorTotal: data.total
+        }))
+        .sort((a, b) => b.quantidade - a.quantidade);
+      const topService = rankedServices[0] ? { name: rankedServices[0].descricao, value: rankedServices[0].quantidade } : null;
+
+      // 3. Mecânico com mais atendimentos & produtividade
+      const mechanicFrequency: Record<string, { name: string, count: number, totalExecuteTime: number, countExecuted: number }> = {};
+      quotes.forEach(q => {
+        if (q.mecanicoId) {
+          const isApproved = approvedStatuses.includes(q.status);
+          if (isApproved) {
+            const name = q.mecanico?.nome || 'Mecânico não nomeado';
+            if (!mechanicFrequency[q.mecanicoId]) {
+              mechanicFrequency[q.mecanicoId] = { name, count: 0, totalExecuteTime: 0, countExecuted: 0 };
+            }
+            mechanicFrequency[q.mecanicoId].count++;
+
+            const createDate = new Date(q.createdAt).getTime();
+            let approveDate: number | null = null;
+            let completeDate: number | null = null;
+
+            q.history.forEach((h: any) => {
+              let details: any = {};
+              try { if (h.details) details = JSON.parse(h.details); } catch (_) {}
+              const newStatus = details.para || '';
+              const hDate = new Date(h.createdAt).getTime();
+              if (newStatus === 'Aprovado' || newStatus === 'Aguardando Pagamento' || newStatus === 'Emitir Nota Fiscal' || newStatus === 'Pago') {
+                if (!approveDate || hDate < approveDate) approveDate = hDate;
+              }
+              if (newStatus === 'Emitir Nota Fiscal' || newStatus === 'Pago') {
+                if (!completeDate || hDate < completeDate) completeDate = hDate;
+              }
+            });
+
+            if (approveDate && completeDate && completeDate >= approveDate) {
+              mechanicFrequency[q.mecanicoId].totalExecuteTime += (completeDate - approveDate);
+              mechanicFrequency[q.mecanicoId].countExecuted++;
+            }
+          }
+        }
+      });
+      const rankedMechanics = Object.entries(mechanicFrequency)
+        .map(([id, data]) => ({
+          id,
+          name: data.name,
+          atendimentos: data.count,
+          tempoMedioExecucaoHoras: data.countExecuted > 0 ? (data.totalExecuteTime / data.countExecuted) / (1000 * 60 * 60) : 0
+        }))
+        .sort((a, b) => b.atendimentos - a.atendimentos);
+      const topMechanic = rankedMechanics[0] ? { name: rankedMechanics[0].name, value: rankedMechanics[0].atendimentos } : null;
+
+      // 4. Conversion Rate & Accumulated year faturamento
+      const conversionRate = totalQuotes > 0 ? (approvedCount / totalQuotes) * 100 : 0;
+
+      // Accumulated year faturamento
+      const faturamentoAcumuladoAno = monthlyBilling.reduce((acc, m) => acc + m.valorPago, 0);
+
+      return res.json({
+        totalQuotes,
+        totalApproved: totalApprovedValue,
+        totalPago: totalPaidValue,
+        ticketMedio,
+        veiculosAtendidos,
+        tempoMedioAtendimento: avgAttendTimeHours,
+        tempoMedioAprovacao: avgApprovalTimeHours,
+        tempoMedioExecucao: avgExecutionTimeHours,
+        taxaConversao: conversionRate,
+        faturamentoAcumuladoAno,
+        monthlyBilling,
+        topClients,
+        clientsGrid: clientRanking,
+        servicesGrid,
+        strategicIndicators: {
+          clienteMaisReceita,
+          servicoMaisVendido: topService,
+          mecanicoMaisAtendimentos: topMechanic,
+          tempoMedioAprovacao: avgApprovalTimeHours,
+          tempoMedioExecucao: avgExecutionTimeHours,
+          taxaConversao: conversionRate,
+          faturamentoAcumuladoAno,
+          topClients,
+          topServices: rankedServices.slice(0, 10),
+          topMechanics: rankedMechanics
+        }
+      });
+    } catch (error) {
+      console.error('Error in quote.getWorkshopDashboardStats:', error);
+      return res.status(500).json({ error: 'Internal server error generating workshop stats' });
+>>>>>>> 7c012af64c4375556055328f3dbc54fb9409d4ed
     }
   }
 };
