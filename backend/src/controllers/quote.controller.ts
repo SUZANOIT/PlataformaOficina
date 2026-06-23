@@ -984,6 +984,7 @@ export const QuoteController = {
       const companyId = (req as any).companyId;
       const {
         clientId,
+        mecanicoId,
         placa,
         oficinaId,
         status,
@@ -997,6 +998,9 @@ export const QuoteController = {
 
       if (clientId && clientId !== 'all') {
         where.clientId = clientId;
+      }
+      if (mecanicoId && mecanicoId !== 'all') {
+        where.mecanicoId = mecanicoId;
       }
       if (placa && placa !== 'all' && placa.trim() !== '') {
         where.veiculoPlaca = {
@@ -1131,30 +1135,38 @@ export const QuoteController = {
       const avgExecutionTimeHours = countToExecute > 0 ? (totalToExecuteTime / countToExecute) / (1000 * 60 * 60) : 0;
       const avgAttendTimeHours = countToAttend > 0 ? (totalToAttendTime / countToAttend) / (1000 * 60 * 60) : 0;
 
-      // Main Chart: Monthly Billing (January to December)
-      const currentYear = new Date().getFullYear();
-      const monthlyBilling = Array.from({ length: 12 }, (_, i) => ({
-        month: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][i],
-        valorPago: 0,
-        qtdServicos: 0,
-        percentualComparativo: 0
-      }));
+      // Main Chart: Monthly Billing (Last 12 Months)
+      const currentDate = new Date();
+      const monthlyBilling = Array.from({ length: 12 }, (_, i) => {
+        const d = new Date(currentDate.getFullYear(), currentDate.getMonth() - 11 + i, 1);
+        return {
+          month: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][d.getMonth()],
+          year: d.getFullYear(),
+          valorPago: 0,
+          qtdServicos: 0,
+          percentualComparativo: 0
+        };
+      });
 
       quotes.forEach(q => {
         const qDate = new Date(q.createdAt);
-        if (qDate.getFullYear() === currentYear) {
-          const m = qDate.getMonth();
-          const isApproved = approvedStatuses.includes(q.status);
-          const isPaid = q.status === 'Pago';
+        const isApproved = approvedStatuses.includes(q.status);
+        const isPaid = q.status === 'Pago';
 
+        const bucket = monthlyBilling.find(b => 
+          b.month === ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][qDate.getMonth()] && 
+          b.year === qDate.getFullYear()
+        );
+
+        if (bucket) {
           if (isPaid) {
-            monthlyBilling[m].valorPago += q.total;
+            bucket.valorPago += q.total || 0;
           }
 
           if (isApproved) {
             const serviceItems = q.items.filter(item => item.tipo !== 'Peça');
             const totalQty = serviceItems.reduce((acc, item) => acc + item.quantidade, 0);
-            monthlyBilling[m].qtdServicos += totalQty > 0 ? totalQty : 1;
+            bucket.qtdServicos += totalQty > 0 ? totalQty : 1;
           }
         }
       });
@@ -1278,16 +1290,22 @@ export const QuoteController = {
       const topService = rankedServices[0] ? { name: rankedServices[0].descricao, value: rankedServices[0].quantidade } : null;
 
       // 3. Mecânico com mais atendimentos & produtividade
-      const mechanicFrequency: Record<string, { name: string, count: number, totalExecuteTime: number, countExecuted: number }> = {};
+      const mechanicFrequency: Record<string, { name: string, count: number, totalExecuteTime: number, countExecuted: number, totalPago: number }> = {};
       quotes.forEach(q => {
         if (q.mecanicoId) {
           const isApproved = approvedStatuses.includes(q.status);
+          const isPaid = q.status === 'Pago';
+          
           if (isApproved) {
             const name = q.mecanico?.nome || 'Mecânico não nomeado';
             if (!mechanicFrequency[q.mecanicoId]) {
-              mechanicFrequency[q.mecanicoId] = { name, count: 0, totalExecuteTime: 0, countExecuted: 0 };
+              mechanicFrequency[q.mecanicoId] = { name, count: 0, totalExecuteTime: 0, countExecuted: 0, totalPago: 0 };
             }
             mechanicFrequency[q.mecanicoId].count++;
+
+            if (isPaid) {
+              mechanicFrequency[q.mecanicoId].totalPago += q.total || 0;
+            }
 
             const createDate = new Date(q.createdAt).getTime();
             let approveDate: number | null = null;
@@ -1318,9 +1336,11 @@ export const QuoteController = {
           id,
           name: data.name,
           atendimentos: data.count,
+          valorFaturado: data.totalPago,
+          ticketMedio: data.count > 0 ? data.totalPago / data.count : 0,
           tempoMedioExecucaoHoras: data.countExecuted > 0 ? (data.totalExecuteTime / data.countExecuted) / (1000 * 60 * 60) : 0
         }))
-        .sort((a, b) => b.atendimentos - a.atendimentos);
+        .sort((a, b) => b.valorFaturado - a.valorFaturado);
       const topMechanic = rankedMechanics[0] ? { name: rankedMechanics[0].name, value: rankedMechanics[0].atendimentos } : null;
 
       // 4. Conversion Rate & Accumulated year faturamento
@@ -1328,6 +1348,10 @@ export const QuoteController = {
 
       // Accumulated year faturamento
       const faturamentoAcumuladoAno = monthlyBilling.reduce((acc, m) => acc + m.valorPago, 0);
+
+      // Faturamento and Ticket Médio per month (for comparison)
+      const faturamentoMesAtual = monthlyBilling[11]?.valorPago || 0;
+      const faturamentoMesAnterior = monthlyBilling[10]?.valorPago || 0;
 
       return res.json({
         totalQuotes,
@@ -1354,7 +1378,9 @@ export const QuoteController = {
           faturamentoAcumuladoAno,
           topClients,
           topServices: rankedServices.slice(0, 10),
-          topMechanics: rankedMechanics
+          topMechanics: rankedMechanics,
+          faturamentoMesAtual,
+          faturamentoMesAnterior
         }
       });
     } catch (error) {
