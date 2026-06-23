@@ -473,9 +473,8 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* The rest of the UI (cards, charts, grids) remains unchanged from the original implementation */
-        {/* ... */}
-      */
+      {/* The rest of the UI (cards, charts, grids) remains unchanged from the original implementation */}
+      {/* ... */}
     </div>
   );
 }
