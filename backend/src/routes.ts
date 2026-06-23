@@ -260,6 +260,7 @@ routes.get('/rh/audit-logs', AbsenceController.listAuditLogs);
 
 // Dashboard
 routes.use('/dashboard', authMiddleware);
+routes.get('/dashboard/workshop', QuoteController.getWorkshopDashboard);
 routes.get('/dashboard', QuoteController.getDashboardStats);
 
 // Orçamentos

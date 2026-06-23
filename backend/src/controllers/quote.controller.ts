@@ -892,5 +892,126 @@ export const QuoteController = {
       console.error('Error fetching quote history:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
+  },
+
+  async getWorkshopDashboard(req: Request, res: Response) {
+    try {
+      const { clientId, placa, oficinaId, status, startDate, endDate, tipoServico, subfrota } = req.query as any;
+
+      const where: Prisma.QuoteWhereInput = {};
+
+      if (clientId && clientId !== 'all' && clientId.trim() !== '') {
+        where.clientId = clientId;
+      }
+
+      if (placa && placa !== 'all' && placa.trim() !== '') {
+        where.veiculoPlaca = {
+          equals: placa.trim(),
+          mode: 'insensitive'
+        };
+      }
+
+      if (oficinaId && oficinaId !== 'all' && oficinaId.trim() !== '') {
+        where.oficinaId = oficinaId;
+      }
+
+      if (status && status !== 'all' && status.trim() !== '') {
+        where.status = status;
+      }
+
+      if (subfrota && subfrota !== 'all' && subfrota.trim() !== '') {
+        where.veiculoSubfrota = {
+          equals: subfrota.trim(),
+          mode: 'insensitive'
+        };
+      }
+
+      if (tipoServico && tipoServico !== 'all' && tipoServico.trim() !== '') {
+        where.items = {
+          some: {
+            tipo: {
+              equals: tipoServico,
+              mode: 'insensitive'
+            }
+          }
+        };
+      }
+
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) {
+          where.createdAt.gte = new Date(`${startDate}T00:00:00`);
+        }
+        if (endDate) {
+          where.createdAt.lte = new Date(`${endDate}T23:59:59.999`);
+        }
+      }
+
+      const quotes = await prisma.quote.findMany({
+        where,
+        include: {
+          client: true,
+          company: true,
+          items: true,
+          plataformaGestao: true,
+          oficina: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const totalQuotesCount = quotes.length;
+      const totalQuotesValue = quotes.reduce((acc, q) => acc + (q.total || 0), 0);
+
+      const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago'];
+      const approvedQuotes = quotes.filter(q => approvedStatuses.includes(q.status));
+      const totalApprovedCount = approvedQuotes.length;
+      const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + (q.total || 0), 0);
+
+      const paidQuotes = quotes.filter(q => q.status === 'Pago');
+      const totalPaidCount = paidQuotes.length;
+      const totalPaidValue = paidQuotes.reduce((acc, q) => acc + (q.total || 0), 0);
+
+      const ticketMedio = totalApprovedCount > 0 ? totalApprovedValue / totalApprovedCount : 0;
+
+      const uniquePlates = new Set(approvedQuotes.map(q => q.veiculoPlaca).filter(Boolean));
+      const totalVehiclesCount = uniquePlates.size;
+
+      let totalDurationMs = 0;
+      let completedCount = 0;
+      let slaComplianceCount = 0;
+
+      approvedQuotes.forEach(q => {
+        const start = new Date(q.createdAt).getTime();
+        const end = new Date(q.updatedAt).getTime();
+        const diffMs = end - start;
+        totalDurationMs += diffMs;
+        completedCount++;
+
+        if (diffMs <= 432000000) {
+          slaComplianceCount++;
+        }
+      });
+
+      const avgDurationDays = completedCount > 0 ? (totalDurationMs / completedCount) / (1000 * 60 * 60 * 24) : 0;
+
+      return res.json({
+        kpis: {
+          totalQuotesCount,
+          totalQuotesValue,
+          totalApprovedCount,
+          totalApprovedValue,
+          totalPaidCount,
+          totalPaidValue,
+          ticketMedio,
+          totalVehiclesCount,
+          avgDurationDays: parseFloat(avgDurationDays.toFixed(2)),
+          slaCompliancePct: parseFloat((completedCount > 0 ? (slaComplianceCount / completedCount) * 100 : 100).toFixed(2))
+        },
+        quotes
+      });
+    } catch (error) {
+      console.error('[QuoteController] Error in getWorkshopDashboard:', error);
+      return res.status(500).json({ error: 'Erro ao gerar dados do dashboard da oficina' });
+    }
   }
 };
