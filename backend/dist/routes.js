@@ -203,6 +203,7 @@ routes.post('/companies', company_controller_1.CompanyController.create);
 routes.use('/registry', authMiddleware);
 routes.get('/registry/clients', registry_controller_1.RegistryController.listClients);
 routes.post('/registry/clients', registry_controller_1.RegistryController.createClient);
+routes.post('/registry/clients/deduplicate', registry_controller_1.RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', registry_controller_1.RegistryController.updateClient);
 routes.delete('/registry/clients/:id', registry_controller_1.RegistryController.deleteClient);
 routes.get('/registry/suppliers', registry_controller_1.RegistryController.listSuppliers);

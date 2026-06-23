@@ -389,7 +389,7 @@ export function Dashboard() {
           <span>Indicadores Estratégicos</span>
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           {/* Top Client */}
           <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
             <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl"><DollarSign size={20} /></div>
@@ -407,16 +407,6 @@ export function Dashboard() {
               <span className="text-xs text-muted-foreground block font-medium">Serviço Mais Vendido</span>
               <strong className="text-foreground block truncate">{s.strategicIndicators.servicoMaisVendido?.name || 'Sem dados'}</strong>
               <span className="text-xs text-blue-600 font-semibold">{s.strategicIndicators.servicoMaisVendido ? `${s.strategicIndicators.servicoMaisVendido.value} unidades` : '—'}</span>
-            </div>
-          </div>
-
-          {/* Top Mechanic */}
-          <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
-            <div className="p-3 bg-indigo-500/10 text-indigo-600 rounded-xl"><UserCheck size={20} /></div>
-            <div className="min-w-0">
-              <span className="text-xs text-muted-foreground block font-medium">Mecânico Líder</span>
-              <strong className="text-foreground block truncate">{s.strategicIndicators.mecanicoMaisAtendimentos?.name || 'Sem dados'}</strong>
-              <span className="text-xs text-indigo-600 font-semibold">{s.strategicIndicators.mecanicoMaisAtendimentos ? `${s.strategicIndicators.mecanicoMaisAtendimentos.value} O.S.` : '—'}</span>
             </div>
           </div>
 
@@ -732,8 +722,13 @@ export function Dashboard() {
 
             {/* Services Grid (Ordens de Serviço) */}
             <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border">
+              <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="font-bold text-foreground">Listagem Geral de Serviços e O.S.</h3>
+                {selectedOficinaId !== 'all' && (
+                  <span className="self-start sm:self-center text-xs bg-primary/10 text-primary font-bold px-3 py-1 rounded-full border border-primary/20">
+                    Oficina: {workshops.find(w => w.id === selectedOficinaId)?.nome || 'Filtrada'}
+                  </span>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[900px]">
@@ -741,7 +736,8 @@ export function Dashboard() {
                     <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
                       <th className="p-4 pl-6 w-[90px]">OS</th>
                       <th className="p-4 w-[18%]">Cliente</th>
-                      <th className="p-4 w-[20%]">Veículo</th>
+                      {selectedOficinaId === 'all' && <th className="p-4 w-[15%]">Oficina</th>}
+                      <th className="p-4 w-[18%]">Veículo</th>
                       <th className="p-4">Serviços Executados</th>
                       <th className="p-4 text-right w-[120px]">Valor</th>
                       <th className="p-4 text-center w-[150px]">Status</th>
@@ -754,6 +750,11 @@ export function Dashboard() {
                       <tr key={srv.id} className="border-b border-border hover:bg-muted/10 transition">
                         <td className="p-4 pl-6 font-bold text-primary">#{String(srv.os).padStart(5, '0')}</td>
                         <td className="p-4 font-semibold text-foreground truncate" title={srv.cliente}>{srv.cliente}</td>
+                        {selectedOficinaId === 'all' && (
+                          <td className="p-4 text-muted-foreground font-semibold truncate" title={srv.oficina}>
+                            {srv.oficina}
+                          </td>
+                        )}
                         <td className="p-4 text-muted-foreground truncate" title={srv.veiculo}>{srv.veiculo}</td>
                         <td className="p-4 text-foreground font-medium truncate max-w-[200px]" title={srv.servico}>{srv.servico}</td>
                         <td className="p-4 text-right font-extrabold text-emerald-600">{formatCurrency(srv.valor)}</td>
@@ -785,7 +786,9 @@ export function Dashboard() {
                     ))}
                     {s.servicesGrid.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum serviço correspondente registrado.</td>
+                        <td colSpan={selectedOficinaId === 'all' ? 9 : 8} className="p-8 text-center text-muted-foreground">
+                          Nenhum serviço correspondente registrado.
+                        </td>
                       </tr>
                     )}
                   </tbody>

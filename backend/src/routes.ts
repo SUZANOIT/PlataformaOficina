@@ -222,6 +222,7 @@ routes.post('/companies', CompanyController.create);
 routes.use('/registry', authMiddleware);
 routes.get('/registry/clients', RegistryController.listClients);
 routes.post('/registry/clients', RegistryController.createClient);
+routes.post('/registry/clients/deduplicate', RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', RegistryController.updateClient);
 routes.delete('/registry/clients/:id', RegistryController.deleteClient);
 

@@ -962,15 +962,18 @@ exports.QuoteController = {
                         : currentPaid > 0 ? 100 : 0;
                 }
             }
-            // Group Client rankings & Grid data
+            // Group Client rankings & Grid data (deduplicating by name/CNPJ)
             const clientMap = {};
             quotes.forEach(q => {
                 const clientId = q.clientId;
                 const clientName = q.client?.nome || 'Cliente não identificado';
+                const clientCnpj = q.client?.cnpj ? q.client.cnpj.trim().replace(/\D/g, '') : '';
+                const groupKey = clientCnpj ? `cnpj_${clientCnpj}` : `nome_${clientName.trim().toLowerCase()}`;
                 const isApproved = approvedStatuses.includes(q.status);
                 const isPaid = q.status === 'Pago';
-                if (!clientMap[clientId]) {
-                    clientMap[clientId] = {
+                if (!clientMap[groupKey]) {
+                    clientMap[groupKey] = {
+                        clientId: clientId, // store the first seen id
                         name: clientName,
                         totalPaid: 0,
                         countOS: 0,
@@ -979,21 +982,21 @@ exports.QuoteController = {
                         countApproved: 0
                     };
                 }
-                clientMap[clientId].countQuotes++;
+                clientMap[groupKey].countQuotes++;
                 if (isApproved) {
-                    clientMap[clientId].countApproved++;
+                    clientMap[groupKey].countApproved++;
                     if (q.veiculoPlaca) {
-                        clientMap[clientId].uniqueVehicles.add(q.veiculoPlaca.toUpperCase().trim());
+                        clientMap[groupKey].uniqueVehicles.add(q.veiculoPlaca.toUpperCase().trim());
                     }
-                    clientMap[clientId].countOS++;
+                    clientMap[groupKey].countOS++;
                 }
                 if (isPaid) {
-                    clientMap[clientId].totalPaid += q.total;
+                    clientMap[groupKey].totalPaid += q.total;
                 }
             });
-            const clientRanking = Object.entries(clientMap)
-                .map(([id, data]) => ({
-                clientId: id,
+            const clientRanking = Object.values(clientMap)
+                .map((data) => ({
+                clientId: data.clientId,
                 name: data.name,
                 veiculosAtendidos: data.uniqueVehicles.size,
                 orcamentos: data.countQuotes,
@@ -1018,6 +1021,7 @@ exports.QuoteController = {
                     id: q.id,
                     os: q.numeroOrcamento,
                     cliente: q.client?.nome || 'N/A',
+                    oficina: q.oficina?.nome || 'N/A',
                     veiculo: `${q.veiculoMarca || ''} ${q.veiculoModelo || ''} (${q.veiculoPlaca || 'N/A'})`.trim(),
                     servico: servicosList || 'Apenas Peças/Outros',
                     valor: q.total,
