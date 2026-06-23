@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { TableActionMenu } from '../components/ui/TableActionMenu';
+import { TablePagination } from '../components/ui/TablePagination';
 
 import { useState, useEffect } from 'react';
 export function Dashboard() {
@@ -29,6 +30,10 @@ export function Dashboard() {
   const [endDate, setEndDate] = useState('');
   const [selectedTipoServico, setSelectedTipoServico] = useState('all');
   const [subfrota, setSubfrota] = useState('');
+
+  // Pagination State for Services Grid
+  const [servicesPage, setServicesPage] = useState(1);
+  const [servicesPageSize, setServicesPageSize] = useState(10);
 
   // Data Options Lists (for filters)
   const [workshops, setWorkshops] = useState<any[]>([]);
@@ -97,6 +102,7 @@ export function Dashboard() {
   };
 
   useEffect(() => {
+    setServicesPage(1);
     fetchStats();
   }, [
     selectedOficinaId, 
@@ -118,6 +124,7 @@ export function Dashboard() {
     setEndDate('');
     setSelectedTipoServico('all');
     setSubfrota('');
+    setServicesPage(1);
     toast.success('Filtros limpos com sucesso.');
   };
 
@@ -173,6 +180,14 @@ export function Dashboard() {
   const maxMonthlyPaid = Math.max(...s.monthlyBilling.map((m: any) => m.valorPago || 0), 1);
   const maxMonthlyQty = Math.max(...s.monthlyBilling.map((m: any) => m.qtdServicos || 0), 1);
   const maxClientPaid = Math.max(...s.topClients.map((c: any) => c.totalPaid || 0), 1);
+
+  // Pagination calculations for Services list
+  const totalServices = s.servicesGrid.length;
+  const totalServicesPages = Math.ceil(totalServices / servicesPageSize);
+  const paginatedServicesGrid = s.servicesGrid.slice(
+    (servicesPage - 1) * servicesPageSize,
+    servicesPage * servicesPageSize
+  );
 
   return (
     <div className="space-y-6 pb-10">
@@ -573,7 +588,7 @@ export function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {s.servicesGrid.map((srv: any) => (
+                    {paginatedServicesGrid.map((srv: any) => (
                       <tr key={srv.id} className="border-b border-border hover:bg-muted/10 transition">
                         <td className="p-4 pl-6 font-bold text-primary">#{String(srv.os).padStart(5, '0')}</td>
                         <td className="p-4 font-semibold text-foreground truncate" title={srv.cliente}>{srv.cliente}</td>
@@ -615,6 +630,14 @@ export function Dashboard() {
                   </tbody>
                 </table>
               </div>
+              <TablePagination
+                currentPage={servicesPage}
+                totalPages={totalServicesPages}
+                onPageChange={setServicesPage}
+                pageSize={servicesPageSize}
+                onPageSizeChange={setServicesPageSize}
+                totalCount={totalServices}
+              />
             </div>
           </div>
         )}
