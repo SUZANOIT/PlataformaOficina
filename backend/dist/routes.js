@@ -236,9 +236,8 @@ routes.get('/rh/dashboard', absence_controller_1.AbsenceController.getDashboardS
 routes.get('/rh/audit-logs', absence_controller_1.AbsenceController.listAuditLogs);
 // Dashboard
 routes.use('/dashboard', authMiddleware);
-routes.get('/dashboard/workshop', quote_controller_1.QuoteController.getWorkshopDashboard);
-routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);
 routes.get('/dashboard/workshop', quote_controller_1.QuoteController.getWorkshopDashboardStats);
+routes.get('/dashboard', quote_controller_1.QuoteController.getDashboardStats);
 // Orçamentos
 routes.use('/quotes', authMiddleware);
 routes.get('/quotes', quote_controller_1.QuoteController.list);

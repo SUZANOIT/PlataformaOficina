@@ -802,7 +802,6 @@ exports.QuoteController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
-<<<<<<< HEAD
     async getWorkshopDashboard(req, res) {
         try {
             const { clientId, placa, oficinaId, status, startDate, endDate, tipoServico, subfrota } = req.query;
@@ -847,7 +846,28 @@ exports.QuoteController = {
                     where.createdAt.lte = new Date(`${endDate}T23:59:59.999`);
                 }
             }
-=======
+            const quotes = await prisma_1.prisma.quote.findMany({
+                where,
+                include: {
+                    client: true,
+                    company: true,
+                    items: true,
+                    plataformaGestao: true,
+                    oficina: true,
+                    mecanico: true,
+                    history: {
+                        orderBy: { createdAt: 'asc' }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+            return res.json(quotes);
+        }
+        catch (error) {
+            console.error('Error in getWorkshopDashboard:', error);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
     async getWorkshopDashboardStats(req, res) {
         try {
             const companyId = req.companyId;
@@ -894,22 +914,23 @@ exports.QuoteController = {
                     }
                 };
             }
->>>>>>> 7c012af64c4375556055328f3dbc54fb9409d4ed
             const quotes = await prisma_1.prisma.quote.findMany({
                 where,
                 include: {
                     client: true,
-<<<<<<< HEAD
                     company: true,
                     items: true,
                     plataformaGestao: true,
-                    oficina: true
+                    oficina: true,
+                    mecanico: true,
+                    history: {
+                        orderBy: { createdAt: 'asc' }
+                    }
                 },
                 orderBy: { createdAt: 'desc' }
             });
-            const totalQuotesCount = quotes.length;
             const totalQuotesValue = quotes.reduce((acc, q) => acc + (q.total || 0), 0);
-            const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago'];
+            const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago', 'Cobertura'];
             const approvedQuotes = quotes.filter(q => approvedStatuses.includes(q.status));
             const totalApprovedCount = approvedQuotes.length;
             const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + (q.total || 0), 0);
@@ -919,66 +940,8 @@ exports.QuoteController = {
             const ticketMedio = totalApprovedCount > 0 ? totalApprovedValue / totalApprovedCount : 0;
             const uniquePlates = new Set(approvedQuotes.map(q => q.veiculoPlaca).filter(Boolean));
             const totalVehiclesCount = uniquePlates.size;
-            let totalDurationMs = 0;
-            let completedCount = 0;
-            let slaComplianceCount = 0;
-            approvedQuotes.forEach(q => {
-                const start = new Date(q.createdAt).getTime();
-                const end = new Date(q.updatedAt).getTime();
-                const diffMs = end - start;
-                totalDurationMs += diffMs;
-                completedCount++;
-                if (diffMs <= 432000000) {
-                    slaComplianceCount++;
-                }
-            });
-            const avgDurationDays = completedCount > 0 ? (totalDurationMs / completedCount) / (1000 * 60 * 60 * 24) : 0;
-            return res.json({
-                kpis: {
-                    totalQuotesCount,
-                    totalQuotesValue,
-                    totalApprovedCount,
-                    totalApprovedValue,
-                    totalPaidCount,
-                    totalPaidValue,
-                    ticketMedio,
-                    totalVehiclesCount,
-                    avgDurationDays: parseFloat(avgDurationDays.toFixed(2)),
-                    slaCompliancePct: parseFloat((completedCount > 0 ? (slaComplianceCount / completedCount) * 100 : 100).toFixed(2))
-                },
-                quotes
-            });
-        }
-        catch (error) {
-            console.error('[QuoteController] Error in getWorkshopDashboard:', error);
-            return res.status(500).json({ error: 'Erro ao gerar dados do dashboard da oficina' });
-=======
-                    items: true,
-                    oficina: true,
-                    mecanico: true,
-                    history: {
-                        orderBy: { createdAt: 'asc' }
-                    }
-                },
-                orderBy: { createdAt: 'desc' }
-            });
-            // Standard Approved list based on rules
-            const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago', 'Cobertura'];
             // Cards Metrics
             const totalQuotes = quotes.length;
-            const approvedQuotes = quotes.filter(q => approvedStatuses.includes(q.status));
-            const totalApprovedValue = approvedQuotes.reduce((acc, q) => acc + q.total, 0);
-            const paidQuotes = quotes.filter(q => q.status === 'Pago');
-            const totalPaidValue = paidQuotes.reduce((acc, q) => acc + q.total, 0);
-            const approvedCount = approvedQuotes.length;
-            const ticketMedio = approvedCount > 0 ? totalApprovedValue / approvedCount : 0;
-            // Unique vehicles serviced in approved/completed quotes
-            const uniquePlates = new Set();
-            approvedQuotes.forEach(q => {
-                if (q.veiculoPlaca) {
-                    uniquePlates.add(q.veiculoPlaca.toUpperCase().trim());
-                }
-            });
             const veiculosAtendidos = uniquePlates.size;
             // SLA calculations
             let totalToApproveTime = 0;
@@ -1208,7 +1171,7 @@ exports.QuoteController = {
                 .sort((a, b) => b.atendimentos - a.atendimentos);
             const topMechanic = rankedMechanics[0] ? { name: rankedMechanics[0].name, value: rankedMechanics[0].atendimentos } : null;
             // 4. Conversion Rate & Accumulated year faturamento
-            const conversionRate = totalQuotes > 0 ? (approvedCount / totalQuotes) * 100 : 0;
+            const conversionRate = totalQuotes > 0 ? (totalApprovedCount / totalQuotes) * 100 : 0;
             // Accumulated year faturamento
             const faturamentoAcumuladoAno = monthlyBilling.reduce((acc, m) => acc + m.valorPago, 0);
             return res.json({
@@ -1243,7 +1206,6 @@ exports.QuoteController = {
         catch (error) {
             console.error('Error in quote.getWorkshopDashboardStats:', error);
             return res.status(500).json({ error: 'Internal server error generating workshop stats' });
->>>>>>> 7c012af64c4375556055328f3dbc54fb9409d4ed
         }
     }
 };
