@@ -79,13 +79,13 @@ export function Dashboard() {
       const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams({
         clientId: selectedClientId,
-        placa: placa.trim(),
+        placa: selectedPlaca !== 'all' ? selectedPlaca.trim() : '',
         oficinaId: selectedOficinaId,
-        status: selectedStatus,
+        status: statusFilter,
         startDate,
         endDate,
-        tipoServico: selectedTipoServico,
-        subfrota: subfrota.trim()
+        tipoServico: serviceTypeFilter,
+        subfrota: subfrotaFilter.trim()
       });
       const response = await fetch(`/dashboard/workshop?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -162,7 +162,7 @@ export function Dashboard() {
   useEffect(() => {
     setServicesPage(1);
     fetchStats();
-  }, [selectedOficinaId, selectedClientId, placa, selectedStatus, startDate, endDate, selectedTipoServico, subfrota]);
+  }, [selectedOficinaId, selectedClientId, selectedPlaca, statusFilter, startDate, endDate, serviceTypeFilter, subfrotaFilter]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Tem certeza de que deseja excluir este orçamento?')) return;
