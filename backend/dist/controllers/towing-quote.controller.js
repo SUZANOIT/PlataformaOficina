@@ -46,6 +46,9 @@ const createTowingQuoteSchema = zod_1.z.object({
     acrescimos: zod_1.z.coerce.number().optional().default(0),
     impostos: zod_1.z.coerce.number().optional().default(0),
     valorTotal: zod_1.z.coerce.number().optional().default(0),
+    valorVeiculo: zod_1.z.coerce.number().optional().default(0),
+    tipoCliente: zod_1.z.string().optional().default('Particular'),
+    plataformaId: zod_1.z.string().optional().nullable(),
     observacoes: zod_1.z.string().optional(),
     status: zod_1.z.string().optional(),
     // Validação ANTT

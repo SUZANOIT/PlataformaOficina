@@ -16,6 +16,13 @@ const platformSchema = z.object({
   cidade: z.string().optional().nullable(),
   estado: z.string().optional().nullable(),
   cep: z.string().optional().nullable(),
+  valorBaseGuincho: z.coerce.number().optional().default(0),
+  valorKmGuincho: z.coerce.number().optional().default(0),
+  valorHoraParadaGuincho: z.coerce.number().optional().default(0),
+  valorServicoMecanico: z.coerce.number().optional().default(0),
+  valorDeslocamento: z.coerce.number().optional().default(0),
+  valorHoraTecnica: z.coerce.number().optional().default(0),
+  valorHoraEspecializada: z.coerce.number().optional().default(0),
 });
 
 export const PlatformController = {
@@ -155,6 +162,59 @@ export const PlatformController = {
         }
       });
 
+      // Check if contractual values changed
+      const hasChanged = 
+        existing.valorBaseGuincho !== platform.valorBaseGuincho ||
+        existing.valorKmGuincho !== platform.valorKmGuincho ||
+        existing.valorHoraParadaGuincho !== platform.valorHoraParadaGuincho ||
+        existing.valorServicoMecanico !== platform.valorServicoMecanico ||
+        existing.valorDeslocamento !== platform.valorDeslocamento ||
+        existing.valorHoraTecnica !== platform.valorHoraTecnica ||
+        existing.valorHoraEspecializada !== platform.valorHoraEspecializada;
+
+      if (hasChanged) {
+        const novaVersao = existing.contratoVersao + 1;
+        
+        // Fetch user name
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const userName = user ? user.name : 'Sistema';
+
+        // Create history record
+        await prisma.plataformaContratoHistory.create({
+          data: {
+            plataformaId: id,
+            companyId,
+            userId,
+            userName,
+            versao: novaVersao,
+            
+            valorBaseGuinchoAnt: existing.valorBaseGuincho,
+            valorKmGuinchoAnt: existing.valorKmGuincho,
+            valorHoraParadaGuinchoAnt: existing.valorHoraParadaGuincho,
+            valorServicoMecanicoAnt: existing.valorServicoMecanico,
+            valorDeslocamentoAnt: existing.valorDeslocamento,
+            valorHoraTecnicaAnt: existing.valorHoraTecnica,
+            valorHoraEspecializadaAnt: existing.valorHoraEspecializada,
+
+            valorBaseGuinchoNovo: platform.valorBaseGuincho,
+            valorKmGuinchoNovo: platform.valorKmGuincho,
+            valorHoraParadaGuinchoNovo: platform.valorHoraParadaGuincho,
+            valorServicoMecanicoNovo: platform.valorServicoMecanico,
+            valorDeslocamentoNovo: platform.valorDeslocamento,
+            valorHoraTecnicaNovo: platform.valorHoraTecnica,
+            valorHoraEspecializadaNovo: platform.valorHoraEspecializada,
+          }
+        });
+
+        // Update version in Platform model
+        await prisma.plataformaGestao.update({
+          where: { id },
+          data: { contratoVersao: novaVersao }
+        });
+        
+        platform.contratoVersao = novaVersao;
+      }
+
       AuditLogger.log(userId, companyId, 'UPDATE_PLATFORM', `Updated platform: ${platform.nomeFantasia} (${platform.id})`, 'SUCCESS');
       return res.json(platform);
     } catch (error) {
@@ -188,6 +248,32 @@ export const PlatformController = {
     } catch (error) {
       console.error('Error deleting platform:', error);
       return res.status(500).json({ error: 'Erro ao excluir plataforma de gestão' });
+    }
+  },
+
+  async listHistory(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const companyId = (req as any).companyId as string;
+
+      // Check ownership
+      const platform = await prisma.plataformaGestao.findFirst({
+        where: { id, companyId }
+      });
+
+      if (!platform) {
+        return res.status(404).json({ error: 'Plataforma de gestão não encontrada ou acesso não autorizado' });
+      }
+
+      const history = await prisma.plataformaContratoHistory.findMany({
+        where: { plataformaId: id, companyId },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return res.json(history);
+    } catch (error) {
+      console.error('Error listing platform contract history:', error);
+      return res.status(500).json({ error: 'Erro ao listar histórico contratual da plataforma' });
     }
   }
 };

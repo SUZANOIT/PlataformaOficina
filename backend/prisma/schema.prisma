@@ -36,6 +36,7 @@ model User {
   towingQuotes TowingQuote[]
   towingRateHistories TowingRateHistory[]
   quoteHistories QuoteHistory[]
+  plataformaContratoHistories PlataformaContratoHistory[]
 
   @@index([email])
   @@index([companyId])
@@ -101,6 +102,7 @@ model Company {
   towingTypes           TowingType[]
   towingRateHistories   TowingRateHistory[]
   quoteHistories        QuoteHistory[]
+  plataformaContratoHistories PlataformaContratoHistory[]
 
   @@index([cnpj])
   @@index([parentCompanyId])
@@ -201,6 +203,9 @@ model Quote {
   isCloned     Boolean @default(false)
   clonedFromId String?
 
+  mecanicoId String?
+  mecanico   Collaborator? @relation("MecanicoQuotes", fields: [mecanicoId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -211,6 +216,7 @@ model Quote {
   @@index([plataformaGestaoId])
   @@index([oficinaId])
   @@index([veiculoId])
+  @@index([mecanicoId])
 }
 
 model QuoteHistory {
@@ -585,6 +591,8 @@ model Collaborator {
   oficina   Oficina?          @relation(fields: [oficinaId], references: [id], onDelete: SetNull)
   absences  EmployeeAbsence[]
 
+  mecanicoQuotes Quote[]       @relation("MecanicoQuotes")
+
   cargaHoraria Float?
   valorHora    Float?
 
@@ -667,6 +675,18 @@ model PlataformaGestao {
   company   Company? @relation(fields: [companyId], references: [id])
 
   quotes Quote[]
+
+  contratoVersao         Int                         @default(1)
+  valorBaseGuincho       Float                       @default(0)
+  valorKmGuincho         Float                       @default(0)
+  valorHoraParadaGuincho Float                       @default(0)
+  valorServicoMecanico   Float                       @default(0)
+  valorDeslocamento      Float                       @default(0)
+  valorHoraTecnica       Float                       @default(0)
+  valorHoraEspecializada Float                       @default(0)
+
+  contratoHistorico      PlataformaContratoHistory[]
+  towingQuotes           TowingQuote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1586,6 +1606,10 @@ model TowingQuote {
   
   // Configuração Guincho
   tipoGuincho       String?
+  valorVeiculo      Float @default(0)
+  tipoCliente       String @default("Particular")
+  plataformaId      String?
+  plataforma        PlataformaGestao? @relation(fields: [plataformaId], references: [id])
   
   // Motorista / Veículo de Guincho vinculado
   driverId          String?
@@ -1659,4 +1683,42 @@ model GuiaTransporteAudit {
   createdAt        DateTime       @default(now())
 
   @@map("guias_transporte_audits")
+}
+
+model PlataformaContratoHistory {
+  id                         String           @id @default(uuid())
+  plataformaId               String
+  plataforma                 PlataformaGestao @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  
+  companyId                  String?
+  company                    Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  userId                     String?
+  user                       User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName                   String?
+  
+  versao                     Int              @default(1)
+  
+  // Valores Anteriores
+  valorBaseGuinchoAnt       Float @default(0)
+  valorKmGuinchoAnt         Float @default(0)
+  valorHoraParadaGuinchoAnt Float @default(0)
+  valorServicoMecanicoAnt   Float @default(0)
+  valorDeslocamentoAnt      Float @default(0)
+  valorHoraTecnicaAnt       Float @default(0)
+  valorHoraEspecializadaAnt Float @default(0)
+
+  // Valores Novos
+  valorBaseGuinchoNovo       Float @default(0)
+  valorKmGuinchoNovo         Float @default(0)
+  valorHoraParadaGuinchoNovo Float @default(0)
+  valorServicoMecanicoNovo   Float @default(0)
+  valorDeslocamentoNovo      Float @default(0)
+  valorHoraTecnicaNovo       Float @default(0)
+  valorHoraEspecializadaNovo Float @default(0)
+
+  createdAt                  DateTime         @default(now())
+
+  @@index([plataformaId])
+  @@index([companyId])
 }

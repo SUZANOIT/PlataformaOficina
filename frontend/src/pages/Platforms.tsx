@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, User, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, User, MapPin, Loader2, AlertCircle, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { platformService } from '../services/platformService';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
@@ -42,6 +42,21 @@ export function Platforms() {
   const [estado, setEstado] = useState('');
   const [cep, setCep] = useState('');
 
+  // Valores Contratuais
+  const [valorBaseGuincho, setValorBaseGuincho] = useState<number>(0);
+  const [valorKmGuincho, setValorKmGuincho] = useState<number>(0);
+  const [valorHoraParadaGuincho, setValorHoraParadaGuincho] = useState<number>(0);
+  const [valorServicoMecanico, setValorServicoMecanico] = useState<number>(0);
+  const [valorDeslocamento, setValorDeslocamento] = useState<number>(0);
+  const [valorHoraTecnica, setValorHoraTecnica] = useState<number>(0);
+  const [valorHoraEspecializada, setValorHoraEspecializada] = useState<number>(0);
+
+  // Estados de Histórico
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [historyPlatform, setHistoryPlatform] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   const fetchPlatforms = async () => {
     setIsLoadingList(true);
     try {
@@ -80,6 +95,16 @@ export function Platforms() {
     setCidade('');
     setEstado('');
     setCep('');
+    
+    // Limpar Valores Contratuais
+    setValorBaseGuincho(0);
+    setValorKmGuincho(0);
+    setValorHoraParadaGuincho(0);
+    setValorServicoMecanico(0);
+    setValorDeslocamento(0);
+    setValorHoraTecnica(0);
+    setValorHoraEspecializada(0);
+
     setIsModalOpen(true);
   };
 
@@ -97,7 +122,32 @@ export function Platforms() {
     setCidade(platform.cidade || '');
     setEstado(platform.estado || '');
     setCep(platform.cep || '');
+
+    // Preencher Valores Contratuais
+    setValorBaseGuincho(platform.valorBaseGuincho || 0);
+    setValorKmGuincho(platform.valorKmGuincho || 0);
+    setValorHoraParadaGuincho(platform.valorHoraParadaGuincho || 0);
+    setValorServicoMecanico(platform.valorServicoMecanico || 0);
+    setValorDeslocamento(platform.valorDeslocamento || 0);
+    setValorHoraTecnica(platform.valorHoraTecnica || 0);
+    setValorHoraEspecializada(platform.valorHoraEspecializada || 0);
+
     setIsModalOpen(true);
+  };
+
+  const handleOpenHistoryModal = async (platform: any) => {
+    setHistoryPlatform(platform);
+    setIsLoadingHistory(true);
+    setIsHistoryModalOpen(true);
+    try {
+      const res = await platformService.getHistory(platform.id);
+      setHistoryList(res || []);
+    } catch (error) {
+      console.error('Error fetching platform history:', error);
+      toast.error('Erro ao buscar o histórico de alterações.');
+    } finally {
+      setIsLoadingHistory(false);
+    }
   };
 
   const handleCloseModal = () => {
@@ -197,7 +247,14 @@ export function Platforms() {
       endereco,
       cidade,
       estado,
-      cep
+      cep,
+      valorBaseGuincho,
+      valorKmGuincho,
+      valorHoraParadaGuincho,
+      valorServicoMecanico,
+      valorDeslocamento,
+      valorHoraTecnica,
+      valorHoraEspecializada,
     };
 
     try {
@@ -387,13 +444,20 @@ export function Platforms() {
                       </span>
                     </td>
                     <td className="px-6 py-4.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEditModal(platform)}
                           title="Editar plataforma"
                           className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
                         >
                           <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenHistoryModal(platform)}
+                          title="Histórico de Contrato"
+                          className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                        >
+                          <History className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(platform.id, platform.nomeFantasia)}
@@ -619,6 +683,112 @@ export function Platforms() {
                 </div>
               </div>
 
+              {/* Valores Contratuais */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Building className="h-4 w-4 text-primary" />
+                  Valores Contratuais dos Serviços
+                </h3>
+                
+                {/* Serviços de Guincho */}
+                <div className="bg-muted/10 p-4 border border-border/40 rounded-lg space-y-3">
+                  <h4 className="text-xs font-semibold text-foreground border-b border-border/60 pb-1.5">Serviços de Guincho</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Base Guincho (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorBaseGuincho || ''}
+                        onChange={(e) => setValorBaseGuincho(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor por KM (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorKmGuincho || ''}
+                        onChange={(e) => setValorKmGuincho(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Hora Parada (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorHoraParadaGuincho || ''}
+                        onChange={(e) => setValorHoraParadaGuincho(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Serviços Mecânicos */}
+                <div className="bg-muted/10 p-4 border border-border/40 rounded-lg space-y-3">
+                  <h4 className="text-xs font-semibold text-foreground border-b border-border/60 pb-1.5">Serviços Mecânicos</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Serviço Mecânico (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorServicoMecanico || ''}
+                        onChange={(e) => setValorServicoMecanico(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Deslocamento (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorDeslocamento || ''}
+                        onChange={(e) => setValorDeslocamento(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mão de Obra */}
+                <div className="bg-muted/10 p-4 border border-border/40 rounded-lg space-y-3">
+                  <h4 className="text-xs font-semibold text-foreground border-b border-border/60 pb-1.5">Mão de Obra</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Hora Técnica (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorHoraTecnica || ''}
+                        onChange={(e) => setValorHoraTecnica(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Valor Hora Especializada (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={valorHoraEspecializada || ''}
+                        onChange={(e) => setValorHoraEspecializada(Number(e.target.value))}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Status and Notes Block */}
               <div className="space-y-4 pt-2 border-t border-border">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -656,6 +826,150 @@ export function Platforms() {
               />
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Histórico */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            
+            <button
+              onClick={() => setIsHistoryModalOpen(false)}
+              className="absolute top-4 right-4 z-50 p-1.5 rounded-lg bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all shadow-xs border border-border/40"
+              title="Fechar histórico"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+
+            <div className="p-6 border-b border-border mr-12">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <History className="h-5.5 w-5.5 text-primary" />
+                Histórico Contratual — {historyPlatform?.nomeFantasia}
+              </h2>
+              <p className="text-muted-foreground text-xs mt-1">
+                Auditoria de alterações e histórico de versões dos valores contratuais acordados.
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {isLoadingHistory ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  <span className="text-muted-foreground text-sm font-medium">Carregando histórico do contrato...</span>
+                </div>
+              ) : historyList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground mb-4">
+                    <History className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-semibold text-lg text-foreground">Nenhuma alteração contratual registrada</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mt-1">
+                    Os valores definidos no cadastro inicial ainda não foram alterados ou versionados.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {historyList.map((item: any) => (
+                    <div key={item.id} className="relative pl-6 border-l-2 border-primary/20 pb-2 last:pb-0">
+                      {/* Timeline indicator node */}
+                      <span className="absolute -left-[7px] top-1.5 h-3 w-3 rounded-full bg-primary ring-4 ring-card" />
+                      
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 bg-muted/40 px-3 py-2 rounded-lg border border-border/40">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-xs font-bold">
+                            Versão {item.versao}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Alterado por: <strong className="text-foreground">{item.userName || 'Sistema'}</strong>
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {new Date(item.createdAt).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        {/* Guincho */}
+                        <div className="border border-border/50 rounded-lg p-3 space-y-2 bg-card">
+                          <h4 className="font-semibold text-foreground border-b border-border/30 pb-1">Serviços de Guincho</h4>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Valor Base:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorBaseGuinchoAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorBaseGuinchoNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Valor por KM:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorKmGuinchoAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorKmGuinchoNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Hora Parada:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorHoraParadaGuinchoAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorHoraParadaGuinchoNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mecânicos */}
+                        <div className="border border-border/50 rounded-lg p-3 space-y-2 bg-card">
+                          <h4 className="font-semibold text-foreground border-b border-border/30 pb-1">Serviços Mecânicos</h4>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Serv. Mecânico:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorServicoMecanicoAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorServicoMecanicoNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Deslocamento:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorDeslocamentoAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorDeslocamentoNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mão de Obra */}
+                        <div className="border border-border/50 rounded-lg p-3 space-y-2 bg-card">
+                          <h4 className="font-semibold text-foreground border-b border-border/30 pb-1">Mão de Obra</h4>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Hora Técnica:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorHoraTecnicaAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorHoraTecnicaNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Hora Especializ.:</span>
+                              <span className="font-medium text-foreground">
+                                R$ {item.valorHoraEspecializadaAnt.toFixed(2)} → <strong className="text-emerald-600 dark:text-emerald-400">R$ {item.valorHoraEspecializadaNovo.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-border bg-muted/20 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground font-medium rounded-lg text-sm transition-all border border-border/50 shadow-sm"
+              >
+                Voltar
+              </button>
+            </div>
+
           </div>
         </div>
       )}

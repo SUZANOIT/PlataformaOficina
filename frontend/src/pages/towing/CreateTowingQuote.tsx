@@ -4,13 +4,14 @@ import {
   Truck, MapPin, DollarSign, Save, Calculator, Car, User, 
   ShieldCheck, AlertTriangle, CheckCircle2, FileText, Calendar, 
   Building, UserCheck, Play, ClipboardCheck, ArrowLeftRight, Zap, Link2,
-  Eye
+  Eye, Info
 } from 'lucide-react';
 import { towingService } from '../../services/towing.service';
 import { GuiaTransporteModal } from '../../components/GuiaTransporteModal';
 import { googleMapsService } from '../../services/google-maps.service';
 import { anttService } from '../../services/antt.service';
 import { api } from '../../services/api';
+import { platformService } from '../../services/platformService';
 import { toast } from 'sonner';
 import { authStorage } from '../../utils/auth';
 
@@ -19,6 +20,7 @@ export function CreateTowingQuote() {
   const { id } = useParams();
   const isEditing = !!id;
   const user = authStorage.getUser();
+  const isAdmin = user?.role === 'ADMIN' || user?.roleAdmin === true;
 
   const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({
@@ -72,25 +74,32 @@ export function CreateTowingQuote() {
     anttComposicao: false,
     anttAltoDesempenho: false,
     anttRetornoVazio: false,
-    anttPisoMinimo: 0
+    anttPisoMinimo: 0,
+    
+    // Novos Campos
+    valorVeiculo: 0,
+    tipoCliente: 'Particular',
+    plataformaId: null
   });
-
+ 
   const [rates, setRates] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [towingTypes, setTowingTypes] = useState<any[]>([]);
+  const [platforms, setPlatforms] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [routeMap, setRouteMap] = useState<{ origin: string; destination: string } | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
+ 
   useEffect(() => {
     towingService.listRates().then(setRates).catch(console.error);
     towingService.listVehicles().then(setVehicles).catch(console.error);
     towingService.listDrivers().then(setDrivers).catch(console.error);
     towingService.listTowingTypes().then(setTowingTypes).catch(console.error);
+    platformService.list({ limit: 1000 }).then(res => setPlatforms(res.data || [])).catch(console.error);
     api.get('/registry/clients').then(res => setClients(res.data)).catch(console.error);
-
+ 
     if (isEditing) {
       towingService.getQuote(id).then(data => {
         setFormData(data);
@@ -158,6 +167,43 @@ export function CreateTowingQuote() {
         }
       }
 
+      return next;
+    });
+  };
+
+  const handleTipoClienteChange = (value: string) => {
+    setFormData((prev: any) => {
+      const next = { 
+        ...prev, 
+        tipoCliente: value, 
+        plataformaId: value === 'Particular' ? null : prev.plataformaId 
+      };
+      
+      if (value === 'Particular') {
+        const rate = rates.find(r => r.towingTypeId === prev.towingTypeId);
+        if (rate) {
+          next.taxaSaida = rate.taxaSaida;
+          next.valorKm = rate.valorKm;
+          next.valorHoraParada = rate.valorHoraParada;
+        } else {
+          next.taxaSaida = 0;
+          next.valorKm = 0;
+          next.valorHoraParada = 0;
+        }
+      }
+      return next;
+    });
+  };
+
+  const handlePlatformChange = (plataformaId: string) => {
+    const platform = platforms.find(p => p.id === plataformaId);
+    setFormData((prev: any) => {
+      const next = { ...prev, plataformaId: plataformaId || null };
+      if (platform) {
+        next.taxaSaida = platform.valorBaseGuincho || 0;
+        next.valorKm = platform.valorKmGuincho || 0;
+        next.valorHoraParada = platform.valorHoraParadaGuincho || 0;
+      }
       return next;
     });
   };
@@ -362,6 +408,7 @@ export function CreateTowingQuote() {
   });
 
   const selectedDriver = drivers.find(d => d.id === formData.driverId);
+  const selectedVehicle = vehicles.find((v: any) => v.id === formData.vehicleId || v.placa === formData.tipoGuincho);
   const companyName = (user?.company?.nome as string) || (user?.company?.razaoSocial as string) || 'MCA Gestão de Frotas';
 
   return (
@@ -441,6 +488,44 @@ export function CreateTowingQuote() {
               Etapa 1 - Dados do Cliente
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wide">Tipo de Cliente *</label>
+                <select
+                  value={formData.tipoCliente || 'Particular'}
+                  onChange={e => handleTipoClienteChange(e.target.value)}
+                  className="w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground font-semibold"
+                >
+                  <option value="Particular">Cliente Particular</option>
+                  <option value="Plataforma">Cliente da Plataforma</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                {formData.tipoCliente === 'Plataforma' ? (
+                  <>
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide">Plataforma de Gestão *</label>
+                    <select
+                      value={formData.plataformaId || ''}
+                      onChange={e => handlePlatformChange(e.target.value)}
+                      className="w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground font-semibold"
+                      required
+                    >
+                      <option value="">Selecione a plataforma</option>
+                      {platforms.map(p => (
+                        <option key={p.id} value={p.id}>{p.nomeFantasia}</option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wide text-muted-foreground">Plataforma de Gestão</label>
+                    <input 
+                      disabled
+                      placeholder="Uso exclusivo para Plataforma"
+                      className="w-full bg-muted/30 border border-border px-3.5 py-2 rounded-lg text-sm text-muted-foreground cursor-not-allowed"
+                    />
+                  </>
+                )}
+              </div>
               <div className="md:col-span-2 space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">Nome do Cliente *</label>
                 <input 
@@ -448,7 +533,7 @@ export function CreateTowingQuote() {
                   placeholder="Selecione ou digite um novo cliente" 
                   value={formData.clienteNome} 
                   onChange={e => handleChange('clienteNome', e.target.value)} 
-                  className="w-full bg-background border border-border px-3.5 py-2 rounded-lg text-sm focus:border-primary focus:outline-none" 
+                  className="w-full bg-background border border-border px-3.5 py-2 rounded-lg text-sm focus:border-primary focus:outline-none font-semibold text-foreground" 
                   required
                 />
                 <datalist id="client-list">
@@ -473,7 +558,7 @@ export function CreateTowingQuote() {
                   className="w-full bg-background border border-border px-3.5 py-2 rounded-lg text-sm focus:border-primary focus:outline-none" 
                 />
               </div>
-              <div className="md:col-span-4 space-y-1">
+              <div className="md:col-span-2 space-y-1">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">E-mail</label>
                 <input 
                   type="email"
@@ -562,13 +647,19 @@ export function CreateTowingQuote() {
                 <select
                   value={formData.towingTypeId || ''}
                   onChange={e => handleTowingTypeChange(e.target.value)}
-                  className="w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground"
+                  disabled={!isAdmin && !!formData.vehicleId}
+                  className={`w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground ${
+                    !isAdmin && !!formData.vehicleId ? 'opacity-70 cursor-not-allowed bg-muted/30' : ''
+                  }`}
                 >
                   <option value="">Selecione o tipo de guincho</option>
                   {towingTypes.map((type) => (
                     <option key={type.id} value={type.id}>{type.name}</option>
                   ))}
                 </select>
+                {!isAdmin && !!formData.vehicleId && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Tipo de guincho vinculado ao veículo.</p>
+                )}
               </div>
 
               {/* Coluna 3: Motorista Escalado */}
@@ -595,7 +686,7 @@ export function CreateTowingQuote() {
 
             <div className="border-t border-border pt-4 mt-4 space-y-3">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Veículo Transportado (Do Cliente)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-8 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Placa</label>
                   <input 
@@ -660,6 +751,20 @@ export function CreateTowingQuote() {
                     onChange={e => handleChange('veiculoValorAproximado', e.target.value)} 
                     className="w-full bg-background border border-border px-3 py-1.5 rounded-lg text-xs" 
                   />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-foreground uppercase tracking-wide">Valor do Veículo</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-[7px] text-[10px] text-muted-foreground font-semibold">R$</span>
+                    <input 
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00" 
+                      value={formData.valorVeiculo || ''} 
+                      onChange={e => handleChange('valorVeiculo', e.target.value)} 
+                      className="w-full bg-background border border-border pl-7 pr-2 py-1.5 rounded-lg text-xs font-semibold" 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -873,12 +978,12 @@ export function CreateTowingQuote() {
           </div>
 
           {/* VALIDAÇÃO ANTT */}
-          <div className="bg-card border border-border p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="bg-card border border-border p-5 rounded-2xl shadow-sm space-y-5">
             <h2 className="font-bold text-foreground text-base flex items-center gap-2 border-b pb-2">
               <ShieldCheck className="text-primary" size={18} />
               Validação ANTT
             </h2>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                 {/* Retorno Vazio */}
                 <div className={`p-4 border rounded-xl flex flex-col gap-2 transition-all ${formData.anttRetornoVazio ? 'bg-primary/5 border-primary shadow-xs' : 'bg-background border-border hover:bg-muted/30'}`}>
@@ -935,6 +1040,104 @@ export function CreateTowingQuote() {
                   <p className="text-xs text-muted-foreground leading-relaxed pl-6">
                     Aplica-se ao uso de combinações de veículos de carga (ex: reboques acoplados ou multi-eixos).
                   </p>
+                </div>
+              </div>
+
+              {/* Grid de Parâmetros ANTT com Popovers */}
+              <div className="border-t border-border/60 pt-4 space-y-3">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                  Parâmetros de Validação ANTT do Veículo
+                </span>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Registro ANTT */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Registro ANTT
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {selectedVehicle?.rntrcNumero || 'Não cadastrado'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      RNTRC (Registro Nacional de Transportadores Rodoviários de Cargas) do veículo.
+                    </div>
+                  </div>
+
+                  {/* Situação */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Situação
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className={`text-xs font-bold truncate ${selectedVehicle?.rntrcStatus?.toUpperCase() === 'ATIVO' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+                      {selectedVehicle?.rntrcStatus || 'Não validado'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      Situação cadastral do transportador na base da ANTT. Deve constar como ATIVO.
+                    </div>
+                  </div>
+
+                  {/* Categoria */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Categoria
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {selectedVehicle ? 'ETC (Empresa)' : 'N/A'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      Categoria cadastrada na ANTT: ETC (Empresa de Transporte de Cargas).
+                    </div>
+                  </div>
+
+                  {/* Validade */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Validade
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {selectedVehicle?.rntrcValidade ? new Date(selectedVehicle.rntrcValidade).toLocaleDateString('pt-BR') : 'N/A'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      Data limite de validade do RNTRC junto à ANTT.
+                    </div>
+                  </div>
+
+                  {/* Tipo de Operação */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Tipo de Operação
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {selectedVehicle ? 'Operação Terceiros' : 'N/A'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      Modalidade operacional do veículo: Transporte comercial (Operação por Terceiros).
+                    </div>
+                  </div>
+
+                  {/* Restrições */}
+                  <div className="p-3 bg-background border border-border rounded-xl flex flex-col gap-1 relative group hover:border-primary/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      Restrições
+                      <Info size={13} className="text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                      {selectedVehicle ? 'Nenhuma Restrição' : 'N/A'}
+                    </span>
+                    {/* Tooltip Popover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-popover border border-border px-3 py-2 rounded-xl shadow-md text-[11px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 text-center leading-normal">
+                      Existência de restrições ou impedimentos fiscais, judiciais ou administrativos.
+                    </div>
+                  </div>
                 </div>
               </div>
 

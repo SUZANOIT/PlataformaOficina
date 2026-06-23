@@ -1,685 +1,800 @@
-import { FileText, TrendingUp, Users, Edit, Copy, Trash2, Eye } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { 
+  FileText, 
+  Users, 
+  Wrench, 
+  Clock, 
+  DollarSign, 
+  Percent, 
+  Activity, 
+  UserCheck,
+  Eye,
+  SlidersHorizontal
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
-import { AlertsWidget } from '../components/AlertsWidget';
 
 export function Dashboard() {
-  const [stats, setStats] = useState<any>(null);
-  const [quotes, setQuotes] = useState<any[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'financeiro' | 'clientes' | 'operacional'>('financeiro');
+
+  // Filter States
+  const [selectedOficinaId, setSelectedOficinaId] = useState('all');
+  const [selectedClientId, setSelectedClientId] = useState('all');
+  const [placa, setPlaca] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const navigate = useNavigate();
+  const [selectedTipoServico, setSelectedTipoServico] = useState('all');
+  const [subfrota, setSubfrota] = useState('');
 
+  // Data Options Lists (for filters)
+  const [workshops, setWorkshops] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+
+  // Dashboard Stats State
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Filter Lists
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        const workshopsRes = await fetch('/fleet/workshops', { headers });
+        if (workshopsRes.ok) {
+          const data = await workshopsRes.json();
+          setWorkshops(data || []);
+        }
+
+        const clientsRes = await fetch('/registry/clients', { headers });
+        if (clientsRes.ok) {
+          const data = await clientsRes.json();
+          setClients(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load filter options", err);
+      }
+    };
+    loadFilterData();
+  }, []);
+
+  // Fetch Stats Data based on Filters
   const fetchStats = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/dashboard', {
+      const queryParams = new URLSearchParams({
+        clientId: selectedClientId,
+        placa: placa.trim(),
+        oficinaId: selectedOficinaId,
+        status: selectedStatus,
+        startDate,
+        endDate,
+        tipoServico: selectedTipoServico,
+        subfrota: subfrota.trim()
+      });
+
+      const response = await fetch(`/dashboard/workshop?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+      } else {
+        toast.error('Erro ao carregar estatísticas do painel.');
       }
     } catch (error) {
-      console.error("Failed to load dashboard stats", error);
-    }
-  };
-
-  const fetchQuotes = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/quotes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setQuotes(data);
-      }
-    } catch (error) {
-      console.error("Failed to load quotes list", error);
+      console.error("Failed to load workshop dashboard stats", error);
+      toast.error('Erro de conexão ao carregar estatísticas.');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchStats();
-    fetchQuotes();
-  }, []);
+  }, [
+    selectedOficinaId, 
+    selectedClientId, 
+    placa, 
+    selectedStatus, 
+    startDate, 
+    endDate, 
+    selectedTipoServico, 
+    subfrota
+  ]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId]);
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza de que deseja excluir este orçamento?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/quotes/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        toast.success('Orçamento excluído com sucesso!');
-        fetchStats();
-        fetchQuotes();
-      } else {
-        toast.error('Erro ao excluir orçamento.');
-      }
-    } catch (error) {
-      console.error('Failed to delete quote', error);
-      toast.error('Erro de conexão ao excluir.');
-    }
+  const handleClearFilters = () => {
+    setSelectedOficinaId('all');
+    setSelectedClientId('all');
+    setPlaca('');
+    setSelectedStatus('all');
+    setStartDate('');
+    setEndDate('');
+    setSelectedTipoServico('all');
+    setSubfrota('');
+    toast.success('Filtros limpos com sucesso.');
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  // Filter recent quotes
-  const filteredQuotes = quotes.filter((quote: any) => {
-    if (selectedCompanyId !== 'all' && quote.companyId !== selectedCompanyId) {
-      return false;
+  const formatDuration = (hours: number) => {
+    if (!hours || hours <= 0) return '—';
+    if (hours < 24) {
+      return `${hours.toFixed(1)}h`;
     }
-    
-    const normalizedStatus = (quote.status === 'Orçamento' || quote.status === 'Em Andamento') 
-      ? 'Aguardando Aprovação' 
-      : (quote.status || 'Aguardando Aprovação');
-
-    if (statusFilter !== 'all' && normalizedStatus !== statusFilter) {
-      return false;
-    }
-    
-    if (searchTerm) {
-      const cleanSearch = searchTerm.trim().toLowerCase().replace('#', '');
-      const numStr = String(quote.numeroOrcamento);
-      const clientName = quote.client?.nome?.toLowerCase() || '';
-      if (!numStr.includes(cleanSearch) && !clientName.includes(cleanSearch)) {
-        return false;
-      }
-    }
-    
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      const quoteDate = new Date(quote.createdAt);
-      if (quoteDate < start) return false;
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      const quoteDate = new Date(quote.createdAt);
-      if (quoteDate > end) return false;
-    }
-    
-    return true;
-  });
-
-  const totalItems = filteredQuotes.length;
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const paginatedQuotes = filteredQuotes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  // Status Chart calculations
-  const statusTotals: Record<string, { value: number; count: number }> = {
-    'Aguardando Aprovação': { value: 0, count: 0 },
-    'Aprovado': { value: 0, count: 0 },
-    'Aguardando Pagamento': { value: 0, count: 0 },
-    'Emitir Nota Fiscal': { value: 0, count: 0 },
-    'Cobertura': { value: 0, count: 0 },
-    'Pago': { value: 0, count: 0 }
+    const days = Math.floor(hours / 24);
+    const remHours = Math.round(hours % 24);
+    return `${days}d ${remHours}h`;
   };
 
-  const quotesForChart = (selectedCompanyId === 'all' 
-    ? quotes 
-    : quotes.filter((q: any) => q.companyId === selectedCompanyId)
-  ).filter((q: any) => {
-    if (!q.status || q.status === 'Cancelado' || q.status === 'Excluído' || q.status === 'Arquivado') return false;
-    const value = Number(q.total) || 0;
-    return value > 0;
-  });
+  if (loading && !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <p className="text-sm text-muted-foreground font-medium animate-pulse">Carregando dados da oficina...</p>
+      </div>
+    );
+  }
 
-  let totalGeralForChart = 0;
-
-  quotesForChart.forEach((q: any) => {
-    let status = q.status || 'Aguardando Aprovação';
-    if (status === 'Orçamento' || status === 'Em Andamento') {
-      status = 'Aguardando Aprovação';
+  // Safety fallbacks
+  const s = stats || {
+    totalQuotes: 0,
+    totalApproved: 0,
+    totalPago: 0,
+    ticketMedio: 0,
+    veiculosAtendidos: 0,
+    tempoMedioAtendimento: 0,
+    tempoMedioAprovacao: 0,
+    tempoMedioExecucao: 0,
+    taxaConversao: 0,
+    faturamentoAcumuladoAno: 0,
+    monthlyBilling: [],
+    topClients: [],
+    clientsGrid: [],
+    servicesGrid: [],
+    strategicIndicators: {
+      clienteMaisReceita: null,
+      servicoMaisVendido: null,
+      mecanicoMaisAtendimentos: null,
+      topServices: [],
+      topMechanics: []
     }
-    const val = Number(q.total) || 0;
-    if (statusTotals.hasOwnProperty(status)) {
-      statusTotals[status].value += val;
-      statusTotals[status].count += 1;
-      totalGeralForChart += val;
-    }
-  });
-
-  const maxVal = Math.max(...Object.values(statusTotals).map(s => s.value), 1);
-
-  const statusConfig: Record<string, { colorClass: string; textClass: string }> = {
-    'Aguardando Aprovação': { colorClass: 'bg-purple-500', textClass: 'text-purple-600' },
-    'Aprovado': { colorClass: 'bg-emerald-500', textClass: 'text-emerald-600' },
-    'Aguardando Pagamento': { colorClass: 'bg-amber-500', textClass: 'text-amber-600' },
-    'Emitir Nota Fiscal': { colorClass: 'bg-teal-500', textClass: 'text-teal-600' },
-    'Cobertura': { colorClass: 'bg-indigo-500', textClass: 'text-indigo-600' },
-    'Pago': { colorClass: 'bg-sky-500', textClass: 'text-sky-600' },
-    'Cancelado': { colorClass: 'bg-rose-500', textClass: 'text-rose-600' },
   };
 
-  // Monthly calculations for approved quotes in current year
-  const currentYear = new Date().getFullYear();
-  const monthlyApprovedTotals = Array(12).fill(0);
-  const monthlyPecasTotals = Array(12).fill(0);
-  const monthlyMaoDeObraTotals = Array(12).fill(0);
-  
-  const approvedQuotesThisYear = quotes.filter((q: any) => {
-    const isApproved = q.status === 'Aprovado' || q.status === 'Pago' || q.status === 'Aguardando Pagamento';
-    const date = new Date(q.createdAt);
-    const isCurrentYear = date.getFullYear() === currentYear;
-    return isApproved && isCurrentYear;
-  });
-
-  approvedQuotesThisYear.forEach((q: any) => {
-    const date = new Date(q.createdAt);
-    const month = date.getMonth(); // 0-11
-    monthlyApprovedTotals[month] += Number(q.total) || 0;
-    
-    (q.items || []).forEach((item: any) => {
-      const tipo = item.tipo || 'Peça';
-      const itemVal = (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0);
-      if (tipo === 'Peça') {
-        monthlyPecasTotals[month] += itemVal;
-      } else {
-        monthlyMaoDeObraTotals[month] += itemVal;
-      }
-    });
-  });
-
-  const maxMonthVal = Math.max(...monthlyApprovedTotals, 1);
-  const maxPartsLaborVal = Math.max(...monthlyPecasTotals, ...monthlyMaoDeObraTotals, 1);
-
-  const monthNames = [
-    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-  ];
-
-
-
+  // Find max values for chart scalings
+  const maxMonthlyPaid = Math.max(...s.monthlyBilling.map((m: any) => m.valorPago || 0), 1);
+  const maxMonthlyQty = Math.max(...s.monthlyBilling.map((m: any) => m.qtdServicos || 0), 1);
+  const maxClientPaid = Math.max(...s.topClients.map((c: any) => c.totalPaid || 0), 1);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <Link 
-          to="/quotes/new" 
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition text-center"
-        >
-          Novo Orçamento
-        </Link>
+    <div className="space-y-6 pb-10">
+      
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-border pb-5">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            Painel da Oficina
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gestão estratégica de faturamento, produtividade de mecânicos e relacionamento com clientes.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/quotes/new')}
+            className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-semibold shadow-md shadow-primary/20 hover:bg-primary/95 transition active:scale-[0.98] duration-150 text-center text-sm"
+          >
+            Novo Orçamento
+          </button>
+        </div>
       </div>
 
-      {/* Alertas e Comunicados do Painel Administrativo */}
-      <AlertsWidget />
-
-      {/* Estatísticas Gerais */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-            <FileText size={24} />
+      {/* Filters Section */}
+      <div className="bg-card border border-border rounded-2xl shadow-sm p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <SlidersHorizontal size={18} className="text-primary" />
+            <span>Filtros do Painel</span>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Orçamentos Gerados</p>
-            <h3 className="text-2xl font-bold">{stats?.quotesCount || 0}</h3>
+          <button 
+            onClick={handleClearFilters}
+            className="text-xs font-semibold text-muted-foreground hover:text-primary transition"
+          >
+            Limpar Filtros
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Oficina Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Oficina</label>
+            <select
+              value={selectedOficinaId}
+              onChange={(e) => setSelectedOficinaId(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            >
+              <option value="all">Todas as Oficinas</option>
+              {workshops.map(w => (
+                <option key={w.id} value={w.id}>{w.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cliente Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliente</label>
+            <select
+              value={selectedClientId}
+              onChange={(e) => setSelectedClientId(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            >
+              <option value="all">Todos os Clientes</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Placa Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Placa do Veículo</label>
+            <input
+              type="text"
+              placeholder="Ex: ABC1234..."
+              value={placa}
+              onChange={(e) => setPlaca(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Status OS</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            >
+              <option value="all">Todos os Status</option>
+              <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+              <option value="Aprovado">Aprovado</option>
+              <option value="Aguardando Pagamento">Aguardando Pagamento</option>
+              <option value="Emitir Nota Fiscal">Emitir Nota Fiscal</option>
+              <option value="Cobertura">Cobertura</option>
+              <option value="Pago">Pago</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </div>
+
+          {/* Período Início */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Data Início</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            />
+          </div>
+
+          {/* Período Fim */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Data Fim</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            />
+          </div>
+
+          {/* Tipo de Serviço */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipo de Item</label>
+            <select
+              value={selectedTipoServico}
+              onChange={(e) => setSelectedTipoServico(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            >
+              <option value="all">Todos</option>
+              <option value="Peça">Apenas Peças</option>
+              <option value="Mão de Obra">Apenas Mão de Obra</option>
+            </select>
+          </div>
+
+          {/* Subfrota */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subfrota</label>
+            <input
+              type="text"
+              placeholder="Ex: Logística, Diretoria..."
+              value={subfrota}
+              onChange={(e) => setSubfrota(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+            />
           </div>
         </div>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Total Quotes */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Orçamentos</div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-3xl font-extrabold text-foreground">{s.totalQuotes}</span>
+            <div className="p-2 bg-primary/10 rounded-xl text-primary"><FileText size={18} /></div>
+          </div>
+        </div>
+
+        {/* Total Approved */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Aprovados (R$)</div>
+          <div className="mt-3 flex flex-col">
+            <span className="text-xl font-extrabold text-emerald-600 truncate">{formatCurrency(s.totalApproved)}</span>
+            <span className="text-[10px] text-muted-foreground mt-1">Estimado / Vendas</span>
+          </div>
+        </div>
+
+        {/* Total Paid */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Total Confirmado</div>
+          <div className="mt-3 flex flex-col">
+            <span className="text-xl font-extrabold text-blue-600 truncate">{formatCurrency(s.totalPago)}</span>
+            <span className="text-[10px] text-muted-foreground mt-1">Faturamento Confirmado</span>
+          </div>
+        </div>
+
+        {/* Ticket Médio */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Ticket Médio</div>
+          <div className="mt-3 flex flex-col">
+            <span className="text-xl font-extrabold text-foreground truncate">{formatCurrency(s.ticketMedio)}</span>
+            <span className="text-[10px] text-muted-foreground mt-1">Por OS Aprovada</span>
+          </div>
+        </div>
+
+        {/* Vehicles Serviced */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Veículos Atendidos</div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-3xl font-extrabold text-foreground">{s.veiculosAtendidos}</span>
+            <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-500"><Users size={18} /></div>
+          </div>
+        </div>
+
+        {/* Avg Attend Time */}
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between">
+          <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">SLA Atendimento</div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-xl font-extrabold text-foreground truncate">{formatDuration(s.tempoMedioAtendimento)}</span>
+            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-500"><Clock size={18} /></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Strategic Highlights Panel */}
+      <div className="bg-card border border-border rounded-2xl shadow-sm p-6 space-y-4">
+        <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+          <Activity size={18} className="text-primary" />
+          <span>Indicadores Estratégicos</span>
+        </h3>
         
-        <div 
-          className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4"
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
+          {/* Top Client */}
+          <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl"><DollarSign size={20} /></div>
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground block font-medium">Cliente Maior Receita</span>
+              <strong className="text-foreground block truncate">{s.strategicIndicators.clienteMaisReceita?.name || 'Sem dados'}</strong>
+              <span className="text-xs text-emerald-600 font-bold">{s.strategicIndicators.clienteMaisReceita ? formatCurrency(s.strategicIndicators.clienteMaisReceita.value) : '—'}</span>
+            </div>
+          </div>
+
+          {/* Top Service */}
+          <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
+            <div className="p-3 bg-blue-500/10 text-blue-600 rounded-xl"><Wrench size={20} /></div>
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground block font-medium">Serviço Mais Vendido</span>
+              <strong className="text-foreground block truncate">{s.strategicIndicators.servicoMaisVendido?.name || 'Sem dados'}</strong>
+              <span className="text-xs text-blue-600 font-semibold">{s.strategicIndicators.servicoMaisVendido ? `${s.strategicIndicators.servicoMaisVendido.value} unidades` : '—'}</span>
+            </div>
+          </div>
+
+          {/* Top Mechanic */}
+          <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
+            <div className="p-3 bg-indigo-500/10 text-indigo-600 rounded-xl"><UserCheck size={20} /></div>
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground block font-medium">Mecânico Líder</span>
+              <strong className="text-foreground block truncate">{s.strategicIndicators.mecanicoMaisAtendimentos?.name || 'Sem dados'}</strong>
+              <span className="text-xs text-indigo-600 font-semibold">{s.strategicIndicators.mecanicoMaisAtendimentos ? `${s.strategicIndicators.mecanicoMaisAtendimentos.value} O.S.` : '—'}</span>
+            </div>
+          </div>
+
+          {/* Conversion Rate */}
+          <div className="p-4 bg-muted/40 rounded-xl flex items-center gap-3">
+            <div className="p-3 bg-purple-500/10 text-purple-600 rounded-xl"><Percent size={20} /></div>
+            <div className="min-w-0">
+              <span className="text-xs text-muted-foreground block font-medium">Taxa de Conversão</span>
+              <strong className="text-foreground block text-lg font-extrabold">{s.taxaConversao.toFixed(1)}%</strong>
+              <span className="text-[10px] text-muted-foreground block">Orçamento → Aprovação</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Navigation */}
+      <div className="flex border-b border-border gap-2">
+        <button
+          onClick={() => setActiveTab('financeiro')}
+          className={`px-6 py-3 font-semibold text-sm transition relative border-b-2 flex items-center gap-2 ${
+            activeTab === 'financeiro'
+              ? 'text-primary border-primary font-bold'
+              : 'text-muted-foreground border-transparent hover:text-foreground'
+          }`}
         >
-          <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Valor Total Vendido</p>
-            <h3 className="text-2xl font-bold">{formatCurrency(stats?.totalSold || 0)}</h3>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border p-6 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Clientes Ativos</p>
-            <h3 className="text-2xl font-bold">{stats?.activeClientsCount || 0}</h3>
-          </div>
-        </div>
+          <DollarSign size={16} />
+          Financeiro
+        </button>
+        <button
+          onClick={() => setActiveTab('clientes')}
+          className={`px-6 py-3 font-semibold text-sm transition relative border-b-2 flex items-center gap-2 ${
+            activeTab === 'clientes'
+              ? 'text-primary border-primary font-bold'
+              : 'text-muted-foreground border-transparent hover:text-foreground'
+          }`}
+        >
+          <Users size={16} />
+          Clientes
+        </button>
+        <button
+          onClick={() => setActiveTab('operacional')}
+          className={`px-6 py-3 font-semibold text-sm transition relative border-b-2 flex items-center gap-2 ${
+            activeTab === 'operacional'
+              ? 'text-primary border-primary font-bold'
+              : 'text-muted-foreground border-transparent hover:text-foreground'
+          }`}
+        >
+          <Wrench size={16} />
+          Operacional
+        </button>
       </div>
 
-      {/* Gráficos */}
+      {/* Tab Panels */}
       <div className="space-y-6">
-          {/* Gráfico 1: Volume Financeiro por Status */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="text-primary" size={20} />
-                <h2 className="text-lg font-semibold">Volume Financeiro por Status</h2>
-              </div>
-              <span className="text-xs text-muted-foreground font-medium">Valores Totais em R$</span>
-            </div>
-
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-              <div className="h-64 flex items-end justify-between gap-3 pt-16 px-2 min-w-[500px] sm:min-w-0">
-                {Object.entries(statusTotals).map(([status, stats]) => {
-                  const totalValue = stats.value;
-                  const pct = (totalValue / maxVal) * 100;
-                  const totalPct = totalGeralForChart > 0 ? (totalValue / totalGeralForChart) * 100 : 0;
-                  const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
-                  
-                  return (
-                    <div key={status} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center gap-0.5">
-                        <span className="text-muted-foreground">{status}</span>
-                        <span className={`text-[13px] ${config.textClass}`}>{formatCurrency(totalValue)}</span>
-                        <span className="text-foreground">{totalPct.toFixed(1)}%</span>
-                        <span className="font-normal text-muted-foreground">{stats.count} Orçamento{stats.count !== 1 ? 's' : ''}</span>
-                      </div>
-
-                      {/* Bar */}
-                      <div className="w-full flex justify-center items-end h-full">
-                        <div 
-                          style={{ height: `${Math.max(pct, 4)}%` }} 
-                          className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${config.colorClass} shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
-                        >
-                          {pct > 15 && (
-                            <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
-                              {Math.round(pct)}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* X Label */}
-                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-medium" title={status}>
-                        {status.split(' ')[0]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Legenda compacta e bonita */}
-            <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
-              {Object.entries(statusTotals).map(([status, totalValue]) => {
-                const config = statusConfig[status] || { colorClass: 'bg-slate-500', textClass: 'text-slate-600' };
-                return (
-                  <div key={status} className="flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${config.colorClass}`}></span>
-                    <span className="font-semibold text-foreground">{status}:</span>
-                    <span>{formatCurrency(totalValue.value)}</span>
+        
+        {/* Aba 1: Financeiro */}
+        {activeTab === 'financeiro' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
+            {/* Monthly Billing Chart */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-6 lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div>
+                  <h3 className="font-bold text-foreground">Faturamento Mensal da Oficina</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Janeiro a Dezembro de {currentYear}</p>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] font-medium">
+                  <div className="flex items-center gap-1.5 text-blue-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <span>Valor Pago (R$)</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Gráfico 2: Faturamento Mensal (Jan a Dez) */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="text-emerald-500" size={20} />
-                <h2 className="text-lg font-semibold">Faturamento Mensal de Aprovados ({currentYear})</h2>
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <span className="w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-700"></span>
+                    <span>Serviços Executados</span>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs text-muted-foreground font-medium">Valores de Orçamentos Aprovados por Mês</span>
-            </div>
 
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-              <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
-                {monthlyApprovedTotals.map((totalValue, index) => {
-                  const monthName = monthNames[index];
-                  const pct = (totalValue / maxMonthVal) * 100;
+              {/* Chart Body */}
+              <div className="h-72 flex items-end justify-between gap-2 pt-10 px-2 overflow-x-auto scrollbar-none">
+                {s.monthlyBilling.map((m: any) => {
+                  const paidPct = (m.valorPago / maxMonthlyPaid) * 80; // max 80% height
+                  const qtyPct = (m.qtdServicos / maxMonthlyQty) * 80;
                   
                   return (
-                    <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                    <div key={m.month} className="flex-1 flex flex-col items-center group relative h-full justify-end min-w-[32px]">
                       {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-center">
-                        <span>{monthName} de {currentYear}</span>
-                        <span className="text-sm text-emerald-600 font-bold">{formatCurrency(totalValue)}</span>
-                      </div>
-
-                      {/* Bar */}
-                      <div className="w-full flex justify-center items-end h-full">
-                        <div 
-                          style={{ height: `${Math.max(pct, 4)}%` }} 
-                          className={`w-4/5 sm:w-1/2 rounded-t-lg transition-all duration-500 flex flex-col justify-end overflow-hidden ${
-                            totalValue > 0 ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-200 dark:bg-slate-800/50'
-                          } shadow-lg shadow-black/10 group-hover:scale-y-105 origin-bottom`}
-                        >
-                          {pct > 15 && (
-                            <div className="w-full text-center text-[9px] font-black text-white pb-1 rotate-90 sm:rotate-0 truncate">
-                              {Math.round(pct)}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* X Label */}
-                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
-                        {monthName}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Gráfico 3: Peças vs Mão de Obra (Jan a Dez) */}
-          <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-border pb-3 justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="text-blue-500" size={20} />
-                <h2 className="text-lg font-semibold">Faturamento por Tipo: Peças vs Mão de Obra ({currentYear})</h2>
-              </div>
-              <span className="text-xs text-muted-foreground font-medium">Comparativo Mensal (Orçamentos Aprovados)</span>
-            </div>
-
-            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-              <div className="h-64 flex items-end justify-between gap-2 pt-16 px-2 min-w-[650px] sm:min-w-0">
-                {monthNames.map((monthName, index) => {
-                  const partsVal = monthlyPecasTotals[index];
-                  const laborVal = monthlyMaoDeObraTotals[index];
-                  const partsPct = (partsVal / maxPartsLaborVal) * 100;
-                  const laborPct = (laborVal / maxPartsLaborVal) * 100;
-                  
-                  return (
-                    <div key={monthName} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-1.5 rounded-lg shadow-md text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col items-start gap-1">
-                        <span className="font-bold text-foreground border-b border-border w-full pb-0.5 mb-0.5">{monthName} de {currentYear}</span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                          Peças: <strong className="text-blue-600">{formatCurrency(partsVal)}</strong>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                          Mão de Obra: <strong className="text-indigo-600">{formatCurrency(laborVal)}</strong>
-                        </span>
-                      </div>
-
-                      {/* Dual Bars Container */}
-                      <div className="w-full flex justify-center items-end h-full gap-1">
-                        {/* Parts Bar (Blue) */}
-                        <div className="flex-1 flex items-end h-full justify-center">
-                          <div 
-                            style={{ height: `${Math.max(partsPct, 4)}%` }} 
-                            className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
-                              partsVal > 0 ? 'bg-gradient-to-t from-blue-600 to-blue-400' : 'bg-slate-200 dark:bg-slate-800/40'
-                            } shadow-sm group-hover:scale-y-105 origin-bottom`}
-                          />
-                        </div>
-
-                        {/* Labor Bar (Indigo) */}
-                        <div className="flex-1 flex items-end h-full justify-center">
-                          <div 
-                            style={{ height: `${Math.max(laborPct, 4)}%` }} 
-                            className={`w-full max-w-[12px] rounded-t-sm transition-all duration-500 ${
-                              laborVal > 0 ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-slate-200 dark:bg-slate-800/40'
-                            } shadow-sm group-hover:scale-y-105 origin-bottom`}
-                          />
-                        </div>
-                      </div>
-
-                      {/* X Label */}
-                      <span className="text-[10px] text-muted-foreground truncate w-full text-center mt-2 font-semibold">
-                        {monthName}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Legenda */}
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pt-4 border-t border-border/50 text-[11px] text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-gradient-to-t from-blue-600 to-blue-400"></span>
-                <span className="font-semibold text-foreground">Peças (Total: {formatCurrency(monthlyPecasTotals.reduce((a, b) => a + b, 0))})</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-gradient-to-t from-indigo-600 to-indigo-400"></span>
-                <span className="font-semibold text-foreground">Mão de Obra (Total: {formatCurrency(monthlyMaoDeObraTotals.reduce((a, b) => a + b, 0))})</span>
-              </div>
-            </div>
-          </div>
-      </div>
-
-      {/* Tabela de Orçamentos */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-border space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <h2 className="text-lg font-semibold">Últimos Orçamentos</h2>
-            
-            {/* Filtro por Empresa */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Empresa:</span>
-              <select 
-                value={selectedCompanyId} 
-                onChange={(e) => setSelectedCompanyId(e.target.value)}
-                className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
-              >
-                <option value="all">Todas as Empresas</option>
-                {stats?.companyBreakdown?.map((c: any) => (
-                  <option key={c.companyId} value={c.companyId}>{c.companyName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Filtros Avançados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Número ou Cliente</label>
-              <input 
-                type="text" 
-                placeholder="Buscar nº ou cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Status</label>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
-              >
-                <option value="all">Todos os Status</option>
-                {QUOTE_STATUS_OPTIONS.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Data Início</label>
-              <input 
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">Data Fim</label>
-              <input 
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
-            <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
-                <th className="py-4 pl-4 pr-2 font-medium w-[100px]">Nº</th>
-                <th className="p-4 font-medium hidden md:table-cell w-[22%]">Empresa Emitente</th>
-                <th className="p-4 font-medium w-[25%]">Cliente</th>
-                <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
-                <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
-                <th className="p-4 font-medium w-[130px]">Valor Total</th>
-                <th className="p-4 font-medium w-[160px] text-center lg:text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedQuotes.map((quote: any) => (
-                <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                  <td className="py-4 pl-4 pr-2 font-semibold text-primary truncate">
-                    #{String(quote.numeroOrcamento).padStart(5, '0')}
-                  </td>
-                  <td className="p-4 font-medium text-muted-foreground truncate hidden md:table-cell" title={quote.company?.razaoSocial}>
-                    {quote.company?.razaoSocial || 'N/A'}
-                  </td>
-                  <td className="p-4 truncate">
-                    <div className="font-semibold text-foreground truncate">{quote.client?.nome}</div>
-                    {(quote.veiculoModelo || quote.veiculoPlaca) && (
-                      <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
-                        {quote.veiculoPlaca && (
-                          <span className="bg-muted px-1.5 py-0.5 rounded font-mono text-[9px] uppercase border border-border">
-                            {quote.veiculoPlaca}
+                      <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-xl shadow-lg text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col gap-0.5">
+                        <span className="text-muted-foreground">{m.month} / {currentYear}</span>
+                        <span className="text-blue-600">Pago: {formatCurrency(m.valorPago)}</span>
+                        <span className="text-foreground">Serviços: {m.qtdServicos}</span>
+                        {m.percentualComparativo !== 0 && (
+                          <span className={`text-[10px] ${m.percentualComparativo > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {m.percentualComparativo > 0 ? '▲' : '▼'} {Math.abs(m.percentualComparativo).toFixed(1)}% vs. mês ant.
                           </span>
                         )}
-                        {quote.veiculoModelo && <span className="truncate">{quote.veiculoModelo}</span>}
                       </div>
-                    )}
-                  </td>
-                  <td className="p-4 text-muted-foreground text-sm hidden lg:table-cell truncate">
-                    {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="p-4 text-sm hidden xl:table-cell">
-                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
-                      (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
-                      quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                      quote.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                      quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
-                      quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
-                      quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
-                      quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                      'bg-slate-500/10 text-slate-600 border-slate-500/20'
-                    }`}>
-                      {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
-                    </span>
-                  </td>
-                  <td className="p-4 font-bold text-emerald-600 text-sm truncate">
-                    {formatCurrency(quote.total)}
-                  </td>
-                  <td className="p-4 flex gap-1">
-                    <button 
-                      onClick={() => navigate(`/quotes/view/${quote.id}`)}
-                      className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Visualizar"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                      disabled={quote.status === 'Pago'}
-                      className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
-                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser editados" : "Editar"}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
-                      className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                      title="Clonar"
-                    >
-                      <Copy size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(quote.id)}
-                      disabled={quote.status === 'Pago'}
-                      className="p-2 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-rose-500/10"
-                      title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser excluídos" : "Excluir"}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {paginatedQuotes.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    Nenhum orçamento encontrado para os critérios selecionados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Paginação */}
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/20">
-            <span className="text-sm text-muted-foreground text-center sm:text-left">
-              Mostrando <strong className="text-foreground">{Math.min(totalItems, (currentPage - 1) * itemsPerPage + 1)}</strong> a{' '}
-              <strong className="text-foreground">{Math.min(totalItems, currentPage * itemsPerPage)}</strong> de{' '}
-              <strong className="text-foreground">{totalItems}</strong> orçamentos
-            </span>
-            
-            <div className="flex items-center gap-1 flex-wrap justify-center">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg bg-background hover:bg-muted disabled:opacity-50 disabled:hover:bg-background transition"
-              >
-                Anterior
-              </button>
+                      {/* Bar columns */}
+                      <div className="w-full flex justify-center items-end h-full gap-1">
+                        {/* Revenue Bar */}
+                        <div 
+                          style={{ height: `${Math.max(paidPct, 4)}%` }}
+                          className={`w-3.5 rounded-t-md transition-all duration-300 ${
+                            m.valorPago > 0 ? 'bg-gradient-to-t from-blue-700 to-blue-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-800'
+                          }`}
+                        />
+                        {/* Service Qty Bar */}
+                        <div 
+                          style={{ height: `${Math.max(qtyPct, 4)}%` }}
+                          className={`w-2.5 rounded-t-sm transition-all duration-300 ${
+                            m.qtdServicos > 0 ? 'bg-slate-300 dark:bg-slate-700 shadow-xs' : 'bg-slate-100 dark:bg-slate-800'
+                          }`}
+                        />
+                      </div>
+
+                      {/* X Label */}
+                      <span className="text-[10px] text-muted-foreground font-semibold mt-2.5">
+                        {m.month}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Financial Accumulators Side-Panel */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-foreground border-b border-border pb-3 mb-4">Resumo Acumulado</h3>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-medium block">Faturamento Anual do Ano ({currentYear})</span>
+                    <strong className="text-3xl font-extrabold text-foreground block mt-0.5">{formatCurrency(s.faturamentoAcumuladoAno)}</strong>
+                    <span className="text-[10px] text-muted-foreground">Somatório de todos os orçamentos pagos</span>
+                  </div>
+
+                  <div className="border-t border-border pt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-medium block">O.S. Faturadas</span>
+                      <strong className="text-lg font-bold text-foreground block">{s.monthlyBilling.reduce((acc: number, m: any) => acc + m.qtdServicos, 0)}</strong>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground font-medium block">Ticket Médio Anual</span>
+                      <strong className="text-lg font-bold text-foreground block">{formatCurrency(s.ticketMedio)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mt-6">
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider block">Nota Fiscal Automática</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Orçamentos aprovados alimentam as Contas a Receber e podem gerar descrições de NFs prontas para o financeiro.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Aba 2: Clientes */}
+        {activeTab === 'clientes' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
+            {/* Top 10 Clients Chart */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-6 lg:col-span-3 space-y-4">
+              <h3 className="font-bold text-foreground border-b border-border pb-3">Top 10 Clientes em Receita</h3>
               
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${
-                    currentPage === page 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background hover:bg-muted border-border text-foreground'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg bg-background hover:bg-muted disabled:opacity-50 disabled:hover:bg-background transition"
-              >
-                Próximo
-              </button>
+              <div className="space-y-4">
+                {s.topClients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhum dado financeiro de cliente disponível.</p>
+                ) : (
+                  s.topClients.map((c: any, index: number) => {
+                    const pct = (c.totalPaid / maxClientPaid) * 100;
+                    return (
+                      <div key={c.clientId} className="flex items-center gap-4">
+                        <div className="w-6 font-bold text-xs text-muted-foreground text-center">{index + 1}</div>
+                        <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate" title={c.name}>
+                          {c.name}
+                        </div>
+                        <div className="flex-1 bg-muted rounded-full h-7 overflow-hidden relative">
+                          <div 
+                            className="bg-gradient-to-r from-blue-600 to-blue-400 h-full rounded-full transition-all duration-500 shadow-sm"
+                            style={{ width: `${Math.max(pct, 2)}%` }}
+                          />
+                          <span className="absolute left-3 top-1 text-[10px] font-extrabold text-blue-900 dark:text-blue-200">
+                            {c.countOS} ordens de serviço
+                          </span>
+                        </div>
+                        <div className="w-28 text-right font-extrabold text-sm text-foreground">
+                          {formatCurrency(c.totalPaid)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Clients Grid */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden lg:col-span-3">
+              <div className="p-5 border-b border-border">
+                <h3 className="font-bold text-foreground">Histórico e Frequência de Atendimentos</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[800px]">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                      <th className="p-4 pl-6">Cliente</th>
+                      <th className="p-4 text-center">Veículos Atendidos</th>
+                      <th className="p-4 text-center">Orçamentos Totais</th>
+                      <th className="p-4 text-center">Aprovados</th>
+                      <th className="p-4 text-right">Faturamento Confirmado</th>
+                      <th className="p-4 text-right pr-6">Ticket Médio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.clientsGrid.map((c: any) => (
+                      <tr key={c.clientId} className="border-b border-border hover:bg-muted/10 transition">
+                        <td className="p-4 pl-6 font-bold text-foreground">{c.name}</td>
+                        <td className="p-4 text-center font-medium">{c.veiculosAtendidos}</td>
+                        <td className="p-4 text-center text-muted-foreground">{c.orcamentos}</td>
+                        <td className="p-4 text-center font-medium text-emerald-600">{c.aprovados}</td>
+                        <td className="p-4 text-right font-extrabold text-blue-600">{formatCurrency(c.valorPago)}</td>
+                        <td className="p-4 text-right pr-6 font-bold text-foreground">{formatCurrency(c.ticketMedio)}</td>
+                      </tr>
+                    ))}
+                    {s.clientsGrid.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum cliente cadastrado no período.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Aba 3: Operacional */}
+        {activeTab === 'operacional' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* SLA Info & Mechanics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* SLA Cards Panel */}
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 space-y-5">
+                <h3 className="font-bold text-foreground border-b border-border pb-3">Prazos de Atendimento (SLA)</h3>
+                
+                <div className="space-y-4">
+                  {/* Approval SLA */}
+                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-semibold block">Tempo p/ Aprovação</span>
+                      <span className="text-[10px] text-muted-foreground">Orçamento → Aprovado</span>
+                    </div>
+                    <strong className="text-lg font-black text-primary">{formatDuration(s.tempoMedioAprovacao)}</strong>
+                  </div>
+
+                  {/* Execution SLA */}
+                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-semibold block">Tempo de Execução</span>
+                      <span className="text-[10px] text-muted-foreground">Aprovado → Concluído</span>
+                    </div>
+                    <strong className="text-lg font-black text-emerald-600">{formatDuration(s.tempoMedioExecucao)}</strong>
+                  </div>
+
+                  {/* Open OS count */}
+                  <div className="flex justify-between items-center p-3 bg-muted/40 rounded-xl">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-semibold block">Serviços em Aberto</span>
+                      <span className="text-[10px] text-muted-foreground">Executando / Aguardando</span>
+                    </div>
+                    <strong className="text-lg font-black text-amber-500">
+                      {s.servicesGrid.filter((q: any) => ['Aprovado', 'Aguardando Pagamento'].includes(q.status)).length} OS
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mechanics Productivity Grid */}
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-6 md:col-span-2 space-y-4">
+                <h3 className="font-bold text-foreground border-b border-border pb-3 flex items-center gap-2">
+                  <UserCheck size={18} className="text-primary" />
+                  <span>Produtividade dos Mecânicos</span>
+                </h3>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground text-xs font-bold uppercase pb-2">
+                        <th className="py-2 pl-2">Mecânico</th>
+                        <th className="py-2 text-center">Atendimentos Aprovados</th>
+                        <th className="py-2 text-right pr-2">Tempo Médio de Execução</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {s.strategicIndicators.topMechanics.map((m: any) => (
+                        <tr key={m.id} className="border-b border-border/50 hover:bg-muted/10 transition">
+                          <td className="py-3 pl-2 font-bold text-foreground">{m.name}</td>
+                          <td className="py-3 text-center font-medium">{m.atendimentos} O.S.</td>
+                          <td className="py-3 text-right pr-2 font-extrabold text-primary">{formatDuration(m.tempoMedioExecucaoHoras)}</td>
+                        </tr>
+                      ))}
+                      {s.strategicIndicators.topMechanics.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="py-6 text-center text-muted-foreground text-sm">Nenhum mecânico associado a orçamentos aprovados.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Services Grid (Ordens de Serviço) */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-border">
+                <h3 className="font-bold text-foreground">Listagem Geral de Serviços e O.S.</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                      <th className="p-4 pl-6 w-[90px]">OS</th>
+                      <th className="p-4 w-[18%]">Cliente</th>
+                      <th className="p-4 w-[20%]">Veículo</th>
+                      <th className="p-4">Serviços Executados</th>
+                      <th className="p-4 text-right w-[120px]">Valor</th>
+                      <th className="p-4 text-center w-[150px]">Status</th>
+                      <th className="p-4 text-center w-[120px]">Data</th>
+                      <th className="p-4 text-center w-[70px] pr-6">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.servicesGrid.map((srv: any) => (
+                      <tr key={srv.id} className="border-b border-border hover:bg-muted/10 transition">
+                        <td className="p-4 pl-6 font-bold text-primary">#{String(srv.os).padStart(5, '0')}</td>
+                        <td className="p-4 font-semibold text-foreground truncate" title={srv.cliente}>{srv.cliente}</td>
+                        <td className="p-4 text-muted-foreground truncate" title={srv.veiculo}>{srv.veiculo}</td>
+                        <td className="p-4 text-foreground font-medium truncate max-w-[200px]" title={srv.servico}>{srv.servico}</td>
+                        <td className="p-4 text-right font-extrabold text-emerald-600">{formatCurrency(srv.valor)}</td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
+                            (srv.status === 'Orçamento' || srv.status === 'Em Andamento' || srv.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
+                            srv.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                            srv.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                            srv.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
+                            srv.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
+                            srv.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
+                            srv.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                            'bg-slate-500/10 text-slate-600 border-slate-500/20'
+                          }`}>
+                            {srv.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center text-xs text-muted-foreground">{new Date(srv.data).toLocaleDateString('pt-BR')}</td>
+                        <td className="p-4 text-center pr-6">
+                          <button
+                            onClick={() => navigate(`/quotes/view/${srv.id}`)}
+                            className="p-1.5 bg-muted rounded-lg text-foreground hover:bg-muted-foreground/20 hover:text-primary transition"
+                            title="Ver detalhes"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {s.servicesGrid.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum serviço correspondente registrado.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Modal Detalhamento Valor Total Vendido has been removed */}
     </div>
   );
 }

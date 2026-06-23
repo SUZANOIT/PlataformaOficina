@@ -245,6 +245,7 @@ routes.get('/registry/platforms', PlatformController.list);
 routes.post('/registry/platforms', PlatformController.create);
 routes.put('/registry/platforms/:id', PlatformController.update);
 routes.delete('/registry/platforms/:id', PlatformController.delete);
+routes.get('/registry/platforms/:id/history', PlatformController.listHistory);
 
 // RH - Gestão de Faltas e Fechamento
 routes.use('/rh', authMiddleware);
@@ -261,6 +262,7 @@ routes.get('/rh/audit-logs', AbsenceController.listAuditLogs);
 // Dashboard
 routes.use('/dashboard', authMiddleware);
 routes.get('/dashboard', QuoteController.getDashboardStats);
+routes.get('/dashboard/workshop', QuoteController.getWorkshopDashboardStats);
 
 // Orçamentos
 routes.use('/quotes', authMiddleware);

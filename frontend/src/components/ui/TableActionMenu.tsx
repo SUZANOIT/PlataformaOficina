@@ -67,55 +67,55 @@ export function TableActionMenu({
     <div className="relative inline-flex items-center justify-end w-full">
       
       {/* DESKTOP ACTIONS: INLINE BUTTONS */}
-      <div className="hidden md:flex items-center justify-end gap-1">
+      <div className="hidden md:flex items-center justify-end gap-1.5">
         {onView && (
           <button
             onClick={onView}
             disabled={disabledActions.view}
-            className="p-1.5 bg-slate-500/10 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Visualizar"
           >
-            <Eye size={14} />
+            <Eye className="h-4 w-4" />
           </button>
         )}
         {onEdit && (
           <button
             onClick={onEdit}
             disabled={disabledActions.edit}
-            className="p-1.5 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Editar"
           >
-            <Edit size={14} />
+            <Edit className="h-4 w-4" />
           </button>
         )}
         {onApprove && (
           <button
             onClick={onApprove}
             disabled={disabledActions.approve}
-            className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg hover:bg-emerald-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-emerald-600 hover:text-emerald-700 transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Aprovar"
           >
-            <CheckCircle2 size={14} />
+            <CheckCircle2 className="h-4 w-4" />
           </button>
         )}
         {onReject && (
           <button
             onClick={onReject}
             disabled={disabledActions.reject}
-            className="p-1.5 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-600 hover:text-rose-700 transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Rejeitar"
           >
-            <XCircle size={14} />
+            <XCircle className="h-4 w-4" />
           </button>
         )}
         {onPrint && (
           <button
             onClick={onPrint}
             disabled={disabledActions.print}
-            className="p-1.5 bg-indigo-500/10 text-indigo-600 rounded-lg hover:bg-indigo-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Imprimir / PDF"
           >
-            <Printer size={14} />
+            <Printer className="h-4 w-4" />
           </button>
         )}
         {extraActions.map((action, index) => (
@@ -123,8 +123,8 @@ export function TableActionMenu({
             key={index}
             onClick={action.onClick}
             disabled={action.disabled}
-            className={`p-1.5 rounded-lg hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none ${
-              action.className || 'bg-slate-500/10 text-slate-700 dark:text-slate-300 hover:bg-slate-500/20'
+            className={`p-1.5 rounded-lg transition-all disabled:opacity-40 disabled:pointer-events-none ${
+              action.className || 'hover:bg-secondary text-muted-foreground hover:text-foreground'
             }`}
             title={action.label}
           >
@@ -135,10 +135,10 @@ export function TableActionMenu({
           <button
             onClick={onDelete}
             disabled={disabledActions.delete}
-            className="p-1.5 bg-rose-500/10 text-rose-600 rounded-lg hover:bg-rose-500/20 hover:scale-105 transition active:scale-95 duration-100 disabled:opacity-40 disabled:pointer-events-none"
+            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all disabled:opacity-40 disabled:pointer-events-none"
             title="Excluir"
           >
-            <Trash2 size={14} />
+            <Trash2 className="h-4 w-4" />
           </button>
         )}
       </div>

@@ -49,7 +49,7 @@ exports.GuiaTransporteController = {
             const audit = await prisma_1.prisma.guiaTransporteAudit.create({
                 data: {
                     guiaTransporteId: guiaId,
-                    acao,
+                    acao: acao,
                     detalhes: detalhes || `Ação ${acao} realizada na guia de transporte ${guia.numeroFormatado}.`
                 }
             });

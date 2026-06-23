@@ -331,7 +331,7 @@ export function TowingQuotesList() {
                           quote.status === 'Aprovado' ? [
                             {
                               label: 'Guia de Transporte',
-                              icon: <ClipboardCheck size={14} />,
+                              icon: <ClipboardCheck size={16} />,
                               onClick: () => {
                                 setSelectedQuoteForGuia(quote);
                                 setIsGuiaModalOpen(true);
