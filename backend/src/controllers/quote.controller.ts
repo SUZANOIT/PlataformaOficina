@@ -995,10 +995,6 @@ export const QuoteController = {
 
       const where: Prisma.QuoteWhereInput = companyId ? { companyId } : {};
 
-      const where: Prisma.QuoteWhereInput = {
-        companyId
-      };
-
       if (clientId && clientId !== 'all') {
         where.clientId = clientId;
       }
