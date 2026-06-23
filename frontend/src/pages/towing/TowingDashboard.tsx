@@ -5,14 +5,12 @@ import {
   Truck,
   DollarSign,
   MapPin,
-  CheckCircle2,
   TrendingUp,
   AlertTriangle,
   SlidersHorizontal,
   FileText,
   Activity,
   Percent,
-  Clock,
 } from 'lucide-react';
 import { TableActionMenu } from '../../components/ui/TableActionMenu';
 import { TablePagination } from '../../components/ui/TablePagination';
