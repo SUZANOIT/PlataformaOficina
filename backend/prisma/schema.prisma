@@ -689,6 +689,7 @@ model PlataformaGestao {
 
   contratoHistorico      PlataformaContratoHistory[]
   towingQuotes           TowingQuote[]
+  towingRates            TowingRate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1493,11 +1494,18 @@ model TowingRate {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   
+  plataformaId String  @map("plataforma_id")
+  plataforma   PlataformaGestao @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  
   tipoGuincho    String   // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
   taxaSaida      Float    @default(0)
   valorKm        Float    @default(0)
   valorHoraParada Float    @default(0)
   status         String   @default("ATIVO") // ATIVO, INATIVO
+  
+  regiao          String   @default("Geral")
+  horario         String   @default("DIURNO") // DIURNO, NOTURNO
+  regraComercial  String   @default("PADRAO")
   
   towingTypeId   String?
   towingType     TowingType? @relation(fields: [towingTypeId], references: [id], onDelete: Cascade)
@@ -1506,8 +1514,9 @@ model TowingRate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([companyId, towingTypeId])
+  @@unique([plataformaId, towingTypeId, regiao, horario, regraComercial])
   @@index([companyId])
+  @@index([plataformaId])
 }
 
 model TowingType {
@@ -1612,6 +1621,10 @@ model TowingQuote {
   tipoCliente       String @default("Particular")
   plataformaId      String?
   plataforma        PlataformaGestao? @relation(fields: [plataformaId], references: [id])
+  
+  regiao            String?  @default("Geral")
+  horario           String?  @default("DIURNO") // DIURNO, NOTURNO
+  regraComercial    String?  @default("PADRAO")
   
   // Motorista / Veículo de Guincho vinculado
   driverId          String?

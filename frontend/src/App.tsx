@@ -24,6 +24,8 @@ import FleetVehicles from './pages/fleet/FleetVehicles';
 import VehicleDetails from './pages/fleet/VehicleDetails';
 import FleetPreventive from './pages/fleet/FleetPreventive';
 import FleetWorkshops from './pages/fleet/FleetWorkshops';
+import { OnboardingWizard } from './pages/onboarding/OnboardingWizard';
+import { ForcePasswordChange } from './pages/ForcePasswordChange';
 import { Toaster } from 'sonner';
 import { BreadcrumbProvider } from './context/BreadcrumbContext';
 import { AuthProvider } from './context/AuthProvider';
@@ -77,6 +79,8 @@ function App() {
             <Route path="/session-expired" element={<SessionExpired />} />
             <Route path="/apresentacao" element={<Presentation />} />
             <Route path="/presentation" element={<Presentation />} />
+            <Route path="/onboarding" element={<OnboardingWizard />} />
+            <Route path="/force-password-change" element={<ForcePasswordChange />} />
 
             {/* Rotas Independentes da Administração SaaS */}
             <Route path="/administracao/login" element={
