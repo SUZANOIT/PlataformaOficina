@@ -1012,7 +1012,11 @@ export const QuoteController = {
         where.oficinaId = oficinaId;
       }
       if (status && status !== 'all') {
-        where.status = status;
+        if (status === 'Aguardando Aprovação') {
+          where.status = { in: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação'] };
+        } else {
+          where.status = status;
+        }
       }
       if (subfrota && subfrota !== 'all' && subfrota.trim() !== '') {
         where.veiculoSubfrota = {

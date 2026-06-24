@@ -270,7 +270,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Gráfico 1: Orçamentos Pagos por Mês (Últimos 12 Meses) */}
         <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 flex flex-col">
           <div className="flex items-center gap-2 border-b border-border pb-3">
@@ -384,6 +384,62 @@ export function Dashboard() {
             ) : (
               <div className="w-full h-40 flex items-center justify-center text-sm text-muted-foreground">
                 {loading ? 'Carregando ranking...' : 'Nenhum mecânico com faturamento no período'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Gráfico 3: Top 10 Clientes */}
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6 space-y-4 flex flex-col">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <Users className="text-blue-500" size={20} />
+            <div>
+              <h2 className="text-lg font-semibold">Top 10 Clientes</h2>
+              <p className="text-xs text-muted-foreground font-medium">Por Faturamento</p>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 pt-2">
+            {stats?.strategicIndicators?.topClients && stats.strategicIndicators.topClients.length > 0 ? (
+              stats.strategicIndicators.topClients.map((client: any, index: number) => {
+                const maxVal = Math.max(...stats.strategicIndicators.topClients.map((c: any) => c.totalPaid), 1);
+                const pct = (client.totalPaid / maxVal) * 100;
+                
+                return (
+                  <div key={client.clientId || index} className="space-y-1.5">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <span className="text-foreground truncate max-w-[120px] sm:max-w-[180px]" title={client.name}>
+                          {client.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-blue-600">{formatCurrency(client.totalPaid)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000"
+                          style={{ width: `${Math.max(pct, 1)}%` }}
+                        />
+                      </div>
+                      <div className="flex gap-2 text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+                        <span className="bg-muted px-1.5 py-0.5 rounded" title="Ordens de Serviço Concluídas">
+                          {client.countOS} OS
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="w-full h-40 flex items-center justify-center text-sm text-muted-foreground">
+                {loading ? 'Carregando ranking...' : 'Nenhum cliente com faturamento no período'}
               </div>
             )}
           </div>
