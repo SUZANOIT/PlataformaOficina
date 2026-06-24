@@ -889,7 +889,12 @@ exports.QuoteController = {
                 where.oficinaId = oficinaId;
             }
             if (status && status !== 'all') {
-                where.status = status;
+                if (status === 'Aguardando Aprovação') {
+                    where.status = { in: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação'] };
+                }
+                else {
+                    where.status = status;
+                }
             }
             if (subfrota && subfrota !== 'all' && subfrota.trim() !== '') {
                 where.veiculoSubfrota = {
@@ -1103,30 +1108,25 @@ exports.QuoteController = {
             // 1. Cliente que mais gera receita
             const topClientData = clientRanking[0];
             const clienteMaisReceita = topClientData ? { name: topClientData.name, value: topClientData.valorPago } : null;
-            // 2. Serviço mais vendido
-            const serviceFrequency = {};
+            // 2. Total de Peças vs Serviços
+            const serviceTypes = {
+                'Peças': { count: 0, total: 0 },
+                'Serviços': { count: 0, total: 0 }
+            };
             quotes.forEach(q => {
                 const isApproved = approvedStatuses.includes(q.status);
                 if (isApproved) {
                     q.items.forEach(item => {
-                        if (item.tipo !== 'Peça') {
-                            const desc = item.descricao.trim();
-                            if (!serviceFrequency[desc]) {
-                                serviceFrequency[desc] = { count: 0, total: 0 };
-                            }
-                            serviceFrequency[desc].count += item.quantidade;
-                            serviceFrequency[desc].total += item.valorTotal;
-                        }
+                        const group = item.tipo === 'Peça' ? 'Peças' : 'Serviços';
+                        serviceTypes[group].count += item.quantidade;
+                        serviceTypes[group].total += item.valorTotal;
                     });
                 }
             });
-            const rankedServices = Object.entries(serviceFrequency)
-                .map(([desc, data]) => ({
-                descricao: desc,
-                quantidade: data.count,
-                valorTotal: data.total
-            }))
-                .sort((a, b) => b.quantidade - a.quantidade);
+            const rankedServices = [
+                { descricao: 'Peças', quantidade: serviceTypes['Peças'].count, valorTotal: serviceTypes['Peças'].total },
+                { descricao: 'Serviços', quantidade: serviceTypes['Serviços'].count, valorTotal: serviceTypes['Serviços'].total }
+            ].filter(r => r.quantidade > 0).sort((a, b) => b.valorTotal - a.valorTotal);
             const topService = rankedServices[0] ? { name: rankedServices[0].descricao, value: rankedServices[0].quantidade } : null;
             // 3. Mecânico com mais atendimentos & produtividade
             const mechanicFrequency = {};

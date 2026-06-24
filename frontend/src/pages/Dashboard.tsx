@@ -699,14 +699,14 @@ export function Dashboard() {
               <div className="p-5 border-b border-border">
                 <h3 className="font-bold text-foreground flex items-center gap-2">
                   <Star size={18} className="text-amber-500" />
-                  Serviços Mais Vendidos
+                  Proporção de Peças vs Serviços
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4 pl-6">Descrição do Serviço</th>
+                      <th className="p-4 pl-6">Tipo / Categoria</th>
                       <th className="p-4 text-center">Quantidade Executada</th>
                       <th className="p-4 text-right pr-6">Receita Gerada</th>
                     </tr>
