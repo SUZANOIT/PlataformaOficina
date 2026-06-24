@@ -25,15 +25,58 @@ class OnboardingController {
             return res.status(400).json({ error: 'CNPJ obrigatório.' });
         }
         try {
-            // Verifica se o CNPJ já é de um Tenant existente
+            const cleanCnpj = cnpj.replace(/\D/g, '');
+            if (cleanCnpj.length !== 14) {
+                return res.status(400).json({ error: 'CNPJ inválido. Deve conter 14 dígitos.' });
+            }
+            // 1. Verifica se o CNPJ já é de um Tenant existente (Company)
             const existingCompany = await prisma.company.findUnique({
-                where: { cnpjSemMascara: cnpj.replace(/\D/g, '') }
+                where: { cnpjSemMascara: cleanCnpj }
             });
             if (existingCompany) {
                 return res.status(400).json({ error: 'Este CNPJ já possui uma conta ativa no sistema.' });
             }
-            // Se for apenas mock de validação, retornamos sucesso.
-            res.json({ message: 'CNPJ válido e disponível.' });
+            // 2. Verifica se já existe um PreTenant ativado (PROVISIONED)
+            const existingPreTenant = await prisma.preTenant.findUnique({
+                where: { cnpj: cleanCnpj }
+            });
+            if (existingPreTenant && existingPreTenant.status === 'PROVISIONED') {
+                return res.status(400).json({ error: 'Este CNPJ já possui uma conta ativada no sistema.' });
+            }
+            // 3. Consulta CNPJ automática na BrasilAPI
+            let companyData = {
+                razaoSocial: '',
+                nomeFantasia: '',
+                telefone: '',
+                email: ''
+            };
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+                const apiRes = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (apiRes.ok) {
+                    const apiData = await apiRes.json();
+                    companyData.razaoSocial = apiData.razao_social || '';
+                    companyData.nomeFantasia = apiData.nome_fantasia || apiData.razao_social || '';
+                    companyData.telefone = apiData.ddd_telefone_1 ? `(${apiData.ddd_telefone_1.substring(0, 2)}) ${apiData.ddd_telefone_1.substring(2)}` : '';
+                    companyData.email = apiData.email || '';
+                }
+            }
+            catch (apiErr) {
+                console.warn('Erro ao consultar BrasilAPI (usando fallback):', apiErr);
+            }
+            // Se falhar ou vier em branco, usamos mocks realistas
+            if (!companyData.razaoSocial) {
+                companyData.razaoSocial = 'Oficina Exemplo LTDA';
+                companyData.nomeFantasia = 'Oficina Exemplo';
+            }
+            res.json({
+                message: 'CNPJ válido e disponível.',
+                company: companyData
+            });
         }
         catch (error) {
             console.error(error);

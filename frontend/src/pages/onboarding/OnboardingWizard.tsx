@@ -36,6 +36,8 @@ export const OnboardingWizard = () => {
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const [lastQueriedCnpj, setLastQueriedCnpj] = useState('');
+  const [queryingCnpj, setQueryingCnpj] = useState(false);
 
   useEffect(() => {
     // Fetch plans on mount
@@ -44,6 +46,50 @@ export const OnboardingWizard = () => {
       .then(data => setPlans(data))
       .catch(err => console.error(err));
   }, []);
+
+  useEffect(() => {
+    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length === 14 && cleanCnpj !== lastQueriedCnpj) {
+      setLastQueriedCnpj(cleanCnpj);
+      
+      const autoQuery = async () => {
+        setQueryingCnpj(true);
+        const toastId = toast.loading('Consultando CNPJ e preenchendo dados...');
+        try {
+          const res = await fetch(`${API_URL}/api/onboarding/validate-cnpj`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cnpj: cleanCnpj })
+          });
+          const data = await res.json();
+          
+          if (!res.ok) {
+            toast.error(data.error || 'Erro ao validar CNPJ', { id: toastId });
+            return;
+          }
+
+          toast.success('CNPJ disponível! Dados carregados.', { id: toastId });
+          
+          if (data.company) {
+            setFormData(prev => ({
+              ...prev,
+              razaoSocial: data.company.razaoSocial || prev.razaoSocial,
+              nomeFantasia: data.company.nomeFantasia || prev.nomeFantasia,
+              email: data.company.email || prev.email,
+              telefone: data.company.telefone || prev.telefone
+            }));
+          }
+        } catch (err: any) {
+          console.error(err);
+          toast.error('Erro ao consultar CNPJ na base.', { id: toastId });
+        } finally {
+          setQueryingCnpj(false);
+        }
+      };
+      
+      autoQuery();
+    }
+  }, [formData.cnpj, lastQueriedCnpj, API_URL]);
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -74,10 +120,11 @@ export const OnboardingWizard = () => {
       
       if (!res.ok) throw new Error(data.error);
       
-      // Se fosse uma API real, aqui poderíamos popular Razão Social via ReceitaWS
-      if (!formData.razaoSocial) {
-        setFormData(prev => ({ ...prev, razaoSocial: 'Oficina Exemplo LTDA', nomeFantasia: 'Oficina Exemplo' }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        razaoSocial: prev.razaoSocial || data.company?.razaoSocial || 'Oficina Exemplo LTDA',
+        nomeFantasia: prev.nomeFantasia || data.company?.nomeFantasia || 'Oficina Exemplo'
+      }));
       
       setStep(2);
     } catch (err: any) {
@@ -186,10 +233,16 @@ export const OnboardingWizard = () => {
                         id="cnpj"
                         value={formData.cnpj}
                         onChange={handleCnpjChange}
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         placeholder="00.000.000/0000-00"
+                        disabled={queryingCnpj}
                         required
                       />
+                      {queryingCnpj && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
