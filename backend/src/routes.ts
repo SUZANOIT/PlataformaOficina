@@ -26,7 +26,12 @@ import { superAdminMiddleware } from './middlewares/super-admin.middleware';
 import { SaaSAuthController } from './controllers/saas-auth.controller';
 import { SaaSPortalController } from './controllers/saas-portal.controller';
 import { saasAuthMiddleware, saasPermissionGuard } from './middlewares/saas-auth.middleware';
+import { OnboardingController } from './controllers/onboarding.controller';
+import { WebhookController } from './controllers/webhook.controller';
 import jwt from 'jsonwebtoken';
+
+const onboardingController = new OnboardingController();
+const webhookController = new WebhookController();
 
 const routes = Router();
 
@@ -512,5 +517,17 @@ routes.post('/api/saas/admin/notifications/:id/read', saasAuthMiddleware, SaaSPo
 // Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)
 routes.get('/notifications/active', authMiddleware, SaaSPortalController.listActiveNotificationsForCompany);
 routes.post('/notifications/:id/read', authMiddleware, SaaSPortalController.markNotificationReadForCompany);
+
+// ==========================================
+// Rotas de Onboarding SaaS (Públicas)
+// ==========================================
+routes.get('/onboarding/plans', onboardingController.getPlans);
+routes.post('/onboarding/validate-cnpj', onboardingController.validateCnpj);
+routes.post('/onboarding/checkout', onboardingController.checkout);
+
+// ==========================================
+// Rotas de Webhook (Recebem eventos externos)
+// ==========================================
+routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
 
 export { routes };

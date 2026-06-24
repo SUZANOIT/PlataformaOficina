@@ -96,6 +96,17 @@ exports.AuthController = {
             if (!validPassword) {
                 return res.status(400).json({ error: 'Invalid credentials' });
             }
+            if (user.mustChangePassword) {
+                // Enviar um token temporário apenas para a rota de alteração de senha
+                const tempToken = jsonwebtoken_1.default.sign({ id: user.id, requirePasswordChange: true }, process.env.JWT_SECRET || 'secret', {
+                    expiresIn: '1h',
+                });
+                return res.status(403).json({
+                    error: 'REQUIRE_PASSWORD_CHANGE',
+                    message: 'Você deve redefinir sua senha no primeiro acesso.',
+                    tempToken
+                });
+            }
             const token = jsonwebtoken_1.default.sign({ id: user.id }, process.env.JWT_SECRET || 'secret', {
                 expiresIn: '1d',
             });
@@ -558,13 +569,54 @@ exports.AuthController = {
                 return res.status(400).json({ error: 'Token e senha são obrigatórios' });
             }
             return res.json({
-                success: true,
-                message: 'Senha redefinida com sucesso. Faça login com a nova senha.'
+                message: 'Senha redefinida com sucesso (simulado)',
             });
         }
         catch (error) {
-            console.error('Error in resetPassword:', error);
-            return res.status(500).json({ error: 'Erro ao redefinir a senha' });
+            console.error('Error resetting password:', error);
+            return res.status(500).json({ error: 'Failed to reset password' });
+        }
+    },
+    // Novo método para forçar alteração de senha (Onboarding SaaS)
+    async forcePasswordChange(req, res) {
+        try {
+            const { tempToken, newPassword } = req.body;
+            if (!tempToken || !newPassword) {
+                return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
+            }
+            // Valida o token temporário
+            const decoded = jsonwebtoken_1.default.verify(tempToken, process.env.JWT_SECRET || 'secret');
+            if (!decoded.requirePasswordChange) {
+                return res.status(400).json({ error: 'Token inválido para esta operação' });
+            }
+            const user = await prisma_1.prisma.user.findUnique({ where: { id: decoded.id } });
+            if (!user) {
+                return res.status(404).json({ error: 'Usuário não encontrado' });
+            }
+            const hashedPassword = await bcrypt_1.default.hash(newPassword, 10);
+            // Atualiza o User
+            await prisma_1.prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    password: hashedPassword,
+                    mustChangePassword: false
+                }
+            });
+            // Se houver um Collaborator associado, tira a flag dele também
+            const collaborator = await prisma_1.prisma.collaborator.findFirst({
+                where: { email: user.email }
+            });
+            if (collaborator) {
+                await prisma_1.prisma.collaborator.update({
+                    where: { id: collaborator.id },
+                    data: { mustChangePassword: false }
+                });
+            }
+            return res.json({ message: 'Senha redefinida com sucesso. Faça o login novamente.' });
+        }
+        catch (error) {
+            console.error('Error on force password change:', error);
+            return res.status(500).json({ error: 'Token inválido ou expirado.' });
         }
     }
 };

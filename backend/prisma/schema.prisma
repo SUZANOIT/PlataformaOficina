@@ -17,6 +17,7 @@ model User {
   password String
   role     String @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
   status   String @default("ATIVO") // ATIVO, INATIVO
+  mustChangePassword Boolean @default(false)
 
   // Níveis de acesso / Permissões (Granular)
   roleAdmin         Boolean @default(false)
@@ -577,6 +578,7 @@ model Collaborator {
   salario       Float?
   status        String    @default("ATIVO") // ATIVO, INATIVO
   observacoes   String?
+  mustChangePassword Boolean @default(false)
 
   // Dados de Desconto por Ausência
   faltas                Int       @default(0)
@@ -1722,3 +1724,21 @@ model PlataformaContratoHistory {
   @@index([plataformaId])
   @@index([companyId])
 }
+
+model PreTenant {
+  id                String   @id @default(uuid())
+  cnpj              String   @unique
+  razaoSocial       String
+  nomeFantasia      String?
+  email             String
+  telefone          String?
+  
+  planId            String?  
+  status            String   @default("PENDING_PAYMENT") 
+  
+  paymentIntentId   String?  
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+

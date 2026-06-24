@@ -31,7 +31,11 @@ const super_admin_middleware_1 = require("./middlewares/super-admin.middleware")
 const saas_auth_controller_1 = require("./controllers/saas-auth.controller");
 const saas_portal_controller_1 = require("./controllers/saas-portal.controller");
 const saas_auth_middleware_1 = require("./middlewares/saas-auth.middleware");
+const onboarding_controller_1 = require("./controllers/onboarding.controller");
+const webhook_controller_1 = require("./controllers/webhook.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const onboardingController = new onboarding_controller_1.OnboardingController();
+const webhookController = new webhook_controller_1.WebhookController();
 const routes = (0, express_1.Router)();
 exports.routes = routes;
 const authMiddleware = async (req, res, next) => {
@@ -449,3 +453,13 @@ routes.post('/api/saas/admin/notifications/:id/read', saas_auth_middleware_1.saa
 // Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)
 routes.get('/notifications/active', authMiddleware, saas_portal_controller_1.SaaSPortalController.listActiveNotificationsForCompany);
 routes.post('/notifications/:id/read', authMiddleware, saas_portal_controller_1.SaaSPortalController.markNotificationReadForCompany);
+// ==========================================
+// Rotas de Onboarding SaaS (Públicas)
+// ==========================================
+routes.get('/onboarding/plans', onboardingController.getPlans);
+routes.post('/onboarding/validate-cnpj', onboardingController.validateCnpj);
+routes.post('/onboarding/checkout', onboardingController.checkout);
+// ==========================================
+// Rotas de Webhook (Recebem eventos externos)
+// ==========================================
+routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
