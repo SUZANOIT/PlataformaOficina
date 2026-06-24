@@ -1494,8 +1494,8 @@ model TowingRate {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   
-  plataformaId String  @map("plataforma_id")
-  plataforma   PlataformaGestao @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
+  plataformaId String?  @map("plataforma_id")
+  plataforma   PlataformaGestao? @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
   
   tipoGuincho    String   // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
   taxaSaida      Float    @default(0)

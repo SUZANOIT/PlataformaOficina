@@ -1213,7 +1213,7 @@ CREATE TABLE "TowingVehicle" (
 CREATE TABLE "TowingRate" (
     "id" TEXT NOT NULL,
     "companyId" TEXT NOT NULL,
-    "plataforma_id" TEXT NOT NULL,
+    "plataforma_id" TEXT,
     "tipoGuincho" TEXT NOT NULL,
     "taxaSaida" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "valorKm" DOUBLE PRECISION NOT NULL DEFAULT 0,
