@@ -521,6 +521,10 @@ routes.post('/notifications/:id/read', authMiddleware, SaaSPortalController.mark
 // ==========================================
 // Rotas de Onboarding SaaS (Públicas)
 // ==========================================
+routes.get('/api/onboarding/plans', onboardingController.getPlans);
+routes.post('/api/onboarding/validate-cnpj', onboardingController.validateCnpj);
+routes.post('/api/onboarding/checkout', onboardingController.checkout);
+
 routes.get('/onboarding/plans', onboardingController.getPlans);
 routes.post('/onboarding/validate-cnpj', onboardingController.validateCnpj);
 routes.post('/onboarding/checkout', onboardingController.checkout);
@@ -528,6 +532,7 @@ routes.post('/onboarding/checkout', onboardingController.checkout);
 // ==========================================
 // Rotas de Webhook (Recebem eventos externos)
 // ==========================================
+routes.post('/api/webhooks/payment', webhookController.handleMockPaymentSuccess);
 routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
 
 export { routes };
