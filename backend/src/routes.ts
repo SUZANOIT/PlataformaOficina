@@ -19,7 +19,7 @@ import { TowingQuoteController } from './controllers/towing-quote.controller';
 import { TowingFleetController } from './controllers/towing-fleet.controller';
 import { TowingRateController } from './controllers/towing-rate.controller';
 import { GuiaTransporteController } from './controllers/guia-transporte.controller';
-
+import { ModuleController } from './controllers/module.controller';
 import { saasAdminMiddleware } from './middlewares/saas-admin.middleware';
 import { AdminSaaSController } from './controllers/admin-saas.controller';
 import { superAdminMiddleware } from './middlewares/super-admin.middleware';
@@ -236,6 +236,9 @@ routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Erro ao consultar CNPJ' });
   }
 });
+
+// Modules (Marketplace)
+routes.post('/modules/request-activation', authMiddleware, ModuleController.requestActivation);
 
 // Usuários
 routes.use('/users', authMiddleware);

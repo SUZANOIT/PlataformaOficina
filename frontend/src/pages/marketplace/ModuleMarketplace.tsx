@@ -158,7 +158,7 @@ const MODULE_NAMES: Record<string, string> = {
 
 export function ModuleMarketplace() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [plano, setPlano] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -172,7 +172,7 @@ export function ModuleMarketplace() {
         const res = await fetch('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
-          setUser(data);
+
           setActiveModules(data.company?.activeModules || []);
           setPlano(data.company?.plano || '');
         }
