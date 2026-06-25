@@ -103,17 +103,17 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     if (isOrcamentistaOnly) {
       const path = req.originalUrl.split('?')[0];
       const isAllowed = path === '/auth/me' ||
-                        path.startsWith('/quotes') ||
-                        path.startsWith('/towing') ||
-                        path.startsWith('/registry/clients') ||
-                        path.startsWith('/registry/platforms') ||
-                        path.startsWith('/fleet/vehicles') ||
-                        path.startsWith('/fleet/workshops') ||
-                        path.startsWith('/api/fleet/vehicles') ||
-                        path.startsWith('/api/fleet/workshops') ||
-                        path.startsWith('/products') ||
-                        path.startsWith('/companies');
-      
+        path.startsWith('/quotes') ||
+        path.startsWith('/towing') ||
+        path.startsWith('/registry/clients') ||
+        path.startsWith('/registry/platforms') ||
+        path.startsWith('/fleet/vehicles') ||
+        path.startsWith('/fleet/workshops') ||
+        path.startsWith('/api/fleet/vehicles') ||
+        path.startsWith('/api/fleet/workshops') ||
+        path.startsWith('/products') ||
+        path.startsWith('/companies');
+
       if (!isAllowed) {
         return res.status(403).json({
           error: 'Acesso restrito: seu nível de acesso permite apenas o uso do módulo de Orçamentos.',
@@ -126,7 +126,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     if (user.roleAdmin && req.query.tenantId) {
       effectiveCompanyId = req.query.tenantId as string;
     }
-    
+
     (req as any).companyId = effectiveCompanyId;
     const { tenantContext } = require('./lib/tenant-context');
     return tenantContext.run({ companyId: effectiveCompanyId, userId: decoded.id }, () => {
