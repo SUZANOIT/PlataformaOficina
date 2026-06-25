@@ -5,8 +5,9 @@ class ModuleController {
     static async requestActivation(req, res) {
         try {
             const { moduleKey } = req.body;
-            const user = req.user;
-            if (!user || !user.companyId) {
+            const companyId = req.companyId;
+            const userId = req.userId;
+            if (!userId || !companyId) {
                 return res.status(401).json({ error: 'Usuário não autenticado ou sem empresa vinculada' });
             }
             if (!moduleKey) {
