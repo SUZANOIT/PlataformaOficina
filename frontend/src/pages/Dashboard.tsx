@@ -586,7 +586,7 @@ export function Dashboard() {
                         </td>
                         <td className="p-4 text-right pr-6">
                           <TableActionMenu
-                            onView={() => navigate(`/quotes/${q.id}`)}
+                            onView={() => navigate(`/quotes/view/${q.id}`)}
                             onEdit={() => navigate(`/quotes/edit/${q.id}`)}
                           />
                         </td>
