@@ -104,8 +104,9 @@ export function Layout() {
     && !user?.roleColaborador;
 
   const isMcaAdmin = user?.companyId === 'mca-padrao-company-uuid-000000000001';
-  const showGuincho = !isOrcamentistaOnly && (isMcaAdmin || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || ''));
-  const showOficina = isMcaAdmin || ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '');
+  const hasGuinchoModule = hasModule('guincho') || hasModule('towing');
+  const showGuincho = !isOrcamentistaOnly && (isMcaAdmin || hasGuinchoModule || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || ''));
+  const showOficina = isMcaAdmin || ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') || (!showGuincho);
 
   useEffect(() => {
     if (isContabilidadeOnly && location.pathname !== '/accounting/xml-export') {
