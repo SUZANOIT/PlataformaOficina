@@ -231,12 +231,12 @@ export const SaaSAPIService = {
     return response.data;
   },
 
-  async createNotification(payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null; targetCompanyId?: string | null; targetRole?: string | null }) {
+  async createNotification(payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null; targetCompanyIds?: string[]; targetRole?: string | null }) {
     const response = await saasApi.post('/api/saas/admin/notifications', payload);
     return response.data;
   },
 
-  async updateNotification(id: string, payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null; targetCompanyId?: string | null; targetRole?: string | null }) {
+  async updateNotification(id: string, payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null; targetCompanyIds?: string[]; targetRole?: string | null }) {
     const response = await saasApi.put(`/api/saas/admin/notifications/${id}`, payload);
     return response.data;
   },

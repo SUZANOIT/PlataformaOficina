@@ -1279,7 +1279,7 @@ exports.SaaSPortalController = {
             tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
             prioridade: zod_1.z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
             expiraEm: zod_1.z.string().datetime().optional().nullable(),
-            targetCompanyId: zod_1.z.string().optional().nullable(),
+            targetCompanyIds: zod_1.z.array(zod_1.z.string()).optional().default([]),
             targetRole: zod_1.z.string().optional().nullable()
         });
         try {
@@ -1291,7 +1291,7 @@ exports.SaaSPortalController = {
                     tipo: parsed.tipo,
                     prioridade: parsed.prioridade,
                     expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
-                    targetCompanyId: parsed.targetCompanyId || null,
+                    targetCompanyIds: parsed.targetCompanyIds,
                     targetRole: parsed.targetRole || null
                 }
             });
@@ -1314,7 +1314,7 @@ exports.SaaSPortalController = {
             tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
             prioridade: zod_1.z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
             expiraEm: zod_1.z.string().datetime().optional().nullable(),
-            targetCompanyId: zod_1.z.string().optional().nullable(),
+            targetCompanyIds: zod_1.z.array(zod_1.z.string()).optional().default([]),
             targetRole: zod_1.z.string().optional().nullable()
         });
         try {
@@ -1327,7 +1327,7 @@ exports.SaaSPortalController = {
                     tipo: parsed.tipo,
                     prioridade: parsed.prioridade,
                     expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
-                    targetCompanyId: parsed.targetCompanyId || null,
+                    targetCompanyIds: parsed.targetCompanyIds,
                     targetRole: parsed.targetRole || null
                 }
             });
@@ -1395,7 +1395,7 @@ exports.SaaSPortalController = {
                 where: {
                     AND: [
                         { OR: [{ expiraEm: null }, { expiraEm: { gte: now } }] },
-                        { OR: [{ targetCompanyId: null }, { targetCompanyId: companyId }] },
+                        { OR: [{ targetCompanyIds: { equals: [] } }, { targetCompanyIds: { has: companyId } }] },
                         { OR: [{ targetRole: null }, { targetRole: userRole }] }
                     ]
                 },

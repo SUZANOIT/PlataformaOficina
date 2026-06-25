@@ -33,7 +33,7 @@ export function Notificacoes() {
     prioridade: 'MEDIA' as 'ALTA' | 'MEDIA' | 'BAIXA',
     expiraEm: '',
     targetType: 'ALL' as 'ALL' | 'COMPANY' | 'ROLE',
-    targetCompanyId: '',
+    targetCompanyIds: [] as string[],
     targetRole: ''
   });
 
@@ -79,7 +79,7 @@ export function Notificacoes() {
         tipo: formData.tipo,
         prioridade: formData.prioridade,
         expiraEm: formData.expiraEm ? new Date(formData.expiraEm).toISOString() : null,
-        targetCompanyId: formData.targetType === 'COMPANY' && formData.targetCompanyId ? formData.targetCompanyId : null,
+        targetCompanyIds: formData.targetType === 'COMPANY' ? formData.targetCompanyIds : [],
         targetRole: formData.targetType === 'ROLE' && formData.targetRole ? formData.targetRole : null
       };
 
@@ -100,7 +100,7 @@ export function Notificacoes() {
         prioridade: 'MEDIA',
         expiraEm: '',
         targetType: 'ALL',
-        targetCompanyId: '',
+        targetCompanyIds: [],
         targetRole: ''
       });
       loadNotifications();
@@ -119,8 +119,8 @@ export function Notificacoes() {
       tipo: notif.tipo || 'INFO',
       prioridade: notif.prioridade || 'MEDIA',
       expiraEm: notif.expiraEm ? new Date(notif.expiraEm).toISOString().slice(0, 16) : '',
-      targetType: notif.targetCompanyId ? 'COMPANY' : notif.targetRole ? 'ROLE' : 'ALL',
-      targetCompanyId: notif.targetCompanyId || '',
+      targetType: notif.targetCompanyIds && notif.targetCompanyIds.length > 0 ? 'COMPANY' : notif.targetRole ? 'ROLE' : 'ALL',
+      targetCompanyIds: notif.targetCompanyIds || [],
       targetRole: notif.targetRole || ''
     });
     setEditingNotificationId(notif.id);
@@ -189,7 +189,7 @@ export function Notificacoes() {
               prioridade: 'MEDIA',
               expiraEm: '',
               targetType: 'ALL',
-              targetCompanyId: '',
+              targetCompanyIds: [],
               targetRole: ''
             });
             setIsComposerOpen(true);
@@ -369,7 +369,7 @@ export function Notificacoes() {
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Público Alvo *</label>
                   <select
                     value={formData.targetType}
-                    onChange={(e) => setFormData({ ...formData, targetType: e.target.value as any, targetCompanyId: '', targetRole: '' })}
+                    onChange={(e) => setFormData({ ...formData, targetType: e.target.value as any, targetCompanyIds: [], targetRole: '' })}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                   >
                     <option value="ALL">Todas as Empresas (Global)</option>
@@ -380,18 +380,45 @@ export function Notificacoes() {
 
                 {formData.targetType === 'COMPANY' && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Selecione a Empresa *</label>
-                    <select
-                      value={formData.targetCompanyId}
-                      onChange={(e) => setFormData({ ...formData, targetCompanyId: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
-                      required
-                    >
-                      <option value="">Selecione...</option>
-                      {tenants.map(t => (
-                        <option key={t.companyId || t.id} value={t.companyId || t.id}>{t.razaoSocial} ({t.cnpj})</option>
-                      ))}
-                    </select>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex justify-between">
+                      <span>Selecione a(s) Empresa(s) *</span>
+                      <button 
+                        type="button" 
+                        className="text-indigo-400 hover:text-indigo-300 transition"
+                        onClick={() => {
+                          const allIds = tenants.map(t => t.companyId || t.id);
+                          if (formData.targetCompanyIds.length === allIds.length) {
+                            setFormData({ ...formData, targetCompanyIds: [] });
+                          } else {
+                            setFormData({ ...formData, targetCompanyIds: allIds });
+                          }
+                        }}
+                      >
+                        {formData.targetCompanyIds.length === tenants.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                      </button>
+                    </label>
+                    <div className="w-full max-h-40 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 space-y-2 custom-scrollbar">
+                      {tenants.map(t => {
+                        const id = t.companyId || t.id;
+                        const isChecked = formData.targetCompanyIds.includes(id);
+                        return (
+                          <label key={id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:bg-slate-800 p-1.5 rounded-lg transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const newSet = new Set(formData.targetCompanyIds);
+                                if (e.target.checked) newSet.add(id);
+                                else newSet.delete(id);
+                                setFormData({ ...formData, targetCompanyIds: Array.from(newSet) });
+                              }}
+                              className="rounded border-slate-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 bg-slate-950"
+                            />
+                            <span className="truncate">{t.razaoSocial} ({t.cnpj})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

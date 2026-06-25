@@ -1381,7 +1381,7 @@ export const SaaSPortalController = {
       tipo: z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
       prioridade: z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
       expiraEm: z.string().datetime().optional().nullable(),
-      targetCompanyId: z.string().optional().nullable(),
+      targetCompanyIds: z.array(z.string()).optional().default([]),
       targetRole: z.string().optional().nullable()
     });
 
@@ -1394,7 +1394,7 @@ export const SaaSPortalController = {
           tipo: parsed.tipo,
           prioridade: parsed.prioridade,
           expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
-          targetCompanyId: parsed.targetCompanyId || null,
+          targetCompanyIds: parsed.targetCompanyIds,
           targetRole: parsed.targetRole || null
         }
       });
@@ -1417,7 +1417,7 @@ export const SaaSPortalController = {
       tipo: z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
       prioridade: z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
       expiraEm: z.string().datetime().optional().nullable(),
-      targetCompanyId: z.string().optional().nullable(),
+      targetCompanyIds: z.array(z.string()).optional().default([]),
       targetRole: z.string().optional().nullable()
     });
 
@@ -1431,7 +1431,7 @@ export const SaaSPortalController = {
           tipo: parsed.tipo,
           prioridade: parsed.prioridade,
           expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
-          targetCompanyId: parsed.targetCompanyId || null,
+          targetCompanyIds: parsed.targetCompanyIds,
           targetRole: parsed.targetRole || null
         }
       });
@@ -1506,7 +1506,7 @@ export const SaaSPortalController = {
         where: {
           AND: [
             { OR: [{ expiraEm: null }, { expiraEm: { gte: now } }] },
-            { OR: [{ targetCompanyId: null }, { targetCompanyId: companyId }] },
+            { OR: [{ targetCompanyIds: { equals: [] } }, { targetCompanyIds: { has: companyId } }] },
             { OR: [{ targetRole: null }, { targetRole: userRole }] }
           ]
         },
