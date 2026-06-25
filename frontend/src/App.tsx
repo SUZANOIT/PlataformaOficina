@@ -41,6 +41,7 @@ import { MonthlyClosing } from './pages/rh/MonthlyClosing';
 import { Products } from './pages/Products';
 import { NfeImport } from './pages/accounting/NfeImport';
 import { Taxes } from './pages/accounting/taxes/Taxes';
+import { ModuleMarketplace } from './pages/marketplace/ModuleMarketplace';
 
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
@@ -151,6 +152,9 @@ function App() {
               {/* Rotas de Recursos Humanos */}
               <Route path="rh/absences" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><AbsenceControl /></ModuleGuard>} />
               <Route path="rh/closing" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><MonthlyClosing /></ModuleGuard>} />
+
+              {/* Central de Serviços — Marketplace de Módulos */}
+              <Route path="marketplace" element={<ModuleMarketplace />} />
 
               {/* Rota Administrativa do SaaS (Apenas Platform Admin) */}
               <Route path="saas-dashboard" element={<SaaSAdminGuard><SaaSDashboard /></SaaSAdminGuard>} />

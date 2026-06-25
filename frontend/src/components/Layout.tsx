@@ -536,6 +536,25 @@ export function Layout() {
             </div>
           )}
 
+          {/* Central de Serviços */}
+          {!isContabilidadeOnly && !isOrcamentistaOnly && (
+            <div className="pt-2 border-t border-border/40">
+              <Link
+                to="/marketplace"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 w-full rounded-md hover:bg-primary/10 transition-colors group"
+              >
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition">
+                  <Package size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-foreground text-sm block">Central de Serviços</span>
+                  <span className="text-[10px] text-muted-foreground">Módulos & Integrações</span>
+                </div>
+              </Link>
+            </div>
+          )}
+
           {/* Categoria 3: Configurações & Administração */}
           {!isContabilidadeOnly && (
           <div className="pt-2 border-t border-border/40">
@@ -978,6 +997,24 @@ export function Layout() {
                   </Link>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Central de Serviços */}
+          {!isContabilidadeOnly && !isOrcamentistaOnly && (
+            <div className="pt-2 border-t border-border/40">
+              <Link
+                to="/marketplace"
+                className="flex items-center gap-3 px-3 py-2 w-full rounded-md hover:bg-primary/10 transition-colors group"
+              >
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition">
+                  <Package size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-foreground text-sm block">Central de Serviços</span>
+                  <span className="text-[10px] text-muted-foreground">Módulos & Integrações</span>
+                </div>
+              </Link>
             </div>
           )}
 
