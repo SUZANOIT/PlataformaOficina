@@ -199,6 +199,32 @@ routes.post('/api/auth/login', AuthController.login);
 routes.post('/api/auth/forgot-password', AuthController.forgotPassword);
 routes.post('/api/auth/reset-password', AuthController.resetPassword);
 
+// ── Rota temporária de emergência para reset de senha ────────────────────────
+routes.post('/auth/emergency-reset', async (req: any, res: any) => {
+  const { email, newPassword, secretKey } = req.body;
+  const EMERGENCY_KEY = process.env.EMERGENCY_RESET_KEY || 'SuzanoIT2026EmergencyReset!';
+  if (secretKey !== EMERGENCY_KEY) {
+    return res.status(403).json({ error: 'Chave inválida' });
+  }
+  try {
+    const { prisma } = await import('./lib/prisma');
+    const bcrypt = await import('bcrypt');
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const allUsers = await prisma.user.findMany({ select: { email: true, status: true, mustChangePassword: true } });
+      return res.status(404).json({ error: 'Usuário não encontrado', usuarios: allUsers });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashed, mustChangePassword: false, status: 'ATIVO' }
+    });
+    return res.json({ success: true, message: `Senha redefinida para ${email}` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Proxy ReceitaWS (Bypass CORS)
 routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
   try {
