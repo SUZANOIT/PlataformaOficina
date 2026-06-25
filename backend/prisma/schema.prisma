@@ -1162,7 +1162,7 @@ model SaaSNotification {
   lida       Boolean   @default(false)
   createdAt  DateTime  @default(now()) @map("created_at")
 
-  targetCompanyId String? @map("target_company_id")
+  targetCompanyIds String[] @default([]) @map("target_company_ids")
   targetRole      String? @map("target_role")
 
   leituras SaaSNotificationRead[]
