@@ -541,6 +541,8 @@ routes.post('/api/saas/admin/settings', saasAuthMiddleware, saasPermissionGuard(
 // Notificações
 routes.get('/api/saas/admin/notifications', saasAuthMiddleware, SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.createNotification);
+routes.put('/api/saas/admin/notifications/:id', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.updateNotification);
+routes.delete('/api/saas/admin/notifications/:id', saasAuthMiddleware, saasPermissionGuard('configuracoes'), SaaSPortalController.deleteNotification);
 routes.post('/api/saas/admin/notifications/:id/read', saasAuthMiddleware, SaaSPortalController.markAsRead);
 
 // Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)

@@ -236,6 +236,16 @@ export const SaaSAPIService = {
     return response.data;
   },
 
+  async updateNotification(id: string, payload: { titulo: string; mensagem: string; tipo: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'; prioridade?: 'ALTA' | 'MEDIA' | 'BAIXA'; expiraEm?: string | null; targetCompanyId?: string | null; targetRole?: string | null }) {
+    const response = await saasApi.put(`/api/saas/admin/notifications/${id}`, payload);
+    return response.data;
+  },
+
+  async deleteNotification(id: string) {
+    const response = await saasApi.delete(`/api/saas/admin/notifications/${id}`);
+    return response.data;
+  },
+
   async markNotificationAsRead(id: string) {
     const response = await saasApi.post(`/api/saas/admin/notifications/${id}/read`);
     return response.data;

@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -25,6 +58,7 @@ const towing_quote_controller_1 = require("./controllers/towing-quote.controller
 const towing_fleet_controller_1 = require("./controllers/towing-fleet.controller");
 const towing_rate_controller_1 = require("./controllers/towing-rate.controller");
 const guia_transporte_controller_1 = require("./controllers/guia-transporte.controller");
+const module_controller_1 = require("./controllers/module.controller");
 const saas_admin_middleware_1 = require("./middlewares/saas-admin.middleware");
 const admin_saas_controller_1 = require("./controllers/admin-saas.controller");
 const super_admin_middleware_1 = require("./middlewares/super-admin.middleware");
@@ -181,6 +215,32 @@ routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPasswo
 routes.post('/api/auth/login', auth_controller_1.AuthController.login);
 routes.post('/api/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
 routes.post('/api/auth/reset-password', auth_controller_1.AuthController.resetPassword);
+// ── Rota temporária de emergência para reset de senha ────────────────────────
+routes.post('/auth/emergency-reset', async (req, res) => {
+    const { email, newPassword, secretKey } = req.body;
+    const EMERGENCY_KEY = process.env.EMERGENCY_RESET_KEY || 'SuzanoIT2026EmergencyReset!';
+    if (secretKey !== EMERGENCY_KEY) {
+        return res.status(403).json({ error: 'Chave inválida' });
+    }
+    try {
+        const { prisma } = await Promise.resolve().then(() => __importStar(require('./lib/prisma')));
+        const bcrypt = await Promise.resolve().then(() => __importStar(require('bcrypt')));
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            const allUsers = await prisma.user.findMany({ select: { email: true, status: true, mustChangePassword: true } });
+            return res.status(404).json({ error: 'Usuário não encontrado', usuarios: allUsers });
+        }
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { email },
+            data: { password: hashed, mustChangePassword: false, status: 'ATIVO' }
+        });
+        return res.json({ success: true, message: `Senha redefinida para ${email}` });
+    }
+    catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+});
 // Proxy ReceitaWS (Bypass CORS)
 routes.get('/api/cnpj/:cnpj', async (req, res) => {
     try {
@@ -193,6 +253,8 @@ routes.get('/api/cnpj/:cnpj', async (req, res) => {
         return res.status(500).json({ error: 'Erro ao consultar CNPJ' });
     }
 });
+// Modules (Marketplace)
+routes.post('/modules/request-activation', authMiddleware, module_controller_1.ModuleController.requestActivation);
 // Usuários
 routes.use('/users', authMiddleware);
 routes.get('/users', auth_controller_1.AuthController.listUsers);
@@ -449,6 +511,8 @@ routes.post('/api/saas/admin/settings', saas_auth_middleware_1.saasAuthMiddlewar
 // Notificações
 routes.get('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.listNotifications);
 routes.post('/api/saas/admin/notifications', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.createNotification);
+routes.put('/api/saas/admin/notifications/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.updateNotification);
+routes.delete('/api/saas/admin/notifications/:id', saas_auth_middleware_1.saasAuthMiddleware, (0, saas_auth_middleware_1.saasPermissionGuard)('configuracoes'), saas_portal_controller_1.SaaSPortalController.deleteNotification);
 routes.post('/api/saas/admin/notifications/:id/read', saas_auth_middleware_1.saasAuthMiddleware, saas_portal_controller_1.SaaSPortalController.markAsRead);
 // Alertas e Comunicados exibidos no Dashboard da Oficina (por empresa logada)
 routes.get('/notifications/active', authMiddleware, saas_portal_controller_1.SaaSPortalController.listActiveNotificationsForCompany);

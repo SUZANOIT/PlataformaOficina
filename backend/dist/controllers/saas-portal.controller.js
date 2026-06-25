@@ -1305,6 +1305,59 @@ exports.SaaSPortalController = {
             return res.status(500).json({ error: 'Erro ao disparar alerta.' });
         }
     },
+    async updateNotification(req, res) {
+        const adminEmail = req.saasUserEmail || 'admin@suzanoit.com';
+        const id = req.params.id;
+        const schema = zod_1.z.object({
+            titulo: zod_1.z.string(),
+            mensagem: zod_1.z.string(),
+            tipo: zod_1.z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
+            prioridade: zod_1.z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
+            expiraEm: zod_1.z.string().datetime().optional().nullable(),
+            targetCompanyId: zod_1.z.string().optional().nullable(),
+            targetRole: zod_1.z.string().optional().nullable()
+        });
+        try {
+            const parsed = schema.parse(req.body);
+            const alert = await prisma_1.prisma.saaSNotification.update({
+                where: { id },
+                data: {
+                    titulo: parsed.titulo,
+                    mensagem: parsed.mensagem,
+                    tipo: parsed.tipo,
+                    prioridade: parsed.prioridade,
+                    expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
+                    targetCompanyId: parsed.targetCompanyId || null,
+                    targetRole: parsed.targetRole || null
+                }
+            });
+            await logSaaSAuditoria(adminEmail, 'Edição Notificação', `Editou alerta geral: '${alert.titulo}'`);
+            return res.json(alert);
+        }
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError)
+                return res.status(400).json({ error: error.errors });
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao editar alerta.' });
+        }
+    },
+    async deleteNotification(req, res) {
+        const adminEmail = req.saasUserEmail || 'admin@suzanoit.com';
+        const id = req.params.id;
+        try {
+            const notification = await prisma_1.prisma.saaSNotification.findUnique({ where: { id } });
+            if (!notification) {
+                return res.status(404).json({ error: 'Alerta não encontrado.' });
+            }
+            await prisma_1.prisma.saaSNotification.delete({ where: { id } });
+            await logSaaSAuditoria(adminEmail, 'Exclusão Notificação', `Excluiu alerta geral: '${notification.titulo}'`);
+            return res.status(204).send();
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Erro ao excluir alerta.' });
+        }
+    },
     async markAsRead(req, res) {
         const adminEmail = req.saasUserEmail || 'admin@suzanoit.com';
         const id = req.params.id;

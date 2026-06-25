@@ -10,7 +10,9 @@ import {
   Calendar,
   X,
   Plus,
-  Check
+  Check,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
@@ -21,6 +23,7 @@ export function Notificacoes() {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
+  const [editingNotificationId, setEditingNotificationId] = useState<string | null>(null);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -70,7 +73,7 @@ export function Notificacoes() {
 
     setIsSubmitting(true);
     try {
-      await SaaSAPIService.createNotification({
+      const payload = {
         titulo: formData.titulo,
         mensagem: formData.mensagem,
         tipo: formData.tipo,
@@ -78,9 +81,18 @@ export function Notificacoes() {
         expiraEm: formData.expiraEm ? new Date(formData.expiraEm).toISOString() : null,
         targetCompanyId: formData.targetType === 'COMPANY' && formData.targetCompanyId ? formData.targetCompanyId : null,
         targetRole: formData.targetType === 'ROLE' && formData.targetRole ? formData.targetRole : null
-      });
-      toast.success('Alerta global disparado com sucesso!');
+      };
+
+      if (editingNotificationId) {
+        await SaaSAPIService.updateNotification(editingNotificationId, payload);
+        toast.success('Alerta atualizado com sucesso!');
+      } else {
+        await SaaSAPIService.createNotification(payload);
+        toast.success('Alerta global disparado com sucesso!');
+      }
+
       setIsComposerOpen(false);
+      setEditingNotificationId(null);
       setFormData({
         titulo: '',
         mensagem: '',
@@ -94,9 +106,36 @@ export function Notificacoes() {
       loadNotifications();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.error || 'Erro ao disparar alerta.');
+      toast.error(err.response?.data?.error || (editingNotificationId ? 'Erro ao editar alerta.' : 'Erro ao disparar alerta.'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (notif: any) => {
+    setFormData({
+      titulo: notif.titulo || '',
+      mensagem: notif.mensagem || '',
+      tipo: notif.tipo || 'INFO',
+      prioridade: notif.prioridade || 'MEDIA',
+      expiraEm: notif.expiraEm ? new Date(notif.expiraEm).toISOString().slice(0, 16) : '',
+      targetType: notif.targetCompanyId ? 'COMPANY' : notif.targetRole ? 'ROLE' : 'ALL',
+      targetCompanyId: notif.targetCompanyId || '',
+      targetRole: notif.targetRole || ''
+    });
+    setEditingNotificationId(notif.id);
+    setIsComposerOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta notificação?')) return;
+    try {
+      await SaaSAPIService.deleteNotification(id);
+      toast.success('Alerta excluído com sucesso!');
+      loadNotifications();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Erro ao excluir alerta.');
     }
   };
 
@@ -141,7 +180,20 @@ export function Notificacoes() {
         </div>
 
         <button
-          onClick={() => setIsComposerOpen(true)}
+          onClick={() => {
+            setEditingNotificationId(null);
+            setFormData({
+              titulo: '',
+              mensagem: '',
+              tipo: 'INFO',
+              prioridade: 'MEDIA',
+              expiraEm: '',
+              targetType: 'ALL',
+              targetCompanyId: '',
+              targetRole: ''
+            });
+            setIsComposerOpen(true);
+          }}
           className="flex items-center justify-center gap-2 px-3.5 py-2 bg-indigo-500 hover:bg-indigo-400 active:scale-98 text-slate-950 font-extrabold rounded-xl text-xs transition shadow-lg shadow-indigo-500/10 w-full sm:w-auto"
         >
           <Plus size={14} />
@@ -216,15 +268,31 @@ export function Notificacoes() {
                   <span>{new Date(notif.createdAt).toLocaleString('pt-BR')}</span>
                 </div>
 
-                {!notif.lida && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-1 justify-end">
+                  {!notif.lida && (
+                    <button
+                      onClick={() => handleMarkAsRead(notif.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 text-indigo-400 hover:text-indigo-300 font-bold border border-indigo-500/15 hover:border-indigo-500/35 rounded-lg text-[10px] transition active:scale-95"
+                    >
+                      <Check size={11} />
+                      <span className="hidden sm:inline">Confirmar Leitura</span>
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleMarkAsRead(notif.id)}
-                    className="mt-1 flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 text-indigo-400 hover:text-indigo-300 font-bold border border-indigo-500/15 hover:border-indigo-500/35 rounded-lg text-[10px] transition active:scale-95"
+                    onClick={() => handleEdit(notif)}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 text-sky-400 hover:text-sky-300 font-bold border border-sky-500/15 hover:border-sky-500/35 rounded-lg text-[10px] transition active:scale-95"
                   >
-                    <Check size={11} />
-                    <span>Confirmar Leitura</span>
+                    <Pencil size={11} />
+                    <span className="hidden sm:inline">Editar</span>
                   </button>
-                )}
+                  <button
+                    onClick={() => handleDelete(notif.id)}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-850 text-rose-400 hover:text-rose-300 font-bold border border-rose-500/15 hover:border-rose-500/35 rounded-lg text-[10px] transition active:scale-95"
+                  >
+                    <Trash2 size={11} />
+                    <span className="hidden sm:inline">Excluir</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -242,7 +310,7 @@ export function Notificacoes() {
               <X size={20} />
             </button>
 
-            <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">Compor Alerta Global</h3>
+            <h3 className="text-base font-black text-white uppercase tracking-wider mb-4">{editingNotificationId ? 'Editar Alerta Global' : 'Compor Alerta Global'}</h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">

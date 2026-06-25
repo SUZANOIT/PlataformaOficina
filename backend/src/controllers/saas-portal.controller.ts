@@ -1408,6 +1408,63 @@ export const SaaSPortalController = {
     }
   },
 
+  async updateNotification(req: Request, res: Response) {
+    const adminEmail = (req as any).saasUserEmail || 'admin@suzanoit.com';
+    const id = req.params.id as string;
+    const schema = z.object({
+      titulo: z.string(),
+      mensagem: z.string(),
+      tipo: z.enum(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
+      prioridade: z.enum(['ALTA', 'MEDIA', 'BAIXA']).optional().default('MEDIA'),
+      expiraEm: z.string().datetime().optional().nullable(),
+      targetCompanyId: z.string().optional().nullable(),
+      targetRole: z.string().optional().nullable()
+    });
+
+    try {
+      const parsed = schema.parse(req.body);
+      const alert = await prisma.saaSNotification.update({
+        where: { id },
+        data: {
+          titulo: parsed.titulo,
+          mensagem: parsed.mensagem,
+          tipo: parsed.tipo,
+          prioridade: parsed.prioridade,
+          expiraEm: parsed.expiraEm ? new Date(parsed.expiraEm) : null,
+          targetCompanyId: parsed.targetCompanyId || null,
+          targetRole: parsed.targetRole || null
+        }
+      });
+
+      await logSaaSAuditoria(adminEmail, 'Edição Notificação', `Editou alerta geral: '${alert.titulo}'`);
+      return res.json(alert);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
+      console.error(error);
+      return res.status(500).json({ error: 'Erro ao editar alerta.' });
+    }
+  },
+
+  async deleteNotification(req: Request, res: Response) {
+    const adminEmail = (req as any).saasUserEmail || 'admin@suzanoit.com';
+    const id = req.params.id as string;
+
+    try {
+      const notification = await prisma.saaSNotification.findUnique({ where: { id } });
+      if (!notification) {
+        return res.status(404).json({ error: 'Alerta não encontrado.' });
+      }
+
+      await prisma.saaSNotification.delete({ where: { id } });
+
+      await logSaaSAuditoria(adminEmail, 'Exclusão Notificação', `Excluiu alerta geral: '${notification.titulo}'`);
+      return res.status(204).send();
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Erro ao excluir alerta.' });
+    }
+  },
+
   async markAsRead(req: Request, res: Response) {
     const adminEmail = (req as any).saasUserEmail || 'admin@suzanoit.com';
     const id = req.params.id as string;
