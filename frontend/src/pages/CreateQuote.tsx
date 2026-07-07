@@ -426,15 +426,12 @@ export function CreateQuote() {
         .join(', ');
 
       // Mileage (Quilometragem)
-      const kmText = data.veiculoHodometro ? `${data.veiculoHodometro} km` : 'Não informado';
 
       // Banking info from the automatically mapped workshop
       let bankingText = '';
       let hasBanking = false;
-      let oficinaNome = '';
       
       if (selectedOficina) {
-        oficinaNome = selectedOficina.nome;
         hasBanking = !!(selectedOficina.banco || selectedOficina.agencia || selectedOficina.contaCorrente || selectedOficina.chavePix);
         if (hasBanking) {
           bankingText = `Banco: ${selectedOficina.banco || '—'}
@@ -450,7 +447,6 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
         // Auto-set the oficinaId in form so database links it
         setValue('oficinaId', selectedOficina.id);
       } else {
-        oficinaNome = selectedCompany ? (selectedCompany.nomeFantasia || selectedCompany.razaoSocial) : 'Não informado';
         bankingText = 'Dados bancários da oficina não cadastrados.';
       }
 
