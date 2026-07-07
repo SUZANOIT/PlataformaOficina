@@ -455,7 +455,7 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
       const osText = hasPlatform ? `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}` : `Ordem de Serviço nº ${osInternaStr}`;
 
       const veiculoText = placa ? `, realizados no veículo placa ${placa}${prefixo ? `, prefixo ${prefixo}` : ''}` : '';
-      const desc = `${osText}${veiculoText}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
+      const desc = `${osText}${veiculoText}.
 
 SERVIÇOS EXECUTADOS:
 ${servicos || 'Nenhum serviço registrado.'}
