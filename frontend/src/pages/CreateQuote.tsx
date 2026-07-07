@@ -462,6 +462,7 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
 
 DETALHES DO ATENDIMENTO:
 Oficina Emitente: ${oficinaNome}
+Placa: ${placa || '—'}
 Quilometragem: ${kmText}
 Valor Total: ${formatCurrency(total)}
 
