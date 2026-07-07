@@ -122,7 +122,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               <div>
                 <h4 className="text-lg font-bold text-foreground">Nenhum dado financeiro</h4>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                  Este cliente não possui orçamentos aprovados ou faturados no ano atual para gerar os indicadores de receita.
+                  Este cliente não possui orçamentos pagos no ano atual para gerar os indicadores de receita.
                 </p>
               </div>
             </div>
@@ -139,7 +139,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
 
                 <div className="bg-card border border-border p-5 rounded-2xl shadow-sm hover:border-blue-500/30 transition duration-300 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                  <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">OS Concluídas</p>
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">OS Pagas</p>
                   <div className="flex items-center gap-2">
                     <h3 className="text-2xl font-black text-foreground">{data.approvedCount}</h3>
                     <FileCheck size={16} className="text-blue-500" />
@@ -230,7 +230,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                     <thead>
                       <tr className="bg-muted/40 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
                         <th className="p-4 w-1/3">Mês</th>
-                        <th className="p-4 w-1/3 text-center">Qtd. OS Aprovadas</th>
+                        <th className="p-4 w-1/3 text-center">Qtd. OS Pagas</th>
                         <th className="p-4 w-1/3 text-right">Receita Gerada</th>
                       </tr>
                     </thead>

@@ -275,28 +275,28 @@ export const RegistryController = {
         return res.status(403).json({ error: 'Acesso negado para este cliente.' });
       }
 
-      const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago', 'Cobertura'];
-
       const quotes = await prisma.quote.findMany({
         where: {
           clientId: id,
           companyId,
-          status: {
-            in: approvedStatuses
-          },
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          }
+          status: 'Pago'
         },
         select: {
           total: true,
-          createdAt: true
+          updatedAt: true,
+          history: {
+            where: {
+              action: 'STATUS_ALTERADO',
+              details: { contains: '"para":"Pago"' }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
         }
       });
 
       let totalRevenue = 0;
-      let approvedCount = quotes.length;
+      let approvedCount = 0;
       let maxMonthlyRevenue = 0;
       
       const monthlyData = Array.from({ length: 12 }, (_, i) => ({
@@ -306,10 +306,18 @@ export const RegistryController = {
       }));
 
       quotes.forEach(quote => {
-        totalRevenue += quote.total;
-        const monthIndex = new Date(quote.createdAt).getMonth();
-        monthlyData[monthIndex].receita += quote.total;
-        monthlyData[monthIndex].quantidade += 1;
+        let paymentDate = quote.updatedAt;
+        if (quote.history && quote.history.length > 0) {
+          paymentDate = quote.history[0].createdAt;
+        }
+
+        if (paymentDate.getFullYear() === currentYear) {
+          totalRevenue += quote.total || 0;
+          approvedCount += 1;
+          const monthIndex = paymentDate.getMonth();
+          monthlyData[monthIndex].receita += quote.total || 0;
+          monthlyData[monthIndex].quantidade += 1;
+        }
       });
 
       monthlyData.forEach(data => {
