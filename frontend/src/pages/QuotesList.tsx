@@ -392,9 +392,8 @@ export function QuotesList() {
                       </button>
                       <button 
                         onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                        disabled={quote.status === 'Pago'}
                         className="p-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/25 transition active:scale-95 duration-150 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
-                        title={quote.status === 'Pago' ? "Orçamentos pagos não podem ser editados" : "Editar"}
+                        title="Editar"
                       >
                         <Edit size={16} />
                       </button>
