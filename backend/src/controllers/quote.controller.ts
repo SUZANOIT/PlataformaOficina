@@ -618,9 +618,9 @@ export const QuoteController = {
       }
 
       const role = (req as any).role;
-      if (existingQuote.status === 'Pago' && data.status !== 'Pago') {
+      if (existingQuote.status === 'Pago') {
         if (role !== 'ADMIN' && role !== 'ADMINISTRADOR') {
-          return res.status(403).json({ error: 'Somente o administrador pode alterar o status de um orçamento Pago para outro.' });
+          return res.status(403).json({ error: 'Somente o administrador pode editar ou alterar o status de um orçamento Pago.' });
         }
       }
 
