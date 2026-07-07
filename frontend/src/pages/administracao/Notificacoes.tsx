@@ -24,6 +24,7 @@ export function Notificacoes() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
   const [editingNotificationId, setEditingNotificationId] = useState<string | null>(null);
+  const [tenantSearchTerm, setTenantSearchTerm] = useState('');
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -372,16 +373,16 @@ export function Notificacoes() {
                     onChange={(e) => setFormData({ ...formData, targetType: e.target.value as any, targetCompanyIds: [], targetRole: '' })}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
                   >
-                    <option value="ALL">Todas as Empresas (Global)</option>
-                    <option value="COMPANY">Empresa Específica</option>
+                    <option value="ALL">Todos os Clientes (Global)</option>
+                    <option value="COMPANY">Cliente Específico</option>
                     <option value="ROLE">Nível de Acesso Específico</option>
                   </select>
                 </div>
 
                 {formData.targetType === 'COMPANY' && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex justify-between">
-                      <span>Selecione a(s) Empresa(s) *</span>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex justify-between items-center">
+                      <span>Selecione o(s) Cliente(s) *</span>
                       <button 
                         type="button" 
                         className="text-indigo-400 hover:text-indigo-300 transition"
@@ -397,8 +398,18 @@ export function Notificacoes() {
                         {formData.targetCompanyIds.length === tenants.length ? 'Desmarcar Todos' : 'Marcar Todos'}
                       </button>
                     </label>
+                    <input
+                      type="text"
+                      placeholder="Buscar cliente por nome ou CNPJ..."
+                      value={tenantSearchTerm}
+                      onChange={(e) => setTenantSearchTerm(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all mb-2"
+                    />
                     <div className="w-full max-h-40 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 space-y-2 custom-scrollbar">
-                      {tenants.map(t => {
+                      {tenants.filter(t => 
+                        t.razaoSocial.toLowerCase().includes(tenantSearchTerm.toLowerCase()) || 
+                        t.cnpj.includes(tenantSearchTerm)
+                      ).map(t => {
                         const id = t.companyId || t.id;
                         const isChecked = formData.targetCompanyIds.includes(id);
                         return (
@@ -418,6 +429,9 @@ export function Notificacoes() {
                           </label>
                         );
                       })}
+                      {tenants.filter(t => t.razaoSocial.toLowerCase().includes(tenantSearchTerm.toLowerCase()) || t.cnpj.includes(tenantSearchTerm)).length === 0 && (
+                        <div className="text-xs text-slate-500 text-center py-2">Nenhum cliente encontrado.</div>
+                      )}
                     </div>
                   </div>
                 )}

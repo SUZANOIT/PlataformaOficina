@@ -454,7 +454,11 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
         bankingText = 'Dados bancários da oficina não cadastrados.';
       }
 
-      const desc = `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
+      const hasPlatform = !!data.plataformaGestaoId || !!selectedPlatform;
+      const osInternaStr = numeroOrcamento ? `${new Date().getFullYear()}-${numeroOrcamento.toString().padStart(6, '0')}` : '(A ser gerada)';
+      const osText = hasPlatform ? `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}` : `Ordem de Serviço nº ${osInternaStr}`;
+
+      const desc = `${osText}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
 
 DETALHES DO ATENDIMENTO:
 Oficina Emitente: ${oficinaNome}
