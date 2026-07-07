@@ -452,7 +452,8 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
 
       const hasPlatform = !!data.plataformaGestaoId || !!selectedPlatform;
       const osInternaStr = numeroOrcamento ? `${new Date().getFullYear()}-${numeroOrcamento.toString().padStart(6, '0')}` : '(A ser gerada)';
-      const osText = hasPlatform ? `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}` : `Ordem de Serviço nº ${osInternaStr}`;
+      const platformName = selectedPlatform?.nomeFantasia || selectedPlatform?.nome || 'de Gestão';
+      const osText = hasPlatform ? `O.S da Plataforma ${platformName} nº ${osExterna}` : `O.S nº ${osInternaStr}`;
 
       const veiculoText = placa ? `, realizados no veículo placa ${placa}${prefixo ? `, prefixo ${prefixo}` : ''}` : '';
       const desc = `${osText}${veiculoText}.
