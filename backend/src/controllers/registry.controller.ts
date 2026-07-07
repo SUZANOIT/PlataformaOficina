@@ -259,6 +259,87 @@ export const RegistryController = {
     }
   },
 
+  async getClientRevenue(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const companyId = (req as any).companyId || null;
+
+      const currentYear = new Date().getFullYear();
+      const startDate = new Date(`${currentYear}-01-01T00:00:00.000Z`);
+      const endDate = new Date(`${currentYear}-12-31T23:59:59.999Z`);
+
+      const existing = await prisma.client.findFirst({
+        where: { id, companyId }
+      });
+      if (!existing) {
+        return res.status(403).json({ error: 'Acesso negado para este cliente.' });
+      }
+
+      const approvedStatuses = ['Aprovado', 'Aguardando Pagamento', 'Emitir Nota Fiscal', 'Pago', 'Cobertura'];
+
+      const quotes = await prisma.quote.findMany({
+        where: {
+          clientId: id,
+          companyId,
+          status: {
+            in: approvedStatuses
+          },
+          createdAt: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        select: {
+          total: true,
+          createdAt: true
+        }
+      });
+
+      let totalRevenue = 0;
+      let approvedCount = quotes.length;
+      let maxMonthlyRevenue = 0;
+      
+      const monthlyData = Array.from({ length: 12 }, (_, i) => ({
+        mes: new Date(currentYear, i).toLocaleString('pt-BR', { month: 'long' }),
+        receita: 0,
+        quantidade: 0
+      }));
+
+      quotes.forEach(quote => {
+        totalRevenue += quote.total;
+        const monthIndex = new Date(quote.createdAt).getMonth();
+        monthlyData[monthIndex].receita += quote.total;
+        monthlyData[monthIndex].quantidade += 1;
+      });
+
+      monthlyData.forEach(data => {
+        if (data.receita > maxMonthlyRevenue) {
+          maxMonthlyRevenue = data.receita;
+        }
+      });
+
+      const averageTicket = approvedCount > 0 ? totalRevenue / approvedCount : 0;
+
+      // Capitalize month names
+      const formattedMonthlyData = monthlyData.map(m => ({
+        ...m,
+        mes: m.mes.charAt(0).toUpperCase() + m.mes.slice(1)
+      }));
+
+      return res.json({
+        totalRevenue,
+        approvedCount,
+        averageTicket,
+        maxMonthlyRevenue,
+        monthlyData: formattedMonthlyData
+      });
+
+    } catch (error) {
+      console.error('Error fetching client revenue:', error);
+      return res.status(500).json({ error: 'Erro ao buscar receita do cliente' });
+    }
+  },
+
   async deduplicateClients(req: Request, res: Response) {
     try {
       const companyId = (req as any).companyId || null;

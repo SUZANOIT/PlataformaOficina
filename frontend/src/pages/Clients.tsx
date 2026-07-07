@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Users,
   User,
-  Briefcase
+  Briefcase,
+  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
@@ -19,6 +20,7 @@ import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { TableActionMenu } from '../components/ui/TableActionMenu';
 import { TablePagination } from '../components/ui/TablePagination';
+import { ClientRevenueModal } from '../components/modals/ClientRevenueModal';
 
 export function Clients() {
   const [clients, setClients] = useState<any[]>([]);
@@ -35,6 +37,10 @@ export function Clients() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Revenue Modal states
+  const [selectedRevenueClient, setSelectedRevenueClient] = useState<any>(null);
+  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   
   // Form states
   const [nome, setNome] = useState('');
@@ -449,6 +455,17 @@ export function Clients() {
                       <TableActionMenu
                         onEdit={() => handleOpenEditModal(client)}
                         onDelete={() => setClientToDelete(client)}
+                        extraActions={[
+                          {
+                            label: 'Receita do Cliente',
+                            icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
+                            onClick: () => {
+                              setSelectedRevenueClient(client);
+                              setIsRevenueModalOpen(true);
+                            },
+                            className: 'hover:bg-emerald-500/10'
+                          }
+                        ]}
                       />
                     </td>
                   </tr>
@@ -534,6 +551,16 @@ export function Clients() {
                 <TableActionMenu
                   onEdit={() => handleOpenEditModal(client)}
                   onDelete={() => setClientToDelete(client)}
+                  extraActions={[
+                    {
+                      label: 'Receita do Cliente',
+                      icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
+                      onClick: () => {
+                        setSelectedRevenueClient(client);
+                        setIsRevenueModalOpen(true);
+                      }
+                    }
+                  ]}
                 />
               </div>
             </div>
@@ -846,6 +873,12 @@ export function Clients() {
         message={`Tem certeza que deseja excluir o cliente "${clientToDelete?.nome || ''}"? Esta ação não pode ser desfeita.`}
         confirmText="Excluir"
         isDanger={true}
+      />
+
+      <ClientRevenueModal
+        isOpen={isRevenueModalOpen}
+        onClose={() => setIsRevenueModalOpen(false)}
+        client={selectedRevenueClient}
       />
     </div>
   );
