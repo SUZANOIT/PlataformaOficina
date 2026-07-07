@@ -458,13 +458,8 @@ Conta: ${selectedOficina.contaCorrente || '—'}`;
       const osInternaStr = numeroOrcamento ? `${new Date().getFullYear()}-${numeroOrcamento.toString().padStart(6, '0')}` : '(A ser gerada)';
       const osText = hasPlatform ? `Ordem de Serviço da Plataforma de Gestão nº ${osExterna}` : `Ordem de Serviço nº ${osInternaStr}`;
 
-      const desc = `${osText}, realizados no veículo placa ${placa || '—'}${prefixo ? `, prefixo ${prefixo}` : ''}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
-
-DETALHES DO ATENDIMENTO:
-Oficina Emitente: ${oficinaNome}
-Placa: ${placa || '—'}
-Quilometragem: ${kmText}
-Valor Total: ${formatCurrency(total)}
+      const veiculoText = placa ? `, realizados no veículo placa ${placa}${prefixo ? `, prefixo ${prefixo}` : ''}` : '';
+      const desc = `${osText}${veiculoText}. Foram executados os serviços e fornecidas as peças descritas no orçamento aprovado. Pagamento a ser realizado conforme os dados bancários da oficina emitente.
 
 SERVIÇOS EXECUTADOS:
 ${servicos || 'Nenhum serviço registrado.'}
