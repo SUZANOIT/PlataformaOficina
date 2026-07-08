@@ -557,6 +557,12 @@ exports.QuoteController = {
             if (!existingQuote) {
                 return res.status(404).json({ error: 'Quote not found' });
             }
+            const role = req.role;
+            if (existingQuote.status === 'Pago') {
+                if (role !== 'ADMIN' && role !== 'ADMINISTRADOR') {
+                    return res.status(403).json({ error: 'Somente o administrador pode editar ou alterar o status de um orçamento Pago.' });
+                }
+            }
             if (existingQuote.isCloned || existingQuote.clonedFromId) {
                 if (data.companyId !== existingQuote.companyId) {
                     return res.status(400).json({ error: 'Não é permitido alterar a empresa de um orçamento clonado.' });

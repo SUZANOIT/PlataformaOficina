@@ -268,6 +268,7 @@ routes.post('/companies', company_controller_1.CompanyController.create);
 // Cadastros de Clientes e Fornecedores
 routes.use('/registry', authMiddleware);
 routes.get('/registry/clients', registry_controller_1.RegistryController.listClients);
+routes.get('/registry/clients/:id/revenue', registry_controller_1.RegistryController.getClientRevenue);
 routes.post('/registry/clients', registry_controller_1.RegistryController.createClient);
 routes.post('/registry/clients/deduplicate', registry_controller_1.RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', registry_controller_1.RegistryController.updateClient);

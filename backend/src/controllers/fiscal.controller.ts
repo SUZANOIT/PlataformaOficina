@@ -240,30 +240,11 @@ export const FiscalController = {
         const xmlText = fileBuffer.toString('utf8');
         const parsed = parseFiscalXml(xmlText, companyCnpj);
 
-        const docDetails = parsed
-          ? { ...parsed, xmlContent: xmlText }
-          : {
-              numeroDocumento: `NF-${Math.floor(100000 + Math.random() * 900000)}`,
-              numeroNota: '',
-              serie: null,
-              chaveAcesso: null,
-              dataEmissao: new Date(),
-              valorTotal: 0,
-              valorBruto: 0,
-              valorLiquido: 0,
-              valorImpostos: 0,
-              icms: 0, ipi: 0, pis: 0, cofins: 0, iss: 0, irpj: 0, csll: 0,
-              emitenteNome: 'Emitente não identificado',
-              emitenteCnpj: '00.000.000/0001-00',
-              destinatarioNome: 'Destinatário não identificado',
-              destinatarioCnpj: '00.000.000/0001-99',
-              clienteNome: null,
-              fornecedorNome: null,
-              tipoDocumento: 'ENTRADA' as const,
-              fluxoFinanceiro: 'ENTRADA' as const,
-              status: 'EMITIDA',
-              xmlContent: xmlText
-            };
+        if (!parsed || !parsed.chaveAcesso) {
+          return res.status(400).json({ error: `O arquivo "${f.fileName}" não é um XML válido ou não possui Chave de Acesso (NF-e/NFS-e).` });
+        }
+
+        const docDetails = { ...parsed, xmlContent: xmlText };
 
         if (docDetails.chaveAcesso) {
           if (chavesNoLote.has(docDetails.chaveAcesso)) {

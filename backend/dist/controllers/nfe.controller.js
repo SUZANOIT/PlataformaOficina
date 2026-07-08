@@ -375,11 +375,14 @@ exports.NfeController = {
             if (!nfeData.chaveAcesso) {
                 return res.status(400).json({ error: 'Chave de acesso da NF-e não localizada no XML.' });
             }
-            // a. Check duplicate key
+            // a. Check duplicate key in both NfeImport and FiscalDocument
             const duplicateKey = await prisma_1.prisma.nfeImport.findUnique({
                 where: { chaveAcesso: nfeData.chaveAcesso }
             });
-            const isDuplicate = !!duplicateKey;
+            const duplicateFiscal = await prisma_1.prisma.fiscalDocument.findFirst({
+                where: { chaveAcesso: nfeData.chaveAcesso, companyId }
+            });
+            const isDuplicate = !!duplicateKey || !!duplicateFiscal;
             // b. Verify recipient CNPJ
             const company = await prisma_1.prisma.company.findUnique({ where: { id: companyId } });
             if (!company)
@@ -467,7 +470,13 @@ exports.NfeController = {
                 where: { chaveAcesso: data.chaveAcesso }
             });
             if (duplicateKey) {
-                return res.status(409).json({ error: 'Esta nota fiscal (chave de acesso) já foi importada anteriormente.', code: 'DUPLICATE_KEY' });
+                return res.status(409).json({ error: 'Esta nota fiscal (chave de acesso) já foi importada anteriormente no módulo de Estoque.', code: 'DUPLICATE_KEY' });
+            }
+            const duplicateFiscal = await prisma_1.prisma.fiscalDocument.findFirst({
+                where: { chaveAcesso: data.chaveAcesso, companyId }
+            });
+            if (duplicateFiscal) {
+                return res.status(409).json({ error: 'Esta nota fiscal já foi importada anteriormente no módulo Contábil/Fiscal.', code: 'DUPLICATE_KEY_FISCAL' });
             }
             // Step 1: Supplier Resolution
             let supplierId = data.supplier.id;
