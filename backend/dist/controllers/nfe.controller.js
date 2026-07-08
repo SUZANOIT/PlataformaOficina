@@ -18,27 +18,28 @@ function blockContent(xml, blockName) {
     const match = xml.match(regex);
     return match ? match[1] : null;
 }
-// Parse NFS-e (serviço) XML - layout Barueri/SP (ConsultarNfeServPrestadoResposta)
+// Parse NFS-e (serviço) XML - layout Barueri/SP (ConsultarNfeServPrestadoResposta) ou GissOnline (CompNfse)
 function parseNfseServicoXml(xmlText) {
     try {
-        const infNfse = blockContent(xmlText, 'InfNfeServPrestado') || xmlText;
-        const numeroNf = tagContent(infNfse, 'NumeroNfe') || '';
-        const serie = tagContent(infNfse, 'SerieNfe');
+        const infNfse = blockContent(xmlText, 'InfNfeServPrestado') || blockContent(xmlText, 'InfNfse') || xmlText;
+        const numeroNf = tagContent(infNfse, 'NumeroNfe') || tagContent(infNfse, 'Numero') || '';
+        const serie = tagContent(infNfse, 'SerieNfe') || tagContent(infNfse, 'Serie');
         const codigoVerificacao = tagContent(infNfse, 'CodigoVerificacao');
         const dataEmissaoStr = tagContent(infNfse, 'DataEmissao') || '';
         const dataEmissao = dataEmissaoStr ? new Date(dataEmissaoStr) : new Date();
-        const naturezaOperacao = tagContent(infNfse, 'DescricaoNfe') || 'Prestação de Serviços';
+        const naturezaOperacao = tagContent(infNfse, 'DescricaoNfe') || tagContent(infNfse, 'DescricaoCodigoTributacaoMunicipio') || 'Prestação de Serviços';
         // NFS-e não possui chave de acesso de 44 dígitos; gera identificador único
         const prestadorXml = blockContent(infNfse, 'PrestadorServico') || '';
-        const emitCnpj = tagContent(prestadorXml, 'Cnpj') || '';
+        const prestadorCnpjXml = blockContent(infNfse, 'Prestador') || prestadorXml;
+        const emitCnpj = tagContent(prestadorCnpjXml, 'Cnpj') || tagContent(prestadorXml, 'Cnpj') || '';
         const chaveAcesso = codigoVerificacao
             ? `NFSE-${emitCnpj}-${numeroNf}-${codigoVerificacao.replace(/[^a-zA-Z0-9]/g, '')}`
             : `NFSE-${emitCnpj}-${numeroNf}`;
         // Prestador = fornecedor
         const emitRazaoSocial = tagContent(prestadorXml, 'RazaoSocial') || 'Fornecedor Desconhecido';
         const emitLogradouro = tagContent(prestadorXml, 'Endereco');
-        const emitNumero = tagContent(prestadorXml, 'NumeroEndereco');
-        const emitComplemento = tagContent(prestadorXml, 'ComplementoEndereco');
+        const emitNumero = tagContent(prestadorXml, 'NumeroEndereco') || tagContent(prestadorXml, 'Numero');
+        const emitComplemento = tagContent(prestadorXml, 'ComplementoEndereco') || tagContent(prestadorXml, 'Complemento');
         const emitBairro = tagContent(prestadorXml, 'Bairro');
         const emitCidade = tagContent(prestadorXml, 'Cidade');
         const emitEstado = tagContent(prestadorXml, 'Uf');
@@ -49,11 +50,11 @@ function parseNfseServicoXml(xmlText) {
         const tomadorXml = blockContent(infNfse, 'TomadorServico') || '';
         const destCnpj = tagContent(tomadorXml, 'Cnpj') || '';
         // Valores da nota
-        const valoresNfeXml = blockContent(infNfse, 'ValoresNfe') || '';
-        const valorTotal = parseFloat(tagContent(valoresNfeXml, 'ValorLiquidoNfe') || '0');
+        const valoresNfeXml = blockContent(infNfse, 'ValoresNfe') || blockContent(infNfse, 'ValoresNfse') || '';
+        const valorTotal = parseFloat(tagContent(valoresNfeXml, 'ValorLiquidoNfe') || tagContent(valoresNfeXml, 'ValorLiquidoNfse') || '0');
         // Serviço prestado (item único)
-        const servicoXml = blockContent(infNfse, 'ServicoPrestado') || '';
-        const valoresServicoXml = blockContent(servicoXml, 'ValoresServicoPrestado') || '';
+        const servicoXml = blockContent(infNfse, 'ServicoPrestado') || blockContent(infNfse, 'Servico') || '';
+        const valoresServicoXml = blockContent(servicoXml, 'ValoresServicoPrestado') || blockContent(servicoXml, 'Valores') || '';
         const quantidade = parseFloat(tagContent(valoresServicoXml, 'QuantidadeServico') || '1');
         const valorUnitario = parseFloat(tagContent(valoresServicoXml, 'ValorUnitarioServico') || '0');
         const valorServicos = parseFloat(tagContent(valoresServicoXml, 'ValorServicos') || String(valorTotal));
@@ -61,7 +62,7 @@ function parseNfseServicoXml(xmlText) {
         const cofinsValor = parseFloat(tagContent(valoresServicoXml, 'ValorCofins') || '0');
         const issValor = parseFloat(tagContent(valoresServicoXml, 'ValorIss') || tagContent(valoresNfeXml, 'ValorIss') || '0');
         const issAliquota = parseFloat(tagContent(valoresServicoXml, 'Aliquota') || tagContent(valoresNfeXml, 'Aliquota') || '0');
-        const codigoServico = tagContent(servicoXml, 'CodigoServico') || numeroNf;
+        const codigoServico = tagContent(servicoXml, 'CodigoServico') || tagContent(servicoXml, 'ItemListaServico') || numeroNf;
         const descricaoServico = tagContent(servicoXml, 'DescricaoServico') || tagContent(servicoXml, 'Discriminacao') || 'Serviço Sem Descrição';
         const items = [{
                 codigoProduto: codigoServico,
@@ -131,8 +132,8 @@ function parseNfseServicoXml(xmlText) {
 }
 // Parse NFe XML using regex
 function parseNfeXml(xmlText) {
-    // Detecta NFS-e de serviços (layout Barueri/SP)
-    if (/<InfNfeServPrestado\b|<ConsultarNfeServPrestadoResposta\b/i.test(xmlText)) {
+    // Detecta NFS-e de serviços (layout Barueri/SP ou GissOnline)
+    if (/<InfNfeServPrestado\b|<ConsultarNfeServPrestadoResposta\b|<CompNfse\b|<InfNfse\b/i.test(xmlText)) {
         return parseNfseServicoXml(xmlText);
     }
     try {

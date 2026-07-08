@@ -17,21 +17,22 @@ function blockContent(xml: string, blockName: string): string | null {
   return match ? match[1] : null;
 }
 
-// Parse NFS-e (serviço) XML - layout Barueri/SP (ConsultarNfeServPrestadoResposta)
+// Parse NFS-e (serviço) XML - layout Barueri/SP (ConsultarNfeServPrestadoResposta) ou GissOnline (CompNfse)
 export function parseNfseServicoXml(xmlText: string) {
   try {
-    const infNfse = blockContent(xmlText, 'InfNfeServPrestado') || xmlText;
+    const infNfse = blockContent(xmlText, 'InfNfeServPrestado') || blockContent(xmlText, 'InfNfse') || xmlText;
 
-    const numeroNf = tagContent(infNfse, 'NumeroNfe') || '';
-    const serie = tagContent(infNfse, 'SerieNfe');
+    const numeroNf = tagContent(infNfse, 'NumeroNfe') || tagContent(infNfse, 'Numero') || '';
+    const serie = tagContent(infNfse, 'SerieNfe') || tagContent(infNfse, 'Serie');
     const codigoVerificacao = tagContent(infNfse, 'CodigoVerificacao');
     const dataEmissaoStr = tagContent(infNfse, 'DataEmissao') || '';
     const dataEmissao = dataEmissaoStr ? new Date(dataEmissaoStr) : new Date();
-    const naturezaOperacao = tagContent(infNfse, 'DescricaoNfe') || 'Prestação de Serviços';
+    const naturezaOperacao = tagContent(infNfse, 'DescricaoNfe') || tagContent(infNfse, 'DescricaoCodigoTributacaoMunicipio') || 'Prestação de Serviços';
 
     // NFS-e não possui chave de acesso de 44 dígitos; gera identificador único
     const prestadorXml = blockContent(infNfse, 'PrestadorServico') || '';
-    const emitCnpj = tagContent(prestadorXml, 'Cnpj') || '';
+    const prestadorCnpjXml = blockContent(infNfse, 'Prestador') || prestadorXml;
+    const emitCnpj = tagContent(prestadorCnpjXml, 'Cnpj') || tagContent(prestadorXml, 'Cnpj') || '';
     const chaveAcesso = codigoVerificacao
       ? `NFSE-${emitCnpj}-${numeroNf}-${codigoVerificacao.replace(/[^a-zA-Z0-9]/g, '')}`
       : `NFSE-${emitCnpj}-${numeroNf}`;
@@ -39,8 +40,8 @@ export function parseNfseServicoXml(xmlText: string) {
     // Prestador = fornecedor
     const emitRazaoSocial = tagContent(prestadorXml, 'RazaoSocial') || 'Fornecedor Desconhecido';
     const emitLogradouro = tagContent(prestadorXml, 'Endereco');
-    const emitNumero = tagContent(prestadorXml, 'NumeroEndereco');
-    const emitComplemento = tagContent(prestadorXml, 'ComplementoEndereco');
+    const emitNumero = tagContent(prestadorXml, 'NumeroEndereco') || tagContent(prestadorXml, 'Numero');
+    const emitComplemento = tagContent(prestadorXml, 'ComplementoEndereco') || tagContent(prestadorXml, 'Complemento');
     const emitBairro = tagContent(prestadorXml, 'Bairro');
     const emitCidade = tagContent(prestadorXml, 'Cidade');
     const emitEstado = tagContent(prestadorXml, 'Uf');
@@ -53,12 +54,12 @@ export function parseNfseServicoXml(xmlText: string) {
     const destCnpj = tagContent(tomadorXml, 'Cnpj') || '';
 
     // Valores da nota
-    const valoresNfeXml = blockContent(infNfse, 'ValoresNfe') || '';
-    const valorTotal = parseFloat(tagContent(valoresNfeXml, 'ValorLiquidoNfe') || '0');
+    const valoresNfeXml = blockContent(infNfse, 'ValoresNfe') || blockContent(infNfse, 'ValoresNfse') || '';
+    const valorTotal = parseFloat(tagContent(valoresNfeXml, 'ValorLiquidoNfe') || tagContent(valoresNfeXml, 'ValorLiquidoNfse') || '0');
 
     // Serviço prestado (item único)
-    const servicoXml = blockContent(infNfse, 'ServicoPrestado') || '';
-    const valoresServicoXml = blockContent(servicoXml, 'ValoresServicoPrestado') || '';
+    const servicoXml = blockContent(infNfse, 'ServicoPrestado') || blockContent(infNfse, 'Servico') || '';
+    const valoresServicoXml = blockContent(servicoXml, 'ValoresServicoPrestado') || blockContent(servicoXml, 'Valores') || '';
 
     const quantidade = parseFloat(tagContent(valoresServicoXml, 'QuantidadeServico') || '1');
     const valorUnitario = parseFloat(tagContent(valoresServicoXml, 'ValorUnitarioServico') || '0');
@@ -68,7 +69,7 @@ export function parseNfseServicoXml(xmlText: string) {
     const issValor = parseFloat(tagContent(valoresServicoXml, 'ValorIss') || tagContent(valoresNfeXml, 'ValorIss') || '0');
     const issAliquota = parseFloat(tagContent(valoresServicoXml, 'Aliquota') || tagContent(valoresNfeXml, 'Aliquota') || '0');
 
-    const codigoServico = tagContent(servicoXml, 'CodigoServico') || numeroNf;
+    const codigoServico = tagContent(servicoXml, 'CodigoServico') || tagContent(servicoXml, 'ItemListaServico') || numeroNf;
     const descricaoServico = tagContent(servicoXml, 'DescricaoServico') || tagContent(servicoXml, 'Discriminacao') || 'Serviço Sem Descrição';
 
     const items = [{
@@ -145,8 +146,8 @@ export function parseNfseServicoXml(xmlText: string) {
 
 // Parse NFe XML using regex
 export function parseNfeXml(xmlText: string) {
-  // Detecta NFS-e de serviços (layout Barueri/SP)
-  if (/<InfNfeServPrestado\b|<ConsultarNfeServPrestadoResposta\b/i.test(xmlText)) {
+  // Detecta NFS-e de serviços (layout Barueri/SP ou GissOnline)
+  if (/<InfNfeServPrestado\b|<ConsultarNfeServPrestadoResposta\b|<CompNfse\b|<InfNfse\b/i.test(xmlText)) {
     return parseNfseServicoXml(xmlText);
   }
 
@@ -263,28 +264,28 @@ export function parseNfeXml(xmlText: string) {
         quantidade,
         valorUnitario,
         valorTotal: itemTotal,
-        
+
         icmsCst,
         icmsCsosn,
         icmsBaseCalculo,
         icmsAliquota,
         icmsValor,
-        
+
         ipiCst,
         ipiBaseCalculo,
         ipiAliquota,
         ipiValor,
-        
+
         pisCst,
         pisBaseCalculo,
         pisAliquota,
         pisValor,
-        
+
         cofinsCst,
         cofinsBaseCalculo,
         cofinsAliquota,
         cofinsValor,
-        
+
         issCodigoServico,
         issAliquota,
         issValor
@@ -337,7 +338,7 @@ const confirmNfeSchema = z.object({
   valorDesconto: z.number(),
   valorTotal: z.number(),
   xmlOriginal: z.string(),
-  
+
   supplier: z.object({
     id: z.string().optional().nullable(),
     razaoSocial: z.string(),
@@ -353,7 +354,7 @@ const confirmNfeSchema = z.object({
     cidade: z.string().optional().nullable(),
     estado: z.string().optional().nullable(),
   }),
-  
+
   items: z.array(z.object({
     productId: z.string().optional().nullable(),
     createProduct: z.boolean().default(false),
@@ -367,38 +368,38 @@ const confirmNfeSchema = z.object({
     quantidade: z.number(),
     valorUnitario: z.number(),
     valorTotal: z.number(),
-    
+
     icmsCst: z.string().optional().nullable(),
     icmsCsosn: z.string().optional().nullable(),
     icmsBaseCalculo: z.number().optional().nullable(),
     icmsAliquota: z.number().optional().nullable(),
     icmsValor: z.number().optional().nullable(),
-    
+
     ipiCst: z.string().optional().nullable(),
     ipiBaseCalculo: z.number().optional().nullable(),
     ipiAliquota: z.number().optional().nullable(),
     ipiValor: z.number().optional().nullable(),
-    
+
     pisCst: z.string().optional().nullable(),
     pisBaseCalculo: z.number().optional().nullable(),
     pisAliquota: z.number().optional().nullable(),
     pisValor: z.number().optional().nullable(),
-    
+
     cofinsCst: z.string().optional().nullable(),
     cofinsBaseCalculo: z.number().optional().nullable(),
     cofinsAliquota: z.number().optional().nullable(),
     cofinsValor: z.number().optional().nullable(),
-    
+
     issCodigoServico: z.string().optional().nullable(),
     issAliquota: z.number().optional().nullable(),
     issValor: z.number().optional().nullable(),
-    
+
     // UI Selected tax links for new products
     tributacaoMunicipalId: z.string().optional().nullable(),
     tributacaoEstadualId: z.string().optional().nullable(),
     tributacaoFederalId: z.string().optional().nullable(),
   })),
-  
+
   gerarContasPagar: z.boolean().default(false),
 });
 
@@ -672,28 +673,28 @@ export const NfeController = {
             quantidade: item.quantidade,
             valorUnitario: item.valorUnitario,
             valorTotal: item.valorTotal,
-            
+
             icmsCst: item.icmsCst,
             icmsCsosn: item.icmsCsosn,
             icmsBaseCalculo: item.icmsBaseCalculo,
             icmsAliquota: item.icmsAliquota,
             icmsValor: item.icmsValor,
-            
+
             ipiCst: item.ipiCst,
             ipiBaseCalculo: item.ipiBaseCalculo,
             ipiAliquota: item.ipiAliquota,
             ipiValor: item.ipiValor,
-            
+
             pisCst: item.pisCst,
             pisBaseCalculo: item.pisBaseCalculo,
             pisAliquota: item.pisAliquota,
             pisValor: item.pisValor,
-            
+
             cofinsCst: item.cofinsCst,
             cofinsBaseCalculo: item.cofinsBaseCalculo,
             cofinsAliquota: item.cofinsAliquota,
             cofinsValor: item.cofinsValor,
-            
+
             issCodigoServico: item.issCodigoServico,
             issAliquota: item.issAliquota,
             issValor: item.issValor
