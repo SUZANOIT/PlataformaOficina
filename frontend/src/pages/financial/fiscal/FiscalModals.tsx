@@ -28,62 +28,88 @@ export function MonthDetailsModal({ mesLabel, docs, loading, onClose, onSelectDo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-border">
+        <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gradient-to-r from-card to-muted/20 border-b border-border rounded-t-2xl">
           <div>
-            <h2 className="text-lg font-bold">Documentos — {mesLabel}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {docs.length} nota(s) · {formatCurrency(totalValor)} · Impostos {formatCurrency(totalImpostos)}
-            </p>
+            <h2 className="text-xl font-black text-foreground">Documentos — {mesLabel}</h2>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <div className="px-2.5 py-1 rounded-md bg-muted text-[11px] font-bold text-muted-foreground flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-foreground/40"></span>
+                {docs.length} Notas
+              </div>
+              <div className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[11px] font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Bruto: {formatCurrency(totalValor)}
+              </div>
+              <div className="px-2.5 py-1 rounded-md bg-destructive/10 text-destructive text-[11px] font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive"></span>
+                Impostos: {formatCurrency(totalImpostos)}
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition">
-            <X size={18} />
+          <button onClick={onClose} className="p-2 mt-4 md:mt-0 rounded-xl bg-card border border-border shadow-sm hover:bg-muted transition-colors self-start md:self-auto">
+            <X size={18} className="text-muted-foreground" />
           </button>
         </div>
 
-        <div className="overflow-auto flex-1">
+        <div className="overflow-auto flex-1 bg-card">
           {loading ? (
-            <div className="p-12 text-center text-muted-foreground animate-pulse">Carregando documentos...</div>
+            <div className="p-16 flex flex-col items-center justify-center text-muted-foreground">
+              <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+              <p className="text-sm font-medium animate-pulse">Carregando documentos...</p>
+            </div>
           ) : (
-            <table className="w-full text-xs">
-              <thead className="bg-muted/40 sticky top-0">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 sticky top-0 backdrop-blur-md z-10 shadow-sm">
                 <tr>
-                  <th className="p-3 text-left">Nota</th>
-                  <th className="p-3 text-left">Tipo</th>
-                  <th className="p-3 text-left">Cliente / Fornecedor</th>
-                  <th className="p-3 text-left">Emissão</th>
-                  <th className="p-3 text-right">Valor Bruto</th>
-                  <th className="p-3 text-right">Líquido</th>
-                  <th className="p-3 text-right">Impostos</th>
-                  <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-center">Ações</th>
+                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Nota</th>
+                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Tipo</th>
+                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Cliente / Fornecedor</th>
+                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Emissão</th>
+                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Valor Bruto</th>
+                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Líquido</th>
+                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Impostos</th>
+                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Status</th>
+                  <th className="p-4 text-center text-[10px] uppercase font-black tracking-wider text-muted-foreground">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/50">
                 {docs.map(doc => (
-                  <tr key={`${doc.source}-${doc.id}`} className="border-t border-border hover:bg-muted/10">
-                    <td className="p-3 font-semibold">
-                      NF {doc.numeroNota}
-                      {doc.serie && <span className="text-muted-foreground font-normal"> · Série {doc.serie}</span>}
+                  <tr key={`${doc.source}-${doc.id}`} className="hover:bg-muted/30 transition-colors group">
+                    <td className="p-4 font-bold text-foreground">
+                      <div className="flex flex-col">
+                        <span>NF {doc.numeroNota}</span>
+                        {doc.serie && <span className="text-[10px] text-muted-foreground font-semibold uppercase">Série {doc.serie}</span>}
+                      </div>
                     </td>
-                    <td className="p-3"><TipoBadge tipo={doc.tipoDocumento} /></td>
-                    <td className="p-3 max-w-[180px] truncate" title={doc.clienteNome || doc.fornecedorNome || ''}>
-                      {doc.clienteNome || doc.fornecedorNome || '—'}
+                    <td className="p-4"><TipoBadge tipo={doc.tipoDocumento} /></td>
+                    <td className="p-4 max-w-[200px]">
+                      <div className="truncate font-medium text-foreground" title={doc.clienteNome || doc.fornecedorNome || ''}>
+                        {doc.clienteNome || doc.fornecedorNome || '—'}
+                      </div>
                     </td>
-                    <td className="p-3 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap text-muted-foreground font-medium text-xs">
                       {doc.dataEmissao ? new Date(doc.dataEmissao).toLocaleDateString('pt-BR') : '—'}
                     </td>
-                    <td className="p-3 text-right font-mono">{formatCurrency(doc.valorBruto)}</td>
-                    <td className="p-3 text-right font-mono">{formatCurrency(doc.valorLiquido)}</td>
-                    <td className="p-3 text-right font-mono">{formatCurrency(doc.valorImpostos)}</td>
-                    <td className="p-3">{doc.status}</td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => onSelectDoc(doc)} className="p-1.5 hover:bg-muted rounded" title="Detalhes">
-                          <Eye size={14} />
+                    <td className="p-4 text-right font-mono font-bold tabular-nums text-foreground">{formatCurrency(doc.valorBruto)}</td>
+                    <td className="p-4 text-right font-mono font-bold tabular-nums text-foreground">{formatCurrency(doc.valorLiquido)}</td>
+                    <td className="p-4 text-right font-mono font-bold tabular-nums text-destructive">{formatCurrency(doc.valorImpostos)}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                        doc.status === 'EMITIDA' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                        doc.status === 'CANCELADA' ? 'bg-destructive/10 text-destructive' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {doc.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => onSelectDoc(doc)} className="p-2 hover:bg-background hover:shadow-sm border border-transparent hover:border-border rounded-lg transition-all text-primary" title="Ver Detalhes">
+                          <Eye size={16} />
                         </button>
                         {doc.xmlRecebido && (
-                          <button onClick={() => onDownload(doc)} className="p-1.5 hover:bg-muted rounded" title="Download XML">
-                            <Download size={14} />
+                          <button onClick={() => onDownload(doc)} className="p-2 hover:bg-background hover:shadow-sm border border-transparent hover:border-border rounded-lg transition-all text-muted-foreground hover:text-foreground" title="Download XML">
+                            <Download size={16} />
                           </button>
                         )}
                       </div>
@@ -92,8 +118,13 @@ export function MonthDetailsModal({ mesLabel, docs, loading, onClose, onSelectDo
                 ))}
                 {!docs.length && (
                   <tr>
-                    <td colSpan={9} className="p-10 text-center text-muted-foreground">
-                      Nenhum documento neste mês.
+                    <td colSpan={9} className="p-16 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                          <X size={24} className="text-muted-foreground/50" />
+                        </div>
+                        <p className="text-muted-foreground font-medium">Nenhum documento encontrado neste mês.</p>
+                      </div>
                     </td>
                   </tr>
                 )}
