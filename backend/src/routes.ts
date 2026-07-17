@@ -360,6 +360,7 @@ const registerFleetRoutes = (prefix: string) => {
   routes.post(`${prefix}/workshops`, fleetController.createWorkshop);
   routes.put(`${prefix}/workshops/:id`, fleetController.updateWorkshop);
   routes.delete(`${prefix}/workshops/:id`, fleetController.deleteWorkshop);
+  routes.get(`${prefix}/preventive/analysis`, fleetController.analyzePaidOilChanges);
   routes.get(`${prefix}/preventive/motor`, fleetController.listMotorOilChanges);
   routes.post(`${prefix}/preventive/motor`, fleetController.createMotorOilChange);
   routes.get(`${prefix}/preventive/gear`, fleetController.listGearOilChanges);

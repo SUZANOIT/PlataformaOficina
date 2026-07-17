@@ -9,6 +9,7 @@ export default function FleetPreventive() {
   const [gearChanges, setGearChanges] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [workshops, setWorkshops] = useState<any[]>([]);
+  const [oilAnalysisAlerts, setOilAnalysisAlerts] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
 
@@ -94,15 +95,17 @@ export default function FleetPreventive() {
     try {
       const token = localStorage.getItem('token');
       
-      const [resMotor, resGear, resVehicles, resWorkshops] = await Promise.all([
+      const [resMotor, resGear, resVehicles, resWorkshops, resAnalysis] = await Promise.all([
         fetch('/fleet/preventive/motor', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/fleet/preventive/gear', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/fleet/vehicles', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/fleet/workshops', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('/fleet/workshops', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/fleet/preventive/analysis', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (resMotor.ok) setMotorChanges(await resMotor.json());
       if (resGear.ok) setGearChanges(await resGear.json());
+      if (resAnalysis.ok) setOilAnalysisAlerts(await resAnalysis.json());
       if (resVehicles.ok) {
         const vData = await resVehicles.json();
         setVehicles(vData);
@@ -257,6 +260,59 @@ export default function FleetPreventive() {
           Registrar Troca de Óleo
         </button>
       </div>
+
+      {/* ═══════════ OS ANALYSIS ALERTS ═══════════ */}
+      {oilAnalysisAlerts.length > 0 && (
+        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-5 shadow-sm mb-6 animate-fade-in-up">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-rose-100 dark:bg-rose-800 rounded-lg text-rose-600 dark:text-rose-400">
+              <ShieldAlert size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-rose-800 dark:text-rose-300">Análise Inteligente: Trocas de Óleo Encontradas em OS Pagas</h3>
+              <p className="text-sm text-rose-600 dark:text-rose-400">
+                O sistema identificou itens referentes a óleo em Ordens de Serviço recentes que já foram pagas, mas não estão registradas no histórico preventivo.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            {oilAnalysisAlerts.map((alert: any, idx: number) => (
+              <div key={idx} className="bg-white dark:bg-gray-800 border border-rose-100 dark:border-rose-900/50 rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-gray-800 dark:text-white uppercase tracking-wider">{alert.placa}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">&bull; {alert.clienteNome}</span>
+                    <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300">OS #{alert.numeroOrcamento}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    <span className="font-semibold">Itens encontrados:</span> {alert.oilItems}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Oficina: {alert.oficinaNome || 'Não informada'} &bull; Data OS: {new Date(alert.dataOS).toLocaleDateString('pt-BR')} &bull; Valor total da OS: {formatCurrency(alert.valorOS)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    // Pre-fill motor form
+                    setMotorForm(prev => ({
+                      ...prev,
+                      veiculoId: alert.veiculoId || '',
+                      oficinaId: alert.oficinaId || '',
+                      dataTroca: alert.dataOS.substring(0, 10),
+                      observacoes: `Ref. OS #${alert.numeroOrcamento}`
+                    }));
+                    setIsMotorModalOpen(true);
+                  }}
+                  className="shrink-0 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  Registrar no Motor
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-gray-100 dark:border-gray-700">
