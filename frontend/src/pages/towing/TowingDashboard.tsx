@@ -44,8 +44,8 @@ export function TowingDashboard() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [statsRes, quotesRes] = await Promise.all([
-        fetch('/towing/dashboard', { headers }),
-        fetch('/towing/quotes', { headers }),
+        fetch('/api/towing/dashboard', { headers }),
+        fetch('/api/towing/quotes', { headers }),
       ]);
 
       if (statsRes.ok) {

@@ -291,23 +291,42 @@ export default function FleetPreventive() {
                     Oficina: {alert.oficinaNome || 'Não informada'} &bull; Data OS: {new Date(alert.dataOS).toLocaleDateString('pt-BR')} &bull; Valor total da OS: {formatCurrency(alert.valorOS)}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    // Pre-fill motor form
-                    setMotorForm(prev => ({
-                      ...prev,
-                      veiculoId: alert.veiculoId || '',
-                      oficinaId: alert.oficinaId || '',
-                      dataTroca: alert.dataOS.substring(0, 10),
-                      observacoes: `Ref. OS #${alert.numeroOrcamento}`
-                    }));
-                    setIsMotorModalOpen(true);
-                  }}
-                  className="shrink-0 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Registrar no Motor
-                </button>
+                <div className="shrink-0 flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => {
+                      // Pre-fill motor form
+                      setMotorForm(prev => ({
+                        ...prev,
+                        veiculoId: alert.veiculoId || '',
+                        oficinaId: alert.oficinaId || '',
+                        dataTroca: alert.dataOS.substring(0, 10),
+                        observacoes: `Ref. OS #${alert.numeroOrcamento}`
+                      }));
+                      setIsMotorModalOpen(true);
+                    }}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Registrar no Motor
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Pre-fill gear form
+                      setGearForm(prev => ({
+                        ...prev,
+                        veiculoId: alert.veiculoId || '',
+                        oficinaId: alert.oficinaId || '',
+                        dataTroca: alert.dataOS.substring(0, 10),
+                        observacoes: `Ref. OS #${alert.numeroOrcamento}`
+                      }));
+                      setIsGearModalOpen(true);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow transition text-sm flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Registrar no Câmbio
+                  </button>
+                </div>
               </div>
             ))}
           </div>

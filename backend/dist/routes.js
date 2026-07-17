@@ -134,6 +134,7 @@ const authMiddleware = async (req, res, next) => {
             const isAllowed = path === '/auth/me' ||
                 path.startsWith('/quotes') ||
                 path.startsWith('/towing') ||
+                path.startsWith('/api/towing') ||
                 path.startsWith('/registry/clients') ||
                 path.startsWith('/registry/platforms') ||
                 path.startsWith('/fleet/vehicles') ||
@@ -187,28 +188,28 @@ routes.post('/auth/login', auth_controller_1.AuthController.login);
 routes.get('/auth/me', authMiddleware, auth_controller_1.AuthController.me);
 // --- SaaS Client App Routes ---
 // TOWING MODULE
-routes.get('/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.list);
-routes.get('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.show);
-routes.post('/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.create);
-routes.put('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.update);
-routes.delete('/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.delete);
-routes.get('/towing/dashboard', authMiddleware, towing_quote_controller_1.TowingQuoteController.getDashboardStats);
-routes.get('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.listDrivers);
-routes.post('/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.createDriver);
-routes.put('/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateDriver);
-routes.delete('/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteDriver);
-routes.get('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.listVehicles);
-routes.post('/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.createVehicle);
-routes.put('/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateVehicle);
-routes.delete('/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteVehicle);
-routes.get('/towing/types', authMiddleware, towing_fleet_controller_1.TowingFleetController.listTypes);
-routes.get('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.list);
-routes.post('/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.save);
-routes.get('/towing/rates/:id/history', authMiddleware, towing_rate_controller_1.TowingRateController.getHistory);
+routes.get('/api/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.list);
+routes.get('/api/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.show);
+routes.post('/api/towing/quotes', authMiddleware, towing_quote_controller_1.TowingQuoteController.create);
+routes.put('/api/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.update);
+routes.delete('/api/towing/quotes/:id', authMiddleware, towing_quote_controller_1.TowingQuoteController.delete);
+routes.get('/api/towing/dashboard', authMiddleware, towing_quote_controller_1.TowingQuoteController.getDashboardStats);
+routes.get('/api/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.listDrivers);
+routes.post('/api/towing/drivers', authMiddleware, towing_fleet_controller_1.TowingFleetController.createDriver);
+routes.put('/api/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateDriver);
+routes.delete('/api/towing/drivers/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteDriver);
+routes.get('/api/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.listVehicles);
+routes.post('/api/towing/vehicles', authMiddleware, towing_fleet_controller_1.TowingFleetController.createVehicle);
+routes.put('/api/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.updateVehicle);
+routes.delete('/api/towing/vehicles/:id', authMiddleware, towing_fleet_controller_1.TowingFleetController.deleteVehicle);
+routes.get('/api/towing/types', authMiddleware, towing_fleet_controller_1.TowingFleetController.listTypes);
+routes.get('/api/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.list);
+routes.post('/api/towing/rates', authMiddleware, towing_rate_controller_1.TowingRateController.save);
+routes.get('/api/towing/rates/:id/history', authMiddleware, towing_rate_controller_1.TowingRateController.getHistory);
 // Towing Transport Guides (Guia de Transporte)
-routes.get('/towing/quotes/:id/guia', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.getGuiaByQuoteId);
-routes.post('/towing/guias/:id/audit', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.logAuditAction);
-routes.post('/towing/guias/:id/email', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.sendEmail);
+routes.get('/api/towing/quotes/:id/guia', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.getGuiaByQuoteId);
+routes.post('/api/towing/guias/:id/audit', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.logAuditAction);
+routes.post('/api/towing/guias/:id/email', authMiddleware, guia_transporte_controller_1.GuiaTransporteController.sendEmail);
 routes.get('/nfe/imports', authMiddleware, nfe_controller_1.NfeController.list);
 routes.post('/auth/forgot-password', auth_controller_1.AuthController.forgotPassword);
 routes.post('/auth/reset-password', auth_controller_1.AuthController.resetPassword);
