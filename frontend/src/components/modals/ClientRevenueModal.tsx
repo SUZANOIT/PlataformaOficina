@@ -80,7 +80,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      <div className="bg-card/95 backdrop-blur-xl border border-border/50 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col max-h-[90vh] ring-1 ring-white/10">
+      <div className="bg-card/95 backdrop-blur-xl border border-border/50 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col max-h-[96vh] ring-1 ring-white/10">
         
         {/* Header */}
         <div className="px-8 py-6 border-b border-border/50 flex justify-between items-center bg-gradient-to-r from-muted/50 to-transparent shrink-0">
@@ -108,7 +108,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           {loading ? (
             <div className="space-y-8 animate-pulse">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -132,7 +132,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
             </div>
           ) : (
-            <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
               
               {/* Indicators */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -174,15 +174,15 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
 
               {/* Chart */}
-              <div className="bg-card/80 border border-border/50 p-8 rounded-3xl shadow-sm relative overflow-hidden group">
+              <div className="bg-card/80 border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-700 pointer-events-none"></div>
-                <h4 className="text-sm font-bold text-foreground mb-8 flex items-center gap-3 relative z-10">
+                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-3 relative z-10">
                   <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">
                     <BarChart3 size={20} />
                   </div>
                   Evolução da Receita Anual
                 </h4>
-                <div className="h-72 w-full relative z-10">
+                <div className="h-60 w-full relative z-10">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={data.monthlyData}
