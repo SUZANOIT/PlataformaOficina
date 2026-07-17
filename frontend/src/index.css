@@ -205,9 +205,9 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+  background: hsl(var(--primary));
   border-radius: 2px;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 8px hsla(var(--primary), 0.5);
 }
 
 /* Plate 3D hover effect */
@@ -217,7 +217,7 @@
 }
 .plate-3d:hover {
   transform: perspective(600px) rotateY(-3deg) rotateX(2deg) scale(1.03);
-  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(99, 102, 241, 0.2);
+  box-shadow: 8px 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px hsla(var(--primary), 0.2);
 }
 
 /* Shine overlay for cards */
@@ -252,7 +252,7 @@
 
 /* Timeline gradient line */
 .timeline-gradient::before {
-  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%) !important;
+  background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsla(var(--primary), 0.5) 100%) !important;
 }
 
 /* Hide scrollbar utility for tab bars */

@@ -378,7 +378,7 @@ export default function FleetVehicles() {
     if (clientVehiclesLoading[clientId]) {
       return (
         <div className="pl-8 py-2 flex items-center gap-2 text-xs text-gray-400">
-          <div className="animate-spin rounded-full h-3 h-3 border border-indigo-600 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-3 h-3 border border-primary border-t-transparent"></div>
           <span>Carregando frota...</span>
         </div>
       );
@@ -452,15 +452,15 @@ export default function FleetVehicles() {
         onClick={() => handleSelectVehicle(v.id)}
         className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition ${
           isSelected 
-            ? 'bg-indigo-600 text-white shadow-sm' 
-            : 'text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700/30 hover:text-indigo-600'
+            ? 'bg-primary text-white shadow-sm' 
+            : 'text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-gray-700/30 hover:text-primary'
         }`}
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <Truck size={14} className={isSelected ? 'text-white' : 'text-indigo-500'} />
+          <Truck size={14} className={isSelected ? 'text-white' : 'text-primary'} />
           <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wide border font-mono ${
             isSelected 
-              ? 'bg-white text-indigo-700 border-white' 
+              ? 'bg-white text-primary border-white' 
               : 'bg-white dark:bg-gray-800 text-gray-900 border-gray-300 dark:border-gray-600'
           }`}>
             {v.placa}
@@ -489,22 +489,22 @@ export default function FleetVehicles() {
   return (
     <div className="p-6 space-y-6">
       {/* ═══════════ PREMIUM HEADER with Animated Gradient & Inline KPIs ═══════════ */}
-      <div className="relative overflow-hidden rounded-2xl shadow-xl border border-indigo-900/50 bg-gradient-to-br from-indigo-900 via-violet-950 to-slate-900 animate-gradient p-7">
+      <div className="relative overflow-hidden rounded-2xl shadow-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-slate-900 animate-gradient p-7">
         {/* Decorative grid + floating orbs */}
         <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           {/* Left: Title & description */}
           <div className="space-y-2">
             <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
               <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-                <Truck className="text-indigo-300 animate-float" size={26} />
+                <Truck className="text-primary/70 animate-float" size={26} />
               </div>
               Gestão de Frota Inteligente
             </h1>
-            <p className="text-indigo-200/80 text-sm max-w-xl leading-relaxed">
+            <p className="text-primary-foreground/80 text-sm max-w-xl leading-relaxed">
               Painel inteligente com visualização hierárquica de clientes, veículos, timeline de manutenção e análise financeira DRE em tempo real.
             </p>
           </div>
@@ -513,29 +513,29 @@ export default function FleetVehicles() {
           <div className="flex flex-wrap items-center gap-3">
             {/* KPI: Total Veículos */}
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
-              <div className="p-1.5 bg-indigo-500/30 rounded-lg">
-                <Truck size={14} className="text-indigo-300" />
+              <div className="p-1.5 bg-primary/30 rounded-lg">
+                <Truck size={14} className="text-primary/70" />
               </div>
               <div>
-                <span className="text-[9px] uppercase tracking-widest text-indigo-300/80 font-bold block">Veículos</span>
+                <span className="text-[9px] uppercase tracking-widest text-primary/70 font-bold block">Veículos</span>
                 <span className="text-sm font-black">{treeClients.reduce((acc, c) => acc + (c._count?.veiculos || 0), 0)}</span>
               </div>
             </div>
 
             {/* KPI: Clientes */}
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
-              <div className="p-1.5 bg-violet-500/30 rounded-lg">
-                <Folder size={14} className="text-violet-300" />
+              <div className="p-1.5 bg-primary/30 rounded-lg">
+                <Folder size={14} className="text-primary/70" />
               </div>
               <div>
-                <span className="text-[9px] uppercase tracking-widest text-violet-300/80 font-bold block">Clientes</span>
+                <span className="text-[9px] uppercase tracking-widest text-primary/70 font-bold block">Clientes</span>
                 <span className="text-sm font-black">{treeClients.length}</span>
               </div>
             </div>
 
             <button
               onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:shadow-indigo-400/40 hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-indigo-400/40 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={18} />
               Cadastrar Veículo
@@ -548,8 +548,8 @@ export default function FleetVehicles() {
       <div className="glass-card rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         <div className="flex justify-between items-center">
           <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
-            <div className="p-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-md">
-              <Search size={12} className="text-indigo-600 dark:text-indigo-400" />
+            <div className="p-1 bg-primary/20 dark:bg-primary/20 rounded-md">
+              <Search size={12} className="text-primary dark:text-primary" />
             </div>
             Filtros de Pesquisa e Período
           </h3>
@@ -575,7 +575,7 @@ export default function FleetVehicles() {
                 placeholder="Buscar cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               />
               <Folder size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
@@ -589,7 +589,7 @@ export default function FleetVehicles() {
                 placeholder="Ex: ABC1234"
                 value={placaFilter}
                 onChange={(e) => setPlacaFilter(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 font-mono uppercase transition-all"
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 font-mono uppercase transition-all"
               />
               <Truck size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
@@ -603,7 +603,7 @@ export default function FleetVehicles() {
                 placeholder="Buscar chassi..."
                 value={chassiFilter}
                 onChange={(e) => setChassiFilter(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               />
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
@@ -614,7 +614,7 @@ export default function FleetVehicles() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
             >
               <option value="ATIVO">Apenas Ativos</option>
               <option value="all">Todos os Status</option>
@@ -630,7 +630,7 @@ export default function FleetVehicles() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
             />
           </div>
 
@@ -640,7 +640,7 @@ export default function FleetVehicles() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
             />
           </div>
         </div>
@@ -652,13 +652,13 @@ export default function FleetVehicles() {
         {/* ─── LEFT: Premium Hierarchical Tree View ─── */}
         <div className="lg:col-span-4 glass-card rounded-2xl shadow-lg overflow-hidden min-h-[500px] flex flex-col">
           {/* Tree Header with gradient */}
-          <div className="p-4 bg-gradient-to-r from-indigo-50 via-violet-50/50 to-indigo-50 dark:from-gray-800/80 dark:via-gray-800/60 dark:to-gray-800/80 border-b border-gray-100/80 dark:border-gray-700/80 flex justify-between items-center">
+          <div className="p-4 bg-gradient-to-r from-primary/10 via-primary/5/50 to-transparent dark:from-gray-800/80 dark:via-gray-800/60 dark:to-gray-800/80 border-b border-gray-100/80 dark:border-gray-700/80 flex justify-between items-center">
             <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-wider flex items-center gap-1.5">
-              <FolderOpen size={12} className="text-indigo-500" />
+              <FolderOpen size={12} className="text-primary" />
               Estrutura de Clientes e Frota
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-black px-2.5 py-1 rounded-full text-[9px]">
+              <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary font-black px-2.5 py-1 rounded-full text-[9px]">
                 {treeClients.length} Clientes
               </span>
             </div>
@@ -667,7 +667,7 @@ export default function FleetVehicles() {
           <div className="p-4 flex-1 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)] space-y-2">
             {treeLoading && treeClients.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
                 <span className="text-xs font-semibold">Carregando árvore de frota...</span>
               </div>
             ) : treeClients.length === 0 ? (
@@ -681,7 +681,7 @@ export default function FleetVehicles() {
               <div className="space-y-1.5">
                 {treeClients.map(client => {
                   const isClientExpanded = !!expandedClients[client.id];
-                  const avatarColors = ['bg-indigo-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500'];
+                  const avatarColors = ['bg-primary', 'bg-primary', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500'];
                   const avatarColor = avatarColors[client.nome.charCodeAt(0) % avatarColors.length];
                   return (
                     <div key={client.id} className="space-y-1">
@@ -690,12 +690,12 @@ export default function FleetVehicles() {
                         onClick={() => handleToggleClient(client.id)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 select-none group ${
                           isClientExpanded 
-                            ? 'bg-indigo-50/60 dark:bg-indigo-950/20 border-l-4 border-indigo-500 shadow-sm' 
+                            ? 'bg-primary/10 dark:bg-primary/20 border-l-4 border-primary shadow-sm' 
                             : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30 border-l-4 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 overflow-hidden">
-                          {isClientExpanded ? <ChevronDown size={16} className="text-indigo-500 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 transition" />}
+                          {isClientExpanded ? <ChevronDown size={16} className="text-primary shrink-0" /> : <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 transition" />}
                           <div className={`w-8 h-8 rounded-full ${avatarColor} text-white flex items-center justify-center font-black text-xs shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm`}>
                             {client.nome.charAt(0).toUpperCase()}
                           </div>
@@ -707,7 +707,7 @@ export default function FleetVehicles() {
                           </div>
                         </div>
 
-                        <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-black px-2 py-0.5 rounded-full text-[9px] shrink-0">
+                        <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary font-black px-2 py-0.5 rounded-full text-[9px] shrink-0">
                           {client._count?.veiculos} {client._count?.veiculos === 1 ? 'Veículo' : 'Veículos'}
                         </span>
                       </div>
@@ -726,14 +726,14 @@ export default function FleetVehicles() {
         <div className="lg:col-span-8 space-y-6">
           {!selectedVehicleId ? (
             <div className="glass-card rounded-2xl border-2 border-dashed border-gray-200/60 dark:border-gray-700/60 p-14 text-center text-gray-400 flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-950/30 dark:to-violet-950/30 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
-                <Truck size={36} className="text-indigo-400 dark:text-indigo-500 animate-float" />
+              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/10/30 dark:to-transparent/30 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
+                <Truck size={36} className="text-primary dark:text-primary animate-float" />
               </div>
               <h3 className="text-lg font-black text-gray-700 dark:text-gray-200">Nenhum Veículo Selecionado</h3>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-md leading-relaxed">
                 Navegue pela árvore de clientes no painel esquerdo, expanda suas frotas e selecione um veículo para abrir o console de diagnósticos, histórico de manutenção e DRE financeiro.
               </p>
-              <div className="flex items-center gap-2 mt-6 text-[10px] font-bold text-indigo-500 dark:text-indigo-400">
+              <div className="flex items-center gap-2 mt-6 text-[10px] font-bold text-primary dark:text-primary">
                 <ChevronRight size={14} />
                 <span>Selecione um veículo na árvore ao lado</span>
               </div>
@@ -741,7 +741,7 @@ export default function FleetVehicles() {
           ) : detailsLoading ? (
             <div className="glass-card rounded-2xl shadow-lg p-8 min-h-[500px] flex items-center justify-center">
               <div className="space-y-4 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Consultando banco de dados...</p>
               </div>
             </div>
@@ -757,7 +757,7 @@ export default function FleetVehicles() {
             <div className="glass-card rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[550px] animate-fade-in-up">
               
               {/* ── Premium Vehicle Cockpit Header ── */}
-              <div className="p-6 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 dark:from-gray-900/80 dark:via-indigo-950/20 dark:to-gray-900/80 border-b border-gray-100/80 dark:border-gray-700/80 flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="p-6 bg-gradient-to-r from-slate-50 via-primary/5/30 to-slate-50 dark:from-gray-900/80 dark:via-primary/5/20 dark:to-gray-900/80 border-b border-gray-100/80 dark:border-gray-700/80 flex flex-col md:flex-row justify-between items-center gap-6">
                 
                 {/* 3D Mercosul Plate */}
                 <div className="plate-3d relative shrink-0 flex flex-col border-[3px] border-blue-600 rounded-xl overflow-hidden w-64 bg-white shadow-lg select-none">
@@ -789,8 +789,8 @@ export default function FleetVehicles() {
                     {vehicleDetails.infoCadastral.subfrota && <span className="text-gray-400"> • Subfrota: {vehicleDetails.infoCadastral.subfrota}</span>}
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-2.5 pt-1.5">
-                    <span className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
-                      <Activity size={12} className="text-indigo-500" /> {vehicleDetails.infoCadastral.kmAtual?.toLocaleString('pt-BR')} KM
+                    <span className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70 border border-primary/30 dark:border-primary px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                      <Activity size={12} className="text-primary" /> {vehicleDetails.infoCadastral.kmAtual?.toLocaleString('pt-BR')} KM
                     </span>
                     <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
                       <DollarSign size={12} className="text-emerald-500" /> {formatCurrency(vehicleDetails.financeiro.filter((f: any) => f.tipo === 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0))} Faturado
@@ -802,7 +802,7 @@ export default function FleetVehicles() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOpenEditModal(vehicleDetails.infoCadastral)}
-                    className="p-2.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
+                    className="p-2.5 text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl border border-primary/30 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
                     title="Editar Cadastro do Veículo"
                   >
                     <Edit2 size={16} />
@@ -846,7 +846,7 @@ export default function FleetVehicles() {
                     onClick={() => setDetailsTab(tab.id as any)}
                     className={`flex items-center gap-1.5 py-3.5 px-4 font-bold text-xs border-b-2 whitespace-nowrap transition-all duration-200 -mb-px ${
                       detailsTab === tab.id
-                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 glow-underline'
+                        ? 'border-primary text-primary dark:text-primary glow-underline'
                         : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
                     }`}
                   >
@@ -863,8 +863,8 @@ export default function FleetVehicles() {
                 {detailsTab === 'info' && (
                   <div className="space-y-6 animate-fade-in-up">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gradient-to-br from-gray-50 to-indigo-50/30 dark:from-gray-700/25 dark:to-indigo-950/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
-                        <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><FileText size={12} /> Ficha de Identificação</h3>
+                      <div className="bg-gradient-to-br from-gray-50 to-transparent/30 dark:from-gray-700/25 dark:to-transparent/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
+                        <h3 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><FileText size={12} /> Ficha de Identificação</h3>
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div>
                             <span className="text-gray-400 block mb-0.5">Placa</span>
@@ -889,8 +889,8 @@ export default function FleetVehicles() {
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-gray-50 to-violet-50/30 dark:from-gray-700/25 dark:to-violet-950/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
-                        <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><Wrench size={12} /> Parâmetros Técnicos</h3>
+                      <div className="bg-gradient-to-br from-gray-50 to-transparent/30 dark:from-gray-700/25 dark:to-transparent/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
+                        <h3 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><Wrench size={12} /> Parâmetros Técnicos</h3>
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div>
                             <span className="text-gray-400 block mb-0.5">Ano Fabricação / Modelo</span>
@@ -914,7 +914,7 @@ export default function FleetVehicles() {
 
                     {vehicleDetails.infoCadastral.observacoes && (
                       <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-700/25 dark:to-gray-800/25 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-2">
-                        <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><Clipboard size={12} /> Observações Administrativas</span>
+                        <span className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><Clipboard size={12} /> Observações Administrativas</span>
                         <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">{vehicleDetails.infoCadastral.observacoes}</p>
                       </div>
                     )}
@@ -944,7 +944,7 @@ export default function FleetVehicles() {
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {vehicleDetails.orcamentos.map((q: any) => (
                               <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{q.numeroOrcamento}</td>
+                                <td className="p-3 font-bold text-primary dark:text-primary truncate">#{q.numeroOrcamento}</td>
                                 <td className="p-3 font-medium hidden md:table-cell truncate">{new Date(q.createdAt).toLocaleDateString('pt-BR')}</td>
                                 <td className="p-3 font-medium truncate" title={q.items.map((i: any) => i.descricao).join(', ')}>
                                   {q.items.length} {q.items.length === 1 ? 'item' : 'itens'} ({q.items.map((i: any) => i.descricao).slice(0, 2).join(', ')}...)
@@ -988,7 +988,7 @@ export default function FleetVehicles() {
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {vehicleDetails.ordensServico.map((os: any) => (
                               <tr key={os.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                                <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{os.numeroOrcamento}</td>
+                                <td className="p-3 font-bold text-primary dark:text-primary truncate">#{os.numeroOrcamento}</td>
                                 <td className="p-3 font-bold text-gray-500 dark:text-gray-400 hidden md:table-cell truncate">{os.osExterna || '—'}</td>
                                 <td className="p-3 font-medium hidden sm:table-cell truncate">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</td>
                                 <td className="p-3 font-medium text-gray-500 hidden lg:table-cell truncate">{os.prazoExecucao || '—'}</td>
@@ -1025,7 +1025,7 @@ export default function FleetVehicles() {
                           const bulletColor = m.tipo === 'TROCA_OLEO_MOTOR' ? 'border-rose-500 bg-rose-500' :
                             m.tipo === 'TROCA_OLEO_CAMBIO' ? 'border-orange-500 bg-orange-500' :
                             m.tipo === 'REVISAO' ? 'border-blue-500 bg-blue-500' :
-                            'border-violet-500 bg-violet-500';
+                            'border-primary bg-primary';
                           return (
                           <div key={idx} className="relative pb-6 last:pb-0">
                             {/* Contextual bullet with pulse */}
@@ -1053,7 +1053,7 @@ export default function FleetVehicles() {
                                   </span>
                                 )}
                                 {m.proximaTroca && (
-                                  <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-300 block bg-indigo-50 dark:bg-indigo-950/20 px-2 py-0.5 rounded-lg w-max">
+                                  <span className="text-[10px] font-bold text-indigo-650 dark:text-primary/70 block bg-primary/10 dark:bg-primary/20 px-2 py-0.5 rounded-lg w-max">
                                     {m.proximaTroca}
                                   </span>
                                 )}
@@ -1084,9 +1084,9 @@ export default function FleetVehicles() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="bg-indigo-50/50 dark:bg-indigo-950/10 p-4 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20 flex justify-between items-center text-xs">
-                          <span className="font-bold text-indigo-750 dark:text-indigo-300">Resumo de Peças Adquiridas</span>
-                          <span className="font-black text-indigo-800 dark:text-indigo-400">
+                        <div className="bg-primary/10 dark:bg-primary/20 p-4 rounded-xl border border-primary/30 dark:border-primary/20 flex justify-between items-center text-xs">
+                          <span className="font-bold text-indigo-750 dark:text-primary/70">Resumo de Peças Adquiridas</span>
+                          <span className="font-black text-primary dark:text-primary">
                             Total Alocado: {formatCurrency(vehicleDetails.pecas.reduce((acc: number, p: any) => acc + p.valorTotal, 0))}
                           </span>
                         </div>
@@ -1109,7 +1109,7 @@ export default function FleetVehicles() {
                                   <td className="p-3 text-center font-bold text-gray-500 hidden md:table-cell truncate">{p.quantidade}</td>
                                   <td className="p-3 text-right font-medium hidden sm:table-cell truncate">{formatCurrency(p.valorUnitario)}</td>
                                   <td className="p-3 text-right font-bold text-gray-900 dark:text-white truncate">{formatCurrency(p.valorTotal)}</td>
-                                  <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400 truncate">#{p.numeroOrcamento}</td>
+                                  <td className="p-3 font-bold text-primary dark:text-primary truncate">#{p.numeroOrcamento}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1127,7 +1127,7 @@ export default function FleetVehicles() {
                     {/* Left: QR Code dynamic banner (5 columns) */}
                     <div className="md:col-span-5 space-y-4">
                       <div className="p-6 bg-slate-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center shadow-inner relative overflow-hidden select-none">
-                        <div className="absolute top-0 right-0 p-2 text-indigo-300 pointer-events-none">
+                        <div className="absolute top-0 right-0 p-2 text-primary/70 pointer-events-none">
                           <Activity size={24} className="opacity-10" />
                         </div>
                         <div className="w-36 h-36 bg-white p-3 rounded-2xl border border-gray-300/80 flex items-center justify-center relative shadow-md">
@@ -1150,7 +1150,7 @@ export default function FleetVehicles() {
 
                     {/* Right: List of attachments from invoices/transactions (7 columns) */}
                     <div className="md:col-span-7 space-y-4">
-                      <h3 className="text-xs font-black uppercase text-indigo-600 tracking-wider">Anexos Financeiros e Fiscais</h3>
+                      <h3 className="text-xs font-black uppercase text-primary tracking-wider">Anexos Financeiros e Fiscais</h3>
                       {vehicleDetails.documentos.length === 0 ? (
                         <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:border-gray-700/60 text-gray-400 text-xs">
                           Nenhum comprovante fiscal ou documento anexado às transações deste veículo.
@@ -1167,7 +1167,7 @@ export default function FleetVehicles() {
                                 href={doc.url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg shrink-0 transition text-[10px]"
+                                className="bg-primary hover:bg-primary text-white font-bold px-3 py-1.5 rounded-lg shrink-0 transition text-[10px]"
                               >
                                 Visualizar
                               </a>
@@ -1216,14 +1216,14 @@ export default function FleetVehicles() {
 
                             <div className={`p-4 border rounded-2xl flex items-center justify-between text-xs shine-hover transition-all duration-200 hover:shadow-md ${
                               netBalance >= 0 
-                                ? 'bg-gradient-to-br from-indigo-50 to-violet-50/30 border-indigo-100 dark:from-indigo-950/20 dark:to-violet-950/10 dark:border-indigo-900/30' 
+                                ? 'bg-gradient-to-br from-primary/10 to-transparent/30 border-primary/30 dark:from-primary/10/20 dark:to-transparent/10 dark:border-primary/20' 
                                 : 'bg-gradient-to-br from-amber-50 to-orange-50/30 border-amber-100 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-900/30'
                             }`}>
                               <div className="space-y-1">
-                                <span className={`font-bold block ${netBalance >= 0 ? 'text-indigo-700 dark:text-indigo-300' : 'text-amber-700 dark:text-amber-300'}`}>Saldo Líquido</span>
-                                <span className={`text-xl font-black ${netBalance >= 0 ? 'text-indigo-800 dark:text-indigo-400' : 'text-amber-800 dark:text-amber-450'}`}>{formatCurrency(netBalance)}</span>
+                                <span className={`font-bold block ${netBalance >= 0 ? 'text-primary dark:text-primary/70' : 'text-amber-700 dark:text-amber-300'}`}>Saldo Líquido</span>
+                                <span className={`text-xl font-black ${netBalance >= 0 ? 'text-primary dark:text-primary' : 'text-amber-800 dark:text-amber-450'}`}>{formatCurrency(netBalance)}</span>
                               </div>
-                              <div className={`p-2.5 rounded-xl ${netBalance >= 0 ? 'bg-indigo-500/10 text-indigo-650' : 'bg-amber-500/10 text-amber-600'}`}>
+                              <div className={`p-2.5 rounded-xl ${netBalance >= 0 ? 'bg-primary/10 text-indigo-650' : 'bg-amber-500/10 text-amber-600'}`}>
                                 <Activity size={20} />
                               </div>
                             </div>
@@ -1245,7 +1245,7 @@ export default function FleetVehicles() {
 
                           {/* Chronological ledger table */}
                           <div className="space-y-3">
-                            <h4 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><DollarSign size={12} /> Detalhamento de Lançamentos Financeiros</h4>
+                            <h4 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><DollarSign size={12} /> Detalhamento de Lançamentos Financeiros</h4>
                             {vehicleDetails.financeiro.length === 0 ? (
                               <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:text-gray-400 text-xs">
                                 Nenhuma receita ou despesa registrada para o veículo.
@@ -1308,7 +1308,7 @@ export default function FleetVehicles() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-[95%] max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header with animated gradient */}
-            <div className="p-6 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 animate-gradient text-white flex justify-between items-center relative overflow-hidden">
+            <div className="p-6 bg-gradient-to-r from-primary via-primary/80 to-primary/60 animate-gradient text-white flex justify-between items-center relative overflow-hidden">
               <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
               <div className="relative z-10 flex items-center gap-3">
                 <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm border border-white/10">
@@ -1316,7 +1316,7 @@ export default function FleetVehicles() {
                 </div>
                 <div>
                   <h2 className="text-xl font-black">{editingVehicleId ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}</h2>
-                  <p className="text-indigo-200/80 text-xs mt-0.5">Preencha os dados técnicos ou consulte a placa.</p>
+                  <p className="text-primary-foreground/80 text-xs mt-0.5">Preencha os dados técnicos ou consulte a placa.</p>
                 </div>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="relative z-10 text-white/80 hover:text-white transition p-1 hover:bg-white/10 rounded-lg">
@@ -1338,7 +1338,7 @@ export default function FleetVehicles() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-all duration-200 -mb-px ${
                     activeTab === tab.id
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 glow-underline'
+                      ? 'border-primary text-primary dark:text-primary glow-underline'
                       : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/30'
                   }`}
                 >
@@ -1355,16 +1355,16 @@ export default function FleetVehicles() {
                 <div className="space-y-6">
                   
                   {/* Plate Autocomplete bar */}
-                  <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20 flex flex-col md:flex-row gap-4 items-end">
+                  <div className="p-4 bg-primary/10 dark:bg-primary/20 rounded-xl border border-primary/30 dark:border-primary/20 flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 space-y-1.5">
-                      <label className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block">Consulta Rápida de Placa</label>
+                      <label className="text-xs font-bold text-primary dark:text-primary uppercase tracking-wider block">Consulta Rápida de Placa</label>
                       <input
                         type="text"
                         placeholder="Ex: ABC1234 ou AAA1A23"
                         value={form.placa}
                         onChange={(e) => setForm({ ...form, placa: e.target.value })}
                         disabled={editingVehicleId !== null}
-                        className="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 font-bold uppercase placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 font-bold uppercase placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     {editingVehicleId === null && (
@@ -1372,7 +1372,7 @@ export default function FleetVehicles() {
                         type="button"
                         onClick={handleLookupPlate}
                         disabled={isPlateLoading}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition disabled:opacity-50"
+                        className="bg-primary hover:bg-primary text-white font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition disabled:opacity-50"
                       >
                         {isPlateLoading ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -1392,7 +1392,7 @@ export default function FleetVehicles() {
                         required
                         value={form.marca}
                         onChange={(e) => setForm({ ...form, marca: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1402,7 +1402,7 @@ export default function FleetVehicles() {
                         required
                         value={form.modelo}
                         onChange={(e) => setForm({ ...form, modelo: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1411,7 +1411,7 @@ export default function FleetVehicles() {
                         type="text"
                         value={form.versao}
                         onChange={(e) => setForm({ ...form, versao: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -1424,7 +1424,7 @@ export default function FleetVehicles() {
                         required
                         value={form.anoFabricacao}
                         onChange={(e) => setForm({ ...form, anoFabricacao: parseInt(e.target.value) || 2020 })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1434,7 +1434,7 @@ export default function FleetVehicles() {
                         required
                         value={form.anoModelo}
                         onChange={(e) => setForm({ ...form, anoModelo: parseInt(e.target.value) || 2020 })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1443,7 +1443,7 @@ export default function FleetVehicles() {
                         type="text"
                         value={form.cor}
                         onChange={(e) => setForm({ ...form, cor: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -1460,7 +1460,7 @@ export default function FleetVehicles() {
                         type="text"
                         value={form.renavam}
                         onChange={(e) => setForm({ ...form, renavam: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1468,7 +1468,7 @@ export default function FleetVehicles() {
                       <select
                         value={form.combustivel}
                         onChange={(e) => setForm({ ...form, combustivel: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="Flex">Flex</option>
                         <option value="Gasolina">Gasolina</option>
@@ -1484,7 +1484,7 @@ export default function FleetVehicles() {
                         type="text"
                         value={form.tipoVeiculo}
                         onChange={(e) => setForm({ ...form, tipoVeiculo: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1494,7 +1494,7 @@ export default function FleetVehicles() {
                         value={form.prefixo}
                         onChange={(e) => setForm({ ...form, prefixo: e.target.value })}
                         placeholder="Ex: P-01"
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1504,7 +1504,7 @@ export default function FleetVehicles() {
                         required
                         value={form.kmAtual}
                         onChange={(e) => setForm({ ...form, kmAtual: parseInt(e.target.value) || 0 })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -1521,7 +1521,7 @@ export default function FleetVehicles() {
                         required
                         value={form.clienteId}
                         onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="">Selecione o Cliente</option>
                         {clients.map((c) => (
@@ -1536,7 +1536,7 @@ export default function FleetVehicles() {
                         required
                         value={form.status}
                         onChange={(e) => setForm({ ...form, status: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="ATIVO">Ativo</option>
                         <option value="EM_MANUTENCAO">Em Manutenção</option>
@@ -1554,7 +1554,7 @@ export default function FleetVehicles() {
                         placeholder="Ex: Frota Administrativo"
                         value={form.frota}
                         onChange={(e) => setForm({ ...form, frota: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1564,7 +1564,7 @@ export default function FleetVehicles() {
                         placeholder="Ex: Diretoria"
                         value={form.subfrota}
                         onChange={(e) => setForm({ ...form, subfrota: e.target.value })}
-                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -1581,7 +1581,7 @@ export default function FleetVehicles() {
                     placeholder="Histórico prévio, avarias, revisões externas ou observações gerais..."
                     value={form.observacoes}
                     onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               )}
