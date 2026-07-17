@@ -25,8 +25,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
   Legend
 } from 'recharts';
 import { toast } from 'sonner';
@@ -34,7 +32,6 @@ import { api } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import type { ClientDashboardResponse } from '../../types/clientDashboard';
 import { HeatMap } from '../charts/HeatMap';
-import { InsightsCard } from '../dashboard/InsightsCard';
 
 interface ClientRevenueModalProps {
   isOpen: boolean;
@@ -173,7 +170,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
             </div>
           ) : data ? (
-            <div className="space-y-6 max-w-7xl mx-auto pb-10">
+            <div className="space-y-6 md:space-y-8 max-w-[1400px] mx-auto pb-10">
               
               {/* Row 1: KPIs */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -226,15 +223,15 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                 </div>
               </div>
 
-              {/* Row 2: Main Area Chart */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-card border border-border/50 p-6 rounded-3xl shadow-sm">
+              {/* Row 2: Main Area Chart & Receita por Serviço */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                <div className="lg:col-span-2 bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col">
                   <div className="flex justify-between items-center mb-6">
                     <h4 className="text-base font-bold text-foreground flex items-center gap-2">
                       Evolução Financeira
                     </h4>
                   </div>
-                  <div className="h-72 w-full">
+                  <div className="h-[350px] w-full flex-1">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
@@ -257,56 +254,40 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                   </div>
                 </div>
 
-                <div className="lg:col-span-1 flex flex-col gap-6">
-                  <InsightsCard data={data} />
-                  
-                  <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex-1">
-                    <h4 className="text-sm font-bold text-foreground mb-4">Receita por Serviço</h4>
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={data.revenueByService}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={70}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {data.revenueByService.map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
-                          <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
+                <div className="lg:col-span-1 bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col">
+                  <h4 className="text-base font-bold text-foreground mb-6">Receita por Serviço</h4>
+                  <div className="h-[350px] w-full flex-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={data.revenueByService}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={80}
+                          outerRadius={110}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {data.revenueByService.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
+                        <Legend layout="vertical" verticalAlign="middle" align="center" iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
 
-              {/* Row 3: Heatmap and Unit Chart */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm overflow-hidden">
-                  <h4 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2"><Calendar size={18} className="text-muted-foreground"/> Intensidade Financeira Mensal</h4>
+              {/* Row 3: Heatmap */}
+              <div className="bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm overflow-hidden w-full">
+                <h4 className="text-base font-bold text-foreground mb-6 flex items-center gap-2">
+                  <Calendar size={18} className="text-muted-foreground"/> 
+                  Intensidade Financeira Mensal
+                </h4>
+                <div className="w-full overflow-x-auto custom-scrollbar pb-2">
                   <HeatMap data={data.monthlyData} />
-                </div>
-                
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm">
-                  <h4 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2"><BarChart3 size={18} className="text-muted-foreground"/> Receita por Unidade</h4>
-                  <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.revenueByUnit} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" opacity={0.5}/>
-                        <XAxis type="number" hide />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-                        <Tooltip formatter={(value: any) => formatCurrency(value as number)} cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '0.5rem' }} />
-                        <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={24} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
                 </div>
               </div>
 
