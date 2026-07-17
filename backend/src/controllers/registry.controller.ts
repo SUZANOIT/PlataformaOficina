@@ -290,9 +290,9 @@ export const RegistryController = {
 
       return res.json(dashboardData);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching client revenue:', error);
-      return res.status(500).json({ error: 'Erro ao buscar receita do cliente' });
+      return res.status(500).json({ error: 'Erro ao buscar receita do cliente', details: error.message, stack: error.stack });
     }
   },
 
