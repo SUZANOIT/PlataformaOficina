@@ -4,6 +4,7 @@ exports.RegistryController = void 0;
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const audit_logger_1 = require("../utils/audit.logger");
+const clientDashboard_service_1 = require("../services/clientDashboard.service");
 const clientSchema = zod_1.z.object({
     nome: zod_1.z.string(),
     empresa: zod_1.z.string().optional().nullable(),
@@ -263,14 +264,13 @@ exports.RegistryController = {
             if (!existing) {
                 return res.status(403).json({ error: 'Acesso negado para este cliente.' });
             }
-            const { ClientDashboardService } = require('../services/clientDashboard.service');
-            const service = new ClientDashboardService(companyId, id);
+            const service = new clientDashboard_service_1.ClientDashboardService(companyId, id);
             const dashboardData = await service.getDashboardData({ startDate, endDate, prevStartDate, prevEndDate });
             return res.json(dashboardData);
         }
         catch (error) {
             console.error('Error fetching client revenue:', error);
-            return res.status(500).json({ error: 'Erro ao buscar receita do cliente' });
+            return res.status(500).json({ error: 'Erro ao buscar receita do cliente', details: error.message, stack: error.stack });
         }
     },
     async deduplicateClients(req, res) {
