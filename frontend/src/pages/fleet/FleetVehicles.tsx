@@ -488,69 +488,133 @@ export default function FleetVehicles() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header section with Premium KPI Dashboard Banner */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden border border-indigo-950">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2">
-            <Truck className="text-indigo-400" /> Gestão de Frota Inteligente
-          </h1>
-          <p className="text-indigo-200 text-sm mt-1">Carregamento automático de veículos cadastrados na base de dados com visualização de timeline e dados financeiros.</p>
+      {/* ═══════════ PREMIUM HEADER with Animated Gradient & Inline KPIs ═══════════ */}
+      <div className="relative overflow-hidden rounded-2xl shadow-xl border border-indigo-900/50 bg-gradient-to-br from-indigo-900 via-violet-950 to-slate-900 animate-gradient p-7">
+        {/* Decorative grid + floating orbs */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          {/* Left: Title & description */}
+          <div className="space-y-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
+                <Truck className="text-indigo-300 animate-float" size={26} />
+              </div>
+              Gestão de Frota Inteligente
+            </h1>
+            <p className="text-indigo-200/80 text-sm max-w-xl leading-relaxed">
+              Painel inteligente com visualização hierárquica de clientes, veículos, timeline de manutenção e análise financeira DRE em tempo real.
+            </p>
+          </div>
+
+          {/* Right: Mini KPI chips + CTA */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* KPI: Total Veículos */}
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
+              <div className="p-1.5 bg-indigo-500/30 rounded-lg">
+                <Truck size={14} className="text-indigo-300" />
+              </div>
+              <div>
+                <span className="text-[9px] uppercase tracking-widest text-indigo-300/80 font-bold block">Veículos</span>
+                <span className="text-sm font-black">{treeClients.reduce((acc, c) => acc + (c._count?.veiculos || 0), 0)}</span>
+              </div>
+            </div>
+
+            {/* KPI: Clientes */}
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
+              <div className="p-1.5 bg-violet-500/30 rounded-lg">
+                <Folder size={14} className="text-violet-300" />
+              </div>
+              <div>
+                <span className="text-[9px] uppercase tracking-widest text-violet-300/80 font-bold block">Clientes</span>
+                <span className="text-sm font-black">{treeClients.length}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleOpenCreateModal}
+              className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:shadow-indigo-400/40 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus size={18} />
+              Cadastrar Veículo
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="relative z-10 flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition"
-        >
-          <Plus size={18} />
-          Cadastrar Veículo
-        </button>
       </div>
 
-      {/* Advanced Search & Filtering Console */}
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-          <Search size={12} /> Filtros de Pesquisa e Período
-        </h3>
+      {/* ═══════════ GLASSMORPHIC FILTER BAR ═══════════ */}
+      <div className="glass-card rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="flex justify-between items-center">
+          <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <div className="p-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-md">
+              <Search size={12} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            Filtros de Pesquisa e Período
+          </h3>
+          {(search || placaFilter || chassiFilter || statusFilter !== 'ATIVO' || startDate || endDate) && (
+            <button
+              onClick={() => { setSearch(''); setPlacaFilter(''); setChassiFilter(''); setStatusFilter('ATIVO'); setStartDate(''); setEndDate(''); }}
+              className="text-[10px] font-bold text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+            >
+              <X size={10} />
+              Limpar filtros
+              <span className="bg-rose-500 text-white px-1.5 py-0.5 rounded-full text-[8px] font-black">
+                {[search, placaFilter, chassiFilter, statusFilter !== 'ATIVO' ? statusFilter : '', startDate, endDate].filter(Boolean).length}
+              </span>
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Cliente / Empresa</label>
-            <input
-              type="text"
-              placeholder="Buscar cliente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Cliente / Empresa</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+              />
+              <Folder size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Placa do Veículo</label>
-            <input
-              type="text"
-              placeholder="Ex: ABC1234"
-              value={placaFilter}
-              onChange={(e) => setPlacaFilter(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono uppercase"
-            />
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Placa do Veículo</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Ex: ABC1234"
+                value={placaFilter}
+                onChange={(e) => setPlacaFilter(e.target.value)}
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 font-mono uppercase transition-all"
+              />
+              <Truck size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Chassi</label>
-            <input
-              type="text"
-              placeholder="Buscar chassi..."
-              value={chassiFilter}
-              onChange={(e) => setChassiFilter(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Chassi</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar chassi..."
+                value={chassiFilter}
+                onChange={(e) => setChassiFilter(e.target.value)}
+                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
+              />
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Status Operacional</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status Operacional</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
             >
               <option value="ATIVO">Apenas Ativos</option>
               <option value="all">Todos os Status</option>
@@ -560,69 +624,79 @@ export default function FleetVehicles() {
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Início do Período</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Início do Período</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full text-xs p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Término do Período</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Término do Período</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full text-xs p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition-all"
             />
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Left Tree Navigation Pane, Right Dashboard cockpit Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* ═══════════ MAIN GRID: Tree + Cockpit ═══════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         
-        {/* LEFT COLUMN: Lazy loading Hierarchical tree-view (5 columns width) */}
-        <div className="lg:col-span-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden min-h-[500px] flex flex-col">
-          <div className="p-4 bg-indigo-50/50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-            <span className="text-xs font-black uppercase text-gray-500 dark:text-gray-400 tracking-wider">Estrutura de Clientes e Frota</span>
-            <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-bold px-2 py-0.5 rounded-full text-[10px]">
-              {treeClients.length} Clientes Ativos
+        {/* ─── LEFT: Premium Hierarchical Tree View ─── */}
+        <div className="lg:col-span-4 glass-card rounded-2xl shadow-lg overflow-hidden min-h-[500px] flex flex-col">
+          {/* Tree Header with gradient */}
+          <div className="p-4 bg-gradient-to-r from-indigo-50 via-violet-50/50 to-indigo-50 dark:from-gray-800/80 dark:via-gray-800/60 dark:to-gray-800/80 border-b border-gray-100/80 dark:border-gray-700/80 flex justify-between items-center">
+            <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-wider flex items-center gap-1.5">
+              <FolderOpen size={12} className="text-indigo-500" />
+              Estrutura de Clientes e Frota
             </span>
+            <div className="flex items-center gap-1.5">
+              <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-black px-2.5 py-1 rounded-full text-[9px]">
+                {treeClients.length} Clientes
+              </span>
+            </div>
           </div>
 
           <div className="p-4 flex-1 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)] space-y-2">
             {treeLoading && treeClients.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400 space-y-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                <span className="text-xs">Carregando árvore de frota...</span>
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+                <span className="text-xs font-semibold">Carregando árvore de frota...</span>
               </div>
             ) : treeClients.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 space-y-2">
-                <AlertCircle className="mx-auto" size={32} />
-                <p className="text-xs">Nenhum cliente ou veículo corresponde aos filtros.</p>
+              <div className="text-center py-16 text-gray-400 space-y-3">
+                <div className="mx-auto w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center">
+                  <AlertCircle className="text-gray-300 dark:text-gray-500" size={28} />
+                </div>
+                <p className="text-xs font-semibold">Nenhum cliente ou veículo corresponde aos filtros.</p>
               </div>
             ) : (
               <div className="space-y-1.5">
                 {treeClients.map(client => {
                   const isClientExpanded = !!expandedClients[client.id];
+                  const avatarColors = ['bg-indigo-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500'];
+                  const avatarColor = avatarColors[client.nome.charCodeAt(0) % avatarColors.length];
                   return (
                     <div key={client.id} className="space-y-1">
-                      {/* Client Root Node Row */}
+                      {/* Client Root Node */}
                       <div
                         onClick={() => handleToggleClient(client.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition select-none ${
+                        className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 select-none group ${
                           isClientExpanded 
-                            ? 'bg-indigo-50/40 dark:bg-gray-700/40 border-l-4 border-indigo-600' 
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/30 border-l-4 border-transparent'
+                            ? 'bg-indigo-50/60 dark:bg-indigo-950/20 border-l-4 border-indigo-500 shadow-sm' 
+                            : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30 border-l-4 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          {isClientExpanded ? <ChevronDown size={16} className="text-indigo-600" /> : <ChevronRight size={16} className="text-gray-400" />}
-                          <div className="w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-black text-xs shrink-0">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          {isClientExpanded ? <ChevronDown size={16} className="text-indigo-500 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 transition" />}
+                          <div className={`w-8 h-8 rounded-full ${avatarColor} text-white flex items-center justify-center font-black text-xs shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm`}>
                             {client.nome.charAt(0).toUpperCase()}
                           </div>
                           <div className="overflow-hidden">
@@ -633,7 +707,7 @@ export default function FleetVehicles() {
                           </div>
                         </div>
 
-                        <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-bold px-2 py-0.5 rounded-full text-[9px] shrink-0">
+                        <span className="bg-indigo-600/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 font-black px-2 py-0.5 rounded-full text-[9px] shrink-0">
                           {client._count?.veiculos} {client._count?.veiculos === 1 ? 'Veículo' : 'Veículos'}
                         </span>
                       </div>
@@ -648,82 +722,94 @@ export default function FleetVehicles() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Premium Split-pane Vehicle Details dashboard cockpit (8 columns width) */}
+        {/* ─── RIGHT: Premium Vehicle Details Cockpit ─── */}
         <div className="lg:col-span-8 space-y-6">
           {!selectedVehicleId ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-12 text-center text-gray-400 flex flex-col items-center justify-center min-h-[500px]">
-              <Truck size={48} className="text-indigo-200 dark:text-gray-600 mb-4 animate-bounce" />
-              <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300">Nenhum Veículo Selecionado</h3>
-              <p className="text-xs text-gray-400 mt-2 max-w-sm">Navegue pela árvore de clientes no painel esquerdo, expanda suas frotas e selecione um veículo para abrir o console de diagnósticos, histórico de manutenção e DRE financeiro.</p>
+            <div className="glass-card rounded-2xl border-2 border-dashed border-gray-200/60 dark:border-gray-700/60 p-14 text-center text-gray-400 flex flex-col items-center justify-center min-h-[500px]">
+              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-950/30 dark:to-violet-950/30 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
+                <Truck size={36} className="text-indigo-400 dark:text-indigo-500 animate-float" />
+              </div>
+              <h3 className="text-lg font-black text-gray-700 dark:text-gray-200">Nenhum Veículo Selecionado</h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-md leading-relaxed">
+                Navegue pela árvore de clientes no painel esquerdo, expanda suas frotas e selecione um veículo para abrir o console de diagnósticos, histórico de manutenção e DRE financeiro.
+              </p>
+              <div className="flex items-center gap-2 mt-6 text-[10px] font-bold text-indigo-500 dark:text-indigo-400">
+                <ChevronRight size={14} />
+                <span>Selecione um veículo na árvore ao lado</span>
+              </div>
             </div>
           ) : detailsLoading ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 min-h-[500px] flex items-center justify-center">
+            <div className="glass-card rounded-2xl shadow-lg p-8 min-h-[500px] flex items-center justify-center">
               <div className="space-y-4 text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Consultando banco de dados...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Consultando banco de dados...</p>
               </div>
             </div>
           ) : !vehicleDetails ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400">
-              <AlertCircle size={32} className="mx-auto mb-2 text-rose-500" />
-              <span>Erro ao carregar detalhes do veículo. Tente novamente.</span>
+            <div className="glass-card rounded-2xl shadow-lg p-10 text-center text-gray-400 space-y-3">
+              <div className="mx-auto w-14 h-14 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center">
+                <AlertCircle size={28} className="text-rose-500" />
+              </div>
+              <p className="text-sm font-bold text-gray-600 dark:text-gray-300">Erro ao carregar detalhes do veículo.</p>
+              <p className="text-xs text-gray-400">Tente selecionar novamente ou verifique sua conexão.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col min-h-[550px]">
+            <div className="glass-card rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[550px] animate-fade-in-up">
               
-              {/* Dynamic Vehicle Cockpit Header (Realistic Mercosul plate banner) */}
-              <div className="p-6 bg-slate-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-6">
+              {/* ── Premium Vehicle Cockpit Header ── */}
+              <div className="p-6 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 dark:from-gray-900/80 dark:via-indigo-950/20 dark:to-gray-900/80 border-b border-gray-100/80 dark:border-gray-700/80 flex flex-col md:flex-row justify-between items-center gap-6">
                 
-                {/* 3D Premium Mercosul Plate */}
-                <div className="relative shrink-0 flex flex-col border-[3px] border-blue-600 rounded-xl overflow-hidden w-64 bg-white shadow-md select-none transform hover:scale-102 transition duration-200">
-                  <div className="bg-blue-600 px-3 py-1 flex justify-between items-center text-[9px] font-black text-white tracking-widest uppercase">
+                {/* 3D Mercosul Plate */}
+                <div className="plate-3d relative shrink-0 flex flex-col border-[3px] border-blue-600 rounded-xl overflow-hidden w-64 bg-white shadow-lg select-none">
+                  <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-3 py-1 flex justify-between items-center text-[9px] font-black text-white tracking-widest uppercase">
                     <span>BRASIL</span>
                     <span className="w-4 h-3 bg-yellow-400 rounded-sm inline-block relative overflow-hidden border border-blue-700">
                       <span className="absolute inset-0 bg-blue-900 rounded-full w-2 h-2 m-auto"></span>
                     </span>
                   </div>
-                  <div className="px-6 py-2.5 text-center text-3xl font-extrabold tracking-wider text-gray-900 font-mono">
+                  <div className="px-6 py-3 text-center text-3xl font-extrabold tracking-[0.2em] text-gray-900 font-mono bg-gradient-to-b from-white to-gray-50">
                     {vehicleDetails.infoCadastral.placa}
                   </div>
                 </div>
 
-                {/* Technical Title and quick indicators */}
-                <div className="flex-1 space-y-1.5 text-center md:text-left">
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                {/* Technical Title and KPI Chips */}
+                <div className="flex-1 space-y-2 text-center md:text-left">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
                     <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">{vehicleDetails.infoCadastral.marca} {vehicleDetails.infoCadastral.modelo}</h2>
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                      vehicleDetails.infoCadastral.status === 'ATIVO' ? 'bg-green-500/10 text-green-600' :
-                      vehicleDetails.infoCadastral.status === 'EM_MANUTENCAO' ? 'bg-amber-500/10 text-amber-600' : 'bg-rose-500/10 text-rose-500'
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
+                      vehicleDetails.infoCadastral.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' :
+                      vehicleDetails.infoCadastral.status === 'EM_MANUTENCAO' ? 'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800' : 'bg-rose-500/10 text-rose-500 border-rose-200 dark:border-rose-800'
                     }`}>
+                      {vehicleDetails.infoCadastral.status === 'EM_MANUTENCAO' && <span className="inline-block w-1.5 h-1.5 bg-amber-500 rounded-full mr-1 pulse-glow"></span>}
                       {vehicleDetails.infoCadastral.status.replace("_", " ")}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">
-                    Proprietário: {vehicleDetails.infoCadastral.cliente?.nome || '—'} 
-                    {vehicleDetails.infoCadastral.subfrota && ` • Subfrota: ${vehicleDetails.infoCadastral.subfrota}`}
+                    Proprietário: <span className="text-gray-700 dark:text-gray-200">{vehicleDetails.infoCadastral.cliente?.nome || '—'}</span>
+                    {vehicleDetails.infoCadastral.subfrota && <span className="text-gray-400"> • Subfrota: {vehicleDetails.infoCadastral.subfrota}</span>}
                   </p>
-                  <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
-                    <span className="bg-indigo-50 dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-gray-700 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                      <Activity size={12} /> {vehicleDetails.infoCadastral.kmAtual?.toLocaleString('pt-BR')} KM Hodômetro
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2.5 pt-1.5">
+                    <span className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                      <Activity size={12} className="text-indigo-500" /> {vehicleDetails.infoCadastral.kmAtual?.toLocaleString('pt-BR')} KM
                     </span>
-                    <span className="bg-emerald-50 dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-gray-700 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                      <DollarSign size={12} /> {formatCurrency(vehicleDetails.financeiro.filter((f: any) => f.tipo === 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0))} Faturado
+                    <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                      <DollarSign size={12} className="text-emerald-500" /> {formatCurrency(vehicleDetails.financeiro.filter((f: any) => f.tipo === 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0))} Faturado
                     </span>
                   </div>
                 </div>
 
-                {/* Administrative Quick Actions (Edit/Delete) */}
+                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOpenEditModal(vehicleDetails.infoCadastral)}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-800 rounded-lg border border-indigo-200 dark:border-gray-700 transition"
+                    className="p-2.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
                     title="Editar Cadastro do Veículo"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(vehicleDetails.infoCadastral.id)}
-                    className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-gray-800 rounded-lg border border-rose-200 dark:border-gray-700 transition"
+                    className="p-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
                     title="Remover Veículo e Histórico"
                   >
                     <Trash2 size={16} />
@@ -732,17 +818,20 @@ export default function FleetVehicles() {
               </div>
 
               {vehicleDetails.infoCadastral.auditAlerts && vehicleDetails.infoCadastral.auditAlerts.length > 0 && (
-                <div className="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl flex items-center gap-3 text-amber-800 dark:text-amber-300">
-                  <AlertTriangle className="shrink-0 text-amber-500" size={18} />
+                <div className="mx-6 mt-4 p-3.5 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/50 rounded-xl flex items-center gap-3 text-amber-800 dark:text-amber-300 shadow-sm">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg shrink-0">
+                    <AlertTriangle className="text-amber-500" size={16} />
+                  </div>
                   <div className="text-xs">
-                    <span className="font-bold block">Aviso de Auditoria:</span>
-                    Este registro possui as seguintes inconsistências cadastrais: <span className="font-semibold">{vehicleDetails.infoCadastral.auditAlerts.join(', ')}</span>.
+                    <span className="font-black block">Aviso de Auditoria</span>
+                    <span className="font-medium">Inconsistências detectadas: </span>
+                    <span className="font-bold">{vehicleDetails.infoCadastral.auditAlerts.join(', ')}</span>
                   </div>
                 </div>
               )}
 
-              {/* Glassmorphic Horizon Tab Menu */}
-              <div className="flex overflow-x-auto border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10 px-6 hide-scrollbar shrink-0">
+              {/* ── Glassmorphic Tab Menu with Glow ── */}
+              <div className="flex overflow-x-auto border-b border-gray-100/80 dark:border-gray-700/80 glass-panel px-6 hide-scrollbar shrink-0">
                 {[
                   { id: 'info', label: 'Cadastro', icon: <FileText size={14} /> },
                   { id: 'quotes', label: 'Orçamentos', icon: <Clipboard size={14} /> },
@@ -755,10 +844,10 @@ export default function FleetVehicles() {
                   <button
                     key={tab.id}
                     onClick={() => setDetailsTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 py-3.5 px-4 font-bold text-xs border-b-2 whitespace-nowrap transition -mb-px ${
+                    className={`flex items-center gap-1.5 py-3.5 px-4 font-bold text-xs border-b-2 whitespace-nowrap transition-all duration-200 -mb-px ${
                       detailsTab === tab.id
-                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-450'
-                        : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'
+                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 glow-underline'
+                        : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
                     }`}
                   >
                     {tab.icon}
@@ -772,10 +861,10 @@ export default function FleetVehicles() {
 
                 {/* TAB 1: INFO CADASTRAL */}
                 {detailsTab === 'info' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 animate-fade-in-up">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 dark:bg-gray-700/25 p-5 rounded-2xl border border-gray-150/40 dark:border-gray-700/60 space-y-4">
-                        <h3 className="text-xs font-black uppercase text-indigo-600 tracking-wider">Ficha de Identificação</h3>
+                      <div className="bg-gradient-to-br from-gray-50 to-indigo-50/30 dark:from-gray-700/25 dark:to-indigo-950/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
+                        <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><FileText size={12} /> Ficha de Identificação</h3>
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div>
                             <span className="text-gray-400 block mb-0.5">Placa</span>
@@ -800,8 +889,8 @@ export default function FleetVehicles() {
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-gray-700/25 p-5 rounded-2xl border border-gray-150/40 dark:border-gray-700/60 space-y-4">
-                        <h3 className="text-xs font-black uppercase text-indigo-600 tracking-wider">Parâmetros Técnicos</h3>
+                      <div className="bg-gradient-to-br from-gray-50 to-violet-50/30 dark:from-gray-700/25 dark:to-violet-950/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
+                        <h3 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><Wrench size={12} /> Parâmetros Técnicos</h3>
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div>
                             <span className="text-gray-400 block mb-0.5">Ano Fabricação / Modelo</span>
@@ -824,8 +913,8 @@ export default function FleetVehicles() {
                     </div>
 
                     {vehicleDetails.infoCadastral.observacoes && (
-                      <div className="bg-gray-50 dark:bg-gray-700/25 p-5 rounded-2xl border border-gray-150/40 dark:border-gray-700/60 space-y-2">
-                        <span className="text-xs font-black uppercase text-indigo-600 tracking-wider">Observações Administrativas</span>
+                      <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-700/25 dark:to-gray-800/25 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-2">
+                        <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><Clipboard size={12} /> Observações Administrativas</span>
                         <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">{vehicleDetails.infoCadastral.observacoes}</p>
                       </div>
                     )}
@@ -922,22 +1011,29 @@ export default function FleetVehicles() {
 
                 {/* TAB 4: HISTÓRICO DE MANUTENÇÃO (Timeline) */}
                 {detailsTab === 'maintenance' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 animate-fade-in-up">
                     {vehicleDetails.manutencoes.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 space-y-2">
-                        <Wrench size={32} className="mx-auto" />
-                        <p className="text-xs">Nenhum histórico de manutenção ou evento lançado na base de dados.</p>
+                      <div className="text-center py-16 text-gray-400 space-y-3">
+                        <div className="mx-auto w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center">
+                          <Wrench size={28} className="text-gray-300 dark:text-gray-500" />
+                        </div>
+                        <p className="text-xs font-semibold">Nenhum histórico de manutenção ou evento lançado na base de dados.</p>
                       </div>
                     ) : (
-                      <div className="flow-root relative pl-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-150 dark:before:bg-gray-700">
-                        {vehicleDetails.manutencoes.map((m: any, idx: number) => (
+                      <div className="flow-root relative pl-6 timeline-gradient before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:rounded-full">
+                        {vehicleDetails.manutencoes.map((m: any, idx: number) => {
+                          const bulletColor = m.tipo === 'TROCA_OLEO_MOTOR' ? 'border-rose-500 bg-rose-500' :
+                            m.tipo === 'TROCA_OLEO_CAMBIO' ? 'border-orange-500 bg-orange-500' :
+                            m.tipo === 'REVISAO' ? 'border-blue-500 bg-blue-500' :
+                            'border-violet-500 bg-violet-500';
+                          return (
                           <div key={idx} className="relative pb-6 last:pb-0">
-                            {/* Bullet indicator */}
-                            <div className="absolute -left-6 mt-1.5 flex items-center justify-center bg-white dark:bg-gray-800 border-2 border-indigo-600 rounded-full h-4 w-4">
-                              <div className="h-1.5 w-1.5 bg-indigo-600 rounded-full"></div>
+                            {/* Contextual bullet with pulse */}
+                            <div className={`absolute -left-6 mt-1.5 flex items-center justify-center bg-white dark:bg-gray-800 border-2 ${bulletColor.split(' ')[0]} rounded-full h-5 w-5 shadow-sm`}>
+                              <div className={`h-2 w-2 ${bulletColor.split(' ')[1]} rounded-full pulse-glow`}></div>
                             </div>
 
-                            <div className="bg-gray-50/70 dark:bg-gray-700/25 p-4 rounded-xl border border-gray-100/50 dark:border-gray-700/60 flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div className="bg-gradient-to-r from-gray-50/70 to-white dark:from-gray-700/25 dark:to-gray-800/25 p-4 rounded-xl border border-gray-100/60 dark:border-gray-700/60 flex flex-col sm:flex-row justify-between items-start gap-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
                               <div className="space-y-1.5 flex-1 text-xs">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase ${
@@ -950,28 +1046,29 @@ export default function FleetVehicles() {
                                   </span>
                                   <span className="text-gray-400 font-semibold">{new Date(m.data).toLocaleDateString('pt-BR')}</span>
                                 </div>
-                                <p className="text-xs font-semibold text-gray-800 dark:text-white leading-relaxed">{m.descricao}</p>
+                                <p className="text-xs font-bold text-gray-800 dark:text-white leading-relaxed">{m.descricao}</p>
                                 {m.km && (
-                                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded w-max">
-                                    Hodômetro: {m.km.toLocaleString('pt-BR')} KM
+                                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg w-max">
+                                    <Activity size={10} className="inline mr-1" />Hodômetro: {m.km.toLocaleString('pt-BR')} KM
                                   </span>
                                 )}
                                 {m.proximaTroca && (
-                                  <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-300 block bg-indigo-50 dark:bg-indigo-950/20 px-2 py-0.5 rounded w-max">
+                                  <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-300 block bg-indigo-50 dark:bg-indigo-950/20 px-2 py-0.5 rounded-lg w-max">
                                     {m.proximaTroca}
                                   </span>
                                 )}
                               </div>
 
                               {m.valor > 0 && (
-                                <div className="text-right whitespace-nowrap self-start shrink-0 text-xs">
-                                  <span className="text-gray-400 block mb-0.5">Custo Lançado</span>
+                                <div className="text-right whitespace-nowrap self-start shrink-0 text-xs bg-rose-50/60 dark:bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-100/50 dark:border-rose-900/30">
+                                  <span className="text-gray-400 block mb-0.5 text-[10px]">Custo Lançado</span>
                                   <span className="font-black text-rose-600 dark:text-rose-400">{formatCurrency(m.valor)}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1084,18 +1181,20 @@ export default function FleetVehicles() {
 
                 {/* TAB 7: HISTÓRICO FINANCEIRO / DRE DO VEÍCULO */}
                 {detailsTab === 'finance' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 animate-fade-in-up">
                     
                     {/* Top KPI row of finance */}
                     {(() => {
                       const totalRevenues = vehicleDetails.financeiro.filter((f: any) => f.tipo === 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0);
                       const totalExpenses = vehicleDetails.financeiro.filter((f: any) => f.tipo !== 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0);
                       const netBalance = totalRevenues - totalExpenses;
+                      const total = totalRevenues + totalExpenses;
+                      const revenuePercent = total > 0 ? (totalRevenues / total) * 100 : 50;
 
                       return (
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl flex items-center justify-between text-xs">
+                            <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl flex items-center justify-between text-xs shine-hover transition-all duration-200 hover:shadow-md">
                               <div className="space-y-1">
                                 <span className="text-emerald-700 dark:text-emerald-300 font-bold block">Faturado (Receitas)</span>
                                 <span className="text-xl font-black text-emerald-800 dark:text-emerald-400">{formatCurrency(totalRevenues)}</span>
@@ -1105,7 +1204,7 @@ export default function FleetVehicles() {
                               </div>
                             </div>
 
-                            <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-center justify-between text-xs">
+                            <div className="p-4 bg-gradient-to-br from-rose-50 to-pink-50/30 dark:from-rose-950/20 dark:to-pink-950/10 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex items-center justify-between text-xs shine-hover transition-all duration-200 hover:shadow-md">
                               <div className="space-y-1">
                                 <span className="text-rose-700 dark:text-rose-300 font-bold block">Custos (Despesas)</span>
                                 <span className="text-xl font-black text-rose-800 dark:text-rose-400">{formatCurrency(totalExpenses)}</span>
@@ -1115,10 +1214,10 @@ export default function FleetVehicles() {
                               </div>
                             </div>
 
-                            <div className={`p-4 border rounded-2xl flex items-center justify-between text-xs ${
+                            <div className={`p-4 border rounded-2xl flex items-center justify-between text-xs shine-hover transition-all duration-200 hover:shadow-md ${
                               netBalance >= 0 
-                                ? 'bg-indigo-50 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30' 
-                                : 'bg-amber-50 border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30'
+                                ? 'bg-gradient-to-br from-indigo-50 to-violet-50/30 border-indigo-100 dark:from-indigo-950/20 dark:to-violet-950/10 dark:border-indigo-900/30' 
+                                : 'bg-gradient-to-br from-amber-50 to-orange-50/30 border-amber-100 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-900/30'
                             }`}>
                               <div className="space-y-1">
                                 <span className={`font-bold block ${netBalance >= 0 ? 'text-indigo-700 dark:text-indigo-300' : 'text-amber-700 dark:text-amber-300'}`}>Saldo Líquido</span>
@@ -1130,9 +1229,23 @@ export default function FleetVehicles() {
                             </div>
                           </div>
 
+                          {/* Visual Proportion Bar */}
+                          {total > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-bold">
+                                <span className="text-emerald-600 dark:text-emerald-400">Receitas {revenuePercent.toFixed(0)}%</span>
+                                <span className="text-rose-600 dark:text-rose-400">Despesas {(100 - revenuePercent).toFixed(0)}%</span>
+                              </div>
+                              <div className="h-3 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden flex shadow-inner">
+                                <div className="bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-l-full transition-all duration-700 ease-out" style={{ width: `${revenuePercent}%` }} />
+                                <div className="bg-gradient-to-r from-rose-400 to-rose-500 rounded-r-full transition-all duration-700 ease-out flex-1" />
+                              </div>
+                            </div>
+                          )}
+
                           {/* Chronological ledger table */}
                           <div className="space-y-3">
-                            <h4 className="text-xs font-black uppercase text-indigo-600 tracking-wider">Detalhamento de Lançamentos Financeiros</h4>
+                            <h4 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5"><DollarSign size={12} /> Detalhamento de Lançamentos Financeiros</h4>
                             {vehicleDetails.financeiro.length === 0 ? (
                               <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:text-gray-400 text-xs">
                                 Nenhuma receita ou despesa registrada para o veículo.
@@ -1189,29 +1302,30 @@ export default function FleetVehicles() {
         </div>
       </div>
 
-      {/* Creation & Edition Modal */}
+      {/* ═══════════ PREMIUM MODAL ═══════════ */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-[95%] max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-[95%] max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
             
-            {/* Modal Header */}
-            <div className="p-6 bg-indigo-650 text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-lg">
+            {/* Modal Header with animated gradient */}
+            <div className="p-6 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 animate-gradient text-white flex justify-between items-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
+              <div className="relative z-10 flex items-center gap-3">
+                <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm border border-white/10">
                   <Truck size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">{editingVehicleId ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}</h2>
-                  <p className="text-indigo-200 text-xs mt-0.5">Preencha os dados técnicos ou consulte a placa.</p>
+                  <h2 className="text-xl font-black">{editingVehicleId ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}</h2>
+                  <p className="text-indigo-200/80 text-xs mt-0.5">Preencha os dados técnicos ou consulte a placa.</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white transition">
-                <X size={24} />
+              <button onClick={() => setIsModalOpen(false)} className="relative z-10 text-white/80 hover:text-white transition p-1 hover:bg-white/10 rounded-lg">
+                <X size={22} />
               </button>
             </div>
 
             {/* Modal Navigation Tabs */}
-            <div className="flex border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 px-6">
+            <div className="flex border-b border-gray-100/80 dark:border-gray-700/80 bg-gray-50/80 dark:bg-gray-900/30 px-6 backdrop-blur-sm">
               {[
                 { id: 'geral', label: 'Identificação' },
                 { id: 'tecnico', label: 'Dados Técnicos' },
@@ -1222,10 +1336,10 @@ export default function FleetVehicles() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition -mb-px ${
+                  className={`py-3.5 px-4 font-bold text-sm border-b-2 transition-all duration-200 -mb-px ${
                     activeTab === tab.id
-                      ? 'border-indigo-600 text-indigo-600 dark:text-indigo-450'
-                      : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'
+                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 glow-underline'
+                      : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/30'
                   }`}
                 >
                   {tab.label}
