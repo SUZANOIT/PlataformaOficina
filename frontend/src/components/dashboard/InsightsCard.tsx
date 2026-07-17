@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
-import { ClientDashboardResponse } from '../../types/clientDashboard';
+import type { ClientDashboardResponse } from '../../types/clientDashboard';
 
 interface InsightsCardProps {
   data: ClientDashboardResponse;

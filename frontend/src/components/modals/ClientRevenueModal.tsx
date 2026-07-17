@@ -3,8 +3,16 @@ import {
   X, 
   DollarSign, 
   TrendingUp, 
+  TrendingDown,
   FileCheck, 
-  BarChart3
+  BarChart3,
+  Calendar,
+  Download,
+  Share2,
+  RefreshCw,
+  Trophy,
+  Activity,
+  ArrowUpRight
 } from 'lucide-react';
 import {
   AreaChart,
@@ -13,10 +21,20 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  Legend
 } from 'recharts';
 import { toast } from 'sonner';
-import { handleApiError } from '../../utils/toast.helper';
+import { api } from '../../services/api';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import type { ClientDashboardResponse } from '../../types/clientDashboard';
+import { HeatMap } from '../charts/HeatMap';
+import { InsightsCard } from '../dashboard/InsightsCard';
 
 interface ClientRevenueModalProps {
   isOpen: boolean;
@@ -24,47 +42,56 @@ interface ClientRevenueModalProps {
   client: any;
 }
 
-interface RevenueData {
-  totalRevenue: number;
-  approvedCount: number;
-  averageTicket: number;
-  maxMonthlyRevenue: number;
-  monthlyData: {
-    mes: string;
-    receita: number;
-    quantidade: number;
-  }[];
-}
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
 export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueModalProps) {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<RevenueData | null>(null);
+  const [data, setData] = useState<ClientDashboardResponse | null>(null);
+  const [period, setPeriod] = useState('year'); // year, 30d, 90d
 
   useEffect(() => {
     if (isOpen && client) {
-      fetchRevenue();
+      fetchDashboard();
     }
-  }, [isOpen, client]);
+  }, [isOpen, client, period]);
 
-  const fetchRevenue = async () => {
+  const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/registry/clients/${client.id}/revenue`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setData(result);
-      } else {
-        handleApiError(response, 'Erro ao carregar dados de receita.');
-        onClose();
+      const currentYear = new Date().getFullYear();
+      let start = new Date(`${currentYear}-01-01T00:00:00.000Z`);
+      let end = new Date(`${currentYear}-12-31T23:59:59.999Z`);
+      let prevStart = new Date(`${currentYear - 1}-01-01T00:00:00.000Z`);
+      let prevEnd = new Date(`${currentYear - 1}-12-31T23:59:59.999Z`);
+
+      if (period === '30d') {
+        end = new Date();
+        start = new Date();
+        start.setDate(end.getDate() - 30);
+        prevEnd = new Date(start);
+        prevStart = new Date(prevEnd);
+        prevStart.setDate(prevEnd.getDate() - 30);
+      } else if (period === '90d') {
+        end = new Date();
+        start = new Date();
+        start.setDate(end.getDate() - 90);
+        prevEnd = new Date(start);
+        prevStart = new Date(prevEnd);
+        prevStart.setDate(prevEnd.getDate() - 90);
       }
+
+      const params = new URLSearchParams({
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        prevStartDate: prevStart.toISOString(),
+        prevEndDate: prevEnd.toISOString(),
+      });
+
+      const response = await api.get(`/registry/clients/${client.id}/revenue?${params.toString()}`);
+      setData(response.data);
     } catch (error) {
-      console.error('Failed to fetch revenue', error);
-      toast.error('Erro de conexão ao buscar receita.');
-      onClose();
+      console.error('Failed to fetch dashboard', error);
+      toast.error('Erro ao carregar os dados do dashboard.');
     } finally {
       setLoading(false);
     }
@@ -72,208 +99,261 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
 
   if (!isOpen) return null;
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  const hasData = data && data.kpis.totalRevenue > 0;
+
+  const renderTrend = (value: number) => {
+    if (value > 0) {
+      return <span className="text-emerald-500 flex items-center text-xs font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full"><TrendingUp size={12} className="mr-1"/> +{value.toFixed(1)}%</span>;
+    }
+    if (value < 0) {
+      return <span className="text-red-500 flex items-center text-xs font-bold bg-red-500/10 px-2 py-0.5 rounded-full"><TrendingDown size={12} className="mr-1"/> {value.toFixed(1)}%</span>;
+    }
+    return <span className="text-slate-500 flex items-center text-xs font-bold bg-slate-500/10 px-2 py-0.5 rounded-full">- 0%</span>;
   };
 
-  const hasData = data && data.totalRevenue > 0;
-
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      <div className="bg-card/95 backdrop-blur-xl border border-border/50 w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col max-h-[96vh] ring-1 ring-white/10">
+    <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+      <div className="bg-card/95 border border-border/50 w-full max-w-[95vw] h-full max-h-[98vh] rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col ring-1 ring-white/10">
         
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-border/50 flex justify-between items-center bg-gradient-to-r from-muted/50 to-transparent shrink-0">
-          <div className="flex items-center gap-4 mr-8">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 transform transition-transform hover:scale-105">
-              <DollarSign size={24} strokeWidth={2.5} />
+        {/* Header SaaS Style */}
+        <div className="px-8 py-5 border-b border-border/50 flex flex-col md:flex-row justify-between md:items-center bg-card shrink-0 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+              <Activity size={28} strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-                Receita do Cliente
+              <h3 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                Dashboard Executivo
+                {data && data.ranking.position > 0 && data.ranking.position <= 10 && (
+                  <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-500/30">
+                    <Trophy size={12} /> TOP {data.ranking.position}
+                  </span>
+                )}
               </h3>
-              <p className="text-sm text-muted-foreground font-medium mt-0.5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                {client?.nome} {client?.empresa ? `• ${client.empresa}` : ''}
+              <p className="text-sm text-muted-foreground font-medium flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                {client?.nome} {client?.empresa ? `• ${client.empresa}` : ''} {client?.cnpj ? `• ${client.cnpj}` : ''}
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground hover:bg-muted p-2.5 rounded-xl transition-all duration-200 hover:rotate-90"
-            aria-label="Fechar"
-          >
-            <X size={22} />
-          </button>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="bg-muted/50 rounded-xl p-1 flex items-center border border-border/50 mr-2">
+              <button onClick={() => setPeriod('30d')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === '30d' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>30 Dias</button>
+              <button onClick={() => setPeriod('90d')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === '90d' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>90 Dias</button>
+              <button onClick={() => setPeriod('year')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === 'year' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Este Ano</button>
+            </div>
+            
+            <button className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Download size={16} /></button>
+            <button className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Share2 size={16} /></button>
+            <button onClick={fetchDashboard} className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><RefreshCw size={16} /></button>
+            
+            <div className="w-px h-6 bg-border mx-1"></div>
+            <button onClick={onClose} className="h-9 w-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"><X size={18} /></button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-muted/10">
           {loading ? (
-            <div className="space-y-8 animate-pulse">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="bg-muted/30 rounded-2xl p-6 h-32"></div>
-                ))}
+            <div className="space-y-6 animate-pulse">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(i => <div key={i} className="bg-card rounded-2xl h-36 border border-border/50"></div>)}
               </div>
-              <div className="bg-muted/30 rounded-2xl h-80"></div>
-              <div className="bg-muted/30 rounded-2xl h-56"></div>
+              <div className="bg-card rounded-2xl h-96 border border-border/50"></div>
             </div>
           ) : !hasData ? (
-            <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-5 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="w-20 h-20 bg-muted/50 rounded-3xl flex items-center justify-center shadow-inner">
-                <BarChart3 size={40} className="text-muted-foreground/40" />
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-5">
+              <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center shadow-inner">
+                <BarChart3 size={48} className="text-muted-foreground/40" />
               </div>
               <div>
-                <h4 className="text-xl font-bold text-foreground">Nenhum dado financeiro</h4>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto mt-2 leading-relaxed">
-                  Este cliente ainda não possui orçamentos pagos no ano atual para gerar os indicadores de receita.
-                </p>
+                <h4 className="text-2xl font-bold text-foreground">Nenhum dado financeiro</h4>
+                <p className="text-muted-foreground max-w-md mx-auto mt-2">Este cliente não possui ordens de serviço pagas no período selecionado.</p>
               </div>
             </div>
-          ) : (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+          ) : data ? (
+            <div className="space-y-6 max-w-7xl mx-auto pb-10">
               
-              {/* Indicators */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 relative z-10">Receita Total ({new Date().getFullYear()})</p>
-                  <h3 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-400 relative z-10 drop-shadow-sm">
-                    {formatCurrency(data.totalRevenue)}
-                  </h3>
-                </div>
-
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm hover:shadow-md hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 relative z-10">OS Pagas</p>
-                  <div className="flex items-center gap-3 relative z-10">
-                    <h3 className="text-3xl font-black text-foreground">{data.approvedCount}</h3>
-                    <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                      <FileCheck size={20} className="text-blue-500" strokeWidth={2.5} />
-                    </div>
+              {/* Row 1: KPIs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Receita Total</p>
+                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><DollarSign size={16} /></div>
+                  </div>
+                  <h3 className="text-3xl font-black text-foreground mb-2">{formatCurrency(data.kpis.totalRevenue)}</h3>
+                  <div className="flex items-center gap-2">
+                    {renderTrend(data.kpis.revenueGrowth)}
+                    <span className="text-xs text-muted-foreground">vs. período anterior</span>
                   </div>
                 </div>
 
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm hover:shadow-md hover:border-amber-500/30 transition-all duration-300 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all duration-500"></div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 relative z-10">Ticket Médio</p>
-                  <h3 className="text-3xl font-black text-foreground relative z-10">{formatCurrency(data.averageTicket)}</h3>
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-blue-500/50 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ordens Pagas</p>
+                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><FileCheck size={16} /></div>
+                  </div>
+                  <h3 className="text-3xl font-black text-foreground mb-2">{data.kpis.approvedCount} <span className="text-lg text-muted-foreground font-medium">OSs</span></h3>
+                  <div className="flex items-center gap-2">
+                    {renderTrend(data.kpis.countGrowth)}
+                    <span className="text-xs text-muted-foreground">vs. período anterior</span>
+                  </div>
                 </div>
 
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm hover:shadow-md hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-500"></div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 relative z-10">Maior Receita/Mês</p>
-                  <div className="flex items-center justify-between relative z-10">
-                    <h3 className="text-2xl font-black text-foreground">{formatCurrency(data.maxMonthlyRevenue)}</h3>
-                    <div className="p-1.5 bg-purple-500/10 rounded-lg">
-                      <TrendingUp size={18} className="text-purple-500" strokeWidth={2.5} />
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-amber-500/50 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ticket Médio</p>
+                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500"><Activity size={16} /></div>
+                  </div>
+                  <h3 className="text-3xl font-black text-foreground mb-2">{formatCurrency(data.kpis.averageTicket)}</h3>
+                  <div className="flex items-center gap-2">
+                    {renderTrend(data.kpis.ticketGrowth)}
+                    <span className="text-xs text-muted-foreground">vs. período anterior</span>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-purple-500/50 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Maior Receita</p>
+                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500"><ArrowUpRight size={16} /></div>
+                  </div>
+                  <h3 className="text-2xl font-black text-foreground mb-2">{data.kpis.maxRevenueOS ? formatCurrency(data.kpis.maxRevenueOS.valor) : '-'}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded-full">{data.kpis.maxRevenueOS?.numero}</span>
+                    <span className="text-xs text-muted-foreground">{data.kpis.maxRevenueOS?.data ? formatDate(data.kpis.maxRevenueOS.data) : ''}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Main Area Chart */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-card border border-border/50 p-6 rounded-3xl shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-base font-bold text-foreground flex items-center gap-2">
+                      Evolução Financeira
+                    </h4>
+                  </div>
+                  <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={data.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                        <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '1rem', border: '1px solid hsl(var(--border))', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          formatter={(value: any) => [formatCurrency(value as number), 'Receita']}
+                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold', marginBottom: '8px' }}
+                        />
+                        <Area type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                  <InsightsCard data={data} />
+                  
+                  <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex-1">
+                    <h4 className="text-sm font-bold text-foreground mb-4">Receita por Serviço</h4>
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={data.revenueByService}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={70}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {data.revenueByService.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
+                          <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Chart */}
-              <div className="bg-card/80 border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-700 pointer-events-none"></div>
-                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-3 relative z-10">
-                  <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500">
-                    <BarChart3 size={20} />
+              {/* Row 3: Heatmap and Unit Chart */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm overflow-hidden">
+                  <h4 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2"><Calendar size={18} className="text-muted-foreground"/> Intensidade Financeira Mensal</h4>
+                  <HeatMap data={data.monthlyData} />
+                </div>
+                
+                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm">
+                  <h4 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2"><BarChart3 size={18} className="text-muted-foreground"/> Receita por Unidade</h4>
+                  <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.revenueByUnit} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" opacity={0.5}/>
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                        <Tooltip formatter={(value: any) => formatCurrency(value as number)} cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '0.5rem' }} />
+                        <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={24} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  Evolução da Receita Anual
-                </h4>
-                <div className="h-60 w-full relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={data.monthlyData}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                      <XAxis 
-                        dataKey="mes" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
-                        dy={15}
-                      />
-                      <YAxis 
-                        tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
-                        dx={-15}
-                      />
-                      <Tooltip 
-                        formatter={(value: any) => [formatCurrency(value as number), 'Receita']}
-                        labelStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: 12, marginBottom: 8 }}
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '16px',
-                          boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-                          padding: '12px 16px'
-                        }}
-                        itemStyle={{ color: '#10b981', fontWeight: 800, fontSize: 16 }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="receita" 
-                        stroke="#10b981" 
-                        strokeWidth={4}
-                        fillOpacity={1} 
-                        fill="url(#colorReceita)" 
-                        activeDot={{ r: 6, strokeWidth: 4, stroke: 'hsl(var(--card))', fill: '#10b981' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Data Table */}
-              <div className="bg-card/80 border border-border/50 rounded-3xl shadow-sm overflow-hidden backdrop-blur-xl">
-                <div className="p-6 border-b border-border/50 bg-muted/10">
-                  <h4 className="text-sm font-bold text-foreground tracking-wide">Detalhamento Mensal</h4>
+              {/* Row 4: Financial Table */}
+              <div className="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border/50">
+                  <h4 className="text-base font-bold text-foreground">Detalhamento de Ordens</h4>
                 </div>
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-muted/30 border-b border-border/50 text-muted-foreground text-xs font-black uppercase tracking-widest">
-                        <th className="p-5 w-1/3 pl-8">Mês</th>
-                        <th className="p-5 w-1/3 text-center">Qtd. OS Pagas</th>
-                        <th className="p-5 w-1/3 text-right pr-8">Receita Gerada</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
+                      <tr>
+                        <th className="px-6 py-4 font-semibold">Número</th>
+                        <th className="px-6 py-4 font-semibold">Tipo</th>
+                        <th className="px-6 py-4 font-semibold">Data</th>
+                        <th className="px-6 py-4 font-semibold">Valor</th>
+                        <th className="px-6 py-4 font-semibold">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {data.monthlyData.map((row, idx) => (
-                        <tr key={idx} className="border-b border-border/30 hover:bg-muted/40 transition-all duration-200 last:border-0 group">
-                          <td className="p-5 pl-8 font-semibold text-foreground group-hover:text-primary transition-colors">{row.mes}</td>
-                          <td className="p-5 text-center">
-                            {row.quantidade > 0 ? (
-                              <span className="inline-flex items-center justify-center bg-blue-500/10 text-blue-600 font-bold px-3 py-1 rounded-xl text-xs ring-1 ring-blue-500/20">
-                                {row.quantidade} {row.quantidade === 1 ? 'OS' : 'OSs'}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground/50">-</span>
-                            )}
+                    <tbody className="divide-y divide-border/50">
+                      {data.tableData.map((row) => (
+                        <tr key={row.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-6 py-4 font-medium text-foreground">{row.numero}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.tipo === 'Oficina' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
+                              {row.tipo}
+                            </span>
                           </td>
-                          <td className={`p-5 pr-8 text-right font-black ${row.receita > 0 ? 'text-emerald-500' : 'text-muted-foreground/50'}`}>
-                            {row.receita > 0 ? formatCurrency(row.receita) : '-'}
+                          <td className="px-6 py-4 text-muted-foreground">{formatDate(row.data)}</td>
+                          <td className="px-6 py-4 font-bold text-emerald-600">{formatCurrency(row.valor)}</td>
+                          <td className="px-6 py-4">
+                            <span className="bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-semibold">Pago</span>
                           </td>
                         </tr>
                       ))}
+                      {data.tableData.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Nenhuma ordem encontrada para o período.</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
