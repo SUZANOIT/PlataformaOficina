@@ -489,22 +489,22 @@ export default function FleetVehicles() {
   return (
     <div className="p-6 space-y-6">
       {/* ═══════════ PREMIUM HEADER with Animated Gradient & Inline KPIs ═══════════ */}
-      <div className="relative overflow-hidden rounded-2xl shadow-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-slate-900 animate-gradient p-7">
+      <div className="relative overflow-hidden rounded-2xl shadow-sm border border-primary/20 bg-gradient-to-br from-primary/10 via-white to-primary/5 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 animate-gradient p-7">
         {/* Decorative grid + floating orbs */}
         <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           {/* Left: Title & description */}
           <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-                <Truck className="text-primary/70 animate-float" size={26} />
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+              <div className="p-2.5 bg-primary/20 rounded-xl backdrop-blur-sm border border-primary/10">
+                <Truck className="text-primary animate-float" size={26} />
               </div>
               Gestão de Frota Inteligente
             </h1>
-            <p className="text-primary-foreground/80 text-sm max-w-xl leading-relaxed">
+            <p className="text-muted-foreground text-sm max-w-xl leading-relaxed">
               Painel inteligente com visualização hierárquica de clientes, veículos, timeline de manutenção e análise financeira DRE em tempo real.
             </p>
           </div>
@@ -512,23 +512,23 @@ export default function FleetVehicles() {
           {/* Right: Mini KPI chips + CTA */}
           <div className="flex flex-wrap items-center gap-3">
             {/* KPI: Total Veículos */}
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
-              <div className="p-1.5 bg-primary/30 rounded-lg">
-                <Truck size={14} className="text-primary/70" />
+            <div className="flex items-center gap-2 bg-primary/10 dark:bg-gray-800/80 backdrop-blur-sm border border-primary/20 dark:border-gray-700 rounded-xl px-3.5 py-2 text-foreground shine-hover">
+              <div className="p-1.5 bg-primary/20 rounded-lg">
+                <Truck size={14} className="text-primary" />
               </div>
               <div>
-                <span className="text-[9px] uppercase tracking-widest text-primary/70 font-bold block">Veículos</span>
+                <span className="text-[9px] uppercase tracking-widest text-primary font-bold block">Veículos</span>
                 <span className="text-sm font-black">{treeClients.reduce((acc, c) => acc + (c._count?.veiculos || 0), 0)}</span>
               </div>
             </div>
 
             {/* KPI: Clientes */}
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-3.5 py-2 text-white shine-hover">
-              <div className="p-1.5 bg-primary/30 rounded-lg">
-                <Folder size={14} className="text-primary/70" />
+            <div className="flex items-center gap-2 bg-primary/10 dark:bg-gray-800/80 backdrop-blur-sm border border-primary/20 dark:border-gray-700 rounded-xl px-3.5 py-2 text-foreground shine-hover">
+              <div className="p-1.5 bg-primary/20 rounded-lg">
+                <Folder size={14} className="text-primary" />
               </div>
               <div>
-                <span className="text-[9px] uppercase tracking-widest text-primary/70 font-bold block">Clientes</span>
+                <span className="text-[9px] uppercase tracking-widest text-primary font-bold block">Clientes</span>
                 <span className="text-sm font-black">{treeClients.length}</span>
               </div>
             </div>
