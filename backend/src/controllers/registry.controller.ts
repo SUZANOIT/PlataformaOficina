@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
+import { ClientDashboardService } from '../services/clientDashboard.service';
 
 const clientSchema = z.object({
   nome: z.string(),
@@ -284,7 +285,6 @@ export const RegistryController = {
         return res.status(403).json({ error: 'Acesso negado para este cliente.' });
       }
 
-      const { ClientDashboardService } = require('../services/clientDashboard.service');
       const service = new ClientDashboardService(companyId, id);
       const dashboardData = await service.getDashboardData({ startDate, endDate, prevStartDate, prevEndDate });
 

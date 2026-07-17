@@ -19,19 +19,12 @@ export class ClientDashboardService {
   async getDashboardData(filters: ClientDashboardFilters) {
     const { startDate, endDate, prevStartDate, prevEndDate } = filters;
 
-    // 1. Fetch Paid Quotes (Workshop) in current period
-    const quotes = await prisma.quote.findMany({
+    // Fetch ALL Paid Quotes (Workshop) for this client
+    const allClientQuotes = await prisma.quote.findMany({
       where: {
         clientId: this.clientId,
         companyId: this.companyId,
-        status: 'Pago',
-        history: {
-          some: {
-            action: 'STATUS_ALTERADO',
-            details: { contains: '"para":"Pago"' },
-            createdAt: { gte: startDate, lte: endDate }
-          }
-        }
+        status: 'Pago'
       },
       include: {
         history: {
@@ -44,62 +37,35 @@ export class ClientDashboardService {
       }
     });
 
-    const quotesFallback = await prisma.quote.findMany({
+    // Fetch ALL Towing Quotes for this client
+    const allClientTowingQuotes = await prisma.towingQuote.findMany({
       where: {
         clientId: this.clientId,
         companyId: this.companyId,
-        status: 'Pago',
-        updatedAt: { gte: startDate, lte: endDate },
-        history: { none: { action: 'STATUS_ALTERADO', details: { contains: '"para":"Pago"' } } }
-      },
-      include: { items: true, oficina: true }
-    });
-    
-    const allQuotes = [...quotes, ...quotesFallback];
-
-    // 2. Fetch Towing Quotes in current period
-    const towingQuotes = await prisma.towingQuote.findMany({
-      where: {
-        clientId: this.clientId,
-        companyId: this.companyId,
-        status: 'Pago',
-        updatedAt: { gte: startDate, lte: endDate }
+        status: 'Pago'
       }
     });
 
-    // 3. Fetch Prev Period Quotes (Workshop)
-    const prevQuotes = await prisma.quote.findMany({
-      where: {
-        clientId: this.clientId,
-        companyId: this.companyId,
-        status: 'Pago',
-        history: {
-          some: {
-            action: 'STATUS_ALTERADO',
-            details: { contains: '"para":"Pago"' },
-            createdAt: { gte: prevStartDate, lte: prevEndDate }
-          }
-        }
-      }
+    // Filter in memory for Current Period
+    const allQuotes = allClientQuotes.filter((q: any) => {
+      const date = (q.history && q.history.length > 0) ? q.history[0].createdAt : q.updatedAt;
+      return date >= startDate && date <= endDate;
     });
-    const prevQuotesFallback = await prisma.quote.findMany({
-      where: {
-        clientId: this.clientId,
-        companyId: this.companyId,
-        status: 'Pago',
-        updatedAt: { gte: prevStartDate, lte: prevEndDate },
-        history: { none: { action: 'STATUS_ALTERADO', details: { contains: '"para":"Pago"' } } }
-      }
-    });
-    const allPrevQuotes = [...prevQuotes, ...prevQuotesFallback];
 
-    const prevTowingQuotes = await prisma.towingQuote.findMany({
-      where: {
-        clientId: this.clientId,
-        companyId: this.companyId,
-        status: 'Pago',
-        updatedAt: { gte: prevStartDate, lte: prevEndDate }
-      }
+    const towingQuotes = allClientTowingQuotes.filter((t: any) => {
+      const date = t.updatedAt;
+      return date >= startDate && date <= endDate;
+    });
+
+    // Filter in memory for Previous Period
+    const allPrevQuotes = allClientQuotes.filter((q: any) => {
+      const date = (q.history && q.history.length > 0) ? q.history[0].createdAt : q.updatedAt;
+      return date >= prevStartDate && date <= prevEndDate;
+    });
+
+    const prevTowingQuotes = allClientTowingQuotes.filter((t: any) => {
+      const date = t.updatedAt;
+      return date >= prevStartDate && date <= prevEndDate;
     });
 
     // Basic KPIs calculation
