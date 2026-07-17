@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   X, 
   DollarSign, 
@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Trophy,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import {
   AreaChart,
@@ -44,6 +46,43 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'
 export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueModalProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ClientDashboardResponse | null>(null);
+  const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
+
+  const toggleMonth = (monthKey: string) => {
+    setExpandedMonths(prev => ({ ...prev, [monthKey]: !prev[monthKey] }));
+  };
+
+  const groupedOrders = useMemo(() => {
+    if (!data) return [];
+    
+    const groups: Record<string, { label: string; dateVal: number; total: number; count: number; items: any[] }> = {};
+    
+    data.tableData.forEach(row => {
+      // row.data is an ISO date string
+      const date = new Date(row.data);
+      const monthStr = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      
+      if (!groups[monthKey]) {
+        groups[monthKey] = {
+          label: monthStr.charAt(0).toUpperCase() + monthStr.slice(1),
+          dateVal: date.getTime(),
+          total: 0,
+          count: 0,
+          items: []
+        };
+      }
+      
+      groups[monthKey].total += row.valor;
+      groups[monthKey].count += 1;
+      groups[monthKey].items.push(row);
+    });
+    
+    // Sort groups descending by date
+    return Object.entries(groups)
+      .sort((a, b) => b[1].dateVal - a[1].dateVal)
+      .map(([key, group]) => ({ key, ...group }));
+  }, [data]);
   const [period, setPeriod] = useState('year'); // year, 30d, 90d
 
   useEffect(() => {
@@ -308,22 +347,44 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
-                      {data.tableData.map((row) => (
-                        <tr key={row.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="px-6 py-4 font-medium text-foreground">{row.numero}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.tipo === 'Oficina' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
-                              {row.tipo}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-muted-foreground">{formatDate(row.data)}</td>
-                          <td className="px-6 py-4 font-bold text-emerald-600">{formatCurrency(row.valor)}</td>
-                          <td className="px-6 py-4">
-                            <span className="bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-semibold">Pago</span>
-                          </td>
-                        </tr>
+                      {groupedOrders.map((group) => (
+                        <React.Fragment key={group.key}>
+                          {/* Group Header Row */}
+                          <tr 
+                            className="bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer group"
+                            onClick={() => toggleMonth(group.key)}
+                          >
+                            <td className="px-6 py-4 font-bold text-foreground flex items-center gap-2">
+                              {expandedMonths[group.key] ? <ChevronDown size={18} className="text-muted-foreground" /> : <ChevronRight size={18} className="text-muted-foreground" />}
+                              <span className="capitalize">{group.label}</span>
+                            </td>
+                            <td className="px-6 py-4 text-muted-foreground font-medium">
+                              {group.count} {group.count === 1 ? 'ordem' : 'ordens'}
+                            </td>
+                            <td className="px-6 py-4"></td>
+                            <td className="px-6 py-4 font-bold text-emerald-600">{formatCurrency(group.total)}</td>
+                            <td className="px-6 py-4"></td>
+                          </tr>
+                          
+                          {/* Expanded Items */}
+                          {expandedMonths[group.key] && group.items.map((row) => (
+                            <tr key={row.id} className="hover:bg-muted/10 transition-colors bg-background">
+                              <td className="px-6 py-3 pl-14 font-medium text-foreground border-l-2 border-emerald-500/30">{row.numero}</td>
+                              <td className="px-6 py-3">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.tipo === 'Oficina' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
+                                  {row.tipo}
+                                </span>
+                              </td>
+                              <td className="px-6 py-3 text-muted-foreground text-sm">{formatDate(row.data)}</td>
+                              <td className="px-6 py-3 font-semibold text-emerald-600">{formatCurrency(row.valor)}</td>
+                              <td className="px-6 py-3">
+                                <span className="bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-semibold">Pago</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
                       ))}
-                      {data.tableData.length === 0 && (
+                      {groupedOrders.length === 0 && (
                         <tr>
                           <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Nenhuma ordem encontrada para o período.</td>
                         </tr>
