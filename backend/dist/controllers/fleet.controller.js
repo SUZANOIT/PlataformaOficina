@@ -1179,6 +1179,77 @@ exports.fleetController = {
         }
     },
     // ==========================================
+    // PREVENTIVE MAINTENANCE ANALYSIS
+    // ==========================================
+    async analyzePaidOilChanges(req, res) {
+        try {
+            const paidQuotes = await prisma_1.prisma.quote.findMany({
+                where: {
+                    veiculoId: { not: null },
+                    status: 'Pago'
+                },
+                include: {
+                    items: true,
+                    veiculo: { include: { client: true } },
+                    oficina: true
+                }
+            });
+            const oilQuotes = paidQuotes.filter(q => q.items.some(i => i.descricao.toLowerCase().includes('óleo') || i.descricao.toLowerCase().includes('oleo')));
+            const alerts = [];
+            for (const q of oilQuotes) {
+                if (!q.veiculoId)
+                    continue;
+                const osDate = new Date(q.updatedAt);
+                const startDate = new Date(osDate);
+                startDate.setDate(startDate.getDate() - 5);
+                const endDate = new Date(osDate);
+                endDate.setDate(endDate.getDate() + 5);
+                const motorRecord = await prisma_1.prisma.trocaOleoMotor.findFirst({
+                    where: {
+                        veiculoId: q.veiculoId,
+                        dataTroca: {
+                            gte: startDate,
+                            lte: endDate
+                        }
+                    }
+                });
+                const gearRecord = await prisma_1.prisma.trocaOleoCambio.findFirst({
+                    where: {
+                        veiculoId: q.veiculoId,
+                        dataTroca: {
+                            gte: startDate,
+                            lte: endDate
+                        }
+                    }
+                });
+                if (!motorRecord && !gearRecord) {
+                    const oilItems = q.items
+                        .filter(i => i.descricao.toLowerCase().includes('óleo') || i.descricao.toLowerCase().includes('oleo'))
+                        .map(i => i.descricao)
+                        .join(', ');
+                    alerts.push({
+                        quoteId: q.id,
+                        numeroOrcamento: q.numeroOrcamento,
+                        dataOS: q.updatedAt,
+                        valorOS: q.total,
+                        veiculoId: q.veiculoId,
+                        placa: q.veiculo?.placa,
+                        clienteNome: q.veiculo?.client?.nome,
+                        oficinaId: q.oficinaId,
+                        oficinaNome: q.oficina?.nome,
+                        oilItems
+                    });
+                }
+            }
+            alerts.sort((a, b) => new Date(b.dataOS).getTime() - new Date(a.dataOS).getTime());
+            return res.json(alerts);
+        }
+        catch (error) {
+            console.error('[Fleet] Erro analyzePaidOilChanges:', error);
+            return res.status(500).json({ error: 'Erro ao analisar OS pagas.' });
+        }
+    },
+    // ==========================================
     // PREVENTIVE MAINTENANCE: MOTOR OIL
     // ==========================================
     async listMotorOilChanges(req, res) {
@@ -1369,7 +1440,7 @@ exports.fleetController = {
             const quotesAgg = await prisma_1.prisma.quote.aggregate({
                 where: {
                     veiculoId: { not: null },
-                    status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
+                    status: 'Pago'
                 },
                 _sum: { total: true }
             });
@@ -1390,7 +1461,7 @@ exports.fleetController = {
                 where: {
                     updatedAt: { gte: sixMonthsAgo },
                     veiculoId: { not: null },
-                    status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
+                    status: 'Pago'
                 },
             });
             const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
