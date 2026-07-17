@@ -29,10 +29,10 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
   };
 
   return (
-    <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
-      <div className="min-w-[600px]">
+    <div className="w-full overflow-x-auto pb-4 custom-scrollbar text-center">
+      <div className="inline-block min-w-max mx-auto text-left">
         {/* Header (Months) */}
-        <div className="grid grid-cols-[80px_repeat(12,1fr)] gap-2 mb-4">
+        <div className="grid grid-cols-[60px_repeat(12,48px)] md:grid-cols-[80px_repeat(12,56px)] gap-2 mb-4">
           <div className="text-xs font-semibold text-muted-foreground uppercase flex items-center">Ano</div>
           {months.map(m => (
             <div key={m} className="text-center text-xs font-semibold text-muted-foreground uppercase">{m}</div>
@@ -43,7 +43,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
         {years.map(year => {
           const yearData = data.filter(d => d.ano === year);
           return (
-            <div key={year} className="grid grid-cols-[80px_repeat(12,1fr)] gap-2 mb-3 items-center">
+            <div key={year} className="grid grid-cols-[60px_repeat(12,48px)] md:grid-cols-[80px_repeat(12,56px)] gap-2 mb-3 items-center">
               <div className="text-sm font-bold text-foreground">{year}</div>
               
               {months.map((_, i) => {
