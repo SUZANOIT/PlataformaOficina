@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 
 const rateSchema = z.object({
-  towingTypeId: z.string().min(1, 'O tipo de guincho é obrigatório.'),
+  quantidadeEixos: z.coerce.number().min(2, 'Quantidade mínima é 2 eixos.'),
   taxaSaida: z.number().default(0),
   valorKm: z.number().default(0),
   valorHoraParada: z.number().default(0),
@@ -23,10 +23,8 @@ export const TowingRateController = {
 
       const rates = await prisma.towingRate.findMany({
         where: whereClause,
-        include: {
-          towingType: true
-        },
-        orderBy: { tipoGuincho: 'asc' }
+
+        orderBy: { quantidadeEixos: 'asc' }
       });
       return res.json(rates);
     } catch (error) {
@@ -40,19 +38,8 @@ export const TowingRateController = {
       const userId = (req as any).userId;
       const data = rateSchema.parse(req.body);
 
-      // Verify towing type exists
-      const towingType = await prisma.towingType.findFirst({
-        where: { id: data.towingTypeId, companyId }
-      });
-
-      if (!towingType) {
-        return res.status(400).json({ error: 'Tipo de guincho não cadastrado.' });
-      }
-
-      const tipoGuincho = towingType.name;
-
       const existing = await prisma.towingRate.findFirst({
-        where: { companyId, towingTypeId: data.towingTypeId }
+        where: { companyId, quantidadeEixos: data.quantidadeEixos }
       });
 
       // Fetch user details for audit trail
@@ -86,29 +73,22 @@ export const TowingRateController = {
         rate = await prisma.towingRate.update({
           where: { id: existing.id },
           data: {
-            tipoGuincho,
+            quantidadeEixos: data.quantidadeEixos,
             taxaSaida: data.taxaSaida,
             valorKm: data.valorKm,
             valorHoraParada: data.valorHoraParada,
             status: data.status,
-          },
-          include: {
-            towingType: true
           }
         });
       } else {
         rate = await prisma.towingRate.create({
           data: {
             companyId,
-            towingTypeId: data.towingTypeId,
-            tipoGuincho,
+            quantidadeEixos: data.quantidadeEixos,
             taxaSaida: data.taxaSaida,
             valorKm: data.valorKm,
             valorHoraParada: data.valorHoraParada,
             status: data.status,
-          },
-          include: {
-            towingType: true
           }
         });
 

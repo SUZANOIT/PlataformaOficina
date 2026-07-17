@@ -11,13 +11,22 @@ export function TowingRates() {
   const company = user?.company;
 
   const [rates, setRates] = useState<any[]>([]);
-  const [towingTypes, setTowingTypes] = useState<any[]>([]);
   const [, setLoading] = useState(true);
+
+  // Eixos Options
+  const eixosOptions = [
+    { value: 2, label: '2 eixos' },
+    { value: 3, label: '3 eixos' },
+    { value: 4, label: '4 eixos' },
+    { value: 5, label: '5 eixos' },
+    { value: 6, label: '6 eixos' },
+    { value: 7, label: '7 ou mais eixos' },
+  ];
 
   // Form Data
   const [formData, setFormData] = useState({
     id: '',
-    towingTypeId: '',
+    quantidadeEixos: 2,
     taxaSaida: 0,
     valorKm: 0,
     valorHoraParada: 0,
@@ -41,22 +50,10 @@ export function TowingRates() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [ratesData, typesData] = await Promise.all([
-        towingService.listRates(),
-        towingService.listTowingTypes()
-      ]);
+      const ratesData = await towingService.listRates();
       setRates(ratesData);
-      setTowingTypes(typesData);
-
-      // Auto-set first towing type in form if none selected
-      if (typesData.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          towingTypeId: prev.towingTypeId || typesData[0].id
-        }));
-      }
     } catch (error) {
-      toast.error('Erro ao carregar taxas e tipos de guincho');
+      toast.error('Erro ao carregar taxas.');
     } finally {
       setLoading(false);
     }
@@ -64,14 +61,10 @@ export function TowingRates() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.towingTypeId) {
-      toast.error('Selecione um Tipo de Guincho para vincular à tabela.');
-      return;
-    }
 
     try {
       await towingService.saveRate({
-        towingTypeId: formData.towingTypeId,
+        quantidadeEixos: Number(formData.quantidadeEixos),
         taxaSaida: Number(formData.taxaSaida),
         valorKm: Number(formData.valorKm),
         valorHoraParada: Number(formData.valorHoraParada),
@@ -81,7 +74,7 @@ export function TowingRates() {
       loadData();
       setFormData({
         id: '',
-        towingTypeId: towingTypes[0]?.id || '',
+        quantidadeEixos: 2,
         taxaSaida: 0,
         valorKm: 0,
         valorHoraParada: 0,
@@ -95,7 +88,7 @@ export function TowingRates() {
   const handleEdit = (rate: any) => {
     setFormData({
       id: rate.id,
-      towingTypeId: rate.towingTypeId || '',
+      quantidadeEixos: rate.quantidadeEixos || 2,
       taxaSaida: rate.taxaSaida,
       valorKm: rate.valorKm,
       valorHoraParada: rate.valorHoraParada,
@@ -181,16 +174,15 @@ export function TowingRates() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wide">Tipo de Guincho Vinculado <span className="text-red-500">*</span></label>
+              <label className="text-xs font-bold text-foreground uppercase tracking-wide">Quantidade de Eixos <span className="text-red-500">*</span></label>
               <select
-                value={formData.towingTypeId}
-                onChange={e => setFormData({ ...formData, towingTypeId: e.target.value })}
+                value={formData.quantidadeEixos}
+                onChange={e => setFormData({ ...formData, quantidadeEixos: Number(e.target.value) })}
                 className="w-full bg-background border rounded-lg py-2 px-3 focus:border-primary focus:outline-none text-sm text-foreground"
                 required
               >
-                <option value="" disabled>Selecione o tipo...</option>
-                {towingTypes.map((type) => (
-                  <option key={type.id} value={type.id}>{type.name}</option>
+                {eixosOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
@@ -257,7 +249,7 @@ export function TowingRates() {
           <table className="w-full text-sm text-left border-collapse">
             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 font-semibold border-b">
               <tr>
-                <th className="px-5 py-3.5 font-medium">Tipo Guincho</th>
+                <th className="px-5 py-3.5 font-medium">Qtd. Eixos</th>
                 <th className="px-5 py-3.5 font-medium text-right">Taxa Saída</th>
                 <th className="px-5 py-3.5 font-medium text-right">Valor KM</th>
                 <th className="px-5 py-3.5 font-medium text-right">Hora Parada</th>
@@ -268,7 +260,9 @@ export function TowingRates() {
             <tbody className="divide-y divide-border">
               {rates.map(r => (
                 <tr key={r.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">{r.towingType?.name || r.tipoGuincho}</td>
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">
+                    {r.quantidadeEixos >= 7 ? '7 ou mais eixos' : `${r.quantidadeEixos} eixos`}
+                  </td>
                   <td className="px-5 py-3.5 text-right font-medium">R$ {Number(r.taxaSaida).toFixed(2)}</td>
                   <td className="px-5 py-3.5 text-right font-medium">R$ {Number(r.valorKm).toFixed(2)}</td>
                   <td className="px-5 py-3.5 text-right font-medium">R$ {Number(r.valorHoraParada).toFixed(2)}</td>
@@ -323,7 +317,9 @@ export function TowingRates() {
               <div className="flex items-center gap-2">
                 <History className="text-primary" size={22} />
                 <h3 className="text-lg font-bold text-foreground">
-                  Histórico de Tarifas: <span className="text-primary font-black">{selectedRateForHistory.towingType?.name || selectedRateForHistory.tipoGuincho}</span>
+                  Histórico de Tarifas: <span className="text-primary font-black">
+                    {selectedRateForHistory.quantidadeEixos >= 7 ? '7 ou mais eixos' : `${selectedRateForHistory.quantidadeEixos} eixos`}
+                  </span>
                 </h3>
               </div>
             </div>

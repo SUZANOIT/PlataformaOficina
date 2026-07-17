@@ -36,7 +36,7 @@ const createTowingQuoteSchema = z.object({
   veiculoChassi: z.string().optional(),
   veiculoValorAproximado: z.coerce.number().optional().nullable(),
 
-  tipoGuincho: z.string().optional(),
+  quantidadeEixos: z.coerce.number().optional().default(2),
   
   driverId: z.string().optional().nullable(),
   vehicleId: z.string().optional().nullable(),

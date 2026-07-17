@@ -104,7 +104,7 @@ export const TowingGuiaPdfTemplate = forwardRef<HTMLDivElement, TowingGuiaPdfTem
           <h2 className="font-bold text-slate-900 border-b border-slate-200 pb-1.5 mb-2 uppercase text-[9px] tracking-wider">Dados da Operação</h2>
           <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', width: '100%' }}>
             <div style={{ flex: 1, width: '48%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <p className="text-slate-700 text-[11px]">Tipo de Guincho: <span className="font-semibold text-slate-900">{quote.tipoGuincho || '-'}</span></p>
+              <p className="text-slate-700 text-[11px]">Qtd. Eixos: <span className="font-semibold text-slate-900">{quote.quantidadeEixos >= 7 ? '7 ou mais eixos' : `${quote.quantidadeEixos} eixos`}</span></p>
               <p className="text-slate-700 text-[11px]">Placa Guincho: <span className="font-semibold text-slate-900">{quote.vehicle?.placa || '-'}</span></p>
               <p className="text-slate-700 text-[11px]">Motorista: <span className="font-semibold text-slate-900">{quote.driver?.nome || 'Não vinculado'}</span></p>
               <p className="text-slate-700 text-[11px]">Distância Estimada: <span className="font-semibold text-slate-900">{quote.distanciaKm || 0} km</span></p>

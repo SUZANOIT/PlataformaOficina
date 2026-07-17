@@ -1497,7 +1497,7 @@ model TowingRate {
   plataformaId String?  @map("plataforma_id")
   plataforma   PlataformaGestao? @relation(fields: [plataformaId], references: [id], onDelete: Cascade)
   
-  tipoGuincho    String   // ex: Leve, Medio, Pesado, Plataforma, Munck, Prancha
+  quantidadeEixos Int      @default(2) // 2, 3, 4, 5, 6, 7 (7 = 7 ou mais)
   taxaSaida      Float    @default(0)
   valorKm        Float    @default(0)
   valorHoraParada Float    @default(0)
@@ -1507,14 +1507,11 @@ model TowingRate {
   horario         String   @default("DIURNO") // DIURNO, NOTURNO
   regraComercial  String   @default("PADRAO")
   
-  towingTypeId   String?
-  towingType     TowingType? @relation(fields: [towingTypeId], references: [id], onDelete: Cascade)
-  
   history        TowingRateHistory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([plataformaId, towingTypeId, regiao, horario, regraComercial])
+  @@unique([plataformaId, quantidadeEixos, regiao, horario, regraComercial])
   @@index([companyId])
   @@index([plataformaId])
 }
@@ -1529,7 +1526,6 @@ model TowingType {
   updatedAt   DateTime @updatedAt
 
   vehicles    TowingVehicle[]
-  rates       TowingRate[]
 
   @@unique([companyId, name])
   @@index([companyId])
@@ -1616,7 +1612,7 @@ model TowingQuote {
   veiculoValorAproximado Float?
   
   // Configuração Guincho
-  tipoGuincho       String?
+  quantidadeEixos   Int     @default(2) // 2, 3, 4, 5, 6, 7 (7 = 7 ou mais)
   valorVeiculo      Float @default(0)
   tipoCliente       String @default("Particular")
   plataformaId      String?

@@ -20,7 +20,6 @@ export function CreateTowingQuote() {
   const { id } = useParams();
   const isEditing = !!id;
   const user = authStorage.getUser();
-  const isAdmin = user?.role === 'ADMIN' || user?.roleAdmin === true;
 
   const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({
@@ -50,8 +49,8 @@ export function CreateTowingQuote() {
     veiculoAno: '',
     veiculoChassi: '',
     veiculoValorAproximado: '',
-    tipoGuincho: '', // Placa do guincho da frota
-    towingTypeId: '', // ID do tipo de guincho
+    quantidadeEixos: 2,
+    placaBusca: '',
     driverId: null,
     vehicleId: null,
     taxaSaida: 0,
@@ -86,7 +85,6 @@ export function CreateTowingQuote() {
   const [clients, setClients] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
-  const [towingTypes, setTowingTypes] = useState<any[]>([]);
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [routeMap, setRouteMap] = useState<{ origin: string; destination: string } | null>(null);
@@ -96,7 +94,6 @@ export function CreateTowingQuote() {
     towingService.listRates().then(setRates).catch(console.error);
     towingService.listVehicles().then(setVehicles).catch(console.error);
     towingService.listDrivers().then(setDrivers).catch(console.error);
-    towingService.listTowingTypes().then(setTowingTypes).catch(console.error);
     platformService.list({ limit: 1000 }).then(res => setPlatforms(res.data || [])).catch(console.error);
     api.get('/registry/clients').then(res => setClients(res.data)).catch(console.error);
  
@@ -211,61 +208,32 @@ export function CreateTowingQuote() {
   const handleVehicleChange = (placa: string) => {
     const query = placa.trim().toUpperCase();
     const vehicle = vehicles.find(v => v.placa.trim().toUpperCase() === query);
+    setFormData((prev: any) => ({
+      ...prev,
+      vehicleId: vehicle ? vehicle.id : null,
+      driverId: vehicle && vehicle.driverId ? vehicle.driverId : prev.driverId
+    }));
+  };
+
+  const handleQuantidadeEixosChange = (quantidadeEixos: number) => {
     setFormData((prev: any) => {
-      const next = { ...prev, tipoGuincho: placa, vehicleId: vehicle ? vehicle.id : null };
-      if (vehicle) {
-        let tId = vehicle.towingTypeId || '';
-        if (!tId && vehicle.tipo) {
-          const matchedType = towingTypes.find(t => t.name.toLowerCase() === vehicle.tipo.toLowerCase());
-          if (matchedType) {
-            tId = matchedType.id;
-          }
-        }
-        next.towingTypeId = tId;
-        next.anttEixos = vehicle.eixos || 2;
-        // Find rate for this towing type
-        const rate = rates.find(r => 
-          (tId && r.towingTypeId === tId) || 
-          (vehicle.towingType?.name && r.tipoGuincho.toLowerCase() === vehicle.towingType.name.toLowerCase()) ||
-          (vehicle.tipo && r.tipoGuincho.toLowerCase() === vehicle.tipo.toLowerCase())
-        );
+      const next = { ...prev, quantidadeEixos };
+      
+      // Se for Particular, busca a taxa na tabela de preços
+      if (prev.tipoCliente === 'Particular') {
+        const rate = rates.find(r => r.quantidadeEixos === quantidadeEixos);
         if (rate) {
           next.taxaSaida = rate.taxaSaida;
           next.valorKm = rate.valorKm;
           next.valorHoraParada = rate.valorHoraParada;
         }
-      } else {
-        next.vehicleId = null;
-      }
-      return next;
-    });
-  };
-
-  const handleTowingTypeChange = (towingTypeId: string) => {
-    const type = towingTypes.find(t => t.id === towingTypeId);
-    setFormData((prev: any) => {
-      const next = { ...prev, towingTypeId };
-      const typeName = type?.name || '';
-      
-      // Find rate for this towing type
-      const rate = rates.find(r => 
-        (r.towingTypeId && r.towingTypeId === towingTypeId) || 
-        r.tipoGuincho.toLowerCase() === typeName.toLowerCase()
-      );
-      if (rate) {
-        next.taxaSaida = rate.taxaSaida;
-        next.valorKm = rate.valorKm;
-        next.valorHoraParada = rate.valorHoraParada;
       }
       return next;
     });
   };
 
   const calculateRoute = async () => {
-    if (!formData.tipoGuincho) {
-      toast.error('Selecione ou digite um veículo de guincho antes de calcular a rota.');
-      return;
-    }
+
     if (!formData.origemEndereco || !formData.origemCidade || !formData.destinoEndereco || !formData.destinoCidade) {
       toast.error('Preencha os endereços de origem e destino corretamente.');
       return;
@@ -278,8 +246,7 @@ export function CreateTowingQuote() {
     try {
       const { distanceKm, durationMin, tollCost } = await googleMapsService.computeRouteWithTolls(origin, destination);
       
-      const selectedVehicle = vehicles.find((v: any) => v.placa === formData.tipoGuincho);
-      const eixos = selectedVehicle?.eixos || formData.anttEixos || 2;
+      const eixos = formData.quantidadeEixos || formData.anttEixos || 2;
       const baseTollPerAxle = tollCost / 2;
       const finalToll = baseTollPerAxle * eixos;
       const estimatedQtd = tollCost > 0 ? Math.max(1, Math.ceil(tollCost / 15)) : 0;
@@ -364,8 +331,8 @@ export function CreateTowingQuote() {
       toast.error('O veículo a ser transportado é obrigatório.');
       return;
     }
-    if (!formData.tipoGuincho) {
-      toast.error('Selecione ou informe o veículo de guincho.');
+    if (!formData.quantidadeEixos) {
+      toast.error('Informe a quantidade de eixos.');
       return;
     }
 
@@ -397,8 +364,8 @@ export function CreateTowingQuote() {
   };
 
   const filteredVehiclesForDropdown = vehicles.filter(v => {
-    if (!formData.tipoGuincho) return true;
-    const query = formData.tipoGuincho.toLowerCase();
+    if (!formData.placaBusca) return true;
+    const query = formData.placaBusca.toLowerCase();
     return (
       v.placa?.toLowerCase().includes(query) ||
       v.modelo?.toLowerCase().includes(query) ||
@@ -583,20 +550,27 @@ export function CreateTowingQuote() {
               
               {/* Coluna 1: Veículo da Frota */}
               <div className="relative space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wide">Veículo da Frota *</label>
+                <label className="text-xs font-bold text-foreground uppercase tracking-wide">Veículo da Frota</label>
                 <input 
                   type="text"
                   placeholder="Digite ou selecione placa..." 
-                  value={formData.tipoGuincho} 
+                  value={formData.placaBusca} 
                   onFocus={() => setIsDropdownOpen(true)}
                   onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                  onChange={e => handleVehicleChange(e.target.value)} 
+                  onChange={e => {
+                    const val = e.target.value.toUpperCase();
+                    setFormData({ ...formData, placaBusca: val });
+                    handleVehicleChange(val);
+                  }} 
                   className="w-full bg-background border border-border px-3.5 py-2 rounded-lg text-sm focus:border-primary focus:outline-none uppercase font-mono font-semibold" 
                 />
-                {formData.tipoGuincho && (
+                {formData.placaBusca && (
                   <button
                     type="button"
-                    onClick={() => handleVehicleChange('')}
+                    onClick={() => {
+                      setFormData({ ...formData, placaBusca: '' });
+                      handleVehicleChange('');
+                    }}
                     className="absolute right-3 top-[32px] text-muted-foreground hover:text-foreground text-xs"
                   >
                     ✕
@@ -613,7 +587,10 @@ export function CreateTowingQuote() {
                       filteredVehiclesForDropdown.map((v) => (
                         <div
                           key={v.id}
-                          onMouseDown={() => handleVehicleChange(v.placa)}
+                          onMouseDown={() => {
+                            setFormData({ ...formData, placaBusca: v.placa });
+                            handleVehicleChange(v.placa);
+                          }}
                           className="p-2.5 hover:bg-muted/40 cursor-pointer transition-colors text-xs flex justify-between items-center"
                         >
                           <div>
@@ -641,25 +618,21 @@ export function CreateTowingQuote() {
                 )}
               </div>
 
-              {/* Coluna 2: Tipo de Guincho */}
+              {/* Coluna 2: Quantidade de Eixos */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wide">Tipo de Guincho *</label>
+                <label className="text-xs font-bold text-foreground uppercase tracking-wide">Quantidade de Eixos *</label>
                 <select
-                  value={formData.towingTypeId || ''}
-                  onChange={e => handleTowingTypeChange(e.target.value)}
-                  disabled={!isAdmin && !!formData.vehicleId}
-                  className={`w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground ${
-                    !isAdmin && !!formData.vehicleId ? 'opacity-70 cursor-not-allowed bg-muted/30' : ''
-                  }`}
+                  value={formData.quantidadeEixos}
+                  onChange={e => handleQuantidadeEixosChange(Number(e.target.value))}
+                  className="w-full bg-background border border-border px-3.5 py-2.5 rounded-lg text-sm focus:border-primary focus:outline-none text-foreground"
                 >
-                  <option value="">Selecione o tipo de guincho</option>
-                  {towingTypes.map((type) => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
+                  <option value={2}>2 eixos</option>
+                  <option value={3}>3 eixos</option>
+                  <option value={4}>4 eixos</option>
+                  <option value={5}>5 eixos</option>
+                  <option value={6}>6 eixos</option>
+                  <option value={7}>7 ou mais eixos</option>
                 </select>
-                {!isAdmin && !!formData.vehicleId && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Tipo de guincho vinculado ao veículo.</p>
-                )}
               </div>
 
               {/* Coluna 3: Motorista Escalado */}

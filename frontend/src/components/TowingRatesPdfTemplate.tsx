@@ -50,7 +50,7 @@ export const TowingRatesPdfTemplate = forwardRef<HTMLDivElement, TowingRatesPdfT
           <tbody className="divide-y divide-slate-200 border-b">
             {rates.map((r, idx) => (
               <tr key={r.id || idx} className="hover:bg-slate-50/50">
-                <td className="py-2.5 px-3 font-semibold text-slate-900">{r.towingType?.name || r.tipoGuincho}</td>
+                <td className="py-2.5 px-3 font-semibold text-slate-900">{r.quantidadeEixos >= 7 ? '7 ou mais eixos' : `${r.quantidadeEixos} eixos`}</td>
                 <td className="py-2.5 px-3 text-right">R$ {Number(r.taxaSaida || 0).toFixed(2)}</td>
                 <td className="py-2.5 px-3 text-right">R$ {Number(r.valorKm || 0).toFixed(2)}</td>
                 <td className="py-2.5 px-3 text-right">R$ {Number(r.valorHoraParada || 0).toFixed(2)}</td>

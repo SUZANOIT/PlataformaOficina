@@ -4,7 +4,7 @@ exports.TowingRateController = void 0;
 const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const rateSchema = zod_1.z.object({
-    towingTypeId: zod_1.z.string().min(1, 'O tipo de guincho é obrigatório.'),
+    quantidadeEixos: zod_1.z.coerce.number().min(2, 'Quantidade mínima é 2 eixos.'),
     taxaSaida: zod_1.z.number().default(0),
     valorKm: zod_1.z.number().default(0),
     valorHoraParada: zod_1.z.number().default(0),
@@ -21,10 +21,7 @@ exports.TowingRateController = {
             }
             const rates = await prisma_1.prisma.towingRate.findMany({
                 where: whereClause,
-                include: {
-                    towingType: true
-                },
-                orderBy: { tipoGuincho: 'asc' }
+                orderBy: { quantidadeEixos: 'asc' }
             });
             return res.json(rates);
         }
@@ -37,16 +34,8 @@ exports.TowingRateController = {
             const companyId = req.companyId;
             const userId = req.userId;
             const data = rateSchema.parse(req.body);
-            // Verify towing type exists
-            const towingType = await prisma_1.prisma.towingType.findFirst({
-                where: { id: data.towingTypeId, companyId }
-            });
-            if (!towingType) {
-                return res.status(400).json({ error: 'Tipo de guincho não cadastrado.' });
-            }
-            const tipoGuincho = towingType.name;
             const existing = await prisma_1.prisma.towingRate.findFirst({
-                where: { companyId, towingTypeId: data.towingTypeId }
+                where: { companyId, quantidadeEixos: data.quantidadeEixos }
             });
             // Fetch user details for audit trail
             const user = await prisma_1.prisma.user.findUnique({
@@ -76,14 +65,11 @@ exports.TowingRateController = {
                 rate = await prisma_1.prisma.towingRate.update({
                     where: { id: existing.id },
                     data: {
-                        tipoGuincho,
+                        quantidadeEixos: data.quantidadeEixos,
                         taxaSaida: data.taxaSaida,
                         valorKm: data.valorKm,
                         valorHoraParada: data.valorHoraParada,
                         status: data.status,
-                    },
-                    include: {
-                        towingType: true
                     }
                 });
             }
@@ -91,15 +77,11 @@ exports.TowingRateController = {
                 rate = await prisma_1.prisma.towingRate.create({
                     data: {
                         companyId,
-                        towingTypeId: data.towingTypeId,
-                        tipoGuincho,
+                        quantidadeEixos: data.quantidadeEixos,
                         taxaSaida: data.taxaSaida,
                         valorKm: data.valorKm,
                         valorHoraParada: data.valorHoraParada,
                         status: data.status,
-                    },
-                    include: {
-                        towingType: true
                     }
                 });
                 // Log initial history
