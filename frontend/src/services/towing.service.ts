@@ -80,17 +80,17 @@ export const towingService = {
     return response.data;
   },
 
-  // GUIAS
-  getGuiaByQuoteId: async (quoteId: string) => {
+  // TRANSPORTATION GUIDES
+  getGuia: async (quoteId: string) => {
     const response = await api.get(`/api/towing/quotes/${quoteId}/guia`);
     return response.data;
   },
-  logGuiaAuditAction: async (guiaId: string, action: string, details?: any) => {
-    const response = await api.post(`/api/towing/guias/${guiaId}/audit`, { action, details });
+  logGuiaAudit: async (guiaId: string, acao: string, detalhes?: string) => {
+    const response = await api.post(`/api/towing/guias/${guiaId}/audit`, { acao, detalhes });
     return response.data;
   },
-  sendGuiaEmail: async (guiaId: string, to: string) => {
-    const response = await api.post(`/api/towing/guias/${guiaId}/email`, { to });
+  sendGuiaEmail: async (guiaId: string, email?: string) => {
+    const response = await api.post(`/api/towing/guias/${guiaId}/email`, { email });
     return response.data;
   }
 };
