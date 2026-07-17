@@ -1467,7 +1467,7 @@ export const fleetController = {
       const quotesAgg = await prisma.quote.aggregate({
         where: {
           veiculoId: { not: null },
-          status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
+          status: 'Pago'
         },
         _sum: { total: true }
       });
@@ -1492,7 +1492,7 @@ export const fleetController = {
         where: {
           updatedAt: { gte: sixMonthsAgo },
           veiculoId: { not: null },
-          status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
+          status: 'Pago'
         },
       });
 
