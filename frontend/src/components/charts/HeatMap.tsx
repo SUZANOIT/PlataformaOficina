@@ -32,7 +32,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
     <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
       <div className="min-w-[600px]">
         {/* Header (Months) */}
-        <div className="grid grid-cols-[80px_repeat(12,48px)] gap-3 mb-3">
+        <div className="grid grid-cols-[80px_repeat(12,1fr)] gap-2 mb-4">
           <div className="text-xs font-semibold text-muted-foreground uppercase flex items-center">Ano</div>
           {months.map(m => (
             <div key={m} className="text-center text-xs font-semibold text-muted-foreground uppercase">{m}</div>
@@ -43,7 +43,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
         {years.map(year => {
           const yearData = data.filter(d => d.ano === year);
           return (
-            <div key={year} className="grid grid-cols-[80px_repeat(12,48px)] gap-3 mb-3 items-center">
+            <div key={year} className="grid grid-cols-[80px_repeat(12,1fr)] gap-2 mb-3 items-center">
               <div className="text-sm font-bold text-foreground">{year}</div>
               
               {months.map((_, i) => {
@@ -52,15 +52,16 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
                 const count = cellData ? cellData.quantidade : 0;
                 
                 return (
-                  <div 
-                    key={i}
-                    className={`h-12 w-12 rounded-xl transition-all duration-300 hover:ring-2 hover:ring-emerald-500/50 hover:scale-110 cursor-pointer relative group ${getIntensityColor(revenue)}`}
-                  >
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-foreground text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                      <div className="font-bold mb-1">{months[i]} / {year}</div>
-                      <div>Receita: <span className="font-semibold text-emerald-400">{formatCurrency(revenue)}</span></div>
-                      <div>Ordens: <span className="font-semibold">{count}</span></div>
+                  <div key={i} className="flex justify-center">
+                    <div 
+                      className={`h-10 w-10 md:h-12 md:w-12 rounded-xl transition-all duration-300 hover:ring-2 hover:ring-emerald-500/50 hover:scale-110 cursor-pointer relative group ${getIntensityColor(revenue)}`}
+                    >
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-foreground text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                        <div className="font-bold mb-1">{months[i]} / {year}</div>
+                        <div>Receita: <span className="font-semibold text-emerald-400">{formatCurrency(revenue)}</span></div>
+                        <div>Ordens: <span className="font-semibold">{count}</span></div>
+                      </div>
                     </div>
                   </div>
                 );
