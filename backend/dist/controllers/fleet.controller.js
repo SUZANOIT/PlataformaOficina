@@ -1360,11 +1360,21 @@ exports.fleetController = {
                     }
                 }
             }
-            // Calculate Total Costs
+            // Calculate Total Costs from Events
             const eventsAgg = await prisma_1.prisma.vehicleEvent.aggregate({
                 _sum: { valor: true }
             });
-            const totalCosts = eventsAgg._sum.valor || 0;
+            const eventsTotal = eventsAgg._sum.valor || 0;
+            // Calculate Total Costs from Quotes (Orçamentos/OS) linked to vehicles
+            const quotesAgg = await prisma_1.prisma.quote.aggregate({
+                where: {
+                    veiculoId: { not: null },
+                    status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
+                },
+                _sum: { total: true }
+            });
+            const quotesTotal = quotesAgg._sum.total || 0;
+            const totalCosts = eventsTotal + quotesTotal;
             // Monthly costs breakdown for the last 6 months
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
@@ -1374,6 +1384,13 @@ exports.fleetController = {
                 where: {
                     data: { gte: sixMonthsAgo },
                     valor: { not: null },
+                },
+            });
+            const recentQuotes = await prisma_1.prisma.quote.findMany({
+                where: {
+                    updatedAt: { gte: sixMonthsAgo },
+                    veiculoId: { not: null },
+                    status: { in: ['Pago', 'Aprovado', 'Emitir Nota Fiscal', 'Cobertura'] }
                 },
             });
             const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -1390,6 +1407,13 @@ exports.fleetController = {
                 const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
                 if (key in monthlyCostsMap) {
                     monthlyCostsMap[key] += e.valor || 0;
+                }
+            });
+            recentQuotes.forEach((q) => {
+                const d = new Date(q.updatedAt);
+                const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
+                if (key in monthlyCostsMap) {
+                    monthlyCostsMap[key] += q.total || 0;
                 }
             });
             const monthlyCosts = Object.entries(monthlyCostsMap)
