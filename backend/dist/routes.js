@@ -68,6 +68,7 @@ const saas_auth_middleware_1 = require("./middlewares/saas-auth.middleware");
 const onboarding_controller_1 = require("./controllers/onboarding.controller");
 const webhook_controller_1 = require("./controllers/webhook.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const hr_routes_1 = require("./routes/hr.routes");
 const onboardingController = new onboarding_controller_1.OnboardingController();
 const webhookController = new webhook_controller_1.WebhookController();
 const routes = (0, express_1.Router)();
@@ -534,3 +535,7 @@ routes.post('/onboarding/checkout', onboardingController.checkout);
 // ==========================================
 routes.post('/api/webhooks/payment', webhookController.handleMockPaymentSuccess);
 routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
+// ==========================================
+// Rotas de Recursos Humanos (HR)
+// ==========================================
+routes.use('/hr', authMiddleware, hr_routes_1.hrRoutes);

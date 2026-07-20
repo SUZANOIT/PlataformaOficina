@@ -448,6 +448,14 @@ export function Layout() {
               
               {isRhOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/hr/employees" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Users size={16} className="text-muted-foreground" />
+                    <span>Motoristas e Funcionários</span>
+                  </Link>
                   {hasModule('colaboradores') && (
                     <Link 
                       to="/collaborators" 
@@ -919,6 +927,13 @@ export function Layout() {
               
               {isRhOpen && (
                 <div className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-5 animate-in slide-in-from-top-1 duration-150">
+                  <Link 
+                    to="/hr/employees" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Users size={16} className="text-muted-foreground" />
+                    <span>Motoristas e Funcionários</span>
+                  </Link>
                   {hasModule('colaboradores') && (
                     <Link 
                       to="/collaborators" 

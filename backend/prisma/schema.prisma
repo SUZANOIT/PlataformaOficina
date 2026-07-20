@@ -105,6 +105,11 @@ model Company {
   quoteHistories        QuoteHistory[]
   plataformaContratoHistories PlataformaContratoHistory[]
 
+  jobRoles              JobRole[]
+  employees             Employee[]
+  collectiveAgreements  CollectiveAgreement[]
+  workSchedules         WorkSchedule[]
+
   @@index([cnpj])
   @@index([parentCompanyId])
 }
@@ -1634,6 +1639,9 @@ model TowingQuote {
   driverId          String?
   driver            TowingDriver?  @relation(fields: [driverId], references: [id])
   
+  employeeId        String?
+  employee          Employee?      @relation("EmployeeTowingQuotes", fields: [employeeId], references: [id])
+  
   vehicleId         String?
   vehicle           TowingVehicle? @relation(fields: [vehicleId], references: [id])
   
@@ -1760,4 +1768,189 @@ model PreTenant {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------------
+// RECURSOS HUMANOS (HR)
+// -----------------------------------------------------------------------------
+
+model JobRole {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  title       String
+  description String?
+  cbo         String?  // Classificação Brasileira de Ocupações
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees   Employee[]
+
+  @@index([companyId])
+}
+
+model CollectiveAgreement {
+  id                   String   @id @default(uuid())
+  companyId            String
+  company              Company  @relation(fields: [companyId], references: [id])
+  
+  sindicato            String
+  estado               String
+  cidade               String?
+  dataBase             DateTime // Data-base da categoria
+  vigenciaInicio       DateTime
+  vigenciaFim          DateTime
+  
+  pisoSalarial         Float
+  jornadaMensal        Int      // Ex: 220
+  jornadaSemanal       Int      // Ex: 44
+  limiteDiario         Int?     // Limite legal de jornada diária (ex: 10h)
+  
+  percentualHE50       Float    // Ex: 50.0
+  percentualHE100      Float    // Ex: 100.0
+  percentualNoturno    Float    // Ex: 20.0
+  percentualPericulosidade Float? // Ex: 30.0
+  percentualInsalubridade Float?
+  
+  beneficiosObrigatorios String? // JSON ou texto
+  bancoDeHoras         Boolean  @default(false)
+  descansoObrigatorio  Int      // Minutos mínimos (ex: 60)
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  salaryConfigs        SalaryConfig[]
+
+  @@index([companyId])
+}
+
+model WorkSchedule {
+  id             String   @id @default(uuid())
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+  
+  name           String   // Ex: "Escala 12x36 Dia", "Comercial 8h"
+  type           String   // "8_HOURS", "12x36", "CUSTOM", "ON_CALL"
+  
+  entryTime      String?  // Ex: "08:00"
+  exitTime       String?  // Ex: "18:00"
+  intervalStart  String?  // Ex: "12:00"
+  intervalEnd    String?  // Ex: "13:00"
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employees      Employee[]
+
+  @@index([companyId])
+}
+
+model Employee {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id])
+  
+  nome            String
+  cpf             String   @unique
+  rg              String?
+  dataNascimento  DateTime?
+  estadoCivil     String?
+  
+  telefone        String?
+  email           String?
+  endereco        String?
+  foto            String?  // URL
+  
+  dataAdmissao    DateTime
+  status          String   @default("ATIVO") // ATIVO, FERIAS, AFASTADO, DEMITIDO
+  
+  jobRoleId       String?
+  jobRole         JobRole? @relation(fields: [jobRoleId], references: [id])
+  
+  workScheduleId  String?
+  workSchedule    WorkSchedule? @relation(fields: [workScheduleId], references: [id])
+  
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  documents       EmployeeDocument[]
+  attendances     TimeAttendance[]
+  salaryConfig    SalaryConfig?
+  towingQuotes    TowingQuote[]      @relation("EmployeeTowingQuotes")
+
+  @@index([companyId])
+  @@index([jobRoleId])
+}
+
+model EmployeeDocument {
+  id             String   @id @default(uuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  type           String   // CNH, MOPP, TOXICOLOGICO, ASO, NR
+  number         String?
+  category       String?  // Para CNH
+  expirationDate DateTime?
+  fileUrl        String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([employeeId])
+}
+
+model TimeAttendance {
+  id             String   @id @default(uuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  date           DateTime // Dia da jornada
+  
+  entryTime      DateTime?
+  intervalStart  DateTime?
+  intervalEnd    DateTime?
+  exitTime       DateTime?
+  
+  normalHours    Float    @default(0) // Horas decimais
+  extraHours50   Float    @default(0)
+  extraHours100  Float    @default(0)
+  nightHours     Float    @default(0)
+  bankHours      Float    @default(0) // Positivo ou negativo
+  
+  notes          String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([employeeId])
+}
+
+model SalaryConfig {
+  id             String   @id @default(uuid())
+  employeeId     String   @unique
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  collectiveAgreementId String?
+  collectiveAgreement   CollectiveAgreement? @relation(fields: [collectiveAgreementId], references: [id])
+  
+  baseSalary     Float
+  
+  // Variáveis (exceções à convenção ou definidos por contrato)
+  comissaoPercentual Float?
+  valorAtendimento   Float?
+  valorKm            Float?
+  
+  valeTransporte     Float?
+  valeAlimentacao    Float?
+  valeRefeicao       Float?
+  outrosBeneficios   Float?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([employeeId])
+}
+
 

@@ -29,7 +29,7 @@ import { saasAuthMiddleware, saasPermissionGuard } from './middlewares/saas-auth
 import { OnboardingController } from './controllers/onboarding.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import jwt from 'jsonwebtoken';
-
+import { hrRoutes } from './routes/hr.routes';
 const onboardingController = new OnboardingController();
 const webhookController = new WebhookController();
 
@@ -568,5 +568,10 @@ routes.post('/onboarding/checkout', onboardingController.checkout);
 // ==========================================
 routes.post('/api/webhooks/payment', webhookController.handleMockPaymentSuccess);
 routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
+
+// ==========================================
+// Rotas de Recursos Humanos (HR)
+// ==========================================
+routes.use('/hr', authMiddleware, hrRoutes);
 
 export { routes };
