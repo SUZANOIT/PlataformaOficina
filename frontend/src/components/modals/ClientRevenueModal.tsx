@@ -325,7 +325,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                   <Calendar size={18} className="text-muted-foreground"/> 
                   Intensidade Financeira Mensal
                 </h4>
-                <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+                <div className="w-full overflow-x-auto">
                   <HeatMap data={data.monthlyData} />
                 </div>
               </div>
