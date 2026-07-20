@@ -9,7 +9,7 @@ exports.payrollController = {
             const { month, year } = req.query;
             if (!month || !year)
                 return res.status(400).json({ error: 'Mês e ano obrigatórios' });
-            const employee = await prisma_1.prisma.employee.findUnique({
+            const employee = await prisma_1.prisma.collaborator.findUnique({
                 where: { id: employeeId },
                 include: {
                     salaryConfig: { include: { collectiveAgreement: true } },
@@ -42,7 +42,7 @@ exports.payrollController = {
             let totalExtra50 = 0;
             let totalExtra100 = 0;
             let totalNight = 0;
-            employee.attendances.forEach(att => {
+            employee.attendances.forEach((att) => {
                 totalNormalHours += att.normalHours;
                 totalExtra50 += att.extraHours50;
                 totalExtra100 += att.extraHours100;
@@ -59,7 +59,7 @@ exports.payrollController = {
             let comissaoTotal = 0;
             let totalAtendimentos = employee.towingQuotes.length;
             let receitaTotal = 0;
-            employee.towingQuotes.forEach(quote => {
+            employee.towingQuotes.forEach((quote) => {
                 receitaTotal += quote.valorTotal;
                 if (cfg.valorAtendimento)
                     comissaoTotal += cfg.valorAtendimento;

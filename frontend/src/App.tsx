@@ -68,7 +68,6 @@ import { TowingRates } from './pages/towing/TowingRates';
 import { TowingFleet } from './pages/towing/TowingFleet';
 import { TowingDrivers } from './pages/towing/TowingDrivers';
 import { TowingDashboard } from './pages/towing/TowingDashboard';
-import { EmployeeList } from './pages/hr/EmployeeList';
 
 function App() {
   return (
@@ -153,7 +152,6 @@ function App() {
               {/* Rotas de Recursos Humanos */}
               <Route path="rh/absences" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><AbsenceControl /></ModuleGuard>} />
               <Route path="rh/closing" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><MonthlyClosing /></ModuleGuard>} />
-              <Route path="hr/employees" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><EmployeeList /></ModuleGuard>} />
 
               {/* Central de Serviços — Marketplace de Módulos */}
               <Route path="marketplace" element={<ModuleMarketplace />} />

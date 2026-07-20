@@ -18,7 +18,7 @@ export const attendanceController = {
       const data = attendanceSchema.parse(req.body);
       
       // Busca employee e config
-      const employee = await prisma.employee.findUnique({
+      const employee = await prisma.collaborator.findUnique({
         where: { id: data.employeeId },
         include: { 
           workSchedule: true,

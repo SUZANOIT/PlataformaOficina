@@ -23,7 +23,7 @@ exports.employeeController = {
     async create(req, res) {
         try {
             const data = employeeSchema.parse(req.body);
-            const employee = await prisma_1.prisma.employee.create({
+            const employee = await prisma_1.prisma.collaborator.create({
                 data: {
                     ...data,
                     dataNascimento: data.dataNascimento ? new Date(data.dataNascimento) : null,
@@ -39,7 +39,7 @@ exports.employeeController = {
     async findAll(req, res) {
         try {
             const { companyId } = req.query;
-            const employees = await prisma_1.prisma.employee.findMany({
+            const employees = await prisma_1.prisma.collaborator.findMany({
                 where: { companyId: companyId, deletedAt: null },
                 include: { jobRole: true, workSchedule: true },
                 orderBy: { nome: 'asc' }
@@ -53,7 +53,7 @@ exports.employeeController = {
     async findOne(req, res) {
         try {
             const { id } = req.params;
-            const employee = await prisma_1.prisma.employee.findUnique({
+            const employee = await prisma_1.prisma.collaborator.findUnique({
                 where: { id: id },
                 include: {
                     jobRole: true,
@@ -76,7 +76,7 @@ exports.employeeController = {
         try {
             const { id } = req.params;
             const data = employeeSchema.parse(req.body);
-            const employee = await prisma_1.prisma.employee.update({
+            const employee = await prisma_1.prisma.collaborator.update({
                 where: { id: id },
                 data: {
                     ...data,
@@ -94,7 +94,7 @@ exports.employeeController = {
         try {
             const { id } = req.params;
             // Soft Delete
-            await prisma_1.prisma.employee.update({
+            await prisma_1.prisma.collaborator.update({
                 where: { id: id },
                 data: { deletedAt: new Date(), status: 'DEMITIDO' }
             });

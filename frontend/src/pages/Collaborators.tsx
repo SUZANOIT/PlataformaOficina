@@ -15,7 +15,7 @@ export function Collaborators() {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeModalTab, setActiveModalTab] = useState<'pessoais' | 'trabalhistas' | 'observacoes'>('pessoais');
+  const [activeModalTab, setActiveModalTab] = useState<'pessoais' | 'trabalhistas' | 'jornada' | 'salario' | 'documentos' | 'producao' | 'observacoes'>('pessoais');
   const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -72,6 +72,18 @@ export function Collaborators() {
   const [status, setStatus] = useState('ATIVO');
   const [observacoes, setObservacoes] = useState('');
   const [companyId, setCompanyId] = useState('');
+  
+  // New HR fields
+  const [rg, setRg] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [estadoCivil, setEstadoCivil] = useState('');
+  const [endereco, setEndereco] = useState('');
+  const [jobRoleId, setJobRoleId] = useState('');
+  const [workScheduleId, setWorkScheduleId] = useState('');
+  
+  // HR lookups
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [workSchedules, setWorkSchedules] = useState<any[]>([]);
 
   const fetchCollaborators = async () => {
     try {
@@ -103,9 +115,25 @@ export function Collaborators() {
     }
   };
 
+  const fetchJobRoles = async () => {
+    try {
+      const response = await fetch('/hr/jobs', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      if (response.ok) setJobRoles(await response.json());
+    } catch (e) {}
+  };
+
+  const fetchWorkSchedules = async () => {
+    try {
+      const response = await fetch('/hr/schedules', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      if (response.ok) setWorkSchedules(await response.json());
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchCollaborators();
     fetchCompanies();
+    fetchJobRoles();
+    fetchWorkSchedules();
   }, []);
 
   // Update selected collaborator details in general form when formCollabId changes
@@ -427,6 +455,14 @@ export function Collaborators() {
     setSalario('');
     setStatus('ATIVO');
     setObservacoes('');
+    // HR fields
+    setRg('');
+    setEstadoCivil('');
+    setEndereco('');
+    setDataNascimento('');
+    setJobRoleId('');
+    setWorkScheduleId('');
+
     setIsModalOpen(true);
   };
 
@@ -444,6 +480,14 @@ export function Collaborators() {
     setStatus(collab.status || 'ATIVO');
     setObservacoes(collab.observacoes || '');
     setCompanyId(collab.companyId || '');
+    // HR fields
+    setRg(collab.rg || '');
+    setEstadoCivil(collab.estadoCivil || '');
+    setEndereco(collab.endereco || '');
+    setDataNascimento(collab.dataNascimento ? collab.dataNascimento.substring(0, 10) : '');
+    setJobRoleId(collab.jobRoleId || '');
+    setWorkScheduleId(collab.workScheduleId || '');
+
     setIsModalOpen(true);
   };
 
@@ -473,11 +517,18 @@ export function Collaborators() {
       cargo: cargo || null,
       departamento: departamento || null,
       dataAdmissao: dataAdmissao ? new Date(dataAdmissao).toISOString() : null,
-      salario: salario ? parseFloat(salario) : null,
+      salario: salario ? parseFloat(salario.replace(',', '.')) : null,
       status,
       observacoes: observacoes || null,
-      oficinaId: companyId || null,
-      companyId: companyId || null
+      companyId: companyId || null,
+      
+      // HR Fields
+      rg: rg || null,
+      dataNascimento: dataNascimento ? new Date(dataNascimento).toISOString() : null,
+      estadoCivil: estadoCivil || null,
+      endereco: endereco || null,
+      jobRoleId: jobRoleId || null,
+      workScheduleId: workScheduleId || null,
     };
 
     try {
@@ -1435,6 +1486,22 @@ export function Collaborators() {
                 Dados Trabalhistas
               </button>
               <button
+                onClick={() => setActiveModalTab('jornada')}
+                className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                  activeModalTab === 'jornada' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Jornada
+              </button>
+              <button
+                onClick={() => setActiveModalTab('salario')}
+                className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                  activeModalTab === 'salario' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Salário/Convenção
+              </button>
+              <button
                 onClick={() => setActiveModalTab('observacoes')}
                 className={`py-3 px-4 font-semibold text-sm border-b-2 transition-colors ${
                   activeModalTab === 'observacoes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -1469,6 +1536,51 @@ export function Collaborators() {
                       className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm font-mono"
                     />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">RG</label>
+                    <input
+                      type="text"
+                      value={rg}
+                      onChange={(e) => setRg(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Data de Nascimento</label>
+                    <input
+                      type="date"
+                      value={dataNascimento}
+                      onChange={(e) => setDataNascimento(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Estado Civil</label>
+                    <select
+                      value={estadoCivil}
+                      onChange={(e) => setEstadoCivil(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Solteiro(a)">Solteiro(a)</option>
+                      <option value="Casado(a)">Casado(a)</option>
+                      <option value="Divorciado(a)">Divorciado(a)</option>
+                      <option value="Viúvo(a)">Viúvo(a)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Endereço Completo</label>
+                  <input
+                    type="text"
+                    value={endereco}
+                    onChange={(e) => setEndereco(e.target.value)}
+                    className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1506,7 +1618,20 @@ export function Collaborators() {
               <div className={activeModalTab === 'trabalhistas' ? 'block space-y-4' : 'hidden'}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">Cargo / Função</label>
+                    <label className="text-xs font-semibold text-foreground">Cargo Oficial (Opcional)</label>
+                    <select
+                      value={jobRoleId}
+                      onChange={(e) => setJobRoleId(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    >
+                      <option value="">Nenhum cargo selecionado</option>
+                      {jobRoles.map((role) => (
+                        <option key={role.id} value={role.id}>{role.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Função / Título (Livre)</label>
                     <input
                       type="text"
                       placeholder="Ex: Mecânico Chefe, Auxiliar"
@@ -1579,7 +1704,34 @@ export function Collaborators() {
                 </div>
               </div>
 
-              {/* ABA 3: OBSERVAÇÕES */}
+              {/* ABA 3: JORNADA */}
+              <div className={activeModalTab === 'jornada' ? 'block space-y-4' : 'hidden'}>
+                <div className="bg-muted/20 p-4 rounded-lg border border-border">
+                  <h4 className="text-sm font-bold text-foreground mb-4">Escala de Trabalho</h4>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Escala Vinculada</label>
+                    <select
+                      value={workScheduleId}
+                      onChange={(e) => setWorkScheduleId(e.target.value)}
+                      className="w-full bg-background border border-border px-3 py-2 rounded-lg text-sm"
+                    >
+                      <option value="">Nenhuma escala definida</option>
+                      {workSchedules.map((schedule) => (
+                        <option key={schedule.id} value={schedule.id}>{schedule.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ABA 4: SALÁRIO */}
+              <div className={activeModalTab === 'salario' ? 'block space-y-4' : 'hidden'}>
+                <div className="bg-muted/20 p-4 rounded-lg border border-border text-center">
+                  <p className="text-sm text-muted-foreground">O gerenciamento de salário e convenção coletiva estará disponível na próxima atualização do módulo de RH.</p>
+                </div>
+              </div>
+
+              {/* ABA 5: OBSERVAÇÕES */}
               <div className={activeModalTab === 'observacoes' ? 'block space-y-4' : 'hidden'}>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-foreground">Observações Adicionais</label>

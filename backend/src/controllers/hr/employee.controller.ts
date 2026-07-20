@@ -23,7 +23,7 @@ export const employeeController = {
   async create(req: Request, res: Response) {
     try {
       const data = employeeSchema.parse(req.body);
-      const employee = await prisma.employee.create({
+      const employee = await prisma.collaborator.create({
         data: {
           ...data,
           dataNascimento: data.dataNascimento ? new Date(data.dataNascimento) : null,
@@ -39,7 +39,7 @@ export const employeeController = {
   async findAll(req: Request, res: Response) {
     try {
       const { companyId } = req.query;
-      const employees = await prisma.employee.findMany({
+      const employees = await prisma.collaborator.findMany({
         where: { companyId: companyId as string, deletedAt: null },
         include: { jobRole: true, workSchedule: true },
         orderBy: { nome: 'asc' }
@@ -53,7 +53,7 @@ export const employeeController = {
   async findOne(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const employee = await prisma.employee.findUnique({
+      const employee = await prisma.collaborator.findUnique({
         where: { id: id as string },
         include: { 
           jobRole: true, 
@@ -76,7 +76,7 @@ export const employeeController = {
       const { id } = req.params;
       const data = employeeSchema.parse(req.body);
       
-      const employee = await prisma.employee.update({
+      const employee = await prisma.collaborator.update({
         where: { id: id as string },
         data: {
           ...data,
@@ -94,7 +94,7 @@ export const employeeController = {
     try {
       const { id } = req.params;
       // Soft Delete
-      await prisma.employee.update({ 
+      await prisma.collaborator.update({ 
         where: { id: id as string },
         data: { deletedAt: new Date(), status: 'DEMITIDO' }
       });
