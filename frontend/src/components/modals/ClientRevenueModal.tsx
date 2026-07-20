@@ -320,7 +320,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
 
               {/* Row 3: Heatmap */}
-              <div className="bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm overflow-hidden w-full">
+              <div className="bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm w-full">
                 <h4 className="text-base font-bold text-foreground mb-6 flex items-center gap-2">
                   <Calendar size={18} className="text-muted-foreground"/> 
                   Intensidade Financeira Mensal

@@ -57,7 +57,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
                       className={`h-10 w-10 md:h-12 md:w-12 rounded-xl transition-all duration-300 hover:ring-2 hover:ring-emerald-500/50 hover:scale-110 cursor-pointer relative group ${getIntensityColor(revenue)}`}
                     >
                       {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-foreground text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max px-3 py-2 bg-foreground text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                         <div className="font-bold mb-1">{months[i]} / {year}</div>
                         <div>Receita: <span className="font-semibold text-emerald-400">{formatCurrency(revenue)}</span></div>
                         <div>Ordens: <span className="font-semibold">{count}</span></div>
