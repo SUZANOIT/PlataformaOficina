@@ -35,7 +35,7 @@ export const AdvancePdfTemplate = forwardRef<HTMLDivElement, AdvancePdfTemplateP
     return (
       <div
         ref={ref}
-        className="bg-white text-slate-900 p-8 w-[718px] min-h-[1012px] flex flex-col justify-between"
+        className="bg-white text-slate-900 p-8 w-[718px]"
         style={{ fontFamily: "'Inter', 'Arial', sans-serif" }}
       >
         <style>{`

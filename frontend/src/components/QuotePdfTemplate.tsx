@@ -83,7 +83,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
     return (
       <div
         ref={ref}
-        className="bg-white text-slate-900 p-12 w-[718px] min-h-[1012px] flex flex-col justify-between shadow-lg"
+        className="bg-white text-slate-900 p-12 w-[718px] shadow-lg"
         style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}
       >
         <style>{`
@@ -520,7 +520,7 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
   return (
     <div
       ref={ref}
-      className="bg-white text-slate-900 p-12 w-[718px] min-h-[1012px] flex flex-col justify-between"
+      className="bg-white text-slate-900 p-12 w-[718px]"
       style={{ fontFamily: "'Inter', 'Arial', sans-serif" }}
     >
       <style>{`
