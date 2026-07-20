@@ -611,32 +611,40 @@ model PayableQuoteLink {
   id             String           @id @default(uuid())
   payableId      String
   payable        FinancialPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
-  quoteId        String
-  quote          Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId        String?
+  quote          Quote?           @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  towingQuoteId  String?
+  towingQuote    TowingQuote?     @relation(fields: [towingQuoteId], references: [id], onDelete: Cascade)
   valorVinculado Float // O valor alocado deste lançamento para este orçamento
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([payableId, quoteId])
+  @@unique([payableId, towingQuoteId])
   @@index([payableId])
   @@index([quoteId])
+  @@index([towingQuoteId])
 }
 
 model ReceivableQuoteLink {
   id             String              @id @default(uuid())
   receivableId   String
   receivable     FinancialReceivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
-  quoteId        String
-  quote          Quote               @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId        String?
+  quote          Quote?               @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  towingQuoteId  String?
+  towingQuote    TowingQuote?         @relation(fields: [towingQuoteId], references: [id], onDelete: Cascade)
   valorVinculado Float // O valor alocado deste lançamento para este orçamento
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([receivableId, quoteId])
+  @@unique([receivableId, towingQuoteId])
   @@index([receivableId])
   @@index([quoteId])
+  @@index([towingQuoteId])
 }
 
 model TaxSetting {
@@ -1658,6 +1666,8 @@ model TowingQuote {
   updatedAt         DateTime @updatedAt
 
   guiaTransporte    GuiaTransporte?
+  linkedPayables    PayableQuoteLink[]
+  linkedReceivables ReceivableQuoteLink[]
 
   @@index([companyId])
   @@index([clientId])

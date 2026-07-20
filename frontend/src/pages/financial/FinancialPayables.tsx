@@ -355,7 +355,7 @@ export function FinancialPayables() {
     
     if ((payable as any).linkedQuotes) {
       setLinkedQuotes((payable as any).linkedQuotes.map((l: any) => ({
-        quoteId: l.quoteId,
+        quoteId: l.towingQuoteId || l.quoteId,
         valorVinculado: l.valorVinculado
       })));
     } else {
@@ -1148,7 +1148,7 @@ export function FinancialPayables() {
                       <option value="" disabled>+ Adicionar Orçamento...</option>
                       {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
                         <option key={q.id} value={q.id}>
-                          #{q.numeroOrcamento} - {typeof q.client === 'object' ? q.client.nome : q.client} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                          [{q.tipo || 'Oficina'}] {q.numeroFormatado || `#${q.numeroOrcamento}`} - {typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
                         </option>
                       ))}
                     </select>
@@ -1174,7 +1174,7 @@ export function FinancialPayables() {
                           <div className="flex items-start justify-between">
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-foreground">Orçamento #{q?.numeroOrcamento}</span>
+                                <span className="text-xs font-bold text-foreground">Orçamento {q?.numeroFormatado || `#${q?.numeroOrcamento}`}</span>
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                                   realAvailable === 0
                                     ? 'bg-red-500/10 text-red-500'
@@ -1470,10 +1470,10 @@ export function FinancialPayables() {
                   </h4>
                   <div className="space-y-2">
                     {(selectedPayable as any).linkedQuotes.map((link: any) => (
-                      <div key={link.id} className="flex items-center justify-between p-3 bg-background border border-border rounded-xl">
+                      <div key={link.id || link.quoteId} className="flex items-center justify-between p-3 bg-background border border-border rounded-xl">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-bold text-foreground">Orçamento #{link.quote?.numeroOrcamento}</span>
-                          <span className="text-[10px] text-muted-foreground">Cliente: {link.quote?.client?.nome}</span>
+                          <span className="text-xs font-bold text-foreground">Orçamento {link.quote?.numeroFormatado || link.towingQuote?.numeroFormatado || `#${link.quote?.numeroOrcamento || link.towingQuote?.numeroOrcamento}`}</span>
+                          <span className="text-[10px] text-muted-foreground">Cliente: {link.quote?.client?.nome || 'Não identificado'}</span>
                         </div>
                         <div className="text-right">
                           <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Valor Alocado</span>

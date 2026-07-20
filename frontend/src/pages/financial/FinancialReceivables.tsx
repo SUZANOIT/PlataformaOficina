@@ -362,7 +362,7 @@ export function FinancialReceivables() {
     setResponsavel(receivable.responsavel_lancamento_nome || receivable.responsavel);
     setObservacoes(receivable.observacoes || '');
     setStatus(receivable.status);
-    setLinkedQuotes((receivable as any).linkedQuotes ? (receivable as any).linkedQuotes.map((l: any) => ({ quoteId: l.quoteId, valorVinculado: l.valorVinculado })) : []);
+    setLinkedQuotes((receivable as any).linkedQuotes ? (receivable as any).linkedQuotes.map((l: any) => ({ quoteId: l.towingQuoteId || l.quoteId, valorVinculado: l.valorVinculado })) : []);
     setAttachments(receivable.attachments || []);
     setIsFormOpen(true);
   };
@@ -1124,7 +1124,7 @@ export function FinancialReceivables() {
                       <option value="" disabled>+ Adicionar Orçamento...</option>
                       {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
                         <option key={q.id} value={q.id}>
-                          #{q.numeroOrcamento} - {typeof q.client === 'object' && q.client !== null ? q.client.nome : q.client} ({q.status || 'Status não identificado'}) (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                          [{q.tipo || 'Oficina'}] {q.numeroFormatado || `#${q.numeroOrcamento}`} - {typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
                         </option>
                       ))}
                     </select>
@@ -1150,7 +1150,7 @@ export function FinancialReceivables() {
                           <div className="flex items-start justify-between">
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-foreground">Orçamento #{q?.numeroOrcamento}</span>
+                                <span className="text-xs font-bold text-foreground">Orçamento {q?.numeroFormatado || `#${q?.numeroOrcamento}`}</span>
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                                   realAvailable === 0
                                     ? 'bg-red-500/10 text-red-500'
@@ -1332,7 +1332,7 @@ export function FinancialReceivables() {
                   <div>
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Orçamentos Vinculados</span>
                     <span className="font-extrabold text-primary flex items-center gap-1 flex-wrap">
-                      {(selectedReceivable as any).linkedQuotes.map((l: any) => `#${l.quote?.numeroOrcamento}`).join(', ')}
+                      {(selectedReceivable as any).linkedQuotes.map((l: any) => l.quote?.numeroFormatado || l.towingQuote?.numeroFormatado || `#${l.quote?.numeroOrcamento || l.towingQuote?.numeroOrcamento}`).join(', ')}
                     </span>
                   </div>
                 ) : selectedReceivable.quote ? (
@@ -1404,7 +1404,7 @@ export function FinancialReceivables() {
                     {(selectedReceivable as any).linkedQuotes.map((link: any) => (
                       <div key={link.id || link.quoteId} className="flex items-center justify-between text-xs py-1.5 border-b border-border/30 last:border-b-0">
                         <div className="flex flex-col">
-                          <span className="font-bold text-foreground">Orçamento #{link.quote?.numeroOrcamento}</span>
+                          <div className="font-bold text-foreground">{link.quote?.numeroFormatado || link.towingQuote?.numeroFormatado || `#${link.quote?.numeroOrcamento || link.towingQuote?.numeroOrcamento}`}</div>
                           <span className="text-[10px] text-muted-foreground">Cliente: {link.quote?.client?.nome || 'Não identificado'}</span>
                         </div>
                         <span className="font-black text-emerald-500">{formatCurrency(link.valorVinculado)}</span>
