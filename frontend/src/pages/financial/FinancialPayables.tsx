@@ -82,6 +82,7 @@ export function FinancialPayables() {
   const [companyFilter, setCompanyFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [costCenterFilter, setCostCenterFilter] = useState('');
+  const [quoteSearch, setQuoteSearch] = useState('');
   const [startDateFilter, setStartDateFilter] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -1136,23 +1137,41 @@ export function FinancialPayables() {
                     </p>
                   </div>
                   
-                  {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).length > 0 && (
-                    <select
-                      onChange={(e) => {
-                        handleAddLink(e.target.value);
-                        e.target.value = ''; // Reset select
-                      }}
-                      className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[200px]"
-                      defaultValue=""
-                    >
-                      <option value="" disabled>+ Adicionar Orçamento...</option>
-                      {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id)).map(q => (
-                        <option key={q.id} value={q.id}>
-                          [{q.tipo || 'Oficina'}] {q.numeroFormatado || `#${q.numeroOrcamento}`} - {typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <div className="flex flex-col gap-2 items-end">
+                    <input
+                      type="text"
+                      placeholder="Buscar orçamentos..."
+                      value={quoteSearch}
+                      onChange={(e) => setQuoteSearch(e.target.value)}
+                      className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full max-w-[200px]"
+                    />
+                    {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && (
+                      q.numeroOrcamento.toString().includes(quoteSearch) ||
+                      (q.numeroFormatado && q.numeroFormatado.toLowerCase().includes(quoteSearch.toLowerCase())) ||
+                      (typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName)?.toLowerCase().includes(quoteSearch.toLowerCase())
+                    )).length > 0 && (
+                      <select
+                        onChange={(e) => {
+                          handleAddLink(e.target.value);
+                          e.target.value = ''; // Reset select
+                          setQuoteSearch(''); // Clear search after adding
+                        }}
+                        className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer max-w-[200px]"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>+ Adicionar Orçamento...</option>
+                        {approvedQuotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && (
+                          q.numeroOrcamento.toString().includes(quoteSearch) ||
+                          (q.numeroFormatado && q.numeroFormatado.toLowerCase().includes(quoteSearch.toLowerCase())) ||
+                          (typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName)?.toLowerCase().includes(quoteSearch.toLowerCase())
+                        )).map(q => (
+                          <option key={q.id} value={q.id}>
+                            [{q.tipo || 'Oficina'}] {q.numeroFormatado || `#${q.numeroOrcamento}`} - {typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName} (Saldo: R$ {q.saldoDisponivel.toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
 
                 {linkedQuotes.length === 0 ? (
