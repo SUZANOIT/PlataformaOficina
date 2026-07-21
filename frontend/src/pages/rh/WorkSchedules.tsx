@@ -363,9 +363,10 @@ export function WorkSchedules() {
                 
                 <ModalFooterActions 
                   onCancel={handleCloseModal}
-                  isSubmitting={submitting}
-                  submitText="Salvar"
-                  submittingText="Salvando..."
+                  loading={submitting}
+                  primaryLabel="Salvar"
+                  loadingLabel="Salvando..."
+                  primaryType="submit"
                 />
               </form>
             </div>
