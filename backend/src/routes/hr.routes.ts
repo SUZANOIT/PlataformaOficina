@@ -3,6 +3,7 @@ import { collectiveAgreementController } from '../controllers/hr/collectiveAgree
 import { employeeController } from '../controllers/hr/employee.controller';
 import { attendanceController } from '../controllers/hr/attendance.controller';
 import { payrollController } from '../controllers/hr/payroll.controller';
+import { workScheduleController } from '../controllers/hr/workSchedule.controller';
 
 const hrRoutes = Router();
 
@@ -26,5 +27,12 @@ hrRoutes.get('/attendances/employee/:employeeId', attendanceController.findByEmp
 
 // Payroll
 hrRoutes.get('/payroll/:employeeId/estimate', payrollController.getEstimate);
+
+// Work Schedules
+hrRoutes.post('/work-schedules', workScheduleController.create);
+hrRoutes.get('/work-schedules', workScheduleController.findAll);
+hrRoutes.get('/work-schedules/:id', workScheduleController.findOne);
+hrRoutes.put('/work-schedules/:id', workScheduleController.update);
+hrRoutes.delete('/work-schedules/:id', workScheduleController.delete);
 
 export { hrRoutes };

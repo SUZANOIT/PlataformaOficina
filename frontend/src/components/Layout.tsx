@@ -24,7 +24,8 @@ import {
   CreditCard,
   Package,
   Percent,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Clock
 } from 'lucide-react';
 
 export function Layout() {
@@ -195,14 +196,6 @@ export function Layout() {
                   >
                     <Truck size={16} className="text-muted-foreground" />
                     <span>Frota de Guinchos</span>
-                  </Link>
-                  <Link 
-                    to="/towing/drivers" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <UserCheck size={16} className="text-muted-foreground" />
-                    <span>Motoristas</span>
                   </Link>
                   <Link 
                     to="/towing/rates" 
@@ -478,6 +471,26 @@ export function Layout() {
                       <span>Folha de Descontos</span>
                     </Link>
                   )}
+                  {(user?.roleAdmin || user?.roleRh) && (
+                    <Link 
+                      to="/rh/work-schedules" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Clock size={16} className="text-emerald-500" />
+                      <span>Escalas de Trabalho</span>
+                    </Link>
+                  )}
+                  {showGuincho && (
+                    <Link 
+                      to="/towing/drivers" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <UserCheck size={16} className="text-muted-foreground" />
+                      <span>Motoristas</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -684,13 +697,6 @@ export function Layout() {
                   >
                     <Truck size={16} className="text-muted-foreground" />
                     <span>Frota de Guinchos</span>
-                  </Link>
-                  <Link 
-                    to="/towing/drivers" 
-                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
-                  >
-                    <UserCheck size={16} className="text-muted-foreground" />
-                    <span>Motoristas</span>
                   </Link>
                   <Link 
                     to="/towing/rates" 
@@ -944,6 +950,24 @@ export function Layout() {
                     >
                       <CheckSquare size={16} className="text-green-500" />
                       <span>Folha de Descontos</span>
+                    </Link>
+                  )}
+                  {(user?.roleAdmin || user?.roleRh) && (
+                    <Link 
+                      to="/rh/work-schedules" 
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Clock size={16} className="text-emerald-500" />
+                      <span>Escalas de Trabalho</span>
+                    </Link>
+                  )}
+                  {showGuincho && (
+                    <Link 
+                      to="/towing/drivers" 
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <UserCheck size={16} className="text-muted-foreground" />
+                      <span>Motoristas</span>
                     </Link>
                   )}
                 </div>
