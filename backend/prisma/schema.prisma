@@ -215,6 +215,7 @@ model Quote {
   updatedAt DateTime @updatedAt
 
   history QuoteHistory[] @relation("QuoteHistoryToQuote")
+  anexos  AnexoNF[]
 
   @@index([companyId])
   @@index([clientId])
@@ -241,6 +242,23 @@ model QuoteHistory {
   @@index([quoteId])
   @@index([companyId])
   @@index([userId])
+}
+
+model AnexoNF {
+  id               String   @id @default(uuid())
+  quoteId          String   @map("ordem_servico_id")
+  quote            Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  tipo             String   // NF_PDF, NF_XML, COMPROVANTE_CIELO
+  nomeOriginal     String   @map("nome_original")
+  arquivo          String   // Caminho/Key no bucket (ex: nf/2026/07/OS-1542/UUID-nota_fiscal.pdf)
+  bucket           String
+  contentType      String   @map("content_type")
+  tamanho          Int
+  usuarioUpload    String   @map("usuario_upload")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([quoteId])
+  @@map("anexos_nf")
 }
 
 model QuoteItem {

@@ -39,6 +39,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.routes = void 0;
 const express_1 = require("express");
 const auth_controller_1 = require("./controllers/auth.controller");
+const attachment_controller_1 = require("./controllers/attachment.controller");
+const multer_1 = __importDefault(require("multer"));
+const upload = (0, multer_1.default)({
+    storage: multer_1.default.memoryStorage(),
+    limits: {
+        fileSize: 20 * 1024 * 1024, // 20 MB
+    }
+});
 const company_controller_1 = require("./controllers/company.controller");
 const quote_controller_1 = require("./controllers/quote.controller");
 const email_controller_1 = require("./controllers/email.controller");
@@ -316,6 +324,10 @@ routes.get('/quotes/:id/history', quote_controller_1.QuoteController.getHistory)
 routes.put('/quotes/:id', quote_controller_1.QuoteController.update);
 routes.delete('/quotes/:id', quote_controller_1.QuoteController.delete);
 routes.post('/quotes/:id/send-email', email_controller_1.EmailController.sendQuote);
+// Rotas de Anexos S3
+routes.get('/quotes/:id/s3-attachments', attachment_controller_1.AttachmentController.list);
+routes.post('/quotes/:id/s3-attachments', upload.single('file'), attachment_controller_1.AttachmentController.upload);
+routes.delete('/quotes/:id/s3-attachments/:attachmentId', attachment_controller_1.AttachmentController.delete);
 // Configurações
 routes.use('/settings', authMiddleware);
 routes.get('/settings/email', email_controller_1.EmailController.getConfig);

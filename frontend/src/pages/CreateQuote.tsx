@@ -5,6 +5,7 @@ import { Plus, Trash2, FileDown, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { quoteService } from '../services/quoteService';
 import { platformService } from '../services/platformService';
+import { AttachmentsUpload } from '../components/AttachmentsUpload';
 import { QuotePdfTemplate } from '../components/QuotePdfTemplate';
 import { QuoteHistoryModal } from '../components/QuoteHistoryModal';
 import { useGeneratePdf } from '../hooks/useGeneratePdf';
@@ -1647,6 +1648,12 @@ ${bankingText}`;
             )}
           </div>
         </div>
+
+        {id && (
+          <div className="mt-8 pt-6 border-t border-border">
+            <AttachmentsUpload quoteId={id} readOnly={isViewing} />
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 pt-6 border-t border-border">

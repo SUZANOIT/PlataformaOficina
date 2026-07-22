@@ -6,6 +6,8 @@ const collectiveAgreement_controller_1 = require("../controllers/hr/collectiveAg
 const employee_controller_1 = require("../controllers/hr/employee.controller");
 const attendance_controller_1 = require("../controllers/hr/attendance.controller");
 const payroll_controller_1 = require("../controllers/hr/payroll.controller");
+const workSchedule_controller_1 = require("../controllers/hr/workSchedule.controller");
+const jobRole_controller_1 = require("../controllers/hr/jobRole.controller");
 const hrRoutes = (0, express_1.Router)();
 exports.hrRoutes = hrRoutes;
 // Collective Agreements
@@ -25,3 +27,15 @@ hrRoutes.post('/attendances', attendance_controller_1.attendanceController.regis
 hrRoutes.get('/attendances/employee/:employeeId', attendance_controller_1.attendanceController.findByEmployee);
 // Payroll
 hrRoutes.get('/payroll/:employeeId/estimate', payroll_controller_1.payrollController.getEstimate);
+// Work Schedules
+hrRoutes.post('/work-schedules', workSchedule_controller_1.workScheduleController.create);
+hrRoutes.get('/work-schedules', workSchedule_controller_1.workScheduleController.findAll);
+hrRoutes.get('/work-schedules/:id', workSchedule_controller_1.workScheduleController.findOne);
+hrRoutes.put('/work-schedules/:id', workSchedule_controller_1.workScheduleController.update);
+hrRoutes.delete('/work-schedules/:id', workSchedule_controller_1.workScheduleController.delete);
+// Job Roles
+hrRoutes.post('/job-roles', jobRole_controller_1.jobRoleController.create);
+hrRoutes.get('/job-roles', jobRole_controller_1.jobRoleController.findAll);
+hrRoutes.get('/job-roles/:id', jobRole_controller_1.jobRoleController.findOne);
+hrRoutes.put('/job-roles/:id', jobRole_controller_1.jobRoleController.update);
+hrRoutes.delete('/job-roles/:id', jobRole_controller_1.jobRoleController.delete);

@@ -25,7 +25,8 @@ import {
   Package,
   Percent,
   ArrowLeftRight,
-  Clock
+  Clock,
+  Briefcase
 } from 'lucide-react';
 
 export function Layout() {
@@ -478,7 +479,17 @@ export function Layout() {
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <Clock size={16} className="text-emerald-500" />
-                      <span>Escalas de Trabalho</span>
+                      <span>Jornadas / Escalas</span>
+                    </Link>
+                  )}
+                  {(user?.roleAdmin || user?.roleRh) && (
+                    <Link 
+                      to="/rh/job-roles" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Briefcase size={16} className="text-emerald-600" />
+                      <span>Cargos e Funções</span>
                     </Link>
                   )}
                   {showGuincho && (
@@ -958,7 +969,16 @@ export function Layout() {
                       className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
                     >
                       <Clock size={16} className="text-emerald-500" />
-                      <span>Escalas de Trabalho</span>
+                      <span>Jornadas / Escalas</span>
+                    </Link>
+                  )}
+                  {(user?.roleAdmin || user?.roleRh) && (
+                    <Link 
+                      to="/rh/job-roles" 
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <Briefcase size={16} className="text-emerald-600" />
+                      <span>Cargos e Funções</span>
                     </Link>
                   )}
                   {showGuincho && (

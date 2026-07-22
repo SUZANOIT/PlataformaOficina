@@ -1,5 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AuthController } from './controllers/auth.controller';
+import { AttachmentController } from './controllers/attachment.controller';
+import multer from 'multer';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20 MB
+  }
+});
 import { CompanyController } from './controllers/company.controller';
 import { QuoteController } from './controllers/quote.controller';
 import { EmailController } from './controllers/email.controller';
@@ -310,6 +319,11 @@ routes.get('/quotes/:id/history', QuoteController.getHistory);
 routes.put('/quotes/:id', QuoteController.update);
 routes.delete('/quotes/:id', QuoteController.delete);
 routes.post('/quotes/:id/send-email', EmailController.sendQuote);
+
+// Rotas de Anexos S3
+routes.get('/quotes/:id/s3-attachments', AttachmentController.list);
+routes.post('/quotes/:id/s3-attachments', upload.single('file'), AttachmentController.upload);
+routes.delete('/quotes/:id/s3-attachments/:attachmentId', AttachmentController.delete);
 
 // Configurações
 routes.use('/settings', authMiddleware);

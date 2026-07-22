@@ -39,6 +39,7 @@ import { Presentation } from './pages/Presentation';
 import { AbsenceControl } from './pages/rh/AbsenceControl';
 import { MonthlyClosing } from './pages/rh/MonthlyClosing';
 import { WorkSchedules } from './pages/rh/WorkSchedules';
+import { JobRoles } from './pages/rh/JobRoles';
 import { Products } from './pages/Products';
 import { NfeImport } from './pages/accounting/NfeImport';
 import { Taxes } from './pages/accounting/taxes/Taxes';
@@ -154,6 +155,7 @@ function App() {
               <Route path="rh/absences" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><AbsenceControl /></ModuleGuard>} />
               <Route path="rh/closing" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><MonthlyClosing /></ModuleGuard>} />
               <Route path="rh/work-schedules" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><WorkSchedules /></ModuleGuard>} />
+              <Route path="rh/job-roles" element={<ModuleGuard moduleKey="rh" moduleName="Recursos Humanos"><JobRoles /></ModuleGuard>} />
 
               {/* Central de Serviços — Marketplace de Módulos */}
               <Route path="marketplace" element={<ModuleMarketplace />} />

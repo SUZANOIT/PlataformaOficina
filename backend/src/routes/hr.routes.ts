@@ -4,6 +4,7 @@ import { employeeController } from '../controllers/hr/employee.controller';
 import { attendanceController } from '../controllers/hr/attendance.controller';
 import { payrollController } from '../controllers/hr/payroll.controller';
 import { workScheduleController } from '../controllers/hr/workSchedule.controller';
+import { jobRoleController } from '../controllers/hr/jobRole.controller';
 
 const hrRoutes = Router();
 
@@ -34,5 +35,12 @@ hrRoutes.get('/work-schedules', workScheduleController.findAll);
 hrRoutes.get('/work-schedules/:id', workScheduleController.findOne);
 hrRoutes.put('/work-schedules/:id', workScheduleController.update);
 hrRoutes.delete('/work-schedules/:id', workScheduleController.delete);
+
+// Job Roles
+hrRoutes.post('/job-roles', jobRoleController.create);
+hrRoutes.get('/job-roles', jobRoleController.findAll);
+hrRoutes.get('/job-roles/:id', jobRoleController.findOne);
+hrRoutes.put('/job-roles/:id', jobRoleController.update);
+hrRoutes.delete('/job-roles/:id', jobRoleController.delete);
 
 export { hrRoutes };
