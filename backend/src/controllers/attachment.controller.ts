@@ -15,8 +15,9 @@ export const AttachmentController = {
   async upload(req: Request, res: Response) {
     try {
       const quoteId = req.params.id as string;
-      const { tipo } = req.body;
+      const { tipo, valor } = req.body;
       const file = req.file;
+      const parsedValor = valor ? parseFloat(valor.toString().replace(',', '.')) : null;
 
       if (!file) {
         return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
@@ -31,9 +32,31 @@ export const AttachmentController = {
         return res.status(400).json({ error: 'Formato de arquivo não suportado para este tipo.' });
       }
 
-      const quote = await prisma.quote.findUnique({ where: { id: quoteId } });
+      const quote = await prisma.quote.findUnique({ 
+        where: { id: quoteId },
+        include: { items: true }
+      });
       if (!quote) {
         return res.status(404).json({ error: 'Orçamento não encontrado.' });
+      }
+
+      // Validação do Valor da NF com o Valor da OS
+      if (parsedValor !== null && parsedValor !== undefined) {
+        if (tipo === 'NF_PECA') {
+          const totalPecas = quote.items.filter(i => i.tipo === 'Peça').reduce((acc, i) => acc + i.valorTotal, 0);
+          if (Math.abs(totalPecas - parsedValor) > 0.1) {
+            return res.status(400).json({ error: `Valor divergente. O total de Peças na OS é R$ ${totalPecas.toFixed(2).replace('.', ',')}` });
+          }
+        } else if (tipo === 'NF_SERVICO') {
+          const totalServicos = quote.items.filter(i => i.tipo === 'Serviço').reduce((acc, i) => acc + i.valorTotal, 0);
+          if (Math.abs(totalServicos - parsedValor) > 0.1) {
+            return res.status(400).json({ error: `Valor divergente. O total de Serviços na OS é R$ ${totalServicos.toFixed(2).replace('.', ',')}` });
+          }
+        } else if (tipo === 'COMPROVANTE_POS') {
+          if (Math.abs(quote.total - parsedValor) > 0.1) {
+            return res.status(400).json({ error: `Valor divergente. O total da OS é R$ ${quote.total.toFixed(2).replace('.', ',')}` });
+          }
+        }
       }
 
       const userId = (req as any).userId || 'Sistema';
@@ -85,6 +108,7 @@ export const AttachmentController = {
           bucket: uploadResult.bucket,
           contentType: uploadResult.contentType,
           tamanho: uploadResult.size,
+          valor: parsedValor,
           etag: uploadResult.etag,
           usuarioUpload: userName,
         }

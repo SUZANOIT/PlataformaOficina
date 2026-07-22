@@ -254,6 +254,7 @@ model AnexoNF {
   bucket           String
   contentType      String   @map("content_type")
   tamanho          Int
+  valor            Float?
   etag             String?
   usuarioUpload    String   @map("usuario_upload")
   createdAt        DateTime @default(now()) @map("created_at")

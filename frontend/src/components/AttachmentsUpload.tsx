@@ -22,9 +22,15 @@ interface AttachmentsUploadProps {
 
 export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUploadProps) {
   const [anexos, setAnexos] = useState<AnexoNF[]>([]);
+  const [quoteDetails, setQuoteDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // States for input fields
+  const [valorPeca, setValorPeca] = useState<string>('');
+  const [valorServico, setValorServico] = useState<string>('');
+  const [valorPOS, setValorPOS] = useState<string>('');
 
   const fetchAnexos = async () => {
     try {
@@ -36,6 +42,13 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
       if (res.ok) {
         const data = await res.json();
         setAnexos(data);
+      }
+
+      const resQuote = await fetch(`/quotes/${quoteId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (resQuote.ok) {
+        setQuoteDetails(await resQuote.json());
       }
     } catch (error) {
       console.error('Erro ao carregar anexos', error);
@@ -51,15 +64,21 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
     }
   }, [quoteId]);
 
-  const handleUpload = async (file: File, tipo: string) => {
+  const handleUpload = async (file: File, tipo: string, valor?: string) => {
     if (file.size > 20 * 1024 * 1024) {
       toast.error('O arquivo deve ter no máximo 20MB.');
+      return;
+    }
+
+    if (!valor || parseFloat(valor.replace(',', '.')) <= 0) {
+      toast.error('Por favor, informe o Valor R$ antes de anexar.');
       return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('tipo', tipo);
+    formData.append('valor', valor);
 
     try {
       setUploading(true);
@@ -136,9 +155,18 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
+  const formatCurrency = (val: number | null | undefined) => {
+    if (val === null || val === undefined) return '—';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  };
+
   const nfPeca = anexos.filter(a => a.tipo === 'NF_PECA');
   const nfServico = anexos.filter(a => a.tipo === 'NF_SERVICO');
   const comprovantePOS = anexos.find(a => a.tipo === 'COMPROVANTE_POS' || a.tipo === 'COMPROVANTE_CIELO');
+
+  const totalPecas = quoteDetails?.items?.filter((i: any) => i.tipo === 'Peça').reduce((acc: number, i: any) => acc + i.valorTotal, 0) || 0;
+  const totalServicos = quoteDetails?.items?.filter((i: any) => i.tipo === 'Serviço').reduce((acc: number, i: any) => acc + i.valorTotal, 0) || 0;
+  const totalQuote = quoteDetails?.total || 0;
 
   const renderFileRow = (anexo: AnexoNF) => (
     <div key={anexo.id} className="flex items-center justify-between p-3 border border-border rounded-lg bg-background hover:bg-muted/50 transition">
@@ -146,7 +174,10 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
         {anexo.contentType === 'application/pdf' ? <FileText className="text-rose-500 flex-shrink-0" size={20} /> : <ImageIcon className="text-sky-500 flex-shrink-0" size={20} />}
         <div className="flex flex-col overflow-hidden">
           <span className="text-sm font-medium truncate" title={anexo.nomeOriginal}>{anexo.nomeOriginal}</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground font-semibold text-emerald-600">
+            {anexo.valor !== null && anexo.valor !== undefined ? formatCurrency(anexo.valor) : 'Sem valor'}
+          </span>
+          <span className="text-[10px] text-muted-foreground">
             {formatSize(anexo.tamanho)} • Enviado por {anexo.usuarioUpload} em {new Date(anexo.createdAt).toLocaleDateString()}
           </span>
         </div>
@@ -193,11 +224,26 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* NF Peça */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="font-semibold text-foreground">Nota Fiscal de Peça</h4>
-            {!readOnly && (
-              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
-                <Upload size={14} /> Enviar NF Peça
+          <div className="flex justify-between items-end border-b border-border pb-2">
+            <div>
+              <h4 className="font-semibold text-foreground">Nota Fiscal de Peça</h4>
+              {quoteDetails && <span className="text-xs text-muted-foreground">Esperado: <strong className="text-emerald-600">{formatCurrency(totalPecas)}</strong></span>}
+            </div>
+          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <input 
+                  type="text" 
+                  value={valorPeca}
+                  onChange={(e) => setValorPeca(e.target.value.replace(/[^0-9,.]/g, ''))}
+                  placeholder="0,00"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
+              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
+                <Upload size={14} /> Anexar
                 <input 
                   type="file" 
                   className="hidden" 
@@ -206,14 +252,15 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     if (e.target.files) {
                       Array.from(e.target.files).forEach(file => {
-                        handleUpload(file, 'NF_PECA');
+                        handleUpload(file, 'NF_PECA', valorPeca);
                       });
+                      setValorPeca('');
                     }
                   }}
                 />
               </label>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-2">
             {nfPeca.length === 0 ? (
               <p className="text-sm text-muted-foreground italic bg-muted/10 p-4 rounded-lg border border-dashed border-border text-center">
@@ -227,11 +274,26 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
 
         {/* NF Serviço */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="font-semibold text-foreground">Nota Fiscal de Serviço</h4>
-            {!readOnly && (
-              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
-                <Upload size={14} /> Enviar NF Serviço
+          <div className="flex justify-between items-end border-b border-border pb-2">
+            <div>
+              <h4 className="font-semibold text-foreground">Nota Fiscal de Serviço</h4>
+              {quoteDetails && <span className="text-xs text-muted-foreground">Esperado: <strong className="text-emerald-600">{formatCurrency(totalServicos)}</strong></span>}
+            </div>
+          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <input 
+                  type="text" 
+                  value={valorServico}
+                  onChange={(e) => setValorServico(e.target.value.replace(/[^0-9,.]/g, ''))}
+                  placeholder="0,00"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
+              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
+                <Upload size={14} /> Anexar
                 <input 
                   type="file" 
                   className="hidden" 
@@ -240,14 +302,15 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     if (e.target.files) {
                       Array.from(e.target.files).forEach(file => {
-                        handleUpload(file, 'NF_SERVICO');
+                        handleUpload(file, 'NF_SERVICO', valorServico);
                       });
+                      setValorServico('');
                     }
                   }}
                 />
               </label>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-2">
             {nfServico.length === 0 ? (
               <p className="text-sm text-muted-foreground italic bg-muted/10 p-4 rounded-lg border border-dashed border-border text-center">
@@ -261,23 +324,41 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
 
         {/* Comprovante POS */}
         <div className="space-y-4 lg:col-span-2">
-          <div className="flex justify-between items-center">
-            <h4 className="font-semibold text-foreground">Comprovante POS</h4>
-            {!readOnly && (
-              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
-                <Upload size={14} /> {comprovantePOS ? 'Substituir' : 'Enviar Comprovante'}
+          <div className="flex justify-between items-end border-b border-border pb-2">
+            <div>
+              <h4 className="font-semibold text-foreground">Comprovante POS</h4>
+              {quoteDetails && <span className="text-xs text-muted-foreground">Esperado: <strong className="text-emerald-600">{formatCurrency(totalQuote)}</strong></span>}
+            </div>
+          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-2 w-full lg:w-1/2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                <input 
+                  type="text" 
+                  value={valorPOS}
+                  onChange={(e) => setValorPOS(e.target.value.replace(/[^0-9,.]/g, ''))}
+                  placeholder="0,00"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
+              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
+                <Upload size={14} /> {comprovantePOS ? 'Substituir' : 'Anexar'}
                 <input 
                   type="file" 
                   className="hidden" 
                   accept="application/pdf, image/png, image/jpeg, image/jpg"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleUpload(file, 'COMPROVANTE_POS');
+                    if (file) {
+                      handleUpload(file, 'COMPROVANTE_POS', valorPOS);
+                      setValorPOS('');
+                    }
                   }}
                 />
               </label>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-2">
             {comprovantePOS ? (
               renderFileRow(comprovantePOS)
