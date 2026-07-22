@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 // Utilizando variáveis de ambiente (com fallbacks para evitar erros de tipagem, mas o ideal é que estejam preenchidas)
@@ -91,6 +92,24 @@ export class S3Service {
       return true;
     } catch (error) {
       console.error(`Erro ao deletar arquivo do S3 (Key: ${key}):`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gera uma URL pré-assinada para visualização/download de um arquivo.
+   * A URL expira por padrão em 1 hora (3600 segundos).
+   */
+  static async getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: STORAGE_BUCKET,
+      Key: key,
+    });
+
+    try {
+      return await getSignedUrl(s3Client, command, { expiresIn });
+    } catch (error) {
+      console.error(`Erro ao gerar pre-signed URL (Key: ${key}):`, error);
       throw error;
     }
   }

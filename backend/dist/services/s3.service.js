@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Service = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
+const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const uuid_1 = require("uuid");
 // Utilizando variáveis de ambiente (com fallbacks para evitar erros de tipagem, mas o ideal é que estejam preenchidas)
 const STORAGE_ENDPOINT = process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
@@ -79,6 +80,23 @@ class S3Service {
         }
         catch (error) {
             console.error(`Erro ao deletar arquivo do S3 (Key: ${key}):`, error);
+            throw error;
+        }
+    }
+    /**
+     * Gera uma URL pré-assinada para visualização/download de um arquivo.
+     * A URL expira por padrão em 1 hora (3600 segundos).
+     */
+    static async getPresignedUrl(key, expiresIn = 3600) {
+        const command = new client_s3_1.GetObjectCommand({
+            Bucket: STORAGE_BUCKET,
+            Key: key,
+        });
+        try {
+            return await (0, s3_request_presigner_1.getSignedUrl)(s3Client, command, { expiresIn });
+        }
+        catch (error) {
+            console.error(`Erro ao gerar pre-signed URL (Key: ${key}):`, error);
             throw error;
         }
     }

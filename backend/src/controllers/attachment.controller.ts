@@ -82,6 +82,7 @@ export const AttachmentController = {
           bucket: uploadResult.bucket,
           contentType: uploadResult.contentType,
           tamanho: uploadResult.size,
+          etag: uploadResult.etag,
           usuarioUpload: userName,
         }
       });
@@ -158,15 +159,18 @@ export const AttachmentController = {
         orderBy: { createdAt: 'desc' }
       });
 
-      // Vamos retornar o endpoint para download via presigned URL ou se o frontend sabe montar.
-      // O S3Service poderia gerar uma Presigned URL se o bucket for privado.
-      // Mas para a URL pública (storageapi), normalmente usa-se: endpoint/bucket/key
-      const STORAGE_ENDPOINT = process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
-      const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j';
+      const anexosComUrl = await Promise.all(anexos.map(async (anexo) => {
+        let presignedUrl = '';
+        try {
+          presignedUrl = await S3Service.getPresignedUrl(anexo.arquivo);
+        } catch (e) {
+          console.error(`Erro gerando pre-signed URL para ${anexo.arquivo}`, e);
+        }
 
-      const anexosComUrl = anexos.map(anexo => ({
-        ...anexo,
-        url: `${STORAGE_ENDPOINT}/${STORAGE_BUCKET}/${anexo.arquivo}`
+        return {
+          ...anexo,
+          url: presignedUrl || `${process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev'}/${process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j'}/${anexo.arquivo}`
+        };
       }));
 
       return res.json(anexosComUrl);
