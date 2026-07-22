@@ -402,18 +402,21 @@ export function QuotesList() {
                       >
                         <Edit size={16} />
                       </button>
-                      {quote.status === 'Pago' && (
-                        <button 
-                          onClick={() => {
-                            setSelectedQuoteForAttachment(quote);
-                            setIsAttachmentModalOpen(true);
-                          }}
-                          className="p-2 bg-sky-500/10 text-sky-600 rounded-lg hover:bg-sky-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
-                          title="Anexar Comprovantes"
-                        >
-                          <Paperclip size={16} />
-                        </button>
-                      )}
+                      <button 
+                        onClick={() => {
+                          setSelectedQuoteForAttachment(quote);
+                          setIsAttachmentModalOpen(true);
+                        }}
+                        disabled={quote.status !== 'Pago'}
+                        className={`p-2 rounded-lg transition active:scale-95 duration-150 flex items-center justify-center ${
+                          quote.status === 'Pago' 
+                            ? 'bg-sky-500/10 text-sky-600 hover:bg-sky-500/25' 
+                            : 'bg-muted text-muted-foreground opacity-30 cursor-not-allowed'
+                        }`}
+                        title={quote.status === 'Pago' ? "Anexar Comprovantes" : "Disponível apenas para orçamentos pagos"}
+                      >
+                        <Paperclip size={16} />
+                      </button>
                       <button 
 
                         onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
