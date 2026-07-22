@@ -136,8 +136,9 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  const notasFiscais = anexos.filter(a => a.tipo.startsWith('NF_'));
-  const comprovanteCielo = anexos.find(a => a.tipo === 'COMPROVANTE_CIELO');
+  const nfPeca = anexos.filter(a => a.tipo === 'NF_PECA');
+  const nfServico = anexos.filter(a => a.tipo === 'NF_SERVICO');
+  const comprovantePOS = anexos.find(a => a.tipo === 'COMPROVANTE_POS' || a.tipo === 'COMPROVANTE_CIELO');
 
   const renderFileRow = (anexo: AnexoNF) => (
     <div key={anexo.id} className="flex items-center justify-between p-3 border border-border rounded-lg bg-background hover:bg-muted/50 transition">
@@ -190,13 +191,13 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
       {loading && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="animate-spin" size={16} /> Carregando anexos...</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Notas Fiscais */}
+        {/* NF Peça */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h4 className="font-semibold text-foreground">Notas Fiscais</h4>
+            <h4 className="font-semibold text-foreground">Nota Fiscal de Peça</h4>
             {!readOnly && (
               <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
-                <Upload size={14} /> Enviar NF
+                <Upload size={14} /> Enviar NF Peça
                 <input 
                   type="file" 
                   className="hidden" 
@@ -205,8 +206,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     if (e.target.files) {
                       Array.from(e.target.files).forEach(file => {
-                        const tipo = file.type.includes('xml') ? 'NF_XML' : 'NF_PDF';
-                        handleUpload(file, tipo);
+                        handleUpload(file, 'NF_PECA');
                       });
                     }
                   }}
@@ -215,38 +215,72 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
             )}
           </div>
           <div className="space-y-2">
-            {notasFiscais.length === 0 ? (
+            {nfPeca.length === 0 ? (
               <p className="text-sm text-muted-foreground italic bg-muted/10 p-4 rounded-lg border border-dashed border-border text-center">
-                Nenhuma nota fiscal anexada.
+                Nenhuma nota fiscal de peça anexada.
               </p>
             ) : (
-              notasFiscais.map(renderFileRow)
+              nfPeca.map(renderFileRow)
             )}
           </div>
         </div>
 
-        {/* Comprovante Cielo */}
+        {/* NF Serviço */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h4 className="font-semibold text-foreground">Comprovante POS Cielo</h4>
+            <h4 className="font-semibold text-foreground">Nota Fiscal de Serviço</h4>
             {!readOnly && (
               <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
-                <Upload size={14} /> {comprovanteCielo ? 'Substituir' : 'Enviar Comprovante'}
+                <Upload size={14} /> Enviar NF Serviço
                 <input 
                   type="file" 
                   className="hidden" 
-                  accept="application/pdf, image/png, image/jpeg, image/jpg"
+                  accept="application/pdf, text/xml, application/xml"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleUpload(file, 'COMPROVANTE_CIELO');
+                    if (e.target.files) {
+                      Array.from(e.target.files).forEach(file => {
+                        handleUpload(file, 'NF_SERVICO');
+                      });
+                    }
                   }}
                 />
               </label>
             )}
           </div>
           <div className="space-y-2">
-            {comprovanteCielo ? (
-              renderFileRow(comprovanteCielo)
+            {nfServico.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic bg-muted/10 p-4 rounded-lg border border-dashed border-border text-center">
+                Nenhuma nota fiscal de serviço anexada.
+              </p>
+            ) : (
+              nfServico.map(renderFileRow)
+            )}
+          </div>
+        </div>
+
+        {/* Comprovante POS */}
+        <div className="space-y-4 lg:col-span-2">
+          <div className="flex justify-between items-center">
+            <h4 className="font-semibold text-foreground">Comprovante POS</h4>
+            {!readOnly && (
+              <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition">
+                <Upload size={14} /> {comprovantePOS ? 'Substituir' : 'Enviar Comprovante'}
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="application/pdf, image/png, image/jpeg, image/jpg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUpload(file, 'COMPROVANTE_POS');
+                  }}
+                />
+              </label>
+            )}
+          </div>
+          <div className="space-y-2">
+            {comprovantePOS ? (
+              renderFileRow(comprovantePOS)
             ) : (
               <p className="text-sm text-muted-foreground italic bg-muted/10 p-4 rounded-lg border border-dashed border-border text-center">
                 Nenhum comprovante anexado.

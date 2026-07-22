@@ -5,7 +5,10 @@ import { S3Service } from '../services/s3.service';
 const ALLOWED_MIME_TYPES = {
   'NF_PDF': ['application/pdf'],
   'NF_XML': ['text/xml', 'application/xml'],
-  'COMPROVANTE_CIELO': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
+  'COMPROVANTE_CIELO': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'],
+  'NF_PECA': ['application/pdf', 'text/xml', 'application/xml'],
+  'NF_SERVICO': ['application/pdf', 'text/xml', 'application/xml'],
+  'COMPROVANTE_POS': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
 };
 
 export const AttachmentController = {
@@ -19,7 +22,7 @@ export const AttachmentController = {
         return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
       }
 
-      if (!['NF_PDF', 'NF_XML', 'COMPROVANTE_CIELO'].includes(tipo)) {
+      if (!Object.keys(ALLOWED_MIME_TYPES).includes(tipo)) {
         return res.status(400).json({ error: 'Tipo de anexo inválido.' });
       }
 
@@ -37,10 +40,10 @@ export const AttachmentController = {
       const userName = (req as any).userName || 'Sistema';
       const ip = req.ip || req.connection.remoteAddress || 'Desconhecido';
 
-      // Se for comprovante Cielo, deve haver apenas um. Apagamos o antigo.
-      if (tipo === 'COMPROVANTE_CIELO') {
+      // Se for comprovante Cielo ou POS, deve haver apenas um. Apagamos o antigo.
+      if (tipo === 'COMPROVANTE_CIELO' || tipo === 'COMPROVANTE_POS') {
         const oldComprovante = await prisma.anexoNF.findFirst({
-          where: { quoteId, tipo: 'COMPROVANTE_CIELO' }
+          where: { quoteId, tipo: { in: ['COMPROVANTE_CIELO', 'COMPROVANTE_POS'] } }
         });
 
         if (oldComprovante) {
