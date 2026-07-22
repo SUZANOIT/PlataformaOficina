@@ -1649,7 +1649,7 @@ ${bankingText}`;
           </div>
         </div>
 
-        {id && (
+        {id && watchStatus === 'Pago' && (
           <div className="mt-8 pt-6 border-t border-border">
             <AttachmentsUpload quoteId={id} readOnly={isViewing} />
           </div>

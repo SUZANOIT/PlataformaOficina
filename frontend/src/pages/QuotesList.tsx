@@ -1,8 +1,9 @@
-import { Edit, Copy, Trash2, Search, Filter, Eye, Paperclip, Upload, X } from 'lucide-react';
+import { Edit, Copy, Trash2, Search, Filter, Eye, Paperclip, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import { AttachmentsUpload } from '../components/AttachmentsUpload';
 
 export function QuotesList() {
   const [stats, setStats] = useState<any>(null);
@@ -22,54 +23,6 @@ export function QuotesList() {
   // Modal de Anexos
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [selectedQuoteForAttachment, setSelectedQuoteForAttachment] = useState<any>(null);
-  const [uploadingAttachments, setUploadingAttachments] = useState(false);
-  const [nfServicoBase64, setNfServicoBase64] = useState<string>('');
-  const [nfPecaBase64, setNfPecaBase64] = useState<string>('');
-  const [comprovantePosBase64, setComprovantePosBase64] = useState<string>('');
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSaveAttachments = async () => {
-    if (!selectedQuoteForAttachment) return;
-    setUploadingAttachments(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/quotes/${selectedQuoteForAttachment.id}/attachments`, {
-        method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          nfServicoUrl: nfServicoBase64 || undefined,
-          nfPecaUrl: nfPecaBase64 || undefined,
-          comprovantePosUrl: comprovantePosBase64 || undefined
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Anexos salvos com sucesso!');
-        setIsAttachmentModalOpen(false);
-        fetchQuotes();
-      } else {
-        toast.error('Erro ao atualizar anexos.');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro de conexão ao salvar anexos.');
-    } finally {
-      setUploadingAttachments(false);
-    }
-  };
 
   const clientsList = useMemo(() => {
     const map = new Map();
@@ -453,9 +406,6 @@ export function QuotesList() {
                         <button 
                           onClick={() => {
                             setSelectedQuoteForAttachment(quote);
-                            setNfServicoBase64(quote.nfServicoUrl || '');
-                            setNfPecaBase64(quote.nfPecaUrl || '');
-                            setComprovantePosBase64(quote.comprovantePosUrl || '');
                             setIsAttachmentModalOpen(true);
                           }}
                           className="p-2 bg-sky-500/10 text-sky-600 rounded-lg hover:bg-sky-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
@@ -539,80 +489,29 @@ export function QuotesList() {
         )}
       </div>
 
-      {isAttachmentModalOpen && (
+      {isAttachmentModalOpen && selectedQuoteForAttachment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-          <div className="bg-background rounded-xl shadow-xl w-full max-w-lg border border-border">
+          <div className="bg-background rounded-xl shadow-xl w-full max-w-4xl border border-border">
             <div className="flex justify-between items-center p-4 border-b border-border">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Paperclip className="h-5 w-5 text-primary" />
-                Anexos de Faturamento
+                Anexos - OS #{String(selectedQuoteForAttachment.numeroOrcamento).padStart(5, '0')}
               </h2>
               <button onClick={() => setIsAttachmentModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Nota Fiscal de Serviço (PDF ou Imagem)</label>
-                <input 
-                  type="file" 
-                  accept="image/*,.pdf" 
-                  onChange={(e) => handleFileChange(e, setNfServicoBase64)}
-                  className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                />
-                {nfServicoBase64 && (
-                  <div className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
-                    <Upload size={12} /> Arquivo Selecionado/Enviado
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Nota Fiscal de Peça (PDF ou Imagem)</label>
-                <input 
-                  type="file" 
-                  accept="image/*,.pdf" 
-                  onChange={(e) => handleFileChange(e, setNfPecaBase64)}
-                  className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                />
-                {nfPecaBase64 && (
-                  <div className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
-                    <Upload size={12} /> Arquivo Selecionado/Enviado
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Comprovante POS Cielo (PDF ou Imagem)</label>
-                <input 
-                  type="file" 
-                  accept="image/*,.pdf" 
-                  onChange={(e) => handleFileChange(e, setComprovantePosBase64)}
-                  className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                />
-                {comprovantePosBase64 && (
-                  <div className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
-                    <Upload size={12} /> Arquivo Selecionado/Enviado
-                  </div>
-                )}
-              </div>
+            <div className="p-6">
+              <AttachmentsUpload quoteId={selectedQuoteForAttachment.id} />
             </div>
 
-            <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/20">
+            <div className="p-4 border-t border-border flex justify-end bg-muted/20">
               <button 
                 onClick={() => setIsAttachmentModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium border border-border rounded-lg bg-background hover:bg-muted"
-                disabled={uploadingAttachments}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSaveAttachments}
-                disabled={uploadingAttachments}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
-              >
-                {uploadingAttachments ? 'Salvando...' : 'Salvar Anexos'}
+                Fechar
               </button>
             </div>
           </div>
