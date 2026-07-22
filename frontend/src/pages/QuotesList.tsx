@@ -163,7 +163,7 @@ export function QuotesList() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            📋 Gestão de Orçamentos
+            📋 Gestão de Orçamentos (ATUALIZADO)
           </h1>
           <p className="text-muted-foreground text-sm">Visualização completa de orçamentos gerados, filtragem avançada e controle de execução.</p>
         </div>
