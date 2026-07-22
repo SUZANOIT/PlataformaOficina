@@ -10,6 +10,7 @@ interface AnexoNF {
   bucket: string;
   contentType: string;
   tamanho: number;
+  valor?: number | null;
   usuarioUpload: string;
   createdAt: string;
   url: string;
