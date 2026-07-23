@@ -14,8 +14,6 @@ import {
   Clock,
   Star
 } from 'lucide-react';
-import { TableActionMenu } from '../components/ui/TableActionMenu';
-import { TablePagination } from '../components/ui/TablePagination';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 
 export function Dashboard() {
@@ -30,15 +28,12 @@ export function Dashboard() {
   const [clientId, setClientId] = useState('all');
   const [mecanicoId, setMecanicoId] = useState('all');
   const [status, setStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState(''); // Text search for local filtering of the grid
-
+  
   // Filter Data
   const [clients, setClients] = useState<any[]>([]);
 
   // Pagination
-  const [quotesPage, setQuotesPage] = useState(1);
-  const [quotesPageSize, setQuotesPageSize] = useState(10);
-
+    
   // Data states
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -52,10 +47,7 @@ export function Dashboard() {
   }, [startDate, endDate, clientId, mecanicoId, status]);
 
   // Reset page on filter changes (both API filters and local search term)
-  useEffect(() => {
-    setQuotesPage(1);
-  }, [startDate, endDate, clientId, mecanicoId, status, searchTerm]);
-
+  
   const fetchFilterOptions = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -110,9 +102,7 @@ export function Dashboard() {
     setClientId('all');
     setMecanicoId('all');
     setStatus('all');
-    setSearchTerm('');
-    setQuotesPage(1);
-    toast.success('Filtros limpos com sucesso.');
+            toast.success('Filtros limpos com sucesso.');
   };
 
   const formatCurrency = (value: number) => {
@@ -152,28 +142,8 @@ export function Dashboard() {
     }
   };
 
-  // ─── Filter servicesGrid for table ────────────────────────────────────────────────
-  const rawQuotes = s.servicesGrid || [];
-  const filteredQuotes = rawQuotes.filter((q: any) => {
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      return (
-        q.os?.toLowerCase().includes(term) ||
-        q.cliente?.toLowerCase().includes(term) ||
-        q.veiculo?.toLowerCase().includes(term) ||
-        q.servico?.toLowerCase().includes(term)
-      );
-    }
-    return true;
-  });
-
-  const totalQuoteCount = filteredQuotes.length;
-  const totalQuotePages = Math.ceil(totalQuoteCount / quotesPageSize);
-  const paginatedQuotes = filteredQuotes.slice(
-    (quotesPage - 1) * quotesPageSize,
-    quotesPage * quotesPageSize,
-  );
-
+  
+  
   // ─── Variables for Charts and KPIs ────────────────────────────────────────────
   const monthlyBilling = s.monthlyBilling || [];
   const maxMonthlyVal = Math.max(...monthlyBilling.map((m: any) => m.valorPago), 1);
@@ -189,24 +159,7 @@ export function Dashboard() {
   const prevFaturamento = s.faturamentoMesAnterior || 0;
   const faturamentoCrescimento = prevFaturamento > 0 ? ((totalFaturamento - prevFaturamento) / prevFaturamento) * 100 : (totalFaturamento > 0 ? 100 : 0);
 
-  // ─── Status badge helper ──────────────────────────────────────────────────────
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      'Orçamento': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-      'Em Andamento': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-      'Aprovado': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-      'Concluído': 'bg-sky-500/10 text-sky-600 border-sky-500/20',
-      'Pago': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-      'Emitir Nota Fiscal': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-      'Cancelado': 'bg-rose-500/10 text-rose-600 border-rose-500/20',
-      'Recusado': 'bg-rose-500/10 text-rose-600 border-rose-500/20',
-      'Cobertura': 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
-      'Aguardando Pagamento': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-      'Aguardando Aprovação': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-    };
-    return map[status] || 'bg-slate-500/10 text-slate-600 border-slate-500/20';
-  };
-
+  
   return (
     <div className="space-y-6 pb-10">
 
@@ -247,17 +200,7 @@ export function Dashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Busca (Local)</label>
-            <input
-              type="text"
-              placeholder="Nº, cliente, placa..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-            />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</label>
@@ -546,71 +489,7 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Quotes Grid */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 className="font-bold text-foreground">Listagem de Orçamentos da Oficina</h3>
-                <span className="text-xs text-muted-foreground">{totalQuoteCount} registro(s)</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                  <thead>
-                    <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4 pl-6 w-[120px]">Nº / OS</th>
-                      <th className="p-4">Cliente</th>
-                      <th className="p-4">Veículo</th>
-                      <th className="p-4">Serviço/Peças</th>
-                      <th className="p-4 text-right w-[120px]">Valor</th>
-                      <th className="p-4 text-center w-[160px]">Status</th>
-                      <th className="p-4 text-center w-[120px]">Data</th>
-                      <th className="p-4 text-right w-[90px] pr-6">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedQuotes.map((q: any) => (
-                      <tr key={q.id} className="border-b border-border hover:bg-muted/10 transition">
-                        <td className="p-4 pl-6 font-bold text-primary text-sm">{q.os || `#${q.id?.substring(0, 8)}`}</td>
-                        <td className="p-4 font-semibold text-foreground truncate max-w-[150px]" title={q.cliente}>
-                          {q.cliente || '—'}
-                        </td>
-                        <td className="p-4 text-muted-foreground font-medium truncate max-w-[120px]" title={q.veiculo}>{q.veiculo || '—'}</td>
-                        <td className="p-4 text-muted-foreground text-xs truncate max-w-[180px]" title={q.servico}>{q.servico || '—'}</td>
-                        <td className="p-4 text-right font-extrabold text-emerald-600">{formatCurrency(q.valor)}</td>
-                        <td className="p-4 text-center">
-                          <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border ${statusBadge(q.status)}`}>
-                            {q.status || 'Orçamento'}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center text-xs text-muted-foreground">
-                          {new Date(q.data).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="p-4 text-right pr-6">
-                          <TableActionMenu
-                            onView={() => navigate(`/quotes/view/${q.id}`)}
-                            onEdit={() => navigate(`/quotes/edit/${q.id}`)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredQuotes.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                          Nenhum orçamento encontrado com os filtros aplicados.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <TablePagination
-                currentPage={quotesPage}
-                totalPages={totalQuotePages}
-                onPageChange={setQuotesPage}
-                pageSize={quotesPageSize}
-                onPageSizeChange={setQuotesPageSize}
-                totalCount={totalQuoteCount}
-              />
-            </div>
+            
           </div>
         )}
 
