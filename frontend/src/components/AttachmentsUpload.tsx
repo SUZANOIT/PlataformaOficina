@@ -257,6 +257,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                       });
                       setValorPeca('');
                     }
+                    e.target.value = '';
                   }}
                 />
               </label>
@@ -307,6 +308,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                       });
                       setValorServico('');
                     }
+                    e.target.value = '';
                   }}
                 />
               </label>
@@ -355,6 +357,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                       handleUpload(file, 'COMPROVANTE_POS', valorPOS);
                       setValorPOS('');
                     }
+                    e.target.value = '';
                   }}
                 />
               </label>
