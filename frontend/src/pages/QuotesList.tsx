@@ -10,7 +10,8 @@ export function QuotesList() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [vehiclePlateFilter, setVehiclePlateFilter] = useState('');
@@ -72,7 +73,7 @@ export function QuotesList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, startDate, endDate, selectedCompanyId, selectedClientId, vehiclePlateFilter]);
+  }, [searchTerm, statusFilters, startDate, endDate, selectedCompanyId, selectedClientId, vehiclePlateFilter]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Tem certeza de que deseja excluir este orçamento?')) {
@@ -112,7 +113,7 @@ export function QuotesList() {
       ? 'Aguardando Aprovação' 
       : (quote.status || 'Aguardando Aprovação');
 
-    if (statusFilter !== 'all' && normalizedStatus !== statusFilter) {
+    if (statusFilters.length > 0 && !statusFilters.includes(normalizedStatus)) {
       return false;
     }
 
@@ -317,18 +318,51 @@ export function QuotesList() {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 relative">
               <label className="text-xs font-semibold text-muted-foreground">Status</label>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
+              <div 
+                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus-within:border-primary transition cursor-pointer flex justify-between items-center"
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
               >
-                <option value="all">Todos os Status</option>
-                {QUOTE_STATUS_OPTIONS.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
+                <span className="truncate">
+                  {statusFilters.length === 0 ? 'Todos os Status' : `${statusFilters.length} selecionado(s)`}
+                </span>
+                <span className="text-muted-foreground text-[10px]">▼</span>
+              </div>
+
+              {showStatusDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowStatusDropdown(false)} />
+                  <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto py-1 animate-in fade-in duration-100">
+                    <label className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/70 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={statusFilters.length === 0}
+                        onChange={() => setStatusFilters([])}
+                        className="rounded border-border text-primary focus:ring-primary accent-primary"
+                      />
+                      <span className="truncate">Todos os Status</span>
+                    </label>
+                    {QUOTE_STATUS_OPTIONS.map(status => (
+                      <label key={status} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/70 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={statusFilters.includes(status)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStatusFilters([...statusFilters, status]);
+                            } else {
+                              setStatusFilters(statusFilters.filter(s => s !== status));
+                            }
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary accent-primary"
+                        />
+                        <span className="truncate">{status}</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -349,6 +383,18 @@ export function QuotesList() {
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary transition"
               />
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 mt-2 border-t border-border">
+            <span className="text-sm text-muted-foreground">
+              Exibindo <strong className="text-foreground">{filteredQuotes.length}</strong> registro(s)
+            </span>
+            <div className="text-sm">
+              <span className="text-muted-foreground">Valor Total Filtrado: </span>
+              <strong className="text-emerald-600 text-base">
+                {formatCurrency(filteredQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0))}
+              </strong>
             </div>
           </div>
         </div>
