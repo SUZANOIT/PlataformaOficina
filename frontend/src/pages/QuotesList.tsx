@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { AttachmentsUpload } from '../components/AttachmentsUpload';
-
+import { ReportPrintHeader } from '../components/ReportPrintHeader';
 export function QuotesList() {
   const [stats, setStats] = useState<any>(null);
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -174,12 +174,7 @@ export function QuotesList() {
         @media print {
           body, html, #root { height: auto !important; overflow: visible !important; background: white !important; }
           .no-print { display: none !important; }
-          .print-area { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
-          table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          thead { display: table-header-group; }
-          th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; color-adjust: exact; border-bottom: 2px solid #ddd; }
-          td { border-bottom: 1px solid #ddd; padding: 8px; }
+          .print-area { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; }
         }
       `}</style>
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 no-print">
@@ -358,13 +353,11 @@ export function QuotesList() {
           </div>
         </div>
 
-        <div className="hidden print:block mb-4 p-4 border-b border-border">
-          <h2 className="text-xl font-bold text-black mb-2">Relatório de Orçamentos</h2>
-          <div className="text-sm text-gray-600 flex gap-6">
-            <p><strong>Total de Registros:</strong> {filteredQuotes.length}</p>
-            <p><strong>Valor Total:</strong> {formatCurrency(filteredQuotes.reduce((acc, q) => acc + q.total, 0))}</p>
-          </div>
-        </div>
+        <ReportPrintHeader
+          company={filteredQuotes[0]?.company || {}}
+          title="Relatório de Orçamentos"
+          subtitle={`Total de Registros: ${filteredQuotes.length} • Valor Total: ${formatCurrency(filteredQuotes.reduce((acc, q) => acc + q.total, 0))}`}
+        />
 
         <div className="w-full overflow-x-auto scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">

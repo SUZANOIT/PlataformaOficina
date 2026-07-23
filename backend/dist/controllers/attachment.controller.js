@@ -6,35 +6,62 @@ const s3_service_1 = require("../services/s3.service");
 const ALLOWED_MIME_TYPES = {
     'NF_PDF': ['application/pdf'],
     'NF_XML': ['text/xml', 'application/xml'],
-    'COMPROVANTE_CIELO': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
+    'COMPROVANTE_CIELO': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'],
+    'NF_PECA': ['application/pdf', 'text/xml', 'application/xml'],
+    'NF_SERVICO': ['application/pdf', 'text/xml', 'application/xml'],
+    'COMPROVANTE_POS': ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
 };
 exports.AttachmentController = {
     async upload(req, res) {
         try {
             const quoteId = req.params.id;
-            const { tipo } = req.body;
+            const { tipo, valor } = req.body;
             const file = req.file;
+            const parsedValor = valor ? parseFloat(valor.toString().replace(',', '.')) : null;
             if (!file) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
-            if (!['NF_PDF', 'NF_XML', 'COMPROVANTE_CIELO'].includes(tipo)) {
+            if (!Object.keys(ALLOWED_MIME_TYPES).includes(tipo)) {
                 return res.status(400).json({ error: 'Tipo de anexo inválido.' });
             }
             const allowedMimes = ALLOWED_MIME_TYPES[tipo];
             if (!allowedMimes.includes(file.mimetype)) {
                 return res.status(400).json({ error: 'Formato de arquivo não suportado para este tipo.' });
             }
-            const quote = await prisma_1.prisma.quote.findUnique({ where: { id: quoteId } });
+            const quote = await prisma_1.prisma.quote.findUnique({
+                where: { id: quoteId },
+                include: { items: true }
+            });
             if (!quote) {
                 return res.status(404).json({ error: 'Orçamento não encontrado.' });
+            }
+            // Validação do Valor da NF com o Valor da OS
+            if (parsedValor !== null && parsedValor !== undefined) {
+                if (tipo === 'NF_PECA') {
+                    const totalPecas = quote.items.filter(i => i.tipo === 'Peça').reduce((acc, i) => acc + i.valorTotal, 0);
+                    if (Math.abs(totalPecas - parsedValor) > 0.1) {
+                        return res.status(400).json({ error: `Valor divergente. O total de Peças na OS é R$ ${totalPecas.toFixed(2).replace('.', ',')}` });
+                    }
+                }
+                else if (tipo === 'NF_SERVICO') {
+                    const totalServicos = quote.items.filter(i => i.tipo === 'Serviço').reduce((acc, i) => acc + i.valorTotal, 0);
+                    if (Math.abs(totalServicos - parsedValor) > 0.1) {
+                        return res.status(400).json({ error: `Valor divergente. O total de Serviços na OS é R$ ${totalServicos.toFixed(2).replace('.', ',')}` });
+                    }
+                }
+                else if (tipo === 'COMPROVANTE_POS') {
+                    if (Math.abs(quote.total - parsedValor) > 0.1) {
+                        return res.status(400).json({ error: `Valor divergente. O total da OS é R$ ${quote.total.toFixed(2).replace('.', ',')}` });
+                    }
+                }
             }
             const userId = req.userId || 'Sistema';
             const userName = req.userName || 'Sistema';
             const ip = req.ip || req.connection.remoteAddress || 'Desconhecido';
-            // Se for comprovante Cielo, deve haver apenas um. Apagamos o antigo.
-            if (tipo === 'COMPROVANTE_CIELO') {
+            // Se for comprovante Cielo ou POS, deve haver apenas um. Apagamos o antigo.
+            if (tipo === 'COMPROVANTE_CIELO' || tipo === 'COMPROVANTE_POS') {
                 const oldComprovante = await prisma_1.prisma.anexoNF.findFirst({
-                    where: { quoteId, tipo: 'COMPROVANTE_CIELO' }
+                    where: { quoteId, tipo: { in: ['COMPROVANTE_CIELO', 'COMPROVANTE_POS'] } }
                 });
                 if (oldComprovante) {
                     try {
@@ -68,6 +95,7 @@ exports.AttachmentController = {
                     bucket: uploadResult.bucket,
                     contentType: uploadResult.contentType,
                     tamanho: uploadResult.size,
+                    valor: parsedValor,
                     etag: uploadResult.etag,
                     usuarioUpload: userName,
                 }
