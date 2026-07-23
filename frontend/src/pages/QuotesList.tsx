@@ -1,4 +1,4 @@
-import { Edit, Copy, Trash2, Search, Filter, Eye, Paperclip, X } from 'lucide-react';
+import { Edit, Copy, Trash2, Search, Filter, Eye, Paperclip, X, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ export function QuotesList() {
   const [showClientsDropdown, setShowClientsDropdown] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -102,7 +103,6 @@ export function QuotesList() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  // Filter recent quotes
   const filteredQuotes = quotes.filter((quote: any) => {
     if (selectedCompanyId !== 'all' && quote.company?.id !== selectedCompanyId) {
       return false;
@@ -158,33 +158,62 @@ export function QuotesList() {
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const paginatedQuotes = filteredQuotes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const displayedQuotes = isPrinting ? filteredQuotes : paginatedQuotes;
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 300);
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6 print:space-y-0 print:bg-white print:m-0 print:p-0">
+      <style>{`
+        @media print {
+          body, html, #root { height: auto !important; overflow: visible !important; background: white !important; }
+          .no-print { display: none !important; }
+          .print-area { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+          table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; color-adjust: exact; border-bottom: 2px solid #ddd; }
+          td { border-bottom: 1px solid #ddd; padding: 8px; }
+        }
+      `}</style>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 no-print">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            📋 Gestão de Orçamentos (ATUALIZADO)
+            📋 Gestão de Orçamentos
           </h1>
           <p className="text-muted-foreground text-sm">Visualização completa de orçamentos gerados, filtragem avançada e controle de execução.</p>
         </div>
-        <button 
-          onClick={() => navigate('/quotes/new')}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition text-center shrink-0"
-        >
-          Novo Orçamento
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button 
+            onClick={handlePrint}
+            className="bg-muted text-foreground border border-border px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-muted/80 transition flex items-center gap-2"
+          >
+            <Printer size={18} />
+            Imprimir
+          </button>
+          <button 
+            onClick={() => navigate('/quotes/new')}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow hover:bg-primary/90 transition text-center"
+          >
+            Novo Orçamento
+          </button>
+        </div>
       </div>
 
-      {/* Tabela de Orçamentos */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-border space-y-4">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden print-area print:border-none print:shadow-none">
+        <div className="p-6 border-b border-border space-y-4 no-print">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Filter size={18} className="text-muted-foreground" />
               Filtrar Orçamentos
             </h2>
             
-            {/* Filtro por Empresa */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Empresa:</span>
               <select 
@@ -200,7 +229,6 @@ export function QuotesList() {
             </div>
           </div>
 
-          {/* Filtros Avançados */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 pt-2">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-muted-foreground">Número ou Termo</label>
@@ -216,7 +244,6 @@ export function QuotesList() {
               </div>
             </div>
 
-            {/* Combobox de Cliente */}
             <div className="space-y-1 relative">
               <label className="text-xs font-semibold text-muted-foreground">Cliente</label>
               <div className="relative">
@@ -331,6 +358,14 @@ export function QuotesList() {
           </div>
         </div>
 
+        <div className="hidden print:block mb-4 p-4 border-b border-border">
+          <h2 className="text-xl font-bold text-black mb-2">Relatório de Orçamentos</h2>
+          <div className="text-sm text-gray-600 flex gap-6">
+            <p><strong>Total de Registros:</strong> {filteredQuotes.length}</p>
+            <p><strong>Valor Total:</strong> {formatCurrency(filteredQuotes.reduce((acc, q) => acc + q.total, 0))}</p>
+          </div>
+        </div>
+
         <div className="w-full overflow-x-auto scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
             <thead>
@@ -341,11 +376,11 @@ export function QuotesList() {
                 <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
                 <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
                 <th className="p-4 font-medium w-[130px]">Valor Total</th>
-                <th className="p-4 font-medium w-[160px] text-center lg:text-left">Ações</th>
+                <th className="p-4 font-medium w-[160px] text-center lg:text-left no-print">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedQuotes.map((quote: any) => (
+              {displayedQuotes.map((quote: any) => (
                 <tr key={quote.id} className="border-b border-border hover:bg-muted/10 transition-colors">
                   <td className="py-4 pl-4 pr-2 font-semibold text-primary truncate">
                     #{String(quote.numeroOrcamento).padStart(5, '0')}
@@ -386,7 +421,7 @@ export function QuotesList() {
                   <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 no-print">
                     <div className="flex gap-1.5 justify-center lg:justify-start items-center">
                       <button 
                         onClick={() => navigate(`/quotes/view/${quote.id}`)}
@@ -418,7 +453,6 @@ export function QuotesList() {
                         <Paperclip size={16} />
                       </button>
                       <button 
-
                         onClick={() => navigate(`/quotes/new?clone=${quote.id}`)}
                         className="p-2 bg-amber-500/10 text-amber-600 rounded-lg hover:bg-amber-500/25 transition active:scale-95 duration-150 flex items-center justify-center"
                         title="Clonar"
@@ -437,7 +471,7 @@ export function QuotesList() {
                   </td>
                 </tr>
               ))}
-              {paginatedQuotes.length === 0 && (
+              {displayedQuotes.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     Nenhum orçamento encontrado para os critérios selecionados.
@@ -448,8 +482,7 @@ export function QuotesList() {
           </table>
         </div>
 
-        {/* Paginação */}
-        {totalPages > 1 && (
+        {!isPrinting && totalPages > 1 && (
           <div className="p-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/20">
             <span className="text-sm text-muted-foreground text-center sm:text-left">
               Mostrando <strong className="text-foreground">{Math.min(totalItems, (currentPage - 1) * itemsPerPage + 1)}</strong> a{' '}
