@@ -166,7 +166,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
   const comprovantePOS = anexos.find(a => a.tipo === 'COMPROVANTE_POS' || a.tipo === 'COMPROVANTE_CIELO');
 
   const totalPecas = quoteDetails?.items?.filter((i: any) => i.tipo === 'Peça').reduce((acc: number, i: any) => acc + i.valorTotal, 0) || 0;
-  const totalServicos = quoteDetails?.items?.filter((i: any) => i.tipo === 'Serviço').reduce((acc: number, i: any) => acc + i.valorTotal, 0) || 0;
+  const totalServicos = quoteDetails?.items?.filter((i: any) => i.tipo === 'Mão de Obra').reduce((acc: number, i: any) => acc + i.valorTotal, 0) || 0;
   const totalQuote = quoteDetails?.total || 0;
 
   const renderFileRow = (anexo: AnexoNF) => (
