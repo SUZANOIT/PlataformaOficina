@@ -15,7 +15,7 @@ exports.AttachmentController = {
     async upload(req, res) {
         try {
             const quoteId = req.params.id;
-            const { tipo, valor } = req.body;
+            const { tipo, valor, comentario } = req.body;
             const file = req.file;
             const parsedValor = valor ? parseFloat(valor.toString().replace(',', '.')) : null;
             if (!file) {
@@ -44,7 +44,7 @@ exports.AttachmentController = {
                     }
                 }
                 else if (tipo === 'NF_SERVICO') {
-                    const totalServicos = quote.items.filter(i => i.tipo === 'Serviço').reduce((acc, i) => acc + i.valorTotal, 0);
+                    const totalServicos = quote.items.filter(i => i.tipo === 'Mão de Obra').reduce((acc, i) => acc + i.valorTotal, 0);
                     if (Math.abs(totalServicos - parsedValor) > 0.1) {
                         return res.status(400).json({ error: `Valor divergente. O total de Serviços na OS é R$ ${totalServicos.toFixed(2).replace('.', ',')}` });
                     }
@@ -96,6 +96,7 @@ exports.AttachmentController = {
                     contentType: uploadResult.contentType,
                     tamanho: uploadResult.size,
                     valor: parsedValor,
+                    comentario: comentario || null,
                     etag: uploadResult.etag,
                     usuarioUpload: userName,
                 }

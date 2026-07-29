@@ -77,6 +77,7 @@ const onboarding_controller_1 = require("./controllers/onboarding.controller");
 const webhook_controller_1 = require("./controllers/webhook.controller");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const hr_routes_1 = require("./routes/hr.routes");
+const portalImposto_routes_1 = require("./portalContabilidade/routes/portalImposto.routes");
 const onboardingController = new onboarding_controller_1.OnboardingController();
 const webhookController = new webhook_controller_1.WebhookController();
 const routes = (0, express_1.Router)();
@@ -549,5 +550,7 @@ routes.post('/api/webhooks/payment', webhookController.handleMockPaymentSuccess)
 routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
 // ==========================================
 // Rotas de Recursos Humanos (HR)
-// ==========================================
+// ====================================// === RH Core ===
 routes.use('/hr', authMiddleware, hr_routes_1.hrRoutes);
+// === Portal Contabilidade Externa ===
+routes.use('/portal-contabilidade/impostos', authMiddleware, portalImposto_routes_1.portalImpostoRoutes);

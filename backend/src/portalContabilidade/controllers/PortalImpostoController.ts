@@ -39,12 +39,12 @@ export class PortalImpostoController {
 
   async findById(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId || req.query.companyId;
-      const { id } = req.params;
+      const companyId = ((req as any).companyId || req.query.companyId) as string;
+      const id = req.params.id as string;
 
       if (!companyId) return res.status(400).json({ error: 'Company ID é obrigatório' });
 
-      const imposto = await impostoService.findById(id, companyId as string);
+      const imposto = await impostoService.findById(id, companyId);
       return res.json(imposto);
     } catch (error: any) {
       return res.status(404).json({ error: error.message });
@@ -53,9 +53,9 @@ export class PortalImpostoController {
 
   async updateStatus(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId || req.body.companyId;
-      const userId = (req as any).user?.id;
-      const { id } = req.params;
+      const companyId = ((req as any).companyId || req.body.companyId) as string;
+      const userId = (req as any).user?.id as string;
+      const id = req.params.id as string;
 
       if (!companyId || !userId) {
         return res.status(400).json({ error: 'Company ID e Usuário são obrigatórios' });
@@ -70,9 +70,9 @@ export class PortalImpostoController {
 
   async uploadAnexo(req: Request, res: Response) {
     try {
-      const companyId = (req as any).companyId || req.body.companyId;
-      const userId = (req as any).user?.id;
-      const { id } = req.params;
+      const companyId = ((req as any).companyId || req.body.companyId) as string;
+      const userId = (req as any).user?.id as string;
+      const id = req.params.id as string;
 
       if (!companyId || !userId) {
         return res.status(400).json({ error: 'Company ID e Usuário são obrigatórios' });
