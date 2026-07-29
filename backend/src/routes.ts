@@ -39,6 +39,7 @@ import { OnboardingController } from './controllers/onboarding.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import jwt from 'jsonwebtoken';
 import { hrRoutes } from './routes/hr.routes';
+import { portalImpostoRoutes } from './portalContabilidade/routes/portalImposto.routes';
 const onboardingController = new OnboardingController();
 const webhookController = new WebhookController();
 
@@ -585,7 +586,10 @@ routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
 
 // ==========================================
 // Rotas de Recursos Humanos (HR)
-// ==========================================
+// ====================================// === RH Core ===
 routes.use('/hr', authMiddleware, hrRoutes);
+
+// === Portal Contabilidade Externa ===
+routes.use('/portal-contabilidade/impostos', authMiddleware, portalImpostoRoutes);
 
 export { routes };

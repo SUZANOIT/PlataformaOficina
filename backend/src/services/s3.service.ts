@@ -79,6 +79,61 @@ export class S3Service {
   }
 
   /**
+   * Faz upload de anexos de Impostos do Portal Contabilidade
+   */
+  static async uploadImpostoFile(
+    fileBuffer: Buffer,
+    originalName: string,
+    mimeType: string,
+    impostoId: string,
+    competencia: string // Ex: "07/2026"
+  ): Promise<{ bucket: string; key: string; contentType: string; size: number; etag?: string }> {
+    const uuid = uuidv4();
+    const safeOriginalName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const safeCompetencia = competencia.replace(/\//g, '-');
+    
+    const key = `imposto/${safeCompetencia}/${impostoId}/${uuid}-${safeOriginalName}`;
+    const size = fileBuffer.length;
+
+    const command = new PutObjectCommand({
+      Bucket: STORAGE_BUCKET,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: mimeType,
+    });
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    const timeoutMs = 30000;
+
+    while (attempts < maxAttempts) {
+      try {
+        attempts++;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        const response = await s3Client.send(command, { abortSignal: controller.signal });
+        clearTimeout(timeoutId);
+
+        return {
+          bucket: STORAGE_BUCKET,
+          key,
+          contentType: mimeType,
+          size,
+          etag: response.ETag,
+        };
+      } catch (error: any) {
+        if (attempts >= maxAttempts) {
+          throw new Error(`Upload falhou após ${maxAttempts} tentativas: ${error.message}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    throw new Error('Upload falhou inesperadamente.');
+  }
+
+  /**
    * Exclui um arquivo do S3
    */
   static async deleteFile(key: string): Promise<boolean> {
