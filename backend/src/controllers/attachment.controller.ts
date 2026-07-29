@@ -15,7 +15,7 @@ export const AttachmentController = {
   async upload(req: Request, res: Response) {
     try {
       const quoteId = req.params.id as string;
-      const { tipo, valor } = req.body;
+      const { tipo, valor, comentario } = req.body;
       const file = req.file;
       const parsedValor = valor ? parseFloat(valor.toString().replace(',', '.')) : null;
 
@@ -109,6 +109,7 @@ export const AttachmentController = {
           contentType: uploadResult.contentType,
           tamanho: uploadResult.size,
           valor: parsedValor,
+          comentario: comentario || null,
           etag: uploadResult.etag,
           usuarioUpload: userName,
         }

@@ -39,6 +39,14 @@ model User {
   quoteHistories              QuoteHistory[]
   plataformaContratoHistories PlataformaContratoHistory[]
 
+  portalImpostos        PortalImposto[]
+  portalImpostoAnexos   PortalImpostoAnexo[]
+  portalComentarios     PortalComentario[]
+  portalHistoricos      PortalHistorico[]
+  portalNotificacoesRec PortalNotificacao[]  @relation("NotificacoesRecebidas")
+  portalNotificacoesCri PortalNotificacao[]  @relation("NotificacoesCriadas")
+  portalAuditorias      PortalAuditoria[]
+
   @@index([email])
   @@index([companyId])
 }
@@ -104,6 +112,10 @@ model Company {
   towingRateHistories         TowingRateHistory[]
   quoteHistories              QuoteHistory[]
   plataformaContratoHistories PlataformaContratoHistory[]
+
+  portalImpostos     PortalImposto[]
+  portalNotificacoes PortalNotificacao[]
+  portalAuditorias   PortalAuditoria[]
 
   jobRoles             JobRole[]
   collectiveAgreements CollectiveAgreement[]
@@ -245,20 +257,21 @@ model QuoteHistory {
 }
 
 model AnexoNF {
-  id               String   @id @default(uuid())
-  quoteId          String   @map("ordem_servico_id")
-  quote            Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  tipo             String   // NF_PDF, NF_XML, COMPROVANTE_CIELO
-  nomeOriginal     String   @map("nome_original")
-  arquivo          String   // Caminho/Key no bucket (ex: nf/2026/07/OS-1542/UUID-nota_fiscal.pdf)
-  bucket           String
-  contentType      String   @map("content_type")
-  tamanho          Int
-  valor            Float?
-  etag             String?
-  usuarioUpload    String   @map("usuario_upload")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  quoteId       String   @map("ordem_servico_id")
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  tipo          String // NF_PDF, NF_XML, COMPROVANTE_CIELO
+  nomeOriginal  String   @map("nome_original")
+  arquivo       String // Caminho/Key no bucket (ex: nf/2026/07/OS-1542/UUID-nota_fiscal.pdf)
+  bucket        String
+  contentType   String   @map("content_type")
+  tamanho       Int
+  valor         Float?
+  comentario    String?  @db.Text
+  etag          String?
+  usuarioUpload String   @map("usuario_upload")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@index([quoteId])
   @@map("anexos_nf")
@@ -1959,4 +1972,130 @@ model SalaryConfig {
   updatedAt DateTime @updatedAt
 
   @@index([employeeId])
+}
+
+// ==========================================
+// PORTAL CONTABILIDADE EXTERNA
+// ==========================================
+
+model PortalImposto {
+  id          String    @id @default(uuid())
+  companyId   String    @map("empresa_id")
+  company     Company   @relation(fields: [companyId], references: [id])
+  competencia String // MM/AAAA
+  tipoImposto String    @map("tipo_imposto") // DAS, Simples Nacional, FGTS, etc.
+  valor       Float
+  vencimento  DateTime
+  pagamento   DateTime?
+  status      String    @default("Aguardando envio") // Aguardando envio, Enviado, Recebido, Pago, Em atraso, Reenviado, Cancelado
+  observacao  String?   @db.Text
+  createdBy   String?   @map("created_by")
+  user        User?     @relation(fields: [createdBy], references: [id])
+
+  anexos      PortalImpostoAnexo[]
+  comentarios PortalComentario[]
+  historico   PortalHistorico[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@map("portal_impostos")
+}
+
+model PortalImpostoAnexo {
+  id         String        @id @default(uuid())
+  impostoId  String        @map("imposto_id")
+  imposto    PortalImposto @relation(fields: [impostoId], references: [id], onDelete: Cascade)
+  nome       String
+  arquivo    String
+  tipo       String // PDF, XML, JPG, PNG
+  tamanho    Int // bytes
+  hash       String? // SHA-256
+  uploadedBy String?       @map("uploaded_by")
+  user       User?         @relation(fields: [uploadedBy], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([impostoId])
+  @@map("portal_impostos_anexos")
+}
+
+model PortalComentario {
+  id         String        @id @default(uuid())
+  impostoId  String        @map("imposto_id")
+  imposto    PortalImposto @relation(fields: [impostoId], references: [id], onDelete: Cascade)
+  usuarioId  String?       @map("usuario")
+  usuario    User?         @relation(fields: [usuarioId], references: [id])
+  comentario String        @db.Text
+  anexo      String? // URL do arquivo se houver
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([impostoId])
+  @@map("portal_comentarios")
+}
+
+model PortalHistorico {
+  id        String        @id @default(uuid())
+  impostoId String        @map("imposto_id")
+  imposto   PortalImposto @relation(fields: [impostoId], references: [id], onDelete: Cascade)
+  usuarioId String?       @map("usuario")
+  usuario   User?         @relation(fields: [usuarioId], references: [id])
+  acao      String
+  descricao String        @db.Text
+  ip        String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([impostoId])
+  @@map("portal_historico")
+}
+
+model PortalNotificacao {
+  id           String    @id @default(uuid())
+  usuarioId    String?   @map("usuario_id")
+  usuario      User?     @relation("NotificacoesRecebidas", fields: [usuarioId], references: [id], onDelete: Cascade)
+  companyId    String?   @map("empresa_id")
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  referenciaId String?   @map("referencia_id")
+  modulo       String
+  tipoEvento   String    @map("tipo_evento")
+  titulo       String
+  mensagem     String    @db.Text
+  icone        String?
+  cor          String?
+  urlDestino   String?   @map("url_destino")
+  lida         Boolean   @default(false)
+  favorita     Boolean   @default(false)
+  dataLeitura  DateTime? @map("data_leitura")
+
+  createdById String? @map("created_by")
+  createdBy   User?   @relation("NotificacoesCriadas", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([usuarioId])
+  @@index([companyId])
+  @@map("portal_notificacoes")
+}
+
+model PortalAuditoria {
+  id        String   @id @default(uuid())
+  usuarioId String?  @map("usuario")
+  usuario   User?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  companyId String?  @map("empresa")
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  acao      String
+  ip        String?
+  browser   String?
+  os        String?
+  device    String?
+  descricao String   @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([usuarioId])
+  @@index([companyId])
+  @@map("portal_auditoria")
 }

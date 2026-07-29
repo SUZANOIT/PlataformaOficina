@@ -11,6 +11,7 @@ interface AnexoNF {
   contentType: string;
   tamanho: number;
   valor?: number | null;
+  comentario?: string | null;
   usuarioUpload: string;
   createdAt: string;
   url: string;
@@ -30,8 +31,11 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
 
   // States for input fields
   const [valorPeca, setValorPeca] = useState<string>('');
+  const [comentarioPeca, setComentarioPeca] = useState<string>('');
   const [valorServico, setValorServico] = useState<string>('');
+  const [comentarioServico, setComentarioServico] = useState<string>('');
   const [valorPOS, setValorPOS] = useState<string>('');
+  const [comentarioPOS, setComentarioPOS] = useState<string>('');
 
   const fetchAnexos = async () => {
     try {
@@ -65,7 +69,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
     }
   }, [quoteId]);
 
-  const handleUpload = async (file: File, tipo: string, valor?: string) => {
+  const handleUpload = async (file: File, tipo: string, valor?: string, comentario?: string) => {
     if (file.size > 20 * 1024 * 1024) {
       toast.error('O arquivo deve ter no máximo 20MB.');
       return;
@@ -80,6 +84,7 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
     formData.append('file', file);
     formData.append('tipo', tipo);
     formData.append('valor', valor);
+    if (comentario) formData.append('comentario', comentario);
 
     try {
       setUploading(true);
@@ -181,6 +186,11 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
           <span className="text-[10px] text-muted-foreground">
             {formatSize(anexo.tamanho)} • Enviado por {anexo.usuarioUpload} em {new Date(anexo.createdAt).toLocaleDateString()}
           </span>
+          {anexo.comentario && (
+            <span className="text-xs text-muted-foreground italic mt-0.5 break-words">
+              Obs: {anexo.comentario}
+            </span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0 ml-4">
@@ -243,6 +253,15 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
                 />
               </div>
+              <div className="flex-1 min-w-[150px]">
+                <input 
+                  type="text" 
+                  value={comentarioPeca}
+                  onChange={(e) => setComentarioPeca(e.target.value)}
+                  placeholder="Comentário (opcional)"
+                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
               <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
                 <Upload size={14} /> Anexar
                 <input 
@@ -253,9 +272,10 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     if (e.target.files) {
                       Array.from(e.target.files).forEach(file => {
-                        handleUpload(file, 'NF_PECA', valorPeca);
+                        handleUpload(file, 'NF_PECA', valorPeca, comentarioPeca);
                       });
                       setValorPeca('');
+                      setComentarioPeca('');
                     }
                     e.target.value = '';
                   }}
@@ -294,6 +314,15 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
                 />
               </div>
+              <div className="flex-1 min-w-[150px]">
+                <input 
+                  type="text" 
+                  value={comentarioServico}
+                  onChange={(e) => setComentarioServico(e.target.value)}
+                  placeholder="Comentário (opcional)"
+                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
               <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
                 <Upload size={14} /> Anexar
                 <input 
@@ -304,9 +333,10 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     if (e.target.files) {
                       Array.from(e.target.files).forEach(file => {
-                        handleUpload(file, 'NF_SERVICO', valorServico);
+                        handleUpload(file, 'NF_SERVICO', valorServico, comentarioServico);
                       });
                       setValorServico('');
+                      setComentarioServico('');
                     }
                     e.target.value = '';
                   }}
@@ -345,6 +375,15 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-sm"
                 />
               </div>
+              <div className="flex-1 min-w-[150px]">
+                <input 
+                  type="text" 
+                  value={comentarioPOS}
+                  onChange={(e) => setComentarioPOS(e.target.value)}
+                  placeholder="Comentário (opcional)"
+                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+                />
+              </div>
               <label className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 flex items-center gap-2 transition whitespace-nowrap">
                 <Upload size={14} /> {comprovantePOS ? 'Substituir' : 'Anexar'}
                 <input 
@@ -354,8 +393,9 @@ export function AttachmentsUpload({ quoteId, readOnly = false }: AttachmentsUplo
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      handleUpload(file, 'COMPROVANTE_POS', valorPOS);
+                      handleUpload(file, 'COMPROVANTE_POS', valorPOS, comentarioPOS);
                       setValorPOS('');
+                      setComentarioPOS('');
                     }
                     e.target.value = '';
                   }}
