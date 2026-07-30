@@ -20,6 +20,7 @@ const impostoController = new PortalImpostoController();
 // router.use(authMiddleware);
 
 router.post('/', impostoController.create.bind(impostoController));
+router.post('/bulk-upload', upload.array('files'), impostoController.bulkUpload.bind(impostoController));
 router.get('/', impostoController.findAll.bind(impostoController));
 router.get('/:id', impostoController.findById.bind(impostoController));
 router.patch('/:id/status', impostoController.updateStatus.bind(impostoController));

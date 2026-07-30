@@ -21,6 +21,7 @@ const impostoController = new PortalImpostoController_1.PortalImpostoController(
 // Como as regras de permissão (RBAC) precisam ser aplicadas, você adicionaria os middlewares nas rotas.
 // router.use(authMiddleware);
 router.post('/', impostoController.create.bind(impostoController));
+router.post('/bulk-upload', upload.array('files'), impostoController.bulkUpload.bind(impostoController));
 router.get('/', impostoController.findAll.bind(impostoController));
 router.get('/:id', impostoController.findById.bind(impostoController));
 router.patch('/:id/status', impostoController.updateStatus.bind(impostoController));

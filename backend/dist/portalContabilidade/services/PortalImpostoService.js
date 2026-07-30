@@ -152,5 +152,84 @@ class PortalImpostoService {
         });
         return anexo;
     }
+    async bulkUpload(userId, competencia, tipoImposto, vencimento, files) {
+        const resultados = {
+            sucesso: [],
+            erros: [],
+        };
+        const regexCnpj = /\b\d{14}\b/; // Busca exatos 14 números seguidos
+        for (const file of files) {
+            try {
+                // Tenta achar o CNPJ no nome original do arquivo
+                const nomeArquivoSemMascara = file.originalname.replace(/\D/g, '');
+                const match = nomeArquivoSemMascara.match(regexCnpj);
+                if (!match) {
+                    resultados.erros.push({
+                        arquivo: file.originalname,
+                        motivo: 'CNPJ não encontrado no nome do arquivo.',
+                    });
+                    continue;
+                }
+                const cnpjEncontrado = match[0];
+                // Busca a empresa
+                const company = await prisma.company.findFirst({
+                    where: { cnpjSemMascara: cnpjEncontrado },
+                });
+                if (!company) {
+                    resultados.erros.push({
+                        arquivo: file.originalname,
+                        motivo: `Empresa com CNPJ ${cnpjEncontrado} não localizada no sistema.`,
+                    });
+                    continue;
+                }
+                // Cria o imposto para a empresa
+                const imposto = await prisma.portalImposto.create({
+                    data: {
+                        companyId: company.id,
+                        competencia,
+                        tipoImposto,
+                        valor: 0, // Valor zerado, contabilidade pode ajustar depois se necessário
+                        vencimento: new Date(vencimento),
+                        createdBy: userId,
+                        status: 'Enviado',
+                        observacao: 'Gerado via importação em lote.',
+                    },
+                });
+                const hash = crypto_1.default.createHash('sha256').update(file.buffer).digest('hex');
+                const uploadResult = await s3_service_1.S3Service.uploadImpostoFile(file.buffer, file.originalname, file.mimetype, imposto.id, imposto.competencia);
+                await prisma.portalImpostoAnexo.create({
+                    data: {
+                        impostoId: imposto.id,
+                        nome: file.originalname,
+                        arquivo: uploadResult.key,
+                        tipo: file.mimetype,
+                        tamanho: uploadResult.size,
+                        hash,
+                        uploadedBy: userId,
+                    }
+                });
+                await prisma.portalHistorico.create({
+                    data: {
+                        impostoId: imposto.id,
+                        usuarioId: userId,
+                        acao: 'IMPORTACAO_LOTE',
+                        descricao: `Boleto importado em lote e imposto gerado.`,
+                    }
+                });
+                resultados.sucesso.push({
+                    arquivo: file.originalname,
+                    empresa: company.razaoSocial,
+                    impostoId: imposto.id,
+                });
+            }
+            catch (error) {
+                resultados.erros.push({
+                    arquivo: file.originalname,
+                    motivo: error.message || 'Erro inesperado.',
+                });
+            }
+        }
+        return resultados;
+    }
 }
 exports.PortalImpostoService = PortalImpostoService;

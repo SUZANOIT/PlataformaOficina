@@ -44,6 +44,7 @@ import { Products } from './pages/Products';
 import { NfeImport } from './pages/accounting/NfeImport';
 import { Taxes } from './pages/accounting/taxes/Taxes';
 import { ModuleMarketplace } from './pages/marketplace/ModuleMarketplace';
+import { BulkUploadImpostos } from './pages/portalContabilidade/BulkUploadImpostos';
 
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
@@ -142,6 +143,9 @@ function App() {
               <Route path="products" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Products /></ModuleGuard>} />
               <Route path="accounting/nfe-import" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><NfeImport /></ModuleGuard>} />
               <Route path="accounting/taxes" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><Taxes /></ModuleGuard>} />
+
+              {/* Rotas Portal Contabilidade Externa */}
+              <Route path="accounting/portal-upload" element={<ModuleGuard moduleKey="fiscal" moduleName="Contabilidade e Fiscal"><BulkUploadImpostos /></ModuleGuard>} />
 
 
               {/* Rotas de Gestão de Frotas */}

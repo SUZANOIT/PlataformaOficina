@@ -88,4 +88,36 @@ export class PortalImpostoController {
       return res.status(400).json({ error: error.message });
     }
   }
+
+  async bulkUpload(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id as string;
+      const files = req.files as Express.Multer.File[];
+      const { competencia, tipoImposto, vencimento } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: 'Nenhum arquivo enviado para importação' });
+      }
+
+      if (!competencia || !tipoImposto || !vencimento) {
+        return res.status(400).json({ error: 'Parâmetros competencia, tipoImposto e vencimento são obrigatórios.' });
+      }
+
+      const resultados = await impostoService.bulkUpload(
+        userId,
+        competencia,
+        tipoImposto,
+        vencimento,
+        files
+      );
+
+      return res.status(200).json(resultados);
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
 }
