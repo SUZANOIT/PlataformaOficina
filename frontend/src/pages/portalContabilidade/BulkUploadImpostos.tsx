@@ -98,12 +98,12 @@ export const BulkUploadImpostos: React.FC = () => {
           <TextField
             label="Data de Vencimento"
             type="date"
-            InputLabelProps={{ shrink: true } as any}
             variant="outlined"
             value={vencimento}
             onChange={(e) => setVencimento(e.target.value)}
             fullWidth
             required
+            focused
           />
         </Box>
 
