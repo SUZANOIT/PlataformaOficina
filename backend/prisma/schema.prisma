@@ -293,6 +293,7 @@ model QuoteItem {
 
   codigoPeca String? @map("codigo_peca") @db.VarChar(100)
   tipoPeca   String? @map("tipo_peca") @db.VarChar(30)
+  valorCompraFornecedor Float? @map("valor_compra_fornecedor")
 
   @@index([quoteId])
 }

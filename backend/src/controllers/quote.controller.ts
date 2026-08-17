@@ -58,6 +58,7 @@ const createQuoteSchema = z.object({
     tipo: z.string().optional().default("Peça"),
     codigoPeca: z.string().max(100).nullish(),
     tipoPeca: z.string().nullish(),
+    valorCompraFornecedor: z.number().nullish(),
   })).superRefine((items, ctx) => {
     items.forEach((item, index) => {
       if (item.tipo === 'Peça') {
@@ -716,6 +717,7 @@ export const QuoteController = {
         tipo: item.tipo,
         codigoPeca: item.codigoPeca,
         tipoPeca: item.tipoPeca,
+        valorCompraFornecedor: item.valorCompraFornecedor,
       }));
 
       let quote = await prisma.$transaction(async (tx) => {

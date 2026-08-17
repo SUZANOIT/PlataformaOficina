@@ -12,6 +12,7 @@ import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 import { calculateTaxes } from '../utils/taxCalculator';
+import { calculateMargin } from '../utils/marginCalculator';
 import { api } from '../services/api';
 
 type QuoteFormValues = {
@@ -48,6 +49,7 @@ type QuoteFormValues = {
     tipo: 'Peça' | 'Mão de Obra';
     codigoPeca?: string;
     tipoPeca?: string;
+    valorCompraFornecedor?: number;
   }[];
   observacao?: string;
   veiculoMarca?: string;
@@ -306,6 +308,7 @@ export function CreateQuote() {
       tipo: i.tipo || 'Peça',
       codigoPeca: i.codigoPeca || '',
       tipoPeca: i.tipoPeca || '',
+      valorCompraFornecedor: i.valorCompraFornecedor,
     })),
     };
   };
@@ -618,6 +621,7 @@ ${bankingText}`;
           valorTotal: Number(item.quantidade) * Number(item.valorUnitario),
           codigoPeca: item.tipo === 'Peça' ? item.codigoPeca?.trim() || null : null,
           tipoPeca: item.tipo === 'Peça' ? item.tipoPeca?.trim() || null : null,
+          valorCompraFornecedor: item.tipo === 'Peça' ? Number(item.valorCompraFornecedor || 0) : null,
         })),
         subtotal,
         total,
@@ -1308,6 +1312,27 @@ ${bankingText}`;
                           className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
                         />
                       </div>
+
+                      {watchItems[index]?.tipo === 'Peça' && (
+                        <>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-muted-foreground">Val. Compra (R$)</label>
+                            <input 
+                              type="number"
+                              step="0.01"
+                              {...register(`items.${index}.valorCompraFornecedor`)}
+                              disabled={isViewing}
+                              className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-muted-foreground">Margem (%)</label>
+                            <div className="w-full px-3 py-2 bg-muted/50 border border-border rounded-md text-sm text-right text-foreground font-medium h-[38px] flex items-center justify-end">
+                              {calculateMargin(watchItems[index]?.valorCompraFornecedor, watchItems[index]?.valorUnitario).toFixed(2)}%
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                     
                     <div className="flex justify-between items-center pt-2 border-t border-border/50 text-sm">
@@ -1330,6 +1355,8 @@ ${bankingText}`;
                     <th className="p-3 font-medium w-[24%]">Descrição do Item</th>
                     <th className="p-3 font-medium w-[8%]">Qtd</th>
                     <th className="p-3 font-medium w-[12%]">Valor Unit. (R$)</th>
+                    <th className="p-3 font-medium w-[10%]">Val. Compra</th>
+                    <th className="p-3 font-medium w-[8%]">Margem</th>
                     <th className="p-3 font-medium w-[11%]">Total</th>
                     {!isViewing && <th className="p-3 font-medium w-[5%]"></th>}
                   </tr>
@@ -1424,6 +1451,28 @@ ${bankingText}`;
                             disabled={isViewing}
                             className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
                           />
+                        </td>
+                        <td className="p-2">
+                          {itemTipo === 'Peça' ? (
+                            <input 
+                              type="number"
+                              step="0.01"
+                              {...register(`items.${index}.valorCompraFornecedor`)}
+                              disabled={isViewing}
+                              className="w-full px-3 py-2 bg-input/50 border border-border rounded-md text-sm text-right"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic px-3 text-center block">-</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-center">
+                          {itemTipo === 'Peça' ? (
+                            <span className="text-sm font-medium">
+                              {calculateMargin(watchItems[index]?.valorCompraFornecedor, watchItems[index]?.valorUnitario).toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">-</span>
+                          )}
                         </td>
                         <td className="p-2 text-right font-medium">
                           {formatCurrency(lineTotal)}
