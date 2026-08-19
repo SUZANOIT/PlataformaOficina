@@ -154,6 +154,10 @@ export function QuotesList() {
     return true;
   });
 
+  const totalFiltrado = filteredQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0);
+  const totalPecaFiltrado = filteredQuotes.reduce((acc, q) => acc + (q.items?.filter((i: any) => i.tipo === 'Peça').reduce((itemAcc: number, i: any) => itemAcc + Number(i.valorTotal || 0), 0) || 0), 0);
+  const totalServicoFiltrado = filteredQuotes.reduce((acc, q) => acc + (q.items?.filter((i: any) => i.tipo === 'Mão de Obra').reduce((itemAcc: number, i: any) => itemAcc + Number(i.valorTotal || 0), 0) || 0), 0);
+
   const totalItems = filteredQuotes.length;
   const itemsPerPage = 10;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
@@ -390,11 +394,25 @@ export function QuotesList() {
             <span className="text-sm text-muted-foreground">
               Exibindo <strong className="text-foreground">{filteredQuotes.length}</strong> registro(s)
             </span>
-            <div className="text-sm">
-              <span className="text-muted-foreground">Valor Total Filtrado: </span>
-              <strong className="text-emerald-600 text-base">
-                {formatCurrency(filteredQuotes.reduce((acc, q) => acc + (Number(q.total) || 0), 0))}
-              </strong>
+            <div className="flex gap-4 sm:gap-6 text-sm">
+              <div className="text-right">
+                <span className="text-muted-foreground block text-xs">Total Peça:</span>
+                <strong className="text-slate-700">
+                  {formatCurrency(totalPecaFiltrado)}
+                </strong>
+              </div>
+              <div className="text-right">
+                <span className="text-muted-foreground block text-xs">Total Serviço:</span>
+                <strong className="text-slate-700">
+                  {formatCurrency(totalServicoFiltrado)}
+                </strong>
+              </div>
+              <div className="text-right">
+                <span className="text-muted-foreground block text-xs">Valor Total:</span>
+                <strong className="text-emerald-600 text-base">
+                  {formatCurrency(totalFiltrado)}
+                </strong>
+              </div>
             </div>
           </div>
         </div>
@@ -402,7 +420,7 @@ export function QuotesList() {
         <ReportPrintHeader
           company={filteredQuotes[0]?.company || {}}
           title="Relatório de Orçamentos"
-          subtitle={`Total de Registros: ${filteredQuotes.length} • Valor Total: ${formatCurrency(filteredQuotes.reduce((acc, q) => acc + q.total, 0))}`}
+          subtitle={`Total de Registros: ${filteredQuotes.length} • Peça: ${formatCurrency(totalPecaFiltrado)} • Serviço: ${formatCurrency(totalServicoFiltrado)} • Total: ${formatCurrency(totalFiltrado)}`}
         />
 
         <div className="w-full overflow-x-auto scrollbar-thin">
