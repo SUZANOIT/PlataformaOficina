@@ -414,6 +414,8 @@ export function QuotesList() {
                 <th className="p-4 font-medium w-[25%]">Cliente</th>
                 <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
                 <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
+                <th className="p-4 font-medium w-[130px]">Total Peça</th>
+                <th className="p-4 font-medium w-[130px]">Total Serviço</th>
                 <th className="p-4 font-medium w-[130px]">Valor Total</th>
                 <th className="p-4 font-medium w-[160px] text-center lg:text-left no-print">Ações</th>
               </tr>
@@ -456,6 +458,12 @@ export function QuotesList() {
                     }`}>
                       {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
+                  </td>
+                  <td className="p-4 font-semibold text-slate-700 text-sm truncate">
+                    {formatCurrency(quote.items?.filter((i: any) => i.tipo === 'Peça').reduce((acc: number, i: any) => acc + Number(i.valorTotal || 0), 0) || 0)}
+                  </td>
+                  <td className="p-4 font-semibold text-slate-700 text-sm truncate">
+                    {formatCurrency(quote.items?.filter((i: any) => i.tipo === 'Mão de Obra').reduce((acc: number, i: any) => acc + Number(i.valorTotal || 0), 0) || 0)}
                   </td>
                   <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
@@ -512,7 +520,7 @@ export function QuotesList() {
               ))}
               {displayedQuotes.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Nenhum orçamento encontrado para os critérios selecionados.
                   </td>
                 </tr>
