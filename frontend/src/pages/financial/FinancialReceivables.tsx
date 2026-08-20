@@ -54,6 +54,7 @@ interface Receivable {
   responsavel_lancamento_nome?: string | null;
   data_criacao?: string | null;
   observacoes?: string | null;
+  numeroEmpenho?: string | null;
   status: string;
   quoteId?: string | null;
   quote?: { id: string; numeroOrcamento: number } | null;
@@ -112,6 +113,7 @@ export function FinancialReceivables() {
   const [formaRecebimento, setFormaRecebimento] = useState('Pix');
   const [responsavel, setResponsavel] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [numeroEmpenho, setNumeroEmpenho] = useState('');
   const [status, setStatus] = useState('PENDENTE');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -333,6 +335,7 @@ export function FinancialReceivables() {
     setFormaRecebimento('Pix');
     setResponsavel(currentUser?.nome || 'Sistema');
     setObservacoes('');
+    setNumeroEmpenho('');
     setStatus('PENDENTE');
     setLinkedQuotes([]);
     setAttachments([]);
@@ -362,6 +365,7 @@ export function FinancialReceivables() {
     setFormaRecebimento(receivable.formaRecebimento);
     setResponsavel(receivable.responsavel_lancamento_nome || receivable.responsavel);
     setObservacoes(receivable.observacoes || '');
+    setNumeroEmpenho(receivable.numeroEmpenho || '');
     setStatus(receivable.status);
     setLinkedQuotes((receivable as any).linkedQuotes ? (receivable as any).linkedQuotes.map((l: any) => ({ quoteId: l.towingQuoteId || l.quoteId, valorVinculado: l.valorVinculado })) : []);
     setAttachments(receivable.attachments || []);
@@ -422,6 +426,7 @@ export function FinancialReceivables() {
       formaRecebimento,
       responsavel: activeResponsavel,
       observacoes,
+      numeroEmpenho,
       status,
       quoteId: linkedQuotes.length > 0 ? linkedQuotes[0].quoteId : null,
       linkedQuotes: linkedQuotes.map(link => ({
@@ -1050,6 +1055,17 @@ export function FinancialReceivables() {
                   />
                 </div>
 
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Número do Empenho</label>
+                  <input 
+                    type="text" 
+                    value={numeroEmpenho}
+                    onChange={(e) => setNumeroEmpenho(e.target.value)}
+                    placeholder="Opcional"
+                    className="bg-background border border-border rounded-lg text-sm px-3 py-2 text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+
                 {/* Row 6: Status & Responsável */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Status</label>
@@ -1120,7 +1136,8 @@ export function FinancialReceivables() {
                       onChange={(e) => setQuoteSearch(e.target.value)}
                       className="bg-background border border-border rounded-lg text-xs px-2.5 py-1 text-foreground focus:ring-1 focus:ring-primary focus:outline-none w-full max-w-[200px]"
                     />
-                    {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && (
+                    {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && 
+                      (!origemId || q.client?.id === origemId) && (
                       q.numeroOrcamento.toString().includes(quoteSearch) ||
                       (q.numeroFormatado && q.numeroFormatado.toLowerCase().includes(quoteSearch.toLowerCase())) ||
                       (typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName)?.toLowerCase().includes(quoteSearch.toLowerCase())
@@ -1135,7 +1152,8 @@ export function FinancialReceivables() {
                         defaultValue=""
                       >
                         <option value="" disabled>+ Adicionar Orçamento...</option>
-                        {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && (
+                        {quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && 
+                          (!origemId || q.client?.id === origemId) && (
                           q.numeroOrcamento.toString().includes(quoteSearch) ||
                           (q.numeroFormatado && q.numeroFormatado.toLowerCase().includes(quoteSearch.toLowerCase())) ||
                           (typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName)?.toLowerCase().includes(quoteSearch.toLowerCase())

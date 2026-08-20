@@ -1018,7 +1018,8 @@ export const FinancialController = {
           formaRecebimento: body.formaRecebimento,
           responsavel: responsavelNome,
           observacoes: body.observacoes,
-          status: body.status,
+          numeroEmpenho: body.numeroEmpenho,
+          status: body.status || 'PENDENTE',
           quoteId: body.quoteId || (body.linkedQuotes && body.linkedQuotes.length > 0 ? body.linkedQuotes[0].quoteId : null),
           responsavel_lancamento_id: userId || null,
           responsavel_lancamento_nome: responsavelNome,
@@ -1186,6 +1187,7 @@ export const FinancialController = {
         formaRecebimento: updateFields.formaRecebimento,
         responsavel: updateFields.responsavel,
         observacoes: updateFields.observacoes,
+        numeroEmpenho: updateFields.numeroEmpenho,
         status: updateFields.status,
         quoteId: updateFields.quoteId !== undefined ? updateFields.quoteId : (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0 ? updateFields.linkedQuotes[0].quoteId : undefined),
       };

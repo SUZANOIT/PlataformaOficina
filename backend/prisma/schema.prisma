@@ -379,6 +379,8 @@ model FinancialReceivable {
   quoteId String?
   quote   Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
 
+  numeroEmpenho String?
+
   attachments  FinancialAttachment[]
   audits       FinancialAudit[]
   linkedQuotes ReceivableQuoteLink[]
