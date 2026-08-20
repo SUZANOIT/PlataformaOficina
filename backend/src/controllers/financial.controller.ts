@@ -61,6 +61,7 @@ const createReceivableSchema = z.object({
   formaRecebimento: z.string(),
   responsavel: z.string().optional(),
   observacoes: z.string().optional().nullable(),
+  numeroEmpenho: z.string().optional().nullable(),
   status: z.string().default('PENDENTE'),
   quoteId: z.string().optional().nullable(),
   attachments: z.array(attachmentSchema).optional(),
