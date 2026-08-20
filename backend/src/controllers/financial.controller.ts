@@ -67,7 +67,7 @@ const createReceivableSchema = z.object({
   attachments: z.array(attachmentSchema).optional(),
   linkedQuotes: z.array(z.object({
     quoteId: z.string(),
-    valorVinculado: z.number().positive()
+    valorVinculado: z.number().min(0)
   })).optional(),
 });
 

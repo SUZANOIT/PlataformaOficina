@@ -68,7 +68,7 @@ export function FinancialReceivables() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
-  const [linkedQuotes, setLinkedQuotes] = useState<{ quoteId: string, valorVinculado: number }[]>([]);
+  const [linkedQuotes, setLinkedQuotes] = useState<{ quoteId: string, valorVinculado: number | '' }[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -1248,7 +1248,7 @@ export function FinancialReceivables() {
                                 step="0.01"
                                 value={link.valorVinculado || ''}
                                 onChange={(e) => {
-                                  const newVal = Number(e.target.value);
+                                  const newVal = e.target.value === '' ? '' : Number(e.target.value);
                                   setLinkedQuotes(prev => prev.map(item => item.quoteId === link.quoteId ? { ...item, valorVinculado: newVal } : item));
                                 }}
                                 className={`bg-background border ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary'} rounded-md text-[11px] px-1.5 py-0.5 text-foreground focus:outline-none w-full disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-muted/30`}
