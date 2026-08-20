@@ -1253,7 +1253,6 @@ export function FinancialReceivables() {
                                 }}
                                 className={`bg-background border ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary'} rounded-md text-[11px] px-1.5 py-0.5 text-foreground focus:outline-none w-full disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-muted/30`}
                                 required
-                                disabled={linkedQuotes.length === 1}
                               />
                             </div>
                           </div>
