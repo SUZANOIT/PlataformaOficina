@@ -363,7 +363,7 @@ export function FinancialReceivables() {
     setVencimento(receivable.vencimento.substring(0, 10));
     setDataRecebimento(receivable.dataRecebimento ? receivable.dataRecebimento.substring(0, 10) : '');
     setFormaRecebimento(receivable.formaRecebimento);
-    setResponsavel(receivable.responsavel_lancamento_nome || receivable.responsavel);
+    setResponsavel(currentUser?.nome || 'Sistema');
     setObservacoes(receivable.observacoes || '');
     setNumeroEmpenho(receivable.numeroEmpenho || '');
     setStatus(receivable.status);
@@ -378,9 +378,7 @@ export function FinancialReceivables() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const activeResponsavel = selectedReceivable
-      ? (selectedReceivable.responsavel_lancamento_nome || selectedReceivable.responsavel)
-      : (currentUser?.nome || 'Sistema');
+    const activeResponsavel = currentUser?.nome || 'Sistema';
 
     if (!companyId || !cliente || !categoria || !valor || !dataEmissao || !vencimento || !activeResponsavel) {
       toast.warning('Preencha todos os campos obrigatórios.');
@@ -1163,6 +1161,16 @@ export function FinancialReceivables() {
                           </option>
                         ))}
                       </select>
+                    )}
+                    {quoteSearch && quotes.filter(q => !linkedQuotes.some(link => link.quoteId === q.id) && 
+                      (!origemId || q.client?.id === origemId) && (
+                      q.numeroOrcamento.toString().includes(quoteSearch) ||
+                      (q.numeroFormatado && q.numeroFormatado.toLowerCase().includes(quoteSearch.toLowerCase())) ||
+                      (typeof q.client === 'object' ? q.client?.nome || q.clientName : q.client || q.clientName)?.toLowerCase().includes(quoteSearch.toLowerCase())
+                    )).length === 0 && (
+                      <div className="text-[10px] text-amber-500 mt-1 max-w-[200px] leading-tight text-right">
+                        Nenhum orçamento válido encontrado. Verifique se o status permite vínculo (ex: Pago, Emitir Nota Fiscal) e se pertence à origem selecionada.
+                      </div>
                     )}
                   </div>
                 </div>
