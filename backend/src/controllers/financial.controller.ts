@@ -35,7 +35,7 @@ const createPayableSchema = z.object({
   responsavel: z.string().optional(),
   observacoes: z.string().optional().nullable(),
   status: z.string().default('PENDENTE'),
-  
+
   recorrente: z.boolean().default(false),
   tipoRecorrencia: z.string().optional().nullable(),
   quantidadeParcelas: z.number().optional().nullable(),
@@ -61,7 +61,6 @@ const createReceivableSchema = z.object({
   formaRecebimento: z.string(),
   responsavel: z.string().optional(),
   observacoes: z.string().optional().nullable(),
-  numeroEmpenho: z.string().optional().nullable(),
   status: z.string().default('PENDENTE'),
   quoteId: z.string().optional().nullable(),
   attachments: z.array(attachmentSchema).optional(),
@@ -271,7 +270,7 @@ export const FinancialController = {
       const approvedQuotes = await prisma.quote.findMany({
         where: {
           status: {
-            in: ['Aprovado', 'Pago', 'APROVADO', 'PAGO']
+            in: ['Pago', 'PAGO', 'Emitir Nota Fiscal', 'EMITIR NOTA FISCAL', 'Emitido Nota Fiscal', 'EMITIDO NOTA FISCAL']
           }
         },
         include: {
@@ -294,7 +293,7 @@ export const FinancialController = {
       const approvedTowingQuotes = await prisma.towingQuote.findMany({
         where: {
           status: {
-            in: ['Aprovado', 'Pago', 'APROVADO', 'PAGO']
+            in: ['Pago', 'PAGO', 'Emitir Nota Fiscal', 'EMITIR NOTA FISCAL', 'Emitido Nota Fiscal', 'EMITIDO NOTA FISCAL']
           }
         },
         include: {
@@ -316,11 +315,11 @@ export const FinancialController = {
         // Calcular o total já utilizado
         const totalUtilizado = type === 'receivable'
           ? quote.linkedReceivables
-              .filter(link => link.receivable.status !== 'CANCELADA' && link.receivable.status !== 'REPROVADA')
-              .reduce((sum, link) => sum + link.valorVinculado, 0)
+            .filter(link => link.receivable.status !== 'CANCELADA' && link.receivable.status !== 'REPROVADA')
+            .reduce((sum, link) => sum + link.valorVinculado, 0)
           : quote.linkedPayables
-              .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
-              .reduce((sum, link) => sum + link.valorVinculado, 0);
+            .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
+            .reduce((sum, link) => sum + link.valorVinculado, 0);
 
         const saldoDisponivel = Math.max(0, quote.total - totalUtilizado);
         const statusFinanceiro = saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível');
@@ -366,11 +365,11 @@ export const FinancialController = {
       const resultTowing = approvedTowingQuotes.map(quote => {
         const totalUtilizado = type === 'receivable'
           ? quote.linkedReceivables
-              .filter(link => link.receivable.status !== 'CANCELADA' && link.receivable.status !== 'REPROVADA')
-              .reduce((sum, link) => sum + link.valorVinculado, 0)
+            .filter(link => link.receivable.status !== 'CANCELADA' && link.receivable.status !== 'REPROVADA')
+            .reduce((sum, link) => sum + link.valorVinculado, 0)
           : quote.linkedPayables
-              .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
-              .reduce((sum, link) => sum + link.valorVinculado, 0);
+            .filter(link => link.payable.status !== 'CANCELADA' && link.payable.status !== 'REPROVADA')
+            .reduce((sum, link) => sum + link.valorVinculado, 0);
 
         const saldoDisponivel = Math.max(0, quote.valorTotal - totalUtilizado);
         const statusFinanceiro = saldoDisponivel === 0 ? 'Consumido' : (totalUtilizado > 0 ? 'Parcialmente Consumido' : 'Disponível');
@@ -466,8 +465,8 @@ export const FinancialController = {
       const [payables, totalCount] = await prisma.$transaction([
         prisma.financialPayable.findMany({
           where: whereClause,
-          include: { 
-            company: true, 
+          include: {
+            company: true,
             attachments: true,
             linkedQuotes: {
               include: {
@@ -523,7 +522,7 @@ export const FinancialController = {
             });
             isTowing = true;
           }
-          
+
           (link as any).isTowing = isTowing;
 
           if (!quote) {
@@ -539,8 +538,8 @@ export const FinancialController = {
           const saldoDisponivel = Math.max(0, totalOrcamento - totalUtilizado);
 
           if (link.valorVinculado > saldoDisponivel) {
-            return res.status(400).json({ 
-              error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+            return res.status(400).json({
+              error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.`
             });
           }
         }
@@ -711,7 +710,7 @@ export const FinancialController = {
               });
               isTowing = true;
             }
-            
+
             (link as any).isTowing = isTowing;
 
             if (!quote) {
@@ -727,8 +726,8 @@ export const FinancialController = {
             const saldoDisponivel = Math.max(0, totalOrcamento - totalUtilizado);
 
             if (link.valorVinculado > saldoDisponivel) {
-              return res.status(400).json({ 
-                error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+              return res.status(400).json({
+                error: `Saldo insuficiente no orçamento #${quote.numeroOrcamento}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.`
               });
             }
           }
@@ -813,8 +812,8 @@ export const FinancialController = {
       const updated = await prisma.financialPayable.update({
         where: { id },
         data: updateData,
-        include: { 
-          company: true, 
+        include: {
+          company: true,
           attachments: true,
           linkedQuotes: {
             include: {
@@ -917,9 +916,9 @@ export const FinancialController = {
       const [receivables, totalCount] = await prisma.$transaction([
         prisma.financialReceivable.findMany({
           where: whereClause,
-          include: { 
-            company: true, 
-            attachments: true, 
+          include: {
+            company: true,
+            attachments: true,
             quote: true,
             linkedQuotes: {
               include: {
@@ -981,7 +980,7 @@ export const FinancialController = {
             });
             isTowing = true;
           }
-          
+
           (link as any).isTowing = isTowing;
 
           if (!quote) {
@@ -997,8 +996,8 @@ export const FinancialController = {
           const saldoDisponivel = Math.max(0, totalOrcamento - totalUtilizado);
 
           if (link.valorVinculado > saldoDisponivel) {
-            return res.status(400).json({ 
-              error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+            return res.status(400).json({
+              error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.`
             });
           }
         }
@@ -1040,8 +1039,8 @@ export const FinancialController = {
             }))
           } : undefined,
         },
-        include: { 
-          company: true, 
+        include: {
+          company: true,
           attachments: true,
           linkedQuotes: {
             include: {
@@ -1135,7 +1134,7 @@ export const FinancialController = {
               });
               isTowing = true;
             }
-            
+
             (link as any).isTowing = isTowing;
 
             if (!quote) {
@@ -1151,8 +1150,8 @@ export const FinancialController = {
             const saldoDisponivel = Math.max(0, totalOrcamento - totalUtilizado);
 
             if (link.valorVinculado > saldoDisponivel) {
-              return res.status(400).json({ 
-                error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.` 
+              return res.status(400).json({
+                error: `Saldo restante a receber insuficiente no orçamento #${quote.numeroOrcamento}. Saldo restante a receber: R$ ${saldoDisponivel.toFixed(2)}, tentou lançar: R$ ${link.valorVinculado.toFixed(2)}.`
               });
             }
           }
@@ -1207,8 +1206,8 @@ export const FinancialController = {
       const updated = await prisma.financialReceivable.update({
         where: { id },
         data: updateData,
-        include: { 
-          company: true, 
+        include: {
+          company: true,
           attachments: true,
           linkedQuotes: {
             include: {
@@ -1276,7 +1275,7 @@ export const FinancialController = {
 
         const updated = await prisma.financialPayable.update({
           where: { id },
-          data: { 
+          data: {
             status: newStatus,
             dataPagamento: newStatus === 'PAGA' ? new Date() : null,
           },
