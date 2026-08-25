@@ -1,0 +1,32 @@
+
+> backend@1.0.0 dev
+> ts-node-dev --transpile-only --ignore-watch node_modules src/server.ts
+
+[INFO] 11:51:29 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 6.0.3)
+◇ injected env (3) from .env // tip: ⌘ suppress logs { quiet: true }
+Server is running on port 5001
+Database error in authMiddleware: PrismaClientInitializationError: 
+Invalid `prisma.user.findUnique()` invocation in
+/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/routes.ts:62:36
+
+  59 (req as any).role = decoded.role;
+  60 
+  61 const { prisma } = require('./lib/prisma');
+→ 62 const user = await prisma.user.findUnique(
+Authentication failed against database server at `localhost`, the provided database credentials for `admin` are not valid.
+
+Please make sure to provide valid database credentials for the database server at `localhost`.
+    at $n.handleRequestError (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/@prisma/client/runtime/library.js:121:7615)
+    at $n.handleAndLogRequestError (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at l (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at authMiddleware (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/routes.ts:62:18) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+[INFO] 11:52:48 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/controllers/quote.controller.ts has been modified
+◇ injected env (3) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Server is running on port 5001
+[INFO] 12:07:16 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/controllers/quote.controller.ts has been modified
+◇ injected env (3) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Server is running on port 5001

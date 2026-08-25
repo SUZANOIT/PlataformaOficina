@@ -426,8 +426,9 @@ exports.QuoteController = {
                     return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
                 }
             }
+            const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
             const financialReceivablesData = [];
-            if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
+            if (!isPending && data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
                 const currentDate = new Date();
                 // 1. Lançamento da Entrada
                 financialReceivablesData.push({
@@ -442,8 +443,7 @@ exports.QuoteController = {
                     dataRecebimento: currentDate,
                     formaRecebimento: 'Dinheiro', // Ou outra default
                     responsavel: 'Sistema',
-                    status: 'LIQUIDADO',
-                    tipoLancamento: 'ENTRADA'
+                    status: 'LIQUIDADO'
                 });
                 // 2. Parcelas Pendentes
                 const numParcelasPendentes = data.parcelas || 1;
@@ -470,8 +470,7 @@ exports.QuoteController = {
                             vencimento: vencimentoDate,
                             formaRecebimento: 'A Combinar',
                             responsavel: 'Sistema',
-                            status: 'PENDENTE',
-                            tipoLancamento: 'PARCELA'
+                            status: 'PENDENTE'
                         });
                     }
                 }
@@ -512,7 +511,7 @@ exports.QuoteController = {
                     clonedFromId: data.clonedFromId,
                     subtotal: data.subtotal,
                     total: data.total,
-                    status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? 'Parcialmente Pago' : data.status),
+                    status: isCurio ? 'Cobertura' : (!isPending && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? 'Parcialmente Pago' : data.status),
                     items: {
                         create: data.items,
                     },
@@ -717,7 +716,8 @@ exports.QuoteController = {
             let quote = await prisma_1.prisma.$transaction(async (tx) => {
                 const existingReceivablesCount = await tx.financialReceivable.count({ where: { quoteId: id } });
                 const financialReceivablesData = [];
-                if (existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
+                const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
+                if (!isPending && existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
                     const currentDate = new Date();
                     const finalCompanyId = data.companyId || existingQuote.companyId;
                     financialReceivablesData.push({
@@ -732,8 +732,7 @@ exports.QuoteController = {
                         dataRecebimento: currentDate,
                         formaRecebimento: 'Dinheiro',
                         responsavel: 'Sistema',
-                        status: 'LIQUIDADO',
-                        tipoLancamento: 'ENTRADA'
+                        status: 'LIQUIDADO'
                     });
                     const numParcelasPendentes = data.parcelas || 1;
                     if (numParcelasPendentes > 0) {
@@ -758,8 +757,7 @@ exports.QuoteController = {
                                 vencimento: vencimentoDate,
                                 formaRecebimento: 'A Combinar',
                                 responsavel: 'Sistema',
-                                status: 'PENDENTE',
-                                tipoLancamento: 'PARCELA'
+                                status: 'PENDENTE'
                             });
                         }
                     }
@@ -797,7 +795,7 @@ exports.QuoteController = {
                         subtotal: data.subtotal,
                         total: data.total,
                         valorEntrada: data.valorEntrada,
-                        status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
+                        status: isCurio ? 'Cobertura' : (!isPending && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
                         items: {
                             deleteMany: {},
                             create: quoteItems,

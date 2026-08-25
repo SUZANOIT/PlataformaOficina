@@ -474,8 +474,9 @@ export const QuoteController = {
         }
       }
 
+      const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
       const financialReceivablesData: any[] = [];
-      if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
+      if (!isPending && data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
         const currentDate = new Date();
         // 1. Lançamento da Entrada
         financialReceivablesData.push({
@@ -490,8 +491,7 @@ export const QuoteController = {
           dataRecebimento: currentDate,
           formaRecebimento: 'Dinheiro', // Ou outra default
           responsavel: 'Sistema',
-          status: 'LIQUIDADO',
-          tipoLancamento: 'ENTRADA'
+          status: 'LIQUIDADO'
         });
 
         // 2. Parcelas Pendentes
@@ -523,8 +523,7 @@ export const QuoteController = {
               vencimento: vencimentoDate,
               formaRecebimento: 'A Combinar',
               responsavel: 'Sistema',
-              status: 'PENDENTE',
-              tipoLancamento: 'PARCELA'
+              status: 'PENDENTE'
             });
           }
         }
@@ -566,7 +565,7 @@ export const QuoteController = {
           clonedFromId: data.clonedFromId,
           subtotal: data.subtotal,
           total: data.total,
-          status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? 'Parcialmente Pago' : data.status),
+          status: isCurio ? 'Cobertura' : (!isPending && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? 'Parcialmente Pago' : data.status),
           items: {
             create: data.items,
           },
@@ -798,7 +797,9 @@ export const QuoteController = {
         const existingReceivablesCount = await tx.financialReceivable.count({ where: { quoteId: id } });
         const financialReceivablesData: any[] = [];
 
-        if (existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
+        const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
+
+        if (!isPending && existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
           const currentDate = new Date();
           const finalCompanyId = data.companyId || existingQuote.companyId;
           
@@ -814,8 +815,7 @@ export const QuoteController = {
             dataRecebimento: currentDate,
             formaRecebimento: 'Dinheiro',
             responsavel: 'Sistema',
-            status: 'LIQUIDADO',
-            tipoLancamento: 'ENTRADA'
+            status: 'LIQUIDADO'
           });
 
           const numParcelasPendentes = data.parcelas || 1;
@@ -844,8 +844,7 @@ export const QuoteController = {
                 vencimento: vencimentoDate,
                 formaRecebimento: 'A Combinar',
                 responsavel: 'Sistema',
-                status: 'PENDENTE',
-                tipoLancamento: 'PARCELA'
+                status: 'PENDENTE'
               });
             }
           }
@@ -884,7 +883,7 @@ export const QuoteController = {
             subtotal: data.subtotal,
             total: data.total,
             valorEntrada: data.valorEntrada,
-            status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
+            status: isCurio ? 'Cobertura' : (!isPending && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
             items: {
               deleteMany: {},
               create: quoteItems,

@@ -498,7 +498,7 @@ export function QuotesList() {
         />
 
         <div className="w-full overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse table-fixed break-words min-w-[1150px]">
+          <table className="w-full text-left border-collapse table-fixed break-words min-w-[1280px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
                 <th className="py-4 pl-4 pr-2 font-medium w-[100px]">Nº</th>
@@ -509,6 +509,7 @@ export function QuotesList() {
                 <th className="p-4 font-medium w-[130px]">Total Peça</th>
                 <th className="p-4 font-medium w-[130px]">Total Serviço</th>
                 <th className="p-4 font-medium w-[130px]">Valor Entrada</th>
+                <th className="p-4 font-medium w-[130px]">Valor Parcelado</th>
                 <th className="p-4 font-medium w-[130px]">Valor Total</th>
                 <th className="p-4 font-medium w-[160px] text-center lg:text-left no-print">Ações</th>
               </tr>
@@ -551,6 +552,9 @@ export function QuotesList() {
                   </td>
                   <td className="p-4 font-semibold text-slate-700 text-sm truncate">
                     {formatCurrency(quote.valorEntrada || 0)}
+                  </td>
+                  <td className="p-4 font-semibold text-indigo-600 text-sm truncate">
+                    {formatCurrency(quote.condicaoPagamento === 'Parcelado' ? Math.max(0, quote.total - (quote.valorEntrada || 0)) : 0)}
                   </td>
                   <td className="p-4 font-bold text-emerald-600 text-sm truncate">
                     {formatCurrency(quote.total)}
