@@ -416,6 +416,16 @@ exports.QuoteController = {
                     veiculoId = newVehicle.id;
                 }
             }
+            if (data.condicaoPagamento === 'Parcelado') {
+                const numParcelasTotal = data.parcelas || 1;
+                if (numParcelasTotal > 4) {
+                    return res.status(400).json({ error: 'O parcelamento máximo permitido é em 4x (Entrada + 3 parcelas).' });
+                }
+                const entrada = data.valorEntrada || 0;
+                if (entrada > data.total) {
+                    return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
+                }
+            }
             const financialReceivablesData = [];
             if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
                 const currentDate = new Date();
@@ -425,41 +435,45 @@ exports.QuoteController = {
                     cliente: client.nome,
                     origem_tipo: 'ORCAMENTO',
                     categoria: 'Serviços Oficina',
-                    descricao: `Entrada - Orçamento de ${client.nome}`,
+                    descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
                     valor: data.valorEntrada,
                     dataEmissao: currentDate,
                     vencimento: currentDate,
                     dataRecebimento: currentDate,
                     formaRecebimento: 'Dinheiro', // Ou outra default
                     responsavel: 'Sistema',
-                    status: 'LIQUIDADO'
+                    status: 'LIQUIDADO',
+                    tipoLancamento: 'ENTRADA'
                 });
-                // 2. Parcelas
-                const valorRestante = data.total - data.valorEntrada;
-                const numParcelas = data.parcelas || 1;
-                let parcelaValor = valorRestante / numParcelas;
-                for (let i = 1; i <= numParcelas; i++) {
-                    const vencimentoDate = new Date(currentDate);
-                    vencimentoDate.setMonth(vencimentoDate.getMonth() + i);
-                    // Ajuste de centavos na última parcela
-                    let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
-                    if (i === numParcelas) {
-                        const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelas - 1);
-                        valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+                // 2. Parcelas Pendentes
+                const numParcelasPendentes = (data.parcelas || 1) - 1;
+                if (numParcelasPendentes > 0) {
+                    const valorRestante = data.total - data.valorEntrada;
+                    const parcelaValor = valorRestante / numParcelasPendentes;
+                    for (let i = 1; i <= numParcelasPendentes; i++) {
+                        const vencimentoDate = new Date(currentDate);
+                        vencimentoDate.setDate(vencimentoDate.getDate() + (i * 30));
+                        // Ajuste de centavos na última parcela
+                        let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
+                        if (i === numParcelasPendentes) {
+                            const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelasPendentes - 1);
+                            valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+                        }
+                        financialReceivablesData.push({
+                            companyId: finalCompanyId,
+                            cliente: client.nome,
+                            origem_tipo: 'ORCAMENTO',
+                            categoria: 'Serviços Oficina',
+                            descricao: `Parcela ${i} de ${numParcelasPendentes} - Orçamento de ${client.nome}`,
+                            valor: valorDaParcela,
+                            dataEmissao: currentDate,
+                            vencimento: vencimentoDate,
+                            formaRecebimento: 'A Combinar',
+                            responsavel: 'Sistema',
+                            status: 'PENDENTE',
+                            tipoLancamento: 'PARCELA'
+                        });
                     }
-                    financialReceivablesData.push({
-                        companyId: finalCompanyId,
-                        cliente: client.nome,
-                        origem_tipo: 'ORCAMENTO',
-                        categoria: 'Serviços Oficina',
-                        descricao: `Parcela ${i}/${numParcelas} - Orçamento de ${client.nome}`,
-                        valor: valorDaParcela,
-                        dataEmissao: currentDate,
-                        vencimento: vencimentoDate,
-                        formaRecebimento: 'A Combinar',
-                        responsavel: 'Sistema',
-                        status: 'PENDENTE'
-                    });
                 }
             }
             // Create quote

@@ -371,9 +371,22 @@ export function CreateQuote() {
 
   const watchItems = watch('items') || [];
   const watchCondicao = watch('condicaoPagamento');
+  const watchEntrada = watch('valorEntrada') || 0;
+  const watchParcelas = watch('parcelas') || 1;
 
   const subtotal = watchItems.reduce((acc, item) => acc + (Number(item?.quantidade || 0) * Number(item?.valorUnitario || 0)), 0);
   const total = subtotal; // no future adding discounts or taxes yet
+  const saldoParcelar = total - watchEntrada;
+
+  useEffect(() => {
+    if (watchCondicao === 'Parcelado' && watchParcelas > 1) {
+      const p = watchParcelas - 1;
+      const valor = saldoParcelar / p;
+      if (!isNaN(valor) && isFinite(valor)) {
+        setValue('valorParcela', Number(valor.toFixed(2)));
+      }
+    }
+  }, [watchCondicao, watchEntrada, watchParcelas, saldoParcelar, setValue]);
 
   const subtotalPecas = watchItems.reduce((acc, item) => {
     return item?.tipo === 'Peça' ? acc + (Number(item?.quantidade || 0) * Number(item?.valorUnitario || 0)) : acc;
@@ -591,6 +604,12 @@ ${bankingText}`;
           }
         }
       }
+
+      if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > total) {
+        toast.error('O valor da entrada não pode ser maior que o total do orçamento.');
+        return;
+      }
+
 
       const { plataformaGestao: _pg, oficina: _of, ...formData } = data as QuoteFormValues & { plataformaGestao?: unknown; oficina?: unknown };
 
@@ -1591,7 +1610,9 @@ ${bankingText}`;
                   <label className="text-sm font-medium">Qtd. Parcelas</label>
                   <input 
                     type="number"
-                    {...register('parcelas')}
+                    min="2"
+                    max="4"
+                    {...register('parcelas', { min: 2, max: 4 })}
                     disabled={isViewing}
                     className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                   />
@@ -1602,17 +1623,69 @@ ${bankingText}`;
                     type="number"
                     step="0.01"
                     {...register('valorParcela')}
+                    readOnly
                     disabled={isViewing}
-                    className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+                    className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg opacity-80 cursor-not-allowed"
                   />
                 </div>
-                {/* Visual feedback das parcelas */}
-                <div className="col-span-1 sm:col-span-3 text-sm text-emerald-600 bg-emerald-500/10 p-3 rounded-lg flex items-center gap-2">
-                  <DollarSign size={16} />
-                  <span>
-                    O valor da entrada gerará um título <strong>LIQUIDADO</strong> imediatamente.
-                    O restante será dividido em <strong>{watch('parcelas') || 1} parcelas pendentes</strong>.
-                  </span>
+                {/* Visual feedback das parcelas e Resumo da Tabela */}
+                <div className="col-span-1 sm:col-span-3 text-sm text-emerald-600 bg-emerald-500/10 p-3 rounded-lg flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <DollarSign size={16} />
+                    <span>
+                      O valor da entrada gerará um título <strong>LIQUIDADO</strong> imediatamente.
+                      O restante será dividido em <strong>{watchParcelas > 1 ? watchParcelas - 1 : 1} parcela(s) pendente(s)</strong>.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="col-span-1 sm:col-span-3 mt-2">
+                  <h3 className="text-sm font-medium mb-2">Resumo do Parcelamento</h3>
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-muted text-muted-foreground border-b border-border">
+                        <tr>
+                          <th className="px-4 py-2 font-medium">Parcela</th>
+                          <th className="px-4 py-2 font-medium">Status</th>
+                          <th className="px-4 py-2 font-medium text-right">Valor (R$)</th>
+                          <th className="px-4 py-2 font-medium">Vencimento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border last:border-0 bg-background">
+                          <td className="px-4 py-3">Entrada</td>
+                          <td className="px-4 py-3">
+                            <span className="bg-emerald-500/20 text-emerald-600 px-2 py-1 rounded-md text-xs font-semibold">LIQUIDADO</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(watchEntrada)}</td>
+                          <td className="px-4 py-3 text-muted-foreground">Hoje</td>
+                        </tr>
+                        {Array.from({ length: Math.max(0, watchParcelas - 1) }).map((_, idx) => {
+                          const num = idx + 1;
+                          const days = num * 30;
+                          const date = new Date();
+                          date.setDate(date.getDate() + days);
+                          return (
+                            <tr key={idx} className="border-b border-border last:border-0 bg-background">
+                              <td className="px-4 py-3 text-muted-foreground">Parcela {num} de {watchParcelas - 1}</td>
+                              <td className="px-4 py-3">
+                                <span className="bg-purple-500/20 text-purple-600 px-2 py-1 rounded-md text-xs font-semibold">PENDENTE</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(watch('valorParcela') || 0)}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{date.toLocaleDateString('pt-BR')}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot className="bg-muted font-medium border-t border-border">
+                        <tr>
+                          <td colSpan={2} className="px-4 py-3 text-muted-foreground">Total</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(total)}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground font-normal">Entrada + Parcelas = Total</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
