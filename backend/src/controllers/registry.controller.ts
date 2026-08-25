@@ -138,8 +138,29 @@ export const RegistryController = {
       const clients = await prisma.client.findMany({
         where: whereClause,
         orderBy: { nome: 'asc' },
+        include: {
+          quotes: {
+            where: { status: 'Pago' },
+            select: { id: true },
+            take: 1
+          },
+          towingQuotes: {
+            where: { status: 'Pago' },
+            select: { id: true },
+            take: 1
+          }
+        }
       });
-      return res.json(clients);
+      
+      const response = clients.map((c: any) => {
+        const { quotes, towingQuotes, ...rest } = c;
+        return {
+          ...rest,
+          hasRevenue: (quotes && quotes.length > 0) || (towingQuotes && towingQuotes.length > 0)
+        };
+      });
+
+      return res.json(response);
     } catch (error) {
       console.error('Error listing clients:', error);
       return res.status(500).json({ error: 'Erro ao listar clientes' });

@@ -455,17 +455,21 @@ export function Clients() {
                       <TableActionMenu
                         onEdit={() => handleOpenEditModal(client)}
                         onDelete={() => setClientToDelete(client)}
-                        extraActions={[
-                          {
-                            label: 'Receita do Cliente',
-                            icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
-                            onClick: () => {
-                              setSelectedRevenueClient(client);
-                              setIsRevenueModalOpen(true);
-                            },
-                            className: 'hover:bg-emerald-500/10'
-                          }
-                        ]}
+                        extraActions={
+                          client.hasRevenue
+                            ? [
+                                {
+                                  label: 'Receita do Cliente',
+                                  icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
+                                  onClick: () => {
+                                    setSelectedRevenueClient(client);
+                                    setIsRevenueModalOpen(true);
+                                  },
+                                  className: 'hover:bg-emerald-500/10'
+                                }
+                              ]
+                            : []
+                        }
                       />
                     </td>
                   </tr>
@@ -551,16 +555,20 @@ export function Clients() {
                 <TableActionMenu
                   onEdit={() => handleOpenEditModal(client)}
                   onDelete={() => setClientToDelete(client)}
-                  extraActions={[
-                    {
-                      label: 'Receita do Cliente',
-                      icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
-                      onClick: () => {
-                        setSelectedRevenueClient(client);
-                        setIsRevenueModalOpen(true);
-                      }
-                    }
-                  ]}
+                  extraActions={
+                    client.hasRevenue
+                      ? [
+                          {
+                            label: 'Receita do Cliente',
+                            icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
+                            onClick: () => {
+                              setSelectedRevenueClient(client);
+                              setIsRevenueModalOpen(true);
+                            }
+                          }
+                        ]
+                      : []
+                  }
                 />
               </div>
             </div>
