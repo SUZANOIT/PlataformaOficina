@@ -27,6 +27,7 @@ const createQuoteSchema = zod_1.z.object({
     condicaoPagamento: zod_1.z.string(),
     parcelas: zod_1.z.number().nullish(),
     valorParcela: zod_1.z.number().nullish(),
+    valorEntrada: zod_1.z.number().nullish(),
     validade: zod_1.z.string(),
     garantia: zod_1.z.string().nullish(),
     prazoExecucao: zod_1.z.string().nullish(),
@@ -59,6 +60,7 @@ const createQuoteSchema = zod_1.z.object({
         tipo: zod_1.z.string().optional().default("Peça"),
         codigoPeca: zod_1.z.string().max(100).nullish(),
         tipoPeca: zod_1.z.string().nullish(),
+        valorCompraFornecedor: zod_1.z.number().nullish(),
     })).superRefine((items, ctx) => {
         items.forEach((item, index) => {
             if (item.tipo === 'Peça') {
@@ -414,6 +416,52 @@ exports.QuoteController = {
                     veiculoId = newVehicle.id;
                 }
             }
+            const financialReceivablesData = [];
+            if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
+                const currentDate = new Date();
+                // 1. Lançamento da Entrada
+                financialReceivablesData.push({
+                    companyId: finalCompanyId,
+                    cliente: client.nome,
+                    origem_tipo: 'ORCAMENTO',
+                    categoria: 'Serviços Oficina',
+                    descricao: `Entrada - Orçamento de ${client.nome}`,
+                    valor: data.valorEntrada,
+                    dataEmissao: currentDate,
+                    vencimento: currentDate,
+                    dataRecebimento: currentDate,
+                    formaRecebimento: 'Dinheiro', // Ou outra default
+                    responsavel: 'Sistema',
+                    status: 'LIQUIDADO'
+                });
+                // 2. Parcelas
+                const valorRestante = data.total - data.valorEntrada;
+                const numParcelas = data.parcelas || 1;
+                let parcelaValor = valorRestante / numParcelas;
+                for (let i = 1; i <= numParcelas; i++) {
+                    const vencimentoDate = new Date(currentDate);
+                    vencimentoDate.setMonth(vencimentoDate.getMonth() + i);
+                    // Ajuste de centavos na última parcela
+                    let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
+                    if (i === numParcelas) {
+                        const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelas - 1);
+                        valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+                    }
+                    financialReceivablesData.push({
+                        companyId: finalCompanyId,
+                        cliente: client.nome,
+                        origem_tipo: 'ORCAMENTO',
+                        categoria: 'Serviços Oficina',
+                        descricao: `Parcela ${i}/${numParcelas} - Orçamento de ${client.nome}`,
+                        valor: valorDaParcela,
+                        dataEmissao: currentDate,
+                        vencimento: vencimentoDate,
+                        formaRecebimento: 'A Combinar',
+                        responsavel: 'Sistema',
+                        status: 'PENDENTE'
+                    });
+                }
+            }
             // Create quote
             const quote = await prisma_1.prisma.quote.create({
                 data: {
@@ -422,6 +470,7 @@ exports.QuoteController = {
                     condicaoPagamento: data.condicaoPagamento,
                     parcelas: data.parcelas,
                     valorParcela: data.valorParcela,
+                    valorEntrada: data.valorEntrada,
                     validade: data.validade,
                     garantia: data.garantia,
                     prazoExecucao: data.prazoExecucao,
@@ -453,6 +502,9 @@ exports.QuoteController = {
                     items: {
                         create: data.items,
                     },
+                    financialReceivables: financialReceivablesData.length > 0 ? {
+                        create: financialReceivablesData
+                    } : undefined
                 },
                 include: {
                     items: true,
@@ -646,6 +698,7 @@ exports.QuoteController = {
                 tipo: item.tipo,
                 codigoPeca: item.codigoPeca,
                 tipoPeca: item.tipoPeca,
+                valorCompraFornecedor: item.valorCompraFornecedor,
             }));
             let quote = await prisma_1.prisma.$transaction(async (tx) => {
                 const updatedQuote = await tx.quote.update({

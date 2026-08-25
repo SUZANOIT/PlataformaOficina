@@ -26,6 +26,7 @@ const createQuoteSchema = z.object({
   condicaoPagamento: z.string(),
   parcelas: z.number().nullish(),
   valorParcela: z.number().nullish(),
+  valorEntrada: z.number().nullish(),
   validade: z.string(),
   garantia: z.string().nullish(),
   prazoExecucao: z.string().nullish(),
@@ -460,6 +461,57 @@ export const QuoteController = {
         }
       }
 
+      const financialReceivablesData: any[] = [];
+      if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
+        const currentDate = new Date();
+        // 1. Lançamento da Entrada
+        financialReceivablesData.push({
+          companyId: finalCompanyId,
+          cliente: client.nome,
+          origem_tipo: 'ORCAMENTO',
+          categoria: 'Serviços Oficina',
+          descricao: `Entrada - Orçamento de ${client.nome}`,
+          valor: data.valorEntrada,
+          dataEmissao: currentDate,
+          vencimento: currentDate,
+          dataRecebimento: currentDate,
+          formaRecebimento: 'Dinheiro', // Ou outra default
+          responsavel: 'Sistema',
+          status: 'LIQUIDADO'
+        });
+
+        // 2. Parcelas
+        const valorRestante = data.total - data.valorEntrada;
+        const numParcelas = data.parcelas || 1;
+        let parcelaValor = valorRestante / numParcelas;
+
+        for (let i = 1; i <= numParcelas; i++) {
+          const vencimentoDate = new Date(currentDate);
+          vencimentoDate.setMonth(vencimentoDate.getMonth() + i);
+
+          // Ajuste de centavos na última parcela
+          let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
+          if (i === numParcelas) {
+            const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelas - 1);
+            valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+          }
+
+          financialReceivablesData.push({
+            companyId: finalCompanyId,
+            cliente: client.nome,
+            origem_tipo: 'ORCAMENTO',
+            categoria: 'Serviços Oficina',
+            descricao: `Parcela ${i}/${numParcelas} - Orçamento de ${client.nome}`,
+            valor: valorDaParcela,
+            dataEmissao: currentDate,
+            vencimento: vencimentoDate,
+            formaRecebimento: 'A Combinar',
+            responsavel: 'Sistema',
+            status: 'PENDENTE'
+          });
+        }
+      }
+
       // Create quote
       const quote = await prisma.quote.create({
         data: {
@@ -468,6 +520,7 @@ export const QuoteController = {
           condicaoPagamento: data.condicaoPagamento,
           parcelas: data.parcelas,
           valorParcela: data.valorParcela,
+          valorEntrada: data.valorEntrada,
           validade: data.validade,
           garantia: data.garantia,
           prazoExecucao: data.prazoExecucao,
@@ -499,6 +552,9 @@ export const QuoteController = {
           items: {
             create: data.items,
           },
+          financialReceivables: financialReceivablesData.length > 0 ? {
+            create: financialReceivablesData
+          } : undefined
         },
         include: {
           items: true,

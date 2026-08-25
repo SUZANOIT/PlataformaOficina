@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Trash2, FileDown, Search, Loader2 } from 'lucide-react';
+import { Plus, Trash2, FileDown, Search, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { quoteService } from '../services/quoteService';
 import { platformService } from '../services/platformService';
@@ -37,6 +37,7 @@ type QuoteFormValues = {
   status?: string;
   parcelas?: number;
   valorParcela?: number;
+  valorEntrada?: number;
   validade: string;
   garantia: string;
   prazoExecucao: string;
@@ -1574,7 +1575,18 @@ ${bankingText}`;
             </div>
 
             {watchCondicao === 'Parcelado' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:col-span-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Valor da Entrada (R$)</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    {...register('valorEntrada')}
+                    disabled={isViewing}
+                    placeholder="0.00"
+                    className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
+                  />
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Qtd. Parcelas</label>
                   <input 
@@ -1593,6 +1605,14 @@ ${bankingText}`;
                     disabled={isViewing}
                     className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                   />
+                </div>
+                {/* Visual feedback das parcelas */}
+                <div className="col-span-1 sm:col-span-3 text-sm text-emerald-600 bg-emerald-500/10 p-3 rounded-lg flex items-center gap-2">
+                  <DollarSign size={16} />
+                  <span>
+                    O valor da entrada gerará um título <strong>LIQUIDADO</strong> imediatamente.
+                    O restante será dividido em <strong>{watch('parcelas') || 1} parcelas pendentes</strong>.
+                  </span>
                 </div>
               </div>
             )}

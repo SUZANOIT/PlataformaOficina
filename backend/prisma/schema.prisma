@@ -176,6 +176,7 @@ model Quote {
   condicaoPagamento String
   parcelas          Int? // Se for parcelado
   valorParcela      Float? // Se for parcelado
+  valorEntrada      Float? // Valor da entrada (se houver)
 
   validade      String // Ex: "Proposta válida por 7 dias"
   garantia      String? // Ex: "Garantia de 90 dias"

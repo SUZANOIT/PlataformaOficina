@@ -57,12 +57,13 @@ const createReceivableSchema = zod_1.z.object({
     formaRecebimento: zod_1.z.string(),
     responsavel: zod_1.z.string().optional(),
     observacoes: zod_1.z.string().optional().nullable(),
+    numeroEmpenho: zod_1.z.string().optional().nullable(),
     status: zod_1.z.string().default('PENDENTE'),
     quoteId: zod_1.z.string().optional().nullable(),
     attachments: zod_1.z.array(attachmentSchema).optional(),
     linkedQuotes: zod_1.z.array(zod_1.z.object({
         quoteId: zod_1.z.string(),
-        valorVinculado: zod_1.z.number().positive()
+        valorVinculado: zod_1.z.number().min(0)
     })).optional(),
 });
 function calculateDueDate(baseDate, type, index) {
@@ -248,7 +249,7 @@ exports.FinancialController = {
             const approvedQuotes = await prisma_1.prisma.quote.findMany({
                 where: {
                     status: {
-                        in: ['Aprovado', 'Pago', 'APROVADO', 'PAGO']
+                        in: ['Pago', 'PAGO', 'Emitir Nota Fiscal', 'EMITIR NOTA FISCAL', 'Emitido Nota Fiscal', 'EMITIDO NOTA FISCAL']
                     }
                 },
                 include: {
@@ -270,7 +271,7 @@ exports.FinancialController = {
             const approvedTowingQuotes = await prisma_1.prisma.towingQuote.findMany({
                 where: {
                     status: {
-                        in: ['Aprovado', 'Pago', 'APROVADO', 'PAGO']
+                        in: ['Pago', 'PAGO', 'Emitir Nota Fiscal', 'EMITIR NOTA FISCAL', 'Emitido Nota Fiscal', 'EMITIDO NOTA FISCAL']
                     }
                 },
                 include: {
@@ -936,7 +937,8 @@ exports.FinancialController = {
                     formaRecebimento: body.formaRecebimento,
                     responsavel: responsavelNome,
                     observacoes: body.observacoes,
-                    status: body.status,
+                    numeroEmpenho: body.numeroEmpenho,
+                    status: body.status || 'PENDENTE',
                     quoteId: body.quoteId || (body.linkedQuotes && body.linkedQuotes.length > 0 ? body.linkedQuotes[0].quoteId : null),
                     responsavel_lancamento_id: userId || null,
                     responsavel_lancamento_nome: responsavelNome,
@@ -1092,6 +1094,7 @@ exports.FinancialController = {
                 formaRecebimento: updateFields.formaRecebimento,
                 responsavel: updateFields.responsavel,
                 observacoes: updateFields.observacoes,
+                numeroEmpenho: updateFields.numeroEmpenho,
                 status: updateFields.status,
                 quoteId: updateFields.quoteId !== undefined ? updateFields.quoteId : (updateFields.linkedQuotes && updateFields.linkedQuotes.length > 0 ? updateFields.linkedQuotes[0].quoteId : undefined),
             };
