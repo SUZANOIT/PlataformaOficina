@@ -428,27 +428,29 @@ exports.QuoteController = {
             }
             const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
             const financialReceivablesData = [];
-            if (!isPending && data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > 0) {
+            if (!isPending && data.condicaoPagamento === 'Parcelado') {
                 const currentDate = new Date();
-                // 1. Lançamento da Entrada
-                financialReceivablesData.push({
-                    companyId: finalCompanyId,
-                    cliente: client.nome,
-                    origem_tipo: 'ORCAMENTO',
-                    categoria: 'Serviços Oficina',
-                    descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
-                    valor: data.valorEntrada,
-                    dataEmissao: currentDate,
-                    vencimento: currentDate,
-                    dataRecebimento: currentDate,
-                    formaRecebimento: 'Dinheiro', // Ou outra default
-                    responsavel: 'Sistema',
-                    status: 'LIQUIDADO'
-                });
+                // 1. Lançamento da Entrada (se houver)
+                if (data.valorEntrada && data.valorEntrada > 0) {
+                    financialReceivablesData.push({
+                        companyId: finalCompanyId,
+                        cliente: client.nome,
+                        origem_tipo: 'ORCAMENTO',
+                        categoria: 'Serviços Oficina',
+                        descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
+                        valor: data.valorEntrada,
+                        dataEmissao: currentDate,
+                        vencimento: currentDate,
+                        dataRecebimento: currentDate,
+                        formaRecebimento: 'Dinheiro', // Ou outra default
+                        responsavel: 'Sistema',
+                        status: 'LIQUIDADO'
+                    });
+                }
                 // 2. Parcelas Pendentes
                 const numParcelasPendentes = data.parcelas || 1;
                 if (numParcelasPendentes > 0) {
-                    const valorRestante = data.total - data.valorEntrada;
+                    const valorRestante = data.total - (data.valorEntrada || 0);
                     const parcelaValor = valorRestante / numParcelasPendentes;
                     for (let i = 1; i <= numParcelasPendentes; i++) {
                         const vencimentoDate = new Date(currentDate);
@@ -717,23 +719,25 @@ exports.QuoteController = {
                 const existingReceivablesCount = await tx.financialReceivable.count({ where: { quoteId: id } });
                 const financialReceivablesData = [];
                 const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
-                if (!isPending && existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
+                if (!isPending && existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado') {
                     const currentDate = new Date();
                     const finalCompanyId = data.companyId || existingQuote.companyId;
-                    financialReceivablesData.push({
-                        companyId: finalCompanyId,
-                        cliente: client.nome,
-                        origem_tipo: 'ORCAMENTO',
-                        categoria: 'Serviços Oficina',
-                        descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
-                        valor: data.valorEntrada,
-                        dataEmissao: currentDate,
-                        vencimento: currentDate,
-                        dataRecebimento: currentDate,
-                        formaRecebimento: 'Dinheiro',
-                        responsavel: 'Sistema',
-                        status: 'LIQUIDADO'
-                    });
+                    if (data.valorEntrada && data.valorEntrada > 0) {
+                        financialReceivablesData.push({
+                            companyId: finalCompanyId,
+                            cliente: client.nome,
+                            origem_tipo: 'ORCAMENTO',
+                            categoria: 'Serviços Oficina',
+                            descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
+                            valor: data.valorEntrada,
+                            dataEmissao: currentDate,
+                            vencimento: currentDate,
+                            dataRecebimento: currentDate,
+                            formaRecebimento: 'Dinheiro',
+                            responsavel: 'Sistema',
+                            status: 'LIQUIDADO'
+                        });
+                    }
                     const numParcelasPendentes = data.parcelas || 1;
                     if (numParcelasPendentes > 0) {
                         const valorRestante = data.total - (data.valorEntrada || 0);
