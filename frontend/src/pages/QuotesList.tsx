@@ -498,7 +498,7 @@ export function QuotesList() {
         />
 
         <div className="w-full overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse table-fixed break-words min-w-[950px]">
+          <table className="w-full text-left border-collapse table-fixed break-words min-w-[1150px]">
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
                 <th className="py-4 pl-4 pr-2 font-medium w-[100px]">Nº</th>
