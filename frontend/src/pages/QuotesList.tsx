@@ -5,6 +5,57 @@ import { toast } from 'sonner';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { AttachmentsUpload } from '../components/AttachmentsUpload';
 import { ReportPrintHeader } from '../components/ReportPrintHeader';
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Orçamento':
+    case 'Em Andamento':
+    case 'Aguardando Aprovação':
+      return 'bg-purple-500';
+    case 'Aprovado':
+      return 'bg-emerald-500';
+    case 'Aguardando Pagamento':
+      return 'bg-amber-500';
+    case 'Emitir Nota Fiscal':
+      return 'bg-teal-500';
+    case 'Cobertura':
+      return 'bg-indigo-500';
+    case 'Parcialmente Pago':
+      return 'bg-blue-500';
+    case 'Pago':
+      return 'bg-sky-500';
+    case 'Cancelado':
+      return 'bg-rose-500';
+    default:
+      return 'bg-slate-500';
+  }
+};
+
+const getStatusBadgeClasses = (status: string) => {
+  switch (status) {
+    case 'Orçamento':
+    case 'Em Andamento':
+    case 'Aguardando Aprovação':
+      return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+    case 'Aprovado':
+      return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+    case 'Aguardando Pagamento':
+      return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+    case 'Emitir Nota Fiscal':
+      return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    case 'Cobertura':
+      return 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20';
+    case 'Parcialmente Pago':
+      return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'Pago':
+      return 'bg-sky-500/10 text-sky-600 border-sky-500/20';
+    case 'Cancelado':
+      return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+    default:
+      return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
+  }
+};
+
 export function QuotesList() {
   const [stats, setStats] = useState<any>(null);
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -405,11 +456,13 @@ export function QuotesList() {
                 Exibindo <strong className="text-foreground">{filteredQuotes.length}</strong> registro(s)
               </span>
               {Object.keys(totalsByStatus).length > 0 && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-2 text-xs text-muted-foreground">
                   {Object.entries(totalsByStatus).map(([status, value]) => (
-                    <span key={status} className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
-                      {status}: <strong className="text-foreground">{formatCurrency(value as number)}</strong>
+                    <span key={status} className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${getStatusColor(status)}`}></span>
+                      <span>
+                        {status}: <strong className="text-foreground">{formatCurrency(value as number)}</strong>
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -485,16 +538,7 @@ export function QuotesList() {
                     {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="p-4 text-sm hidden xl:table-cell">
-                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${
-                      (quote.status === 'Orçamento' || quote.status === 'Em Andamento' || quote.status === 'Aguardando Aprovação') ? 'bg-purple-500/10 text-purple-600 border-purple-500/20' :
-                      quote.status === 'Aprovado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                      quote.status === 'Aguardando Pagamento' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                      quote.status === 'Emitir Nota Fiscal' ? 'bg-teal-500/10 text-teal-600 border-teal-500/20' :
-                      quote.status === 'Cobertura' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
-                      quote.status === 'Pago' ? 'bg-sky-500/10 text-sky-600 border-sky-500/20' :
-                      quote.status === 'Cancelado' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                      'bg-slate-500/10 text-slate-600 border-slate-500/20'
-                    }`}>
+                    <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold border truncate text-center ${getStatusBadgeClasses(quote.status)}`}>
                       {(quote.status === 'Orçamento' || quote.status === 'Em Andamento') ? 'Aguardando Aprovação' : (quote.status || 'Aguardando Aprovação')}
                     </span>
                   </td>
