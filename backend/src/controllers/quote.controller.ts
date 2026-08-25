@@ -795,6 +795,62 @@ export const QuoteController = {
       }));
 
       let quote = await prisma.$transaction(async (tx) => {
+        const existingReceivablesCount = await tx.financialReceivable.count({ where: { quoteId: id } });
+        const financialReceivablesData: any[] = [];
+
+        if (existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0) {
+          const currentDate = new Date();
+          const finalCompanyId = data.companyId || existingQuote.companyId;
+          
+          financialReceivablesData.push({
+            companyId: finalCompanyId,
+            cliente: client.nome,
+            origem_tipo: 'ORCAMENTO',
+            categoria: 'Serviços Oficina',
+            descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
+            valor: data.valorEntrada,
+            dataEmissao: currentDate,
+            vencimento: currentDate,
+            dataRecebimento: currentDate,
+            formaRecebimento: 'Dinheiro',
+            responsavel: 'Sistema',
+            status: 'LIQUIDADO',
+            tipoLancamento: 'ENTRADA'
+          });
+
+          const numParcelasPendentes = data.parcelas || 1;
+          if (numParcelasPendentes > 0) {
+            const valorRestante = data.total - (data.valorEntrada || 0);
+            const parcelaValor = valorRestante / numParcelasPendentes;
+
+            for (let i = 1; i <= numParcelasPendentes; i++) {
+              const vencimentoDate = new Date(currentDate);
+              vencimentoDate.setDate(vencimentoDate.getDate() + (i * 30));
+
+              let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
+              if (i === numParcelasPendentes) {
+                const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelasPendentes - 1);
+                valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+              }
+
+              financialReceivablesData.push({
+                companyId: finalCompanyId,
+                cliente: client.nome,
+                origem_tipo: 'ORCAMENTO',
+                categoria: 'Serviços Oficina',
+                descricao: `Parcela ${i} de ${numParcelasPendentes} - Orçamento de ${client.nome}`,
+                valor: valorDaParcela,
+                dataEmissao: currentDate,
+                vencimento: vencimentoDate,
+                formaRecebimento: 'A Combinar',
+                responsavel: 'Sistema',
+                status: 'PENDENTE',
+                tipoLancamento: 'PARCELA'
+              });
+            }
+          }
+        }
+
         const updatedQuote = await tx.quote.update({
           where: { id },
           data: {
@@ -832,7 +888,10 @@ export const QuoteController = {
             items: {
               deleteMany: {},
               create: quoteItems,
-            }
+            },
+            financialReceivables: financialReceivablesData.length > 0 ? {
+              create: financialReceivablesData
+            } : undefined
           },
           include: {
             items: true,
