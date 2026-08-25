@@ -1135,6 +1135,35 @@ exports.FinancialController = {
                     changes: 'Lançamento de conta a receber atualizado',
                 }
             });
+            // ----------------------------------------------------
+            // REGRA: Orçamento Parcialmente Pago -> Pago
+            // ----------------------------------------------------
+            const qId = updated.quoteId || (updated.linkedQuotes && updated.linkedQuotes.length > 0 ? updated.linkedQuotes[0].quoteId : null);
+            if (qId && (updated.status === 'RECEBIDA' || updated.status === 'LIQUIDADO' || updated.status === 'PAGA')) {
+                const allReceivables = await prisma_1.prisma.financialReceivable.findMany({
+                    where: {
+                        OR: [
+                            { quoteId: qId },
+                            { linkedQuotes: { some: { quoteId: qId } } }
+                        ]
+                    }
+                });
+                const hasPending = allReceivables.some(r => r.status === 'PENDENTE' ||
+                    r.status === 'EM ANÁLISE' ||
+                    r.status === 'ATRASADA' ||
+                    r.status === 'VENCIDA');
+                if (!hasPending) {
+                    const quoteToUpdate = await prisma_1.prisma.quote.findUnique({ where: { id: qId } });
+                    if (quoteToUpdate && quoteToUpdate.status === 'Parcialmente Pago') {
+                        await prisma_1.prisma.quote.update({
+                            where: { id: qId },
+                            data: { status: 'Pago' }
+                        });
+                        console.log(`Orçamento #${quoteToUpdate.numeroOrcamento} alterado para Pago pois todos os recebimentos foram liquidados.`);
+                    }
+                }
+            }
+            // ----------------------------------------------------
             return res.json(updated);
         }
         catch (error) {

@@ -2,6 +2,7 @@ export const QUOTE_STATUS_OPTIONS = [
   'Aguardando Aprovação',
   'Aprovado',
   'Aguardando Pagamento',
+  'Parcialmente Pago',
   'Emitir Nota Fiscal',
   'Cobertura',
   'Pago',

@@ -566,7 +566,7 @@ export const QuoteController = {
           clonedFromId: data.clonedFromId,
           subtotal: data.subtotal,
           total: data.total,
-          status: isCurio ? 'Cobertura' : data.status,
+          status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? 'Parcialmente Pago' : data.status),
           items: {
             create: data.items,
           },
@@ -827,7 +827,7 @@ export const QuoteController = {
             mecanicoId: data.mecanicoId || null,
             subtotal: data.subtotal,
             total: data.total,
-            status: isCurio ? 'Cobertura' : data.status,
+            status: isCurio ? 'Cobertura' : (data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
             items: {
               deleteMany: {},
               create: quoteItems,
