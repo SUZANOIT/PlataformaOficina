@@ -495,7 +495,7 @@ export const QuoteController = {
         });
 
         // 2. Parcelas Pendentes
-        const numParcelasPendentes = (data.parcelas || 1) - 1;
+        const numParcelasPendentes = data.parcelas || 1;
         
         if (numParcelasPendentes > 0) {
           const valorRestante = data.total - data.valorEntrada;

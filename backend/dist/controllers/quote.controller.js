@@ -446,7 +446,7 @@ exports.QuoteController = {
                     tipoLancamento: 'ENTRADA'
                 });
                 // 2. Parcelas Pendentes
-                const numParcelasPendentes = (data.parcelas || 1) - 1;
+                const numParcelasPendentes = data.parcelas || 1;
                 if (numParcelasPendentes > 0) {
                     const valorRestante = data.total - data.valorEntrada;
                     const parcelaValor = valorRestante / numParcelasPendentes;

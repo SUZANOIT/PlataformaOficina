@@ -173,6 +173,15 @@ export function QuotesList() {
     }, 300);
   };
 
+  const totalsByStatus = useMemo(() => {
+    return filteredQuotes.reduce((acc, quote) => {
+      const status = quote.status || 'Orçamento';
+      if (!acc[status]) acc[status] = 0;
+      acc[status] += Number(quote.total) || 0;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [filteredQuotes]);
+
   return (
     <div className="space-y-6 print:space-y-0 print:bg-white print:m-0 print:p-0">
       <style>{`
@@ -390,10 +399,22 @@ export function QuotesList() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-4 mt-2 border-t border-border">
-            <span className="text-sm text-muted-foreground">
-              Exibindo <strong className="text-foreground">{filteredQuotes.length}</strong> registro(s)
-            </span>
+          <div className="flex justify-between items-end pt-4 mt-2 border-t border-border">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground">
+                Exibindo <strong className="text-foreground">{filteredQuotes.length}</strong> registro(s)
+              </span>
+              {Object.keys(totalsByStatus).length > 0 && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {Object.entries(totalsByStatus).map(([status, value]) => (
+                    <span key={status} className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                      {status}: <strong className="text-foreground">{formatCurrency(value as number)}</strong>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex gap-4 sm:gap-6 text-sm">
               <div className="text-right">
                 <span className="text-muted-foreground block text-xs">Total Peça:</span>

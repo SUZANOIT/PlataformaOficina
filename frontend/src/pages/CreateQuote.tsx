@@ -379,8 +379,8 @@ export function CreateQuote() {
   const saldoParcelar = total - watchEntrada;
 
   useEffect(() => {
-    if (watchCondicao === 'Parcelado' && watchParcelas > 1) {
-      const p = watchParcelas - 1;
+    if (watchCondicao === 'Parcelado' && watchParcelas >= 1) {
+      const p = watchParcelas;
       const valor = saldoParcelar / p;
       if (!isNaN(valor) && isFinite(valor)) {
         setValue('valorParcela', Number(valor.toFixed(2)));
@@ -1610,9 +1610,9 @@ ${bankingText}`;
                   <label className="text-sm font-medium">Qtd. Parcelas</label>
                   <input 
                     type="number"
-                    min="2"
+                    min="1"
                     max="4"
-                    {...register('parcelas', { min: 2, max: 4 })}
+                    {...register('parcelas', { min: 1, max: 4 })}
                     disabled={isViewing}
                     className="w-full px-4 py-2 bg-input/50 border border-border rounded-lg"
                   />
@@ -1634,7 +1634,7 @@ ${bankingText}`;
                     <DollarSign size={16} />
                     <span>
                       O valor da entrada gerará um título <strong>LIQUIDADO</strong> imediatamente.
-                      O restante será dividido em <strong>{watchParcelas > 1 ? watchParcelas - 1 : 1} parcela(s) pendente(s)</strong>.
+                      O restante será dividido em <strong>{watchParcelas} parcela(s) pendente(s)</strong>.
                     </span>
                   </div>
                 </div>
@@ -1660,14 +1660,14 @@ ${bankingText}`;
                           <td className="px-4 py-3 text-right">{formatCurrency(watchEntrada)}</td>
                           <td className="px-4 py-3 text-muted-foreground">Hoje</td>
                         </tr>
-                        {Array.from({ length: Math.max(0, watchParcelas - 1) }).map((_, idx) => {
+                        {Array.from({ length: Math.max(0, watchParcelas) }).map((_, idx) => {
                           const num = idx + 1;
                           const days = num * 30;
                           const date = new Date();
                           date.setDate(date.getDate() + days);
                           return (
                             <tr key={idx} className="border-b border-border last:border-0 bg-background">
-                              <td className="px-4 py-3 text-muted-foreground">Parcela {num} de {watchParcelas - 1}</td>
+                              <td className="px-4 py-3 text-muted-foreground">Parcela {num} de {watchParcelas}</td>
                               <td className="px-4 py-3">
                                 <span className="bg-purple-500/20 text-purple-600 px-2 py-1 rounded-md text-xs font-semibold">PENDENTE</span>
                               </td>
