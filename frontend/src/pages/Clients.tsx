@@ -299,7 +299,7 @@ export function Clients() {
   const totalClients = clients.length;
   const pjClients = clients.filter(c => {
     const doc = (c.cnpj || '').replace(/\D/g, '');
-    return doc.length !== 11;
+    return doc.length === 14;
   }).length;
   const pfClients = clients.filter(c => {
     const doc = (c.cnpj || '').replace(/\D/g, '');
