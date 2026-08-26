@@ -297,16 +297,7 @@ export const AdvanceController = {
         return res.status(404).json({ error: 'Adiantamento não encontrado' });
       }
 
-      // Delete the advance (associated payable is kept but unlinked or optionally deleted. Let's delete it too to keep clean records)
-      if (advance.payableId) {
-        try {
-          await prisma.financialPayable.delete({
-            where: { id: advance.payableId }
-          });
-        } catch (e) {
-          console.warn('Linked payable not found or already deleted:', e);
-        }
-      }
+      const payableId = advance.payableId;
 
       const userId = (req as any).userId;
       const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -320,13 +311,23 @@ export const AdvanceController = {
           action: 'CANCELAMENTO_ADIANTAMENTO',
           valorAnterior: advance.valor.toString(),
           valorNovo: '0',
-          companyId: companyId
+          companyId: companyId as string
         }
       });
 
       await prisma.salaryAdvance.delete({
         where: { id: advanceId }
       });
+
+      if (payableId) {
+        try {
+          await prisma.financialPayable.delete({
+            where: { id: payableId }
+          });
+        } catch (e) {
+          console.warn('Linked payable not found or already deleted:', e);
+        }
+      }
 
       return res.status(204).send();
     } catch (error) {

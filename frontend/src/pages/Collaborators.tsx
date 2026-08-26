@@ -1882,6 +1882,7 @@ export function Collaborators() {
                         <option value="Transferência Bancária">Transferência Bancária</option>
                         <option value="Dinheiro">Dinheiro</option>
                         <option value="Cheque">Cheque</option>
+                        <option value="Contas a Pagar">Contas a Pagar</option>
                       </select>
                     </div>
                     <div>
@@ -2224,6 +2225,7 @@ export function Collaborators() {
                       <option value="Transferência Bancária">Transferência Bancária</option>
                       <option value="Dinheiro">Dinheiro</option>
                       <option value="Cheque">Cheque</option>
+                      <option value="Contas a Pagar">Contas a Pagar</option>
                     </select>
                   </div>
                   <div>
