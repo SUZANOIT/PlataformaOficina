@@ -299,11 +299,11 @@ export function Clients() {
   const totalClients = clients.length;
   const pjClients = clients.filter(c => {
     const doc = (c.cnpj || '').replace(/\D/g, '');
-    return doc.length === 14;
+    return doc.length > 11;
   }).length;
   const pfClients = clients.filter(c => {
     const doc = (c.cnpj || '').replace(/\D/g, '');
-    return doc.length === 11;
+    return doc.length > 0 && doc.length <= 11;
   }).length;
 
   return (
@@ -389,7 +389,7 @@ export function Clients() {
             <tbody>
               {paginatedClients.map((client) => {
                 const docCleaned = (client.cnpj || '').replace(/\D/g, '');
-                const isPF = docCleaned.length === 11;
+                const isPF = docCleaned.length > 0 && docCleaned.length <= 11;
                 return (
                   <tr key={client.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                     <td className="p-4 truncate">
