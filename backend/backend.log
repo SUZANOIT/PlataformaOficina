@@ -42,3 +42,6 @@ Server is running on port 5001
 [INFO] 13:53:25 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/controllers/advance.controller.ts has been modified
 ◇ injected env (3) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
 Server is running on port 5001
+[INFO] 14:20:35 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/controllers/financial.controller.ts has been modified
+◇ injected env (3) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Server is running on port 5001
