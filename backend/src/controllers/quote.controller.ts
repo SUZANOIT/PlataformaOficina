@@ -469,6 +469,9 @@ export const QuoteController = {
         }
 
         const entrada = data.valorEntrada || 0;
+        if (entrada < data.total * 0.5) {
+          return res.status(400).json({ error: 'O valor da entrada deve ser no mínimo 50% do valor total do orçamento.' });
+        }
         if (entrada > data.total) {
           return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
         }
@@ -682,6 +685,16 @@ export const QuoteController = {
 
       if (!data.items || data.items.length === 0) {
         return res.status(400).json({ error: 'Quote must contain at least one item' });
+      }
+
+      if (data.condicaoPagamento === 'Parcelado') {
+        const entrada = data.valorEntrada || 0;
+        if (entrada < data.total * 0.5) {
+          return res.status(400).json({ error: 'O valor da entrada deve ser no mínimo 50% do valor total do orçamento.' });
+        }
+        if (entrada > data.total) {
+          return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
+        }
       }
 
       const existingQuote = await prisma.quote.findUnique({

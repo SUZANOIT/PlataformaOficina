@@ -605,9 +605,16 @@ ${bankingText}`;
         }
       }
 
-      if (data.condicaoPagamento === 'Parcelado' && data.valorEntrada && data.valorEntrada > total) {
-        toast.error('O valor da entrada não pode ser maior que o total do orçamento.');
-        return;
+      if (data.condicaoPagamento === 'Parcelado') {
+        const minEntrada = total * 0.5;
+        if (!data.valorEntrada || data.valorEntrada < minEntrada) {
+          toast.error(`O valor da entrada deve ser no mínimo 50% do total (R$ ${minEntrada.toFixed(2).replace('.', ',')}).`);
+          return;
+        }
+        if (data.valorEntrada > total) {
+          toast.error('O valor da entrada não pode ser maior que o total do orçamento.');
+          return;
+        }
       }
 
 
