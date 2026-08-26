@@ -1966,8 +1966,7 @@ export function Collaborators() {
                           <th className="py-4 px-5 font-bold">Forma de Pagamento</th>
                           <th className="py-4 px-5 font-bold">Oficina</th>
                           <th className="py-4 px-5 font-bold">Status</th>
-                          <th className="py-4 px-5 font-bold">Lançamento / Histórico</th>
-                          <th className="py-4 px-5 font-bold text-right">Ações</th>
+                          <th className="py-4 px-5 font-bold">Histórico / Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2029,38 +2028,38 @@ export function Collaborators() {
                               </button>
                             </td>
                             <td className="py-3.5 px-5 text-gray-400 dark:text-gray-500 text-[10px]">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                  <User size={12} className="text-gray-400" />
-                                  <span>Por: <span className="font-semibold text-gray-800 dark:text-white">{adv.responsavel}</span></span>
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1">
+                                    <User size={12} className="text-gray-400" />
+                                    <span>Por: <span className="font-semibold text-gray-800 dark:text-white">{adv.responsavel}</span></span>
+                                  </div>
+                                  {adv.pdfs && adv.pdfs.length > 0 ? (
+                                    <span className="text-[9px] text-slate-400 flex items-center gap-1 font-semibold">
+                                      <History size={10} /> {adv.pdfs.length} via(s) gerada(s)
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-amber-500/90 flex items-center gap-1 font-semibold">
+                                      ⚠️ Nunca gerado
+                                    </span>
+                                  )}
                                 </div>
-                                {adv.pdfs && adv.pdfs.length > 0 ? (
-                                  <span className="text-[9px] text-slate-400 flex items-center gap-1 font-semibold">
-                                    <History size={10} /> {adv.pdfs.length} via(s) gerada(s)
-                                  </span>
-                                ) : (
-                                  <span className="text-[9px] text-amber-500/90 flex items-center gap-1 font-semibold">
-                                    ⚠️ Nunca gerado
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-5 text-right">
-                              <div className="flex gap-2.5 justify-end">
-                                <button
-                                  onClick={() => handleDownloadPdf(adv)}
-                                  className="p-2 bg-slate-500/10 text-slate-600 rounded-xl hover:bg-slate-500/20 transition hover:scale-105 active:scale-95 duration-100"
-                                  title="Baixar Comprovante (PDF)"
-                                >
-                                  <Printer size={13} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteAdvance(adv.id)}
-                                  className="p-2 bg-rose-500/10 text-rose-600 rounded-xl hover:bg-rose-500/20 transition hover:scale-105 active:scale-95 duration-100"
-                                  title="Excluir Adiantamento"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                <div className="flex gap-2 shrink-0">
+                                  <button
+                                    onClick={() => handleDownloadPdf(adv)}
+                                    className="p-2 bg-slate-500/10 text-slate-600 rounded-xl hover:bg-slate-500/20 transition hover:scale-105 active:scale-95 duration-100"
+                                    title="Baixar Comprovante (PDF)"
+                                  >
+                                    <Printer size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteAdvance(adv.id)}
+                                    className="p-2 bg-rose-500/10 text-rose-600 rounded-xl hover:bg-rose-500/20 transition hover:scale-105 active:scale-95 duration-100"
+                                    title="Excluir Adiantamento"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
                               </div>
                             </td>
                           </tr>
