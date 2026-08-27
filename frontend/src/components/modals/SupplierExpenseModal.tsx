@@ -10,7 +10,6 @@ import {
   Download,
   Share2,
   RefreshCw,
-  Trophy,
   Activity,
   ArrowUpRight,
   ChevronDown,
@@ -86,7 +85,7 @@ export function SupplierExpenseModal({ isOpen, onClose, supplier }: SupplierExpe
   const [period, setPeriod] = useState('year'); // year, 30d, 90d
 
   useEffect(() => {
-    if (isOpen && client) {
+    if (isOpen && supplier) {
       fetchDashboard();
     }
   }, [isOpen, supplier, period]);
@@ -160,15 +159,10 @@ export function SupplierExpenseModal({ isOpen, onClose, supplier }: SupplierExpe
             <div>
               <h3 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
                 Dashboard Executivo
-                {data && data.ranking.position > 0 && data.ranking.position <= 10 && (
-                  <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-500/30">
-                    <Trophy size={12} /> TOP {data.ranking.position}
-                  </span>
-                )}
               </h3>
               <p className="text-sm text-muted-foreground font-medium flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                {client?.nome} {client?.empresa ? `• ${supplier.empresa}` : ''} {client?.cnpj ? `• ${supplier.cnpj}` : ''}
+                {supplier?.razaoSocial} {supplier?.nomeFantasia ? `• ${supplier.nomeFantasia}` : ''} {supplier?.cnpj ? `• CNPJ: ${supplier.cnpj}` : ''}
               </p>
             </div>
           </div>
