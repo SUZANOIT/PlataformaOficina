@@ -276,6 +276,7 @@ routes.get('/registry/suppliers', RegistryController.listSuppliers);
 routes.post('/registry/suppliers', RegistryController.createSupplier);
 routes.put('/registry/suppliers/:id', RegistryController.updateSupplier);
 routes.delete('/registry/suppliers/:id', RegistryController.deleteSupplier);
+routes.get('/registry/suppliers/:id/expenses', RegistryController.getSupplierExpenses);
 
 routes.get('/registry/collaborators', RegistryController.listCollaborators);
 routes.post('/registry/collaborators', RegistryController.createCollaborator);

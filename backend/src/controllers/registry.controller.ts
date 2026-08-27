@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
 import { ClientDashboardService } from '../services/clientDashboard.service';
+import { SupplierDashboardService } from '../services/supplierDashboard.service';
 
 const clientSchema = z.object({
   nome: z.string(),
@@ -314,6 +315,42 @@ export const RegistryController = {
     } catch (error: any) {
       console.error('Error fetching client revenue:', error);
       return res.status(500).json({ error: 'Erro ao buscar receita do cliente', details: error.message, stack: error.stack });
+    }
+  },
+
+  async getSupplierExpenses(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const companyId = (req as any).companyId || null;
+
+      const startDateQuery = req.query.startDate as string;
+      const endDateQuery = req.query.endDate as string;
+      const prevStartDateQuery = req.query.prevStartDate as string;
+      const prevEndDateQuery = req.query.prevEndDate as string;
+
+      const currentYear = new Date().getFullYear();
+      
+      const startDate = startDateQuery ? new Date(startDateQuery) : new Date(`${currentYear}-01-01T00:00:00.000Z`);
+      const endDate = endDateQuery ? new Date(endDateQuery) : new Date(`${currentYear}-12-31T23:59:59.999Z`);
+      
+      const prevStartDate = prevStartDateQuery ? new Date(prevStartDateQuery) : new Date(`${currentYear - 1}-01-01T00:00:00.000Z`);
+      const prevEndDate = prevEndDateQuery ? new Date(prevEndDateQuery) : new Date(`${currentYear - 1}-12-31T23:59:59.999Z`);
+
+      const existing = await prisma.supplier.findFirst({
+        where: { id, companyId }
+      });
+      if (!existing) {
+        return res.status(403).json({ error: 'Acesso negado para este fornecedor.' });
+      }
+
+      const service = new SupplierDashboardService(companyId, id);
+      const dashboardData = await service.getDashboardData({ startDate, endDate, prevStartDate, prevEndDate });
+
+      return res.json(dashboardData);
+
+    } catch (error: any) {
+      console.error('Error fetching supplier expenses:', error);
+      return res.status(500).json({ error: 'Erro ao buscar despesas do fornecedor', details: error.message, stack: error.stack });
     }
   },
 

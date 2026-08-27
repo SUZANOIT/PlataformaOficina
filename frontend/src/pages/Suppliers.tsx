@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, MapPin, Globe, CheckCircle, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import { SupplierExpenseModal } from '../components/modals/SupplierExpenseModal';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 
@@ -14,7 +15,9 @@ export function Suppliers() {
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [currentSupplierForExpense, setCurrentSupplierForExpense] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form states
@@ -319,6 +322,16 @@ export function Suppliers() {
                   <td className="p-4">
                     <div className="flex gap-2 justify-center lg:justify-start">
                       <button 
+                        onClick={() => {
+                          setCurrentSupplierForExpense(supplier);
+                          setIsExpenseModalOpen(true);
+                        }}
+                        className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition"
+                        title="Dashboard de Despesas"
+                      >
+                        <DollarSign size={14} />
+                      </button>
+                      <button 
                         onClick={() => handleOpenEditModal(supplier)}
                         className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
                         title="Editar"
@@ -372,6 +385,16 @@ export function Suppliers() {
             <div className="flex justify-between items-center pt-2.5 border-t border-border/50">
               <span className="text-[10px] text-muted-foreground">Criado em: {new Date(supplier.createdAt).toLocaleDateString('pt-BR')}</span>
               <div className="flex gap-2">
+                <button 
+                  onClick={() => {
+                    setCurrentSupplierForExpense(supplier);
+                    setIsExpenseModalOpen(true);
+                  }}
+                  className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded hover:bg-emerald-500/20 transition"
+                  title="Dashboard de Despesas"
+                >
+                  <DollarSign size={12} />
+                </button>
                 <button 
                   onClick={() => handleOpenEditModal(supplier)}
                   className="p-1.5 bg-blue-500/10 text-blue-600 rounded hover:bg-blue-500/20 transition"
@@ -633,6 +656,18 @@ export function Suppliers() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODAL DE DESPESAS DO FORNECEDOR */}
+      {isExpenseModalOpen && currentSupplierForExpense && (
+        <SupplierExpenseModal
+          isOpen={isExpenseModalOpen}
+          onClose={() => {
+            setIsExpenseModalOpen(false);
+            setCurrentSupplierForExpense(null);
+          }}
+          supplier={currentSupplierForExpense}
+        />
       )}
     </div>
   );
