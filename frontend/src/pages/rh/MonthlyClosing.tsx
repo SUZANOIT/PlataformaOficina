@@ -49,6 +49,11 @@ export function MonthlyClosing() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [submittingClose, setSubmittingClose] = useState(false);
 
+  // Reopen Modal State
+  const [isReopenOpen, setIsReopenOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
+  const [submittingReopen, setSubmittingReopen] = useState(false);
+
   // Drilldown Detail Modal State
   const [detailItem, setDetailItem] = useState<ClosingItem | null>(null);
   const [detailAbsences, setDetailAbsences] = useState<any[]>([]);
@@ -130,6 +135,31 @@ export function MonthlyClosing() {
     }
   };
 
+  const handleReopenMonth = async () => {
+    if (!reopenReason.trim()) {
+      toast.error('O motivo da reabertura é obrigatório.');
+      return;
+    }
+    
+    try {
+      setSubmittingReopen(true);
+      await api.post('/rh/closing/reopen', {
+        month: selectedMonth,
+        year: selectedYear,
+        reason: reopenReason
+      });
+      toast.success('Competência reaberta com sucesso!');
+      setIsReopenOpen(false);
+      setReopenReason('');
+      fetchClosingData();
+    } catch (error: any) {
+      console.error('Error reopening month', error);
+      toast.error(error.response?.data?.error || 'Erro ao reabrir competência.');
+    } finally {
+      setSubmittingReopen(false);
+    }
+  };
+
   const monthsList = [
     { value: 1, label: 'Janeiro' },
     { value: 2, label: 'Fevereiro' },
@@ -190,10 +220,20 @@ export function MonthlyClosing() {
 
           {closingData && (
             closingData.status === 'FECHADO' ? (
-              <span className="flex items-center gap-1.5 px-4 py-2 bg-slate-500/10 text-slate-500 border border-slate-500/20 text-sm font-semibold rounded-xl">
-                <Lock size={16} />
-                <span>Competência Fechada</span>
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 px-4 py-2 bg-slate-500/10 text-slate-500 border border-slate-500/20 text-sm font-semibold rounded-xl">
+                  <Lock size={16} />
+                  <span>Competência Fechada</span>
+                </span>
+                <button
+                  onClick={() => setIsReopenOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xl text-sm font-semibold hover:bg-amber-500/20 transition duration-150"
+                  title="Reabrir Competência"
+                >
+                  <Unlock size={16} />
+                  <span className="hidden sm:inline">Reabrir</span>
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => setIsConfirmOpen(true)}
@@ -370,7 +410,56 @@ export function MonthlyClosing() {
         </div>
       )}
 
-      {/* Drilldown Details Modal */}
+      {/* Modal Reabertura */}
+      {isReopenOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-border/50">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <Unlock className="text-amber-500" size={24} />
+                Reabrir Competência
+              </h2>
+              <button 
+                onClick={() => !submittingReopen && setIsReopenOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-full"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 text-amber-600">
+                <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                <div className="text-sm">
+                  <p className="font-bold mb-1">Atenção!</p>
+                  <p>A reabertura desta competência fará com que os lançamentos projetados no Contas a Pagar sejam <strong>excluídos</strong> e os adiantamentos salariais voltem ao status <strong>Pendente</strong>.</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Motivo da Reabertura <span className="text-red-500">*</span></label>
+                <textarea 
+                  value={reopenReason}
+                  onChange={(e) => setReopenReason(e.target.value)}
+                  placeholder="Explique o motivo para audição. Ex: Necessário incluir falta que não havia sido registrada."
+                  className="w-full h-24 p-3 bg-background border border-input rounded-xl text-sm text-foreground focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none transition"
+                  disabled={submittingReopen}
+                />
+              </div>
+            </div>
+
+            <ModalFooterActions
+              onCancel={() => setIsReopenOpen(false)}
+              onPrimary={handleReopenMonth}
+              loading={submittingReopen}
+              primaryLabel="Confirmar Reabertura"
+              cancelLabel="Cancelar"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Detalhes Modal (Drilldown) */}
       {detailItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-2xl bg-card border border-border/80 shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200">

@@ -600,6 +600,112 @@ export const AbsenceController = {
     }
   },
 
+  // 7. Reopen Month (Reverse close operations)
+  async reopenMonth(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId || null;
+      const userId = (req as any).userId || null;
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.roleAdmin && !user?.roleRh) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas Admin ou RH podem reabrir o mês.' });
+      }
+
+      const { month, year, reason } = req.body;
+
+      if (!month || !year || !reason) {
+        return res.status(400).json({ error: 'Mês, Ano e Motivo são obrigatórios para reabertura.' });
+      }
+
+      const m = parseInt(month);
+      const y = parseInt(year);
+      const competencyStr = `${String(m).padStart(2, '0')}/${y}`;
+      const descFind = `Folha de Pagamento - Ref: ${competencyStr}`;
+
+      const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
+      const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+
+      // 1. Check if there are any payables already PAID for this month
+      const paidPayables = await prisma.financialPayable.findFirst({
+        where: {
+          companyId: companyId || '',
+          categoria: 'Folha de Pagamento',
+          descricao: {
+            contains: descFind,
+          },
+          status: 'PAGA'
+        }
+      });
+
+      if (paidPayables) {
+        return res.status(400).json({ error: 'Não é possível reabrir a competência pois já existem folhas pagas no financeiro.' });
+      }
+
+      // 2. Delete AbsenceHistory
+      await prisma.absenceHistory.deleteMany({
+        where: {
+          companyId: companyId || '',
+          competencia: competencyStr,
+        },
+      });
+
+      // 3. Delete pending FinancialPayables
+      await prisma.financialPayable.deleteMany({
+        where: {
+          companyId: companyId || '',
+          categoria: 'Folha de Pagamento',
+          descricao: {
+            contains: descFind,
+          },
+        }
+      });
+
+      // 4. Revert SalaryAdvances back to PENDENTE
+      await prisma.salaryAdvance.updateMany({
+        where: {
+          collaborator: { companyId },
+          status: 'DESCONTADO_EM_FOLHA',
+          OR: [
+            { payroll_competency: competencyStr },
+            {
+              data: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+              payroll_competency: null
+            }
+          ]
+        },
+        data: {
+          status: 'PENDENTE',
+          discount_status: 'NAO_DESCONTADO',
+          discounted_at: null,
+          discounted_by: null
+        }
+      });
+
+      // 5. Audit Log
+      await prisma.absenceAudit.create({
+        data: {
+          collaboratorId: 'COMPANY_LEVEL',
+          collaboratorName: 'TODOS COLABORADORES',
+          usuario: user.name,
+          action: 'REABERTURA_MENSAL',
+          valorAnterior: `Fechado Competência ${competencyStr}`,
+          valorNovo: `Aberto Competência ${competencyStr}. Motivo: ${reason}`,
+          companyId: companyId || '',
+        },
+      });
+
+      AuditLogger.log(userId, companyId, 'REOPEN_MONTH', `Reopened month for competency: ${competencyStr}, reason: ${reason}`, 'SUCCESS');
+
+      return res.json({ success: true, message: `Competência ${competencyStr} reaberta com sucesso.` });
+    } catch (error) {
+      console.error('Error reopening month:', error);
+      return res.status(500).json({ error: 'Erro ao reabrir mês.' });
+    }
+  },
+
   // 7. Dashboard Stats
   async getDashboardStats(req: Request, res: Response) {
     try {

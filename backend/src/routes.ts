@@ -303,6 +303,7 @@ routes.put('/rh/absences/:id', AbsenceController.updateAbsence);
 routes.delete('/rh/absences/:id', AbsenceController.deleteAbsence);
 routes.get('/rh/closing', AbsenceController.getMonthlyClosing);
 routes.post('/rh/closing', AbsenceController.closeMonth);
+routes.post('/rh/closing/reopen', AbsenceController.reopenMonth);
 routes.get('/rh/dashboard', AbsenceController.getDashboardStats);
 routes.get('/rh/audit-logs', AbsenceController.listAuditLogs);
 

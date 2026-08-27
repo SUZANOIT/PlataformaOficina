@@ -54,3 +54,20 @@ Server is running on port 5001
 [INFO] 14:20:45 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/services/supplierDashboard.service.ts has been modified
 ◇ injected env (3) from .env // tip: ⌘ override existing { override: true }
 Server is running on port 5001
+[INFO] 15:17:28 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/routes.ts has been modified
+◇ injected env (3) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+TypeError: argument handler must be a function
+    at Route.<computed> [as post] (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/router/lib/route.js:228:15)
+    at router.Router.<computed> [as post] (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/router/index.js:448:19)
+    at Object.<anonymous> (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/routes.ts:306:8)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14)
+    at Module._compile (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/source-map-support/source-map-support.js:568:25)
+    at Module.m._compile (/private/var/folders/6m/6w2nlkvx2hn9xc5wrh6krw5c0000gn/T/ts-node-dev-hook-7050268829107846.js:69:33)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1969:10)
+    at require.extensions..jsx.require.extensions..js (/private/var/folders/6m/6w2nlkvx2hn9xc5wrh6krw5c0000gn/T/ts-node-dev-hook-7050268829107846.js:114:20)
+    at require.extensions.<computed> (/private/var/folders/6m/6w2nlkvx2hn9xc5wrh6krw5c0000gn/T/ts-node-dev-hook-7050268829107846.js:71:20)
+    at Object.nodeDevHook [as .ts] (/Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/node_modules/ts-node-dev/lib/hook.js:63:13)
+[ERROR] 15:17:29 TypeError: argument handler must be a function
+[INFO] 15:17:54 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/controllers/absence.controller.ts has been modified
+◇ injected env (3) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+Server is running on port 5001
