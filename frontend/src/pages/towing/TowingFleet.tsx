@@ -672,7 +672,7 @@ export function TowingFleet() {
                   <div className="col-span-2 border-t pt-3 flex items-start gap-2">
                     <Building size={16} className="text-slate-400 mt-0.5 shrink-0" />
                     <div>
-                      <span className="text-xs font-semibold text-muted-foreground block">Empresa Emitente</span>
+                      <span className="text-xs font-semibold text-muted-foreground block">Emitente</span>
                       <span className="font-bold text-foreground text-xs mt-0.5 block">
                         {selectedVehicle.company?.razaoSocial} ({selectedVehicle.company?.cnpj})
                       </span>

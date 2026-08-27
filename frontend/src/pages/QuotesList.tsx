@@ -502,7 +502,7 @@ export function QuotesList() {
             <thead>
               <tr className="bg-muted/50 border-b border-border text-muted-foreground text-sm">
                 <th className="py-4 pl-4 pr-2 font-medium w-[100px]">Nº</th>
-                <th className="p-4 font-medium hidden md:table-cell w-[22%]">Empresa Emitente</th>
+                <th className="p-4 font-medium hidden md:table-cell w-[22%]">Emitente</th>
                 <th className="p-4 font-medium w-[25%]">Cliente</th>
                 <th className="p-4 font-medium hidden lg:table-cell w-[110px]">Data</th>
                 <th className="p-4 font-medium hidden xl:table-cell w-[150px]">Status</th>
