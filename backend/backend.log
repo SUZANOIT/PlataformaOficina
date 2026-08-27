@@ -51,3 +51,6 @@ Server is running on port 5001
 [INFO] 12:21:16 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/routes.ts has been modified
 ◇ injected env (3) from .env // tip: ⌘ enable debugging { debug: true }
 Server is running on port 5001
+[INFO] 14:20:45 Restarting: /Users/rafaelsuzano/Projetos/SuzanoIT/orcamentos/backend/src/services/supplierDashboard.service.ts has been modified
+◇ injected env (3) from .env // tip: ⌘ override existing { override: true }
+Server is running on port 5001

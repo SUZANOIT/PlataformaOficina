@@ -152,13 +152,15 @@ export class SupplierDashboardService {
         ticketGrowth: calculateGrowth(averageTicket, prevAverageTicket),
         approvedCount: count,
         countGrowth: calculateGrowth(count, prevCount),
-        highestRevenue: maxExpense,
-        maxRevenueQuoteId: maxExpensePayable?.id
+        maxRevenueOS: maxExpensePayable ? {
+          valor: maxExpense,
+          numero: maxExpensePayable.numeroLancamento ? maxExpensePayable.numeroLancamento.toString() : '-',
+          data: maxExpensePayable.dataEmissao
+        } : null
       },
       monthlyData,
-      servicesData: categoryData,
-      unitsData: costCenterData,
-      heatMapData,
+      revenueByService: categoryData,
+      revenueByUnit: costCenterData,
       tableData
     };
   }
