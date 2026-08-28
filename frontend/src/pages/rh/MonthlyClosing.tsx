@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 import { api } from '../../services/api';
+import { Link } from 'react-router-dom';
 
 interface ClosingItem {
   collaboratorId: string;
@@ -480,28 +481,53 @@ export function MonthlyClosing() {
             {/* Content */}
             <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
               {/* Formula Panel */}
-              <div className="bg-secondary/10 border border-border/60 rounded-2xl p-5 space-y-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fórmula de Cálculo do Saldo</h4>
-                <div className="grid grid-cols-4 gap-2 text-center items-center">
-                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
-                    <span className="text-muted-foreground text-xs sm:text-sm">Salário Base</span>
-                    <span className="font-bold text-foreground text-xs sm:text-sm">R$ {(detailItem?.salario || 0).toLocaleString('pt-BR')}</span>
+              <div className="bg-secondary/10 border border-border/60 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fórmula de Cálculo do Saldo</h4>
+                  <Link 
+                    to="/collaborators"
+                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    Ir para Lançamentos <ArrowRight size={14} />
+                  </Link>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2 text-center bg-background rounded-xl border border-border/50 p-4">
+                  
+                  {/* Salário Base */}
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1">Salário Base</span>
+                    <span className="font-black text-foreground text-sm sm:text-base">R$ {(detailItem?.salario || 0).toLocaleString('pt-BR')}</span>
                   </div>
-                  <div className="text-muted-foreground font-semibold text-lg">-</div>
-                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
-                    <span className="text-muted-foreground text-xs sm:text-sm flex items-center gap-1.5"><TrendingDown size={14} className="text-red-500"/> Desconto Faltas ({detailItem?.faltasCount || 0} dias)</span>
-                    <span className="font-bold text-red-500 text-xs sm:text-sm">R$ {(detailItem?.faltasDesconto || 0).toLocaleString('pt-BR')}</span>
+                  
+                  <div className="text-muted-foreground font-bold text-lg hidden sm:block">-</div>
+                  
+                  {/* Descontos */}
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <TrendingDown size={12} className="text-red-500"/> Faltas ({detailItem?.faltasCount || 0} dias)
+                    </span>
+                    <span className="font-bold text-red-500 text-sm sm:text-base">R$ {(detailItem?.faltasDesconto || 0).toLocaleString('pt-BR')}</span>
                   </div>
-                  <div className="text-muted-foreground font-semibold text-lg">-</div>
-                  <div className="flex justify-between items-center py-2.5 border-b border-border/40">
-                    <span className="text-muted-foreground text-xs sm:text-sm flex items-center gap-1.5"><Calendar size={14} className="text-amber-500"/> Adiantamentos</span>
-                    <span className="font-bold text-amber-500 text-xs sm:text-sm">R$ {(detailItem?.adiantamentos || 0).toLocaleString('pt-BR')}</span>
+                  
+                  <div className="text-muted-foreground font-bold text-lg hidden sm:block">-</div>
+                  
+                  {/* Adiantamentos */}
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Calendar size={12} className="text-amber-500"/> Adiantamentos
+                    </span>
+                    <span className="font-bold text-amber-500 text-sm sm:text-base">R$ {(detailItem?.adiantamentos || 0).toLocaleString('pt-BR')}</span>
                   </div>
-                  <div className="text-muted-foreground font-semibold text-lg">=</div>
-                  <div className="flex justify-between items-center py-3 bg-secondary/20 -mx-4 px-4 border-y border-border/60">
-                    <span className="font-bold text-foreground text-sm sm:text-base">Saldo Líquido Projetado</span>
-                    <span className="font-black text-emerald-500 text-sm sm:text-base">R$ {(detailItem?.saldoLiquido || 0).toLocaleString('pt-BR')}</span>
+                  
+                  <div className="text-muted-foreground font-bold text-lg hidden sm:block">=</div>
+                  
+                  {/* Saldo Líquido */}
+                  <div className="flex flex-col items-center flex-1 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg">
+                    <span className="text-emerald-700 text-[10px] font-bold uppercase tracking-wider mb-0.5">Saldo Projetado</span>
+                    <span className="font-black text-emerald-600 text-base sm:text-lg">R$ {(detailItem?.saldoLiquido || 0).toLocaleString('pt-BR')}</span>
                   </div>
+                  
                 </div>
               </div>
 
