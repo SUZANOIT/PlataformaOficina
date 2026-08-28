@@ -1961,57 +1961,57 @@ export function Collaborators() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 font-semibold">
-                          <th className="py-4 px-5 font-bold">Datas / Comprovante</th>
-                          <th className="py-4 px-5 font-bold">Valor</th>
-                          <th className="py-4 px-5 font-bold">Forma de Pagamento</th>
-                          <th className="py-4 px-5 font-bold">Oficina</th>
-                          <th className="py-4 px-5 font-bold">Status</th>
-                          <th className="py-4 px-5 font-bold">Histórico / Ações</th>
+                          <th className="py-3 px-3 font-bold whitespace-nowrap">Datas / Comprovante</th>
+                          <th className="py-3 px-3 font-bold whitespace-nowrap">Valor</th>
+                          <th className="py-3 px-3 font-bold whitespace-nowrap">Pagamento</th>
+                          <th className="py-3 px-3 font-bold">Oficina</th>
+                          <th className="py-3 px-3 font-bold whitespace-nowrap text-center">Status</th>
+                          <th className="py-3 px-3 font-bold text-right">Histórico / Ações</th>
                         </tr>
                       </thead>
                       <tbody>
                         {advances.map((adv) => (
                           <tr key={adv.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <td className="py-3.5 px-5">
+                            <td className="py-3 px-3 align-top">
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 text-xs">
+                                <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
                                   <span className="text-gray-400 dark:text-gray-500 font-semibold text-[10px] w-14">Emissão:</span>
                                   <span className="font-bold text-gray-800 dark:text-white">{new Date(adv.data).toLocaleDateString('pt-BR')}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-xs">
-                                  <span className="text-gray-400 dark:text-gray-500 font-semibold text-[10px] w-14">Pagamento:</span>
+                                <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                                  <span className="text-gray-400 dark:text-gray-500 font-semibold text-[10px] w-14">Pgto:</span>
                                   <span className="font-bold text-emerald-600">{adv.payment_date ? new Date(adv.payment_date).toLocaleDateString('pt-BR') : '—'}</span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-xs">
+                                <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
                                   <span className="text-gray-400 dark:text-gray-500 font-semibold text-[10px] w-14">Comp:</span>
                                   <span className="font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{adv.payroll_competency || '—'}</span>
                                 </div>
-                                <span className="inline-block bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-0.5 rounded text-[10px] text-gray-500 dark:text-gray-400 font-mono font-semibold tracking-tight mt-1 w-fit">
+                                <span className="inline-block bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 px-2 py-0.5 rounded text-[10px] text-gray-500 dark:text-gray-400 font-mono font-semibold tracking-tight mt-1 w-fit whitespace-nowrap">
                                   {adv.numeroComprovante}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-5 font-sans">
-                              <span className="inline-block bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1 rounded-lg text-emerald-600 font-extrabold text-xs">
+                            <td className="py-3 px-3 font-sans align-top">
+                              <span className="inline-block bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1 rounded-lg text-emerald-600 font-extrabold text-xs whitespace-nowrap">
                                 {formatCurrency(adv.valor)}
                               </span>
                             </td>
-                            <td className="py-3.5 px-5">
+                            <td className="py-3 px-3 align-top whitespace-nowrap">
                               <span className="inline-block bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                                 {adv.formaPagamento}
                               </span>
                             </td>
-                            <td className="py-3.5 px-5 text-gray-800 dark:text-white text-xs font-bold">
+                            <td className="py-3 px-3 text-gray-800 dark:text-white text-[10px] font-bold align-top max-w-[140px] truncate" title={adv.oficina?.nome}>
                               {adv.oficina ? (
-                                <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                                <div className="flex items-start gap-1.5 text-indigo-600 dark:text-indigo-400 whitespace-normal">
                                   <span>🏢</span>
-                                  <span>{adv.oficina.nome}</span>
+                                  <span className="leading-tight">{adv.oficina.nome}</span>
                                 </div>
                               ) : (
                                 <span className="text-slate-400 font-normal italic">—</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-5">
+                            <td className="py-3 px-3 align-top text-center">
                               <button
                                 onClick={() => handleToggleAdvanceStatus(adv.id, adv.status)}
                                 className={`px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 flex items-center gap-1.5 shadow-2xs hover:scale-102 cursor-pointer ${
@@ -2021,15 +2021,15 @@ export function Collaborators() {
                                 }`}
                                 title="Clique para alterar status"
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                   adv.status === 'DESCONTADO_EM_FOLHA' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
                                 }`}></span>
                                 <span>{adv.status === 'DESCONTADO_EM_FOLHA' ? 'Descontado' : 'Pendente'}</span>
                               </button>
                             </td>
-                            <td className="py-3.5 px-5 text-gray-400 dark:text-gray-500 text-[10px]">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex flex-col gap-1">
+                            <td className="py-3 px-3 align-top text-gray-400 dark:text-gray-500 text-[10px]">
+                              <div className="flex items-start justify-end gap-3">
+                                <div className="flex flex-col gap-1 text-right">
                                   <div className="flex items-center gap-1">
                                     <User size={12} className="text-gray-400" />
                                     <span>Por: <span className="font-semibold text-gray-800 dark:text-white">{adv.responsavel}</span></span>
