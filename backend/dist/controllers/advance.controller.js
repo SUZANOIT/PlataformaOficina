@@ -266,17 +266,7 @@ exports.AdvanceController = {
             if (!advance || advance.collaborator.companyId !== companyId) {
                 return res.status(404).json({ error: 'Adiantamento não encontrado' });
             }
-            // Delete the advance (associated payable is kept but unlinked or optionally deleted. Let's delete it too to keep clean records)
-            if (advance.payableId) {
-                try {
-                    await prisma_1.prisma.financialPayable.delete({
-                        where: { id: advance.payableId }
-                    });
-                }
-                catch (e) {
-                    console.warn('Linked payable not found or already deleted:', e);
-                }
-            }
+            const payableId = advance.payableId;
             const userId = req.userId;
             const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
             const responsavel = user?.name || 'Sistema';
@@ -294,6 +284,16 @@ exports.AdvanceController = {
             await prisma_1.prisma.salaryAdvance.delete({
                 where: { id: advanceId }
             });
+            if (payableId) {
+                try {
+                    await prisma_1.prisma.financialPayable.delete({
+                        where: { id: payableId }
+                    });
+                }
+                catch (e) {
+                    console.warn('Linked payable not found or already deleted:', e);
+                }
+            }
             return res.status(204).send();
         }
         catch (error) {

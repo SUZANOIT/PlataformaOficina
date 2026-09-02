@@ -288,6 +288,7 @@ routes.get('/registry/suppliers', registry_controller_1.RegistryController.listS
 routes.post('/registry/suppliers', registry_controller_1.RegistryController.createSupplier);
 routes.put('/registry/suppliers/:id', registry_controller_1.RegistryController.updateSupplier);
 routes.delete('/registry/suppliers/:id', registry_controller_1.RegistryController.deleteSupplier);
+routes.get('/registry/suppliers/:id/expenses', registry_controller_1.RegistryController.getSupplierExpenses);
 routes.get('/registry/collaborators', registry_controller_1.RegistryController.listCollaborators);
 routes.post('/registry/collaborators', registry_controller_1.RegistryController.createCollaborator);
 routes.put('/registry/collaborators/:id', registry_controller_1.RegistryController.updateCollaborator);
@@ -310,6 +311,7 @@ routes.put('/rh/absences/:id', absence_controller_1.AbsenceController.updateAbse
 routes.delete('/rh/absences/:id', absence_controller_1.AbsenceController.deleteAbsence);
 routes.get('/rh/closing', absence_controller_1.AbsenceController.getMonthlyClosing);
 routes.post('/rh/closing', absence_controller_1.AbsenceController.closeMonth);
+routes.post('/rh/closing/reopen', absence_controller_1.AbsenceController.reopenMonth);
 routes.get('/rh/dashboard', absence_controller_1.AbsenceController.getDashboardStats);
 routes.get('/rh/audit-logs', absence_controller_1.AbsenceController.listAuditLogs);
 // Dashboard

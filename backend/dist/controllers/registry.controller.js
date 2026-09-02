@@ -5,6 +5,7 @@ const prisma_1 = require("../lib/prisma");
 const zod_1 = require("zod");
 const audit_logger_1 = require("../utils/audit.logger");
 const clientDashboard_service_1 = require("../services/clientDashboard.service");
+const supplierDashboard_service_1 = require("../services/supplierDashboard.service");
 const clientSchema = zod_1.z.object({
     nome: zod_1.z.string(),
     empresa: zod_1.z.string().optional().nullable(),
@@ -290,6 +291,34 @@ exports.RegistryController = {
         catch (error) {
             console.error('Error fetching client revenue:', error);
             return res.status(500).json({ error: 'Erro ao buscar receita do cliente', details: error.message, stack: error.stack });
+        }
+    },
+    async getSupplierExpenses(req, res) {
+        try {
+            const id = req.params.id;
+            const companyId = req.companyId || null;
+            const startDateQuery = req.query.startDate;
+            const endDateQuery = req.query.endDate;
+            const prevStartDateQuery = req.query.prevStartDate;
+            const prevEndDateQuery = req.query.prevEndDate;
+            const currentYear = new Date().getFullYear();
+            const startDate = startDateQuery ? new Date(startDateQuery) : new Date(`${currentYear}-01-01T00:00:00.000Z`);
+            const endDate = endDateQuery ? new Date(endDateQuery) : new Date(`${currentYear}-12-31T23:59:59.999Z`);
+            const prevStartDate = prevStartDateQuery ? new Date(prevStartDateQuery) : new Date(`${currentYear - 1}-01-01T00:00:00.000Z`);
+            const prevEndDate = prevEndDateQuery ? new Date(prevEndDateQuery) : new Date(`${currentYear - 1}-12-31T23:59:59.999Z`);
+            const existing = await prisma_1.prisma.supplier.findFirst({
+                where: { id, companyId }
+            });
+            if (!existing) {
+                return res.status(403).json({ error: 'Acesso negado para este fornecedor.' });
+            }
+            const service = new supplierDashboard_service_1.SupplierDashboardService(companyId, id);
+            const dashboardData = await service.getDashboardData({ startDate, endDate, prevStartDate, prevEndDate });
+            return res.json(dashboardData);
+        }
+        catch (error) {
+            console.error('Error fetching supplier expenses:', error);
+            return res.status(500).json({ error: 'Erro ao buscar despesas do fornecedor', details: error.message, stack: error.stack });
         }
     },
     async deduplicateClients(req, res) {

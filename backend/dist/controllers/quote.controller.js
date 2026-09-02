@@ -422,9 +422,6 @@ exports.QuoteController = {
                     return res.status(400).json({ error: 'O parcelamento máximo permitido é em 4x (Entrada + 3 parcelas).' });
                 }
                 const entrada = data.valorEntrada || 0;
-                if (entrada < data.total * 0.5) {
-                    return res.status(400).json({ error: 'O valor da entrada deve ser no mínimo 50% do valor total do orçamento.' });
-                }
                 if (entrada > data.total) {
                     return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
                 }
@@ -622,9 +619,6 @@ exports.QuoteController = {
             }
             if (data.condicaoPagamento === 'Parcelado') {
                 const entrada = data.valorEntrada || 0;
-                if (entrada < data.total * 0.5) {
-                    return res.status(400).json({ error: 'O valor da entrada deve ser no mínimo 50% do valor total do orçamento.' });
-                }
                 if (entrada > data.total) {
                     return res.status(400).json({ error: 'O valor da entrada não pode ser maior que o total do orçamento.' });
                 }

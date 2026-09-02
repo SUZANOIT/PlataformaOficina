@@ -780,7 +780,10 @@ exports.FinancialController = {
         try {
             const id = req.params.id;
             const { deleteMode } = req.query; // 'CURRENT' ou 'SEQUENCE'
-            const original = await prisma_1.prisma.financialPayable.findUnique({ where: { id } });
+            const original = await prisma_1.prisma.financialPayable.findUnique({
+                where: { id },
+                include: { salaryAdvance: true }
+            });
             if (!original) {
                 return res.status(404).json({ error: 'Lançamento não encontrado' });
             }
@@ -792,6 +795,10 @@ exports.FinancialController = {
                 });
             }
             else {
+                // If there is a linked SalaryAdvance, delete it first
+                if (original.salaryAdvance) {
+                    await prisma_1.prisma.salaryAdvance.delete({ where: { id: original.salaryAdvance.id } });
+                }
                 await prisma_1.prisma.financialPayable.delete({ where: { id } });
             }
             return res.status(204).send();

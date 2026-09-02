@@ -278,6 +278,9 @@ export function CreateQuote() {
     valorParcela: !isEditing && cloneId && data.valorParcela
       ? Math.round(Number(data.valorParcela) * 1.1985 * 100) / 100
       : data.valorParcela,
+    valorEntrada: !isEditing && cloneId && data.valorEntrada
+      ? Math.round(Number(data.valorEntrada) * 1.1985 * 100) / 100
+      : data.valorEntrada,
     validade: data.validade,
     garantia: data.garantia,
     prazoExecucao: data.prazoExecucao,
@@ -606,12 +609,7 @@ ${bankingText}`;
       }
 
       if (data.condicaoPagamento === 'Parcelado') {
-        const minEntrada = total * 0.5;
-        if (!data.valorEntrada || data.valorEntrada < minEntrada) {
-          toast.error(`O valor da entrada deve ser no mínimo 50% do total (R$ ${minEntrada.toFixed(2).replace('.', ',')}).`);
-          return;
-        }
-        if (data.valorEntrada > total) {
+        if (data.valorEntrada && data.valorEntrada > total) {
           toast.error('O valor da entrada não pode ser maior que o total do orçamento.');
           return;
         }
