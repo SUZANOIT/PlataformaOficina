@@ -449,15 +449,15 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
             </div>
 
             {data.condicaoPagamento === 'Parcelado' && data.parcelas > 0 && (
-              <div className="mt-4 border border-indigo-100 rounded-lg overflow-hidden w-[280px]">
+              <div className="mt-4 border border-indigo-100 rounded-lg overflow-hidden w-[320px]">
                 <div className="bg-indigo-900/5 text-indigo-900 text-[10px] font-bold px-3 py-1.5 border-b border-indigo-100 uppercase tracking-wider">
                   Resumo do Parcelamento
                 </div>
                 <div className="flex flex-col text-[11px]">
-                  {Number(data.valorEntrada) > 0 && (
+                  {Number(data.valorEntrada) >= 0 && (
                     <div className="flex justify-between px-3 py-1.5 border-b border-indigo-50 bg-indigo-50/20">
                       <span className="font-bold text-indigo-900">Entrada (Liquidado)</span>
-                      <span className="font-bold text-indigo-900">{formatCurrency(Number(data.valorEntrada))}</span>
+                      <span className="font-bold text-indigo-900">{formatCurrency(Number(data.valorEntrada) || 0)}</span>
                     </div>
                   )}
                   {Array.from({ length: data.parcelas }).map((_, i) => {
@@ -469,10 +469,13 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
                        const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelas - 1);
                        valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
                      }
+                     const date = new Date();
+                     date.setDate(date.getDate() + ((i + 1) * 30));
+                     const dataVencimento = date.toLocaleDateString('pt-BR');
 
                      return (
                       <div key={i} className="flex justify-between px-3 py-1.5 border-b border-indigo-50 bg-white last:border-b-0">
-                        <span className="font-semibold text-slate-600">Parcela {i + 1}/{numParcelas} (Pendente)</span>
+                        <span className="font-semibold text-slate-600">Parcela {i + 1}/{numParcelas} ({dataVencimento})</span>
                         <span className="font-bold text-slate-800">{formatCurrency(valorDaParcela)}</span>
                       </div>
                      );
@@ -919,6 +922,42 @@ export const QuotePdfTemplate = forwardRef<HTMLDivElement, QuotePdfTemplateProps
               <span className="font-medium text-slate-900">{data.garantia || 'Sem garantia especificada'}</span>
             </div>
           </div>
+
+            {data.condicaoPagamento === 'Parcelado' && data.parcelas > 0 && (
+              <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden w-[320px]">
+                <div className="bg-slate-100 text-slate-800 text-[10px] font-bold px-3 py-1.5 border-b border-slate-200 uppercase tracking-wider">
+                  Resumo do Parcelamento
+                </div>
+                <div className="flex flex-col text-[11px]">
+                  {Number(data.valorEntrada) >= 0 && (
+                    <div className="flex justify-between px-3 py-1.5 border-b border-slate-100 bg-slate-50">
+                      <span className="font-bold text-slate-800">Entrada (Liquidado)</span>
+                      <span className="font-bold text-slate-800">{formatCurrency(Number(data.valorEntrada) || 0)}</span>
+                    </div>
+                  )}
+                  {Array.from({ length: data.parcelas }).map((_, i) => {
+                     const numParcelas = data.parcelas || 1;
+                     const valorRestante = total - (Number(data.valorEntrada) || 0);
+                     const parcelaValor = valorRestante / numParcelas;
+                     let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
+                     if (i + 1 === numParcelas) {
+                       const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelas - 1);
+                       valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
+                     }
+                     const date = new Date();
+                     date.setDate(date.getDate() + ((i + 1) * 30));
+                     const dataVencimento = date.toLocaleDateString('pt-BR');
+
+                     return (
+                      <div key={i} className="flex justify-between px-3 py-1.5 border-b border-slate-100 bg-white last:border-b-0">
+                        <span className="font-semibold text-slate-600">Parcela {i + 1}/{numParcelas} ({dataVencimento})</span>
+                        <span className="font-bold text-slate-800">{formatCurrency(valorDaParcela)}</span>
+                      </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
 
           {oficina && (
             <div className="mt-6 avoid-page-break">
