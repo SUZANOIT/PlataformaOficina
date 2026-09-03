@@ -20,7 +20,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
   const maxRevenue = Math.max(...data.map(d => d.receita), 1); // avoid div by 0
 
   const getIntensityClass = (revenue: number) => {
-    if (revenue === 0) return 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700';
+    if (revenue === 0) return 'bg-slate-100 border border-slate-200';
     const ratio = revenue / maxRevenue;
     if (ratio > 0.8) return 'bg-emerald-500 shadow-sm shadow-emerald-500/30 border border-emerald-600';
     if (ratio > 0.6) return 'bg-emerald-500/80 border border-emerald-500/90';
@@ -68,21 +68,21 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
                       </div>
                       
                       {/* Tooltip */}
-                      <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max px-4 py-3 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs rounded-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-50 shadow-2xl origin-bottom">
-                        <div className="font-black mb-1.5 text-[13px] border-b border-white/10 dark:border-slate-900/10 pb-1.5">
+                      <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max px-4 py-3 bg-slate-900 text-white text-xs rounded-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-[100] shadow-2xl origin-bottom">
+                        <div className="font-black mb-1.5 text-[13px] border-b border-white/10 pb-1.5">
                           {months[i]} de {year}
                         </div>
                         <div className="flex justify-between gap-4 items-center">
-                          <span className="text-white/70 dark:text-slate-900/70 font-medium">Receita:</span>
-                          <span className="font-bold text-emerald-400 dark:text-emerald-600">{formatCurrency(revenue)}</span>
+                          <span className="text-white/70 font-medium">Receita:</span>
+                          <span className="font-bold text-emerald-400">{formatCurrency(revenue)}</span>
                         </div>
                         <div className="flex justify-between gap-4 items-center mt-0.5">
-                          <span className="text-white/70 dark:text-slate-900/70 font-medium">Ordens:</span>
+                          <span className="text-white/70 font-medium">Ordens:</span>
                           <span className="font-bold">{count}</span>
                         </div>
                         
                         {/* Tooltip Arrow */}
-                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 dark:bg-slate-100 rotate-45"></div>
+                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"></div>
                       </div>
                     </div>
                   );
@@ -98,7 +98,7 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Intensidade Financeira</span>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground mr-2">Menor</span>
-          <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"></div>
+          <div className="w-6 h-6 rounded-md bg-slate-100 border border-slate-200"></div>
           <div className="w-6 h-6 rounded-md bg-emerald-500/20 border border-emerald-500/30"></div>
           <div className="w-6 h-6 rounded-md bg-emerald-500/40 border border-emerald-500/50"></div>
           <div className="w-6 h-6 rounded-md bg-emerald-500/60 border border-emerald-500/70"></div>

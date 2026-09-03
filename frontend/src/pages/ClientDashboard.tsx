@@ -324,7 +324,7 @@ export function ClientDashboard() {
                   <Calendar size={18} className="text-muted-foreground"/> 
                   Intensidade Financeira Mensal
                 </h4>
-                <div className="w-full overflow-x-auto flex justify-center pb-2">
+                <div className="w-full overflow-x-auto flex justify-center pb-2 pt-20">
                   <div className="max-w-4xl w-full min-w-[600px]">
                     <HeatMap data={data.monthlyData} />
                   </div>
