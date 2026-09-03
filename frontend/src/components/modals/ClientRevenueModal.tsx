@@ -152,7 +152,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
       <div className="bg-card/95 border border-border/50 w-full max-w-[95vw] h-full max-h-[98vh] rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col ring-1 ring-white/10">
         
         {/* Header SaaS Style */}
-        <div className="px-8 py-5 border-b border-border/50 flex flex-col md:flex-row justify-between md:items-center bg-card shrink-0 gap-4">
+        <div className="px-6 py-4 border-b border-border/50 flex flex-col md:flex-row justify-between md:items-center bg-card shrink-0 gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
               <Activity size={28} strokeWidth={2} />
@@ -209,7 +209,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
             </div>
           ) : data ? (
-            <div className="space-y-6 md:space-y-8 max-w-[1400px] mx-auto pb-10">
+            <div className="space-y-4 md:space-y-6 max-w-[1400px] mx-auto pb-10">
               
               {/* Row 1: KPIs */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -263,8 +263,8 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
               </div>
 
               {/* Row 2: Main Area Chart & Receita por Serviço */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                <div className="lg:col-span-2 bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-stretch">
+                <div className="lg:col-span-8 bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex flex-col">
                   <div className="flex justify-between items-center mb-6">
                     <h4 className="text-base font-bold text-foreground flex items-center gap-2">
                       Evolução Financeira
@@ -293,7 +293,7 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                   </div>
                 </div>
 
-                <div className="lg:col-span-1 bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col">
+                <div className="lg:col-span-4 bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex flex-col">
                   <h4 className="text-base font-bold text-foreground mb-6">Receita por Serviço</h4>
                   <div className="h-[350px] w-full flex-1">
                     <ResponsiveContainer width="100%" height="100%">
@@ -325,8 +325,10 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                   <Calendar size={18} className="text-muted-foreground"/> 
                   Intensidade Financeira Mensal
                 </h4>
-                <div className="w-full overflow-x-auto">
-                  <HeatMap data={data.monthlyData} />
+                <div className="w-full overflow-x-auto flex justify-center pb-2">
+                  <div className="max-w-4xl w-full min-w-[600px]">
+                    <HeatMap data={data.monthlyData} />
+                  </div>
                 </div>
               </div>
 
@@ -336,14 +338,14 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
                   <h4 className="text-base font-bold text-foreground">Detalhamento de Ordens</h4>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
+                  <table className="w-full text-sm text-left table-fixed">
                     <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                       <tr>
-                        <th className="px-6 py-4 font-semibold">Número</th>
-                        <th className="px-6 py-4 font-semibold">Tipo</th>
-                        <th className="px-6 py-4 font-semibold">Data</th>
-                        <th className="px-6 py-4 font-semibold">Valor</th>
-                        <th className="px-6 py-4 font-semibold">Status</th>
+                        <th className="px-6 py-4 font-semibold w-[25%]">Número / Mês</th>
+                        <th className="px-6 py-4 font-semibold w-[15%]">Tipo / Qtd</th>
+                        <th className="px-6 py-4 font-semibold w-[20%]">Data</th>
+                        <th className="px-6 py-4 font-semibold w-[25%]">Valor Total</th>
+                        <th className="px-6 py-4 font-semibold w-[15%]">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
