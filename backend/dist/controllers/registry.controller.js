@@ -133,11 +133,11 @@ exports.RegistryController = {
                 orderBy: { nome: 'asc' },
                 include: {
                     quotes: {
-                        where: { status: 'Pago' },
+                        where: { status: { in: ['Pago', 'Parcialmente Pago'] } },
                         select: { total: true }
                     },
                     towingQuotes: {
-                        where: { status: 'Pago' },
+                        where: { status: { in: ['Pago', 'Parcialmente Pago'] } },
                         select: { valorTotal: true }
                     }
                 }

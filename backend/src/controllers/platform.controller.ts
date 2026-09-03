@@ -54,18 +54,93 @@ export const PlatformController = {
         ];
       }
 
-      const [platforms, total] = await Promise.all([
+      const [platforms, total, allFilteredPlatforms] = await Promise.all([
         prisma.plataformaGestao.findMany({
           where: whereClause,
           orderBy: { nomeFantasia: 'asc' },
           skip,
           take: limitNum,
+          include: {
+            quotes: { select: { status: true, total: true } },
+            towingQuotes: { select: { status: true, valorTotal: true } }
+          }
         }),
         prisma.plataformaGestao.count({ where: whereClause }),
+        prisma.plataformaGestao.findMany({
+          where: whereClause,
+          select: {
+            quotes: { select: { status: true, total: true } },
+            towingQuotes: { select: { status: true, valorTotal: true } }
+          }
+        })
       ]);
 
+      // Calculate globals
+      let summary = {
+        totalQuotesCount: 0,
+        totalValue: 0,
+        paidQuotesCount: 0,
+        paidValue: 0,
+        openValue: 0
+      };
+
+      allFilteredPlatforms.forEach(p => {
+        p.quotes.forEach(q => {
+          summary.totalQuotesCount++;
+          const val = Number(q.total) || 0;
+          summary.totalValue += val;
+          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
+            summary.paidQuotesCount++;
+            summary.paidValue += val;
+          }
+        });
+        p.towingQuotes.forEach(q => {
+          summary.totalQuotesCount++;
+          const val = Number(q.valorTotal) || 0;
+          summary.totalValue += val;
+          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
+            summary.paidQuotesCount++;
+            summary.paidValue += val;
+          }
+        });
+      });
+      summary.openValue = summary.totalValue - summary.paidValue;
+
+      // Transform platforms to add stats
+      const formattedData = platforms.map((p: any) => {
+        let stats = {
+          totalQuotesCount: 0,
+          totalValue: 0,
+          paidQuotesCount: 0,
+          paidValue: 0
+        };
+        p.quotes.forEach((q: any) => {
+          stats.totalQuotesCount++;
+          const val = Number(q.total) || 0;
+          stats.totalValue += val;
+          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
+            stats.paidQuotesCount++;
+            stats.paidValue += val;
+          }
+        });
+        p.towingQuotes.forEach((q: any) => {
+          stats.totalQuotesCount++;
+          const val = Number(q.valorTotal) || 0;
+          stats.totalValue += val;
+          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
+            stats.paidQuotesCount++;
+            stats.paidValue += val;
+          }
+        });
+        // Remove relationships so we don't send huge arrays back
+        delete p.quotes;
+        delete p.towingQuotes;
+        return { ...p, stats };
+      });
+
       return res.json({
-        data: platforms,
+        data: formattedData,
+        summary,
         total,
         page: pageNum,
         totalPages: Math.ceil(total / limitNum),

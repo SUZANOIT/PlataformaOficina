@@ -16,7 +16,7 @@ class ClientDashboardService {
             where: {
                 clientId: this.clientId,
                 companyId: this.companyId,
-                status: 'Pago'
+                status: { in: ['Pago', 'Parcialmente Pago'] }
             },
             include: {
                 history: {
@@ -33,7 +33,7 @@ class ClientDashboardService {
             where: {
                 clientId: this.clientId,
                 companyId: this.companyId,
-                status: 'Pago'
+                status: { in: ['Pago', 'Parcialmente Pago'] }
             }
         });
         // Filter in memory for Current Period

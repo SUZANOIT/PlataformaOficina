@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, Phone, Mail, User, MapPin, Loader2, AlertCircle, History } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, Building, MapPin, Loader2, AlertCircle, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { platformService } from '../services/platformService';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
@@ -10,6 +10,7 @@ export function Platforms() {
   useBreadcrumbs([{ label: 'Plataformas de Gestão' }]);
 
   const [platforms, setPlatforms] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODOS');
   
@@ -67,6 +68,7 @@ export function Platforms() {
         limit: 10
       });
       setPlatforms(res.data || []);
+      setSummary(res.summary || null);
       setTotalPages(res.totalPages || 1);
       setTotal(res.total || 0);
     } catch (error) {
@@ -350,6 +352,38 @@ export function Platforms() {
         </button>
       </div>
 
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col justify-center">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Orçamentos</span>
+            <span className="text-2xl font-bold text-foreground">{summary.totalQuotesCount}</span>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col justify-center">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Valor em Orçamentos</span>
+            <span className="text-2xl font-bold text-foreground">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.totalValue)}
+            </span>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col justify-center">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Orçamentos Pagos</span>
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.paidQuotesCount}</span>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col justify-center">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Valor Pago</span>
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.paidValue)}
+            </span>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col justify-center">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-1">Valor em Aberto</span>
+            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.openValue)}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Filters Area */}
       <div className="flex flex-col sm:flex-row gap-4 items-center bg-card border border-border rounded-xl p-4 shadow-2xs">
         <div className="relative flex-1 w-full">
@@ -399,10 +433,11 @@ export function Platforms() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4">Nome Fantasia / Razão</th>
-                  <th className="px-6 py-4">CNPJ</th>
-                  <th className="px-6 py-4">Responsável</th>
-                  <th className="px-6 py-4">Contatos</th>
+                  <th className="px-6 py-4">Plataforma</th>
+                  <th className="px-6 py-4">Orçamentos</th>
+                  <th className="px-6 py-4">Valor Total</th>
+                  <th className="px-6 py-4">Pagos</th>
+                  <th className="px-6 py-4">Valor Pago</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
@@ -412,26 +447,19 @@ export function Platforms() {
                   <tr key={platform.id} className="hover:bg-muted/10 transition-colors group">
                     <td className="px-6 py-4.5">
                       <div className="font-medium text-foreground">{platform.nomeFantasia}</div>
-                      <div className="text-xs text-muted-foreground font-normal mt-0.5">{platform.razaoSocial}</div>
-                    </td>
-                    <td className="px-6 py-4.5 font-mono text-xs tracking-wider text-muted-foreground">
-                      {platform.cnpj}
+                      <div className="text-xs text-muted-foreground font-normal mt-0.5">{platform.cnpj}</div>
                     </td>
                     <td className="px-6 py-4.5">
-                      <div className="flex items-center gap-1.5 font-medium text-foreground">
-                        <User className="h-3.5 w-3.5 text-muted-foreground/60" />
-                        {platform.responsavel || <span className="text-muted-foreground italic text-xs font-normal">Não informado</span>}
-                      </div>
+                      <div className="font-medium text-foreground">{platform.stats?.totalQuotesCount || 0}</div>
                     </td>
-                    <td className="px-6 py-4.5 space-y-1">
-                      <div className="flex items-center gap-1.5 text-xs text-foreground font-normal">
-                        <Phone className="h-3 w-3 text-muted-foreground/60" />
-                        {platform.telefone}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Mail className="h-3 w-3 text-muted-foreground/60" />
-                        {platform.email}
-                      </div>
+                    <td className="px-6 py-4.5 font-medium text-foreground">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(platform.stats?.totalValue || 0)}
+                    </td>
+                    <td className="px-6 py-4.5">
+                      <div className="font-medium text-emerald-600 dark:text-emerald-400">{platform.stats?.paidQuotesCount || 0}</div>
+                    </td>
+                    <td className="px-6 py-4.5 font-medium text-emerald-600 dark:text-emerald-400">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(platform.stats?.paidValue || 0)}
                     </td>
                     <td className="px-6 py-4.5">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.75 rounded-full text-xs font-semibold ${
