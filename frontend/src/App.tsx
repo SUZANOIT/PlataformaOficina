@@ -7,6 +7,7 @@ import { QuotesList } from './pages/QuotesList';
 import { Register } from './pages/Register';
 import { EmailConfig } from './pages/EmailConfig';
 import { Clients } from './pages/Clients';
+import { ClientDashboard } from './pages/ClientDashboard';
 import { Suppliers } from './pages/Suppliers';
 import { Collaborators } from './pages/Collaborators';
 import { Platforms } from './pages/Platforms';
@@ -126,6 +127,7 @@ function App() {
               
               {/* Rotas Licenciadas do Módulo Oficina */}
               <Route path="clients" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><Clients /></ModuleGuard>} />
+              <Route path="clients/:id/dashboard" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><ClientDashboard /></ModuleGuard>} />
               <Route path="suppliers" element={<ModuleGuard moduleKey="fornecedores" moduleName="Fornecedores"><Suppliers /></ModuleGuard>} />
               <Route path="collaborators" element={<ModuleGuard moduleKey="colaboradores" moduleName="Colaboradores"><Collaborators /></ModuleGuard>} />
               <Route path="platforms" element={<ModuleGuard moduleKey="clientes" moduleName="Clientes"><Platforms /></ModuleGuard>} />

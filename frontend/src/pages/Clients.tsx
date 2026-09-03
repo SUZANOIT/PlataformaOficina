@@ -14,15 +14,16 @@ import {
   Briefcase,
   DollarSign
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { TableActionMenu } from '../components/ui/TableActionMenu';
 import { TablePagination } from '../components/ui/TablePagination';
-import { ClientRevenueModal } from '../components/modals/ClientRevenueModal';
 
 export function Clients() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -37,10 +38,6 @@ export function Clients() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Revenue Modal states
-  const [selectedRevenueClient, setSelectedRevenueClient] = useState<any>(null);
-  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   
   // Form states
   const [nome, setNome] = useState('');
@@ -462,8 +459,7 @@ export function Clients() {
                                   label: 'Receita do Cliente',
                                   icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
                                   onClick: () => {
-                                    setSelectedRevenueClient(client);
-                                    setIsRevenueModalOpen(true);
+                                    navigate(`/clients/${client.id}/dashboard`, { state: { client } });
                                   },
                                   className: 'hover:bg-emerald-500/10'
                                 }
@@ -881,12 +877,6 @@ export function Clients() {
         message={`Tem certeza que deseja excluir o cliente "${clientToDelete?.nome || ''}"? Esta ação não pode ser desfeita.`}
         confirmText="Excluir"
         isDanger={true}
-      />
-
-      <ClientRevenueModal
-        isOpen={isRevenueModalOpen}
-        onClose={() => setIsRevenueModalOpen(false)}
-        client={selectedRevenueClient}
       />
     </div>
   );

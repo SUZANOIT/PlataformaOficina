@@ -14,8 +14,10 @@ import {
   Activity,
   ArrowUpRight,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AreaChart,
   Area,
@@ -35,15 +37,13 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import type { ClientDashboardResponse } from '../../types/clientDashboard';
 import { HeatMap } from '../charts/HeatMap';
 
-interface ClientRevenueModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  client: any;
-}
-
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
-export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueModalProps) {
+export function ClientDashboard() {
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const client = location.state?.client || { id };
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ClientDashboardResponse | null>(null);
   const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
@@ -86,10 +86,10 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
   const [period, setPeriod] = useState('year'); // year, 30d, 90d
 
   useEffect(() => {
-    if (isOpen && client) {
+    if (client && client.id) {
       fetchDashboard();
     }
-  }, [isOpen, client, period]);
+  }, [client, period]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -133,8 +133,6 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
     }
   };
 
-  if (!isOpen) return null;
-
   const hasData = data && data.kpis.totalRevenue > 0;
 
   const renderTrend = (value: number) => {
@@ -148,8 +146,8 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
   };
 
   return (
-    <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-      <div className="bg-card/95 border border-border/50 w-full max-w-[95vw] h-full max-h-[98vh] rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative flex flex-col ring-1 ring-white/10">
+    <div className="w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col bg-background relative animate-in fade-in duration-300">
+      <div className="bg-card w-full h-full flex flex-col shadow-lg border border-border/50 rounded-tl-2xl">
         
         {/* Header SaaS Style */}
         <div className="px-6 py-4 border-b border-border/50 flex flex-col md:flex-row justify-between md:items-center bg-card shrink-0 gap-4">
@@ -185,7 +183,9 @@ export function ClientRevenueModal({ isOpen, onClose, client }: ClientRevenueMod
             <button onClick={fetchDashboard} className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><RefreshCw size={16} /></button>
             
             <div className="w-px h-6 bg-border mx-1"></div>
-            <button onClick={onClose} className="h-9 w-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"><X size={18} /></button>
+            <button onClick={() => navigate(-1)} className="h-9 px-3 rounded-xl bg-muted text-muted-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors gap-2 font-medium">
+              <ArrowLeft size={16} /> Voltar
+            </button>
           </div>
         </div>
 
