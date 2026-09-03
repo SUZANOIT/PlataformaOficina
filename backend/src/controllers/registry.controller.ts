@@ -142,7 +142,7 @@ export const RegistryController = {
         include: {
           quotes: {
             where: { status: 'Pago' },
-            select: { valorTotal: true }
+            select: { total: true }
           },
           towingQuotes: {
             where: { status: 'Pago' },
@@ -154,7 +154,7 @@ export const RegistryController = {
       const response = clients.map((c: any) => {
         const { quotes, towingQuotes, ...rest } = c;
         
-        const quotesTotal = (quotes || []).reduce((acc: number, q: any) => acc + (Number(q.valorTotal) || 0), 0);
+        const quotesTotal = (quotes || []).reduce((acc: number, q: any) => acc + (Number(q.total) || 0), 0);
         const towingTotal = (towingQuotes || []).reduce((acc: number, q: any) => acc + (Number(q.valorTotal) || 0), 0);
         const valorTotal = quotesTotal + towingTotal;
 
