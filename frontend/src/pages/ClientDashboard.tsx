@@ -15,7 +15,8 @@ import {
   ArrowUpRight,
   ChevronDown,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import {
   AreaChart,
@@ -148,63 +149,81 @@ export function ClientDashboard() {
     <div className="w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col bg-background relative animate-in fade-in duration-300">
       <div className="bg-card w-full h-full flex flex-col shadow-lg border border-border/50 rounded-tl-2xl">
         
-        {/* Header SaaS Style */}
-        <div className="px-6 py-4 border-b border-border/50 flex flex-col md:flex-row justify-between md:items-center bg-card shrink-0 gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-              <Activity size={28} strokeWidth={2} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                Dashboard Executivo
-                {data && data.ranking.position > 0 && data.ranking.position <= 10 && (
-                  <span className="text-xs font-bold bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-500/30">
-                    <Trophy size={12} /> TOP {data.ranking.position}
-                  </span>
-                )}
-              </h3>
-              <p className="text-sm text-muted-foreground font-medium flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                {client?.nome} {client?.empresa ? `• ${client.empresa}` : ''} {client?.cnpj ? `• ${client.cnpj}` : ''}
-              </p>
+        {/* Executive Header */}
+        <div className="px-6 py-4 flex flex-col md:flex-row justify-between md:items-start bg-card shrink-0 gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
+              Dashboard Executivo
+              {data && data.ranking.position > 0 && data.ranking.position <= 10 && (
+                <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded flex items-center gap-1 border border-amber-500/20">
+                  <Trophy size={10} /> TOP {data.ranking.position}
+                </span>
+              )}
+            </h3>
+            <div className="text-sm text-muted-foreground font-medium flex items-center gap-2 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+              <span className="text-foreground">{client?.nome} {client?.empresa ? `• ${client.empresa}` : ''}</span>
+              {client?.cnpj && <span>• CNPJ: {client.cnpj}</span>}
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-muted/50 rounded-xl p-1 flex items-center border border-border/50 mr-2">
-              <button onClick={() => setPeriod('30d')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === '30d' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>30 Dias</button>
-              <button onClick={() => setPeriod('90d')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === '90d' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>90 Dias</button>
-              <button onClick={() => setPeriod('year')} className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${period === 'year' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Este Ano</button>
-            </div>
-            
-            <button className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Download size={16} /></button>
-            <button className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Share2 size={16} /></button>
-            <button onClick={fetchDashboard} className="h-9 w-9 rounded-xl border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><RefreshCw size={16} /></button>
-            
-            <div className="w-px h-6 bg-border mx-1"></div>
-            <button onClick={() => navigate(-1)} className="h-9 px-3 rounded-xl bg-muted text-muted-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors gap-2 font-medium">
-              <ArrowLeft size={16} /> Voltar
+          <div className="flex items-center gap-2">
+            <button className="h-8 w-8 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Exportar"><Download size={14} /></button>
+            <button className="h-8 w-8 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Compartilhar"><Share2 size={14} /></button>
+            <button onClick={fetchDashboard} className="h-8 w-8 rounded-md border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Atualizar"><RefreshCw size={14} /></button>
+            <div className="w-px h-5 bg-border mx-1"></div>
+            <button onClick={() => navigate(-1)} className="h-8 px-3 rounded-md bg-muted text-muted-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors gap-1.5 font-medium text-xs">
+              <ArrowLeft size={14} /> Fechar
             </button>
+          </div>
+        </div>
+
+        {/* Toolbar (Filters) */}
+        <div className="px-6 py-3 border-b border-border/50 bg-muted/10 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Período:</span>
+            <div className="bg-background rounded-md p-0.5 flex items-center border border-border/50 shadow-xs">
+              <button onClick={() => setPeriod('30d')} className={`px-3 py-1 text-xs font-medium rounded transition-all ${period === '30d' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>30 dias</button>
+              <button onClick={() => setPeriod('90d')} className={`px-3 py-1 text-xs font-medium rounded transition-all ${period === '90d' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>90 dias</button>
+              <button onClick={() => setPeriod('year')} className={`px-3 py-1 text-xs font-medium rounded transition-all ${period === 'year' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Este ano</button>
+            </div>
           </div>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-muted/10">
           {loading ? (
-            <div className="space-y-6 animate-pulse">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map(i => <div key={i} className="bg-card rounded-2xl h-36 border border-border/50"></div>)}
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-card rounded-2xl h-36 border border-border/50 p-6 flex flex-col justify-between">
+                    <div className="w-24 h-4 bg-muted rounded animate-pulse"></div>
+                    <div className="w-32 h-8 bg-muted rounded animate-pulse"></div>
+                    <div className="w-20 h-4 bg-muted rounded animate-pulse"></div>
+                  </div>
+                ))}
               </div>
-              <div className="bg-card rounded-2xl h-96 border border-border/50"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-8 bg-card rounded-2xl h-[400px] border border-border/50 p-6 flex flex-col gap-4">
+                  <div className="w-40 h-6 bg-muted rounded animate-pulse"></div>
+                  <div className="flex-1 bg-muted/50 rounded animate-pulse"></div>
+                </div>
+                <div className="lg:col-span-4 bg-card rounded-2xl h-[400px] border border-border/50 p-6 flex flex-col gap-4">
+                  <div className="w-40 h-6 bg-muted rounded animate-pulse"></div>
+                  <div className="flex-1 bg-muted/50 rounded-full w-[250px] mx-auto animate-pulse"></div>
+                </div>
+              </div>
             </div>
           ) : !hasData ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-5">
-              <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center shadow-inner">
-                <BarChart3 size={48} className="text-muted-foreground/40" />
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+                <BarChart3 size={32} className="text-muted-foreground/60" />
               </div>
               <div>
-                <h4 className="text-2xl font-bold text-foreground">Nenhum dado financeiro</h4>
-                <p className="text-muted-foreground max-w-md mx-auto mt-2">Este cliente não possui ordens de serviço pagas no período selecionado.</p>
+                <h4 className="text-xl font-bold text-foreground">Nenhum dado para exibir</h4>
+                <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-2">
+                  Selecione outro período para visualizar os resultados financeiros deste cliente.
+                </p>
               </div>
             </div>
           ) : data ? (
@@ -212,147 +231,184 @@ export function ClientDashboard() {
               
               {/* Row 1: KPIs */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Receita Total</p>
-                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><DollarSign size={16} /></div>
+                <div className="bg-card border border-border/40 p-6 rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Receita Total</p>
+                      <div className="text-muted-foreground/50"><DollarSign size={16} /></div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-foreground mb-4">{formatCurrency(data.kpis.totalRevenue)}</h3>
                   </div>
-                  <h3 className="text-3xl font-black text-foreground mb-2">{formatCurrency(data.kpis.totalRevenue)}</h3>
                   <div className="flex items-center gap-2">
                     {renderTrend(data.kpis.revenueGrowth)}
                     <span className="text-xs text-muted-foreground">vs. período anterior</span>
                   </div>
                 </div>
 
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-blue-500/50 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ordens Pagas</p>
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><FileCheck size={16} /></div>
+                <div className="bg-card border border-border/40 p-6 rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ordens Pagas</p>
+                      <div className="text-muted-foreground/50"><FileCheck size={16} /></div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-foreground mb-4">
+                      {data.kpis.approvedCount} <span className="text-lg text-muted-foreground font-medium">{data.kpis.approvedCount === 1 ? 'ordem paga' : 'ordens pagas'}</span>
+                    </h3>
                   </div>
-                  <h3 className="text-3xl font-black text-foreground mb-2">{data.kpis.approvedCount} <span className="text-lg text-muted-foreground font-medium">OSs</span></h3>
                   <div className="flex items-center gap-2">
                     {renderTrend(data.kpis.countGrowth)}
                     <span className="text-xs text-muted-foreground">vs. período anterior</span>
                   </div>
                 </div>
 
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-amber-500/50 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Ticket Médio</p>
-                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500"><Activity size={16} /></div>
+                <div className="bg-card border border-border/40 p-6 rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ticket Médio</p>
+                      <div className="text-muted-foreground/50"><Activity size={16} /></div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-foreground mb-4">{formatCurrency(data.kpis.averageTicket)}</h3>
                   </div>
-                  <h3 className="text-3xl font-black text-foreground mb-2">{formatCurrency(data.kpis.averageTicket)}</h3>
                   <div className="flex items-center gap-2">
-                    {renderTrend(data.kpis.ticketGrowth)}
-                    <span className="text-xs text-muted-foreground">vs. período anterior</span>
+                    <span className="text-xs text-muted-foreground/70 font-mono bg-muted px-2 py-0.5 rounded">Receita Total / Ordens Pagas</span>
                   </div>
                 </div>
 
-                <div className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm relative overflow-hidden group hover:border-purple-500/50 transition-colors">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Maior Receita</p>
-                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500"><ArrowUpRight size={16} /></div>
+                <div className="bg-card border border-border/40 p-6 rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maior Receita</p>
+                      <div className="text-muted-foreground/50"><Trophy size={16} /></div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-4">
+                      {data.kpis.maxRevenueOS ? formatCurrency(data.kpis.maxRevenueOS.valor) : '-'}
+                    </h3>
                   </div>
-                  <h3 className="text-2xl font-black text-foreground mb-2">{data.kpis.maxRevenueOS ? formatCurrency(data.kpis.maxRevenueOS.valor) : '-'}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-foreground bg-muted px-2 py-0.5 rounded-full">{data.kpis.maxRevenueOS?.numero}</span>
-                    <span className="text-xs text-muted-foreground">{data.kpis.maxRevenueOS?.data ? formatDate(data.kpis.maxRevenueOS.data) : ''}</span>
-                  </div>
+                  {data.kpis.maxRevenueOS ? (
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <span>{data.kpis.maxRevenueOS.numero}</span>
+                      <span>•</span>
+                      <span>{formatDate(data.kpis.maxRevenueOS.data)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">-</div>
+                  )}
                 </div>
               </div>
 
               {/* Row 2: Main Area Chart & Receita por Serviço */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 items-stretch">
-                <div className="lg:col-span-8 bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex flex-col">
+                <div className="lg:col-span-8 bg-card border border-border/40 p-6 rounded-2xl shadow-xs flex flex-col">
                   <div className="flex justify-between items-center mb-6">
                     <h4 className="text-base font-bold text-foreground flex items-center gap-2">
                       Evolução Financeira
                     </h4>
                   </div>
                   <div className="h-[350px] w-full flex-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                        <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '1rem', border: '1px solid hsl(var(--border))', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                          formatter={(value: any) => [formatCurrency(value as number), 'Receita']}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold', marginBottom: '8px' }}
-                        />
-                        <Area type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                    {data.monthlyData && data.monthlyData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={data.monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                          <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '1rem', border: '1px solid hsl(var(--border))', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            formatter={(value: any) => [formatCurrency(value as number), 'Receita']}
+                            labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold', marginBottom: '8px' }}
+                          />
+                          <Area type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <TrendingUp size={32} className="text-muted-foreground/30 mb-3" />
+                        <p className="text-muted-foreground text-sm font-medium">Não há dados financeiros suficientes para este período.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="lg:col-span-4 bg-card border border-border/50 p-6 rounded-3xl shadow-sm flex flex-col">
+                <div className="lg:col-span-4 bg-card border border-border/40 p-6 rounded-2xl shadow-xs flex flex-col">
                   <h4 className="text-base font-bold text-foreground mb-6">Receita por Serviço</h4>
                   <div className="h-[350px] w-full flex-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={data.revenueByService}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={80}
-                          outerRadius={110}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {data.revenueByService.map((_: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
-                        <Legend layout="vertical" verticalAlign="middle" align="center" iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {data.revenueByService && data.revenueByService.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={data.revenueByService}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={80}
+                            outerRadius={110}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {data.revenueByService.map((_: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
+                          <Legend layout="vertical" verticalAlign="middle" align="center" iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <PieChartIcon size={32} className="text-muted-foreground/30 mb-3" />
+                        <p className="text-muted-foreground text-sm font-medium">Não há receitas por serviço no período selecionado.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Row 3: Heatmap */}
-              <div className="bg-card border border-border/50 p-6 md:p-8 rounded-3xl shadow-sm w-full">
+              <div className="bg-card border border-border/40 p-6 md:p-8 rounded-2xl shadow-xs w-full">
                 <h4 className="text-base font-bold text-foreground mb-6 flex items-center gap-2">
                   <Calendar size={18} className="text-muted-foreground"/> 
                   Intensidade Financeira Mensal
                 </h4>
                 <div className="w-full overflow-x-auto flex justify-center pb-2 pt-20">
                   <div className="max-w-4xl w-full min-w-[600px]">
-                    <HeatMap data={data.monthlyData} />
+                    {data.monthlyData && data.monthlyData.length > 0 ? (
+                      <HeatMap data={data.monthlyData} />
+                    ) : (
+                      <div className="text-center py-10">
+                        <p className="text-muted-foreground text-sm">Não há dados suficientes para exibir a intensidade financeira.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Row 4: Financial Table */}
-              <div className="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-border/50">
+              <div className="bg-card border border-border/40 rounded-2xl shadow-xs overflow-hidden">
+                <div className="p-6 border-b border-border/40">
                   <h4 className="text-base font-bold text-foreground">Detalhamento de Ordens</h4>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left table-fixed">
-                    <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
+                    <thead className="text-xs text-muted-foreground uppercase bg-muted/20">
                       <tr>
-                        <th className="px-6 py-4 font-semibold w-[25%]">Número / Mês</th>
-                        <th className="px-6 py-4 font-semibold w-[15%]">Tipo / Qtd</th>
-                        <th className="px-6 py-4 font-semibold w-[20%]">Data</th>
-                        <th className="px-6 py-4 font-semibold w-[25%]">Valor Total</th>
+                        <th className="px-6 py-4 font-semibold w-[20%]">Número / Mês</th>
+                        <th className="px-6 py-4 font-semibold w-[15%]">Tipo</th>
+                        <th className="px-6 py-4 font-semibold w-[15%]">Data</th>
+                        <th className="px-6 py-4 font-semibold text-right w-[20%]">Valor</th>
                         <th className="px-6 py-4 font-semibold w-[15%]">Status</th>
+                        <th className="px-6 py-4 font-semibold text-center w-[15%]">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/50">
+                    <tbody className="divide-y divide-border/40">
                       {groupedOrders.map((group) => (
                         <React.Fragment key={group.key}>
                           {/* Group Header Row */}
                           <tr 
-                            className="bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer group"
+                            className="bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer group"
                             onClick={() => toggleMonth(group.key)}
                           >
                             <td className="px-6 py-4 font-bold text-foreground flex items-center gap-2">
@@ -363,23 +419,37 @@ export function ClientDashboard() {
                               {group.count} {group.count === 1 ? 'ordem' : 'ordens'}
                             </td>
                             <td className="px-6 py-4"></td>
-                            <td className="px-6 py-4 font-bold text-emerald-600">{formatCurrency(group.total)}</td>
+                            <td className="px-6 py-4 font-bold text-emerald-600 text-right">{formatCurrency(group.total)}</td>
+                            <td className="px-6 py-4"></td>
                             <td className="px-6 py-4"></td>
                           </tr>
                           
                           {/* Expanded Items */}
                           {expandedMonths[group.key] && group.items.map((row) => (
-                            <tr key={row.id} className="hover:bg-muted/10 transition-colors bg-background">
+                            <tr key={row.id} className="hover:bg-muted/30 transition-colors bg-background">
                               <td className="px-6 py-3 pl-14 font-medium text-foreground border-l-2 border-emerald-500/30">{row.numero}</td>
                               <td className="px-6 py-3">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.tipo === 'Oficina' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
+                                <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${row.tipo === 'Oficina' ? 'bg-blue-500/10 text-blue-600' : 'bg-orange-500/10 text-orange-600'}`}>
                                   {row.tipo}
                                 </span>
                               </td>
                               <td className="px-6 py-3 text-muted-foreground text-sm">{formatDate(row.data)}</td>
-                              <td className="px-6 py-3 font-semibold text-emerald-600">{formatCurrency(row.valor)}</td>
+                              <td className="px-6 py-3 text-right">
+                                <div className="font-semibold text-foreground">{formatCurrency(row.valor)}</div>
+                                {(row.valorEntrada || row.parcelas > 1) && (
+                                  <div className="text-xs text-muted-foreground mt-1 flex flex-col items-end gap-0.5">
+                                    {row.valorEntrada ? <span>Entrada: {formatCurrency(row.valorEntrada)}</span> : null}
+                                    {row.parcelas > 1 ? <span>{row.parcelas}x de {formatCurrency(row.valorParcela || 0)}</span> : null}
+                                  </div>
+                                )}
+                              </td>
                               <td className="px-6 py-3">
-                                <span className="bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-semibold">Pago</span>
+                                <span className="bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-md text-xs font-semibold">Pago</span>
+                              </td>
+                              <td className="px-6 py-3 text-center">
+                                <button className="inline-flex items-center justify-center p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Visualizar Detalhes">
+                                  <ArrowUpRight size={16} />
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -387,7 +457,10 @@ export function ClientDashboard() {
                       ))}
                       {groupedOrders.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Nenhuma ordem encontrada para o período.</td>
+                          <td colSpan={6} className="px-6 py-12 text-center">
+                            <FileCheck size={32} className="mx-auto text-muted-foreground/30 mb-3" />
+                            <p className="text-muted-foreground text-sm font-medium">Nenhuma ordem encontrada para o período selecionado.</p>
+                          </td>
                         </tr>
                       )}
                     </tbody>

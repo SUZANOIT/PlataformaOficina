@@ -45,6 +45,9 @@ export interface DashboardTableData {
   tipo: string;
   data: string;
   valor: number;
+  valorEntrada?: number | null;
+  parcelas?: number | null;
+  valorParcela?: number | null;
   status: string;
 }
 

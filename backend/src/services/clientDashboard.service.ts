@@ -192,6 +192,9 @@ export class ClientDashboardService {
         tipo: 'Oficina',
         data: q.history && q.history.length > 0 ? q.history[0].createdAt : q.updatedAt,
         valor: q.total,
+        valorEntrada: q.valorEntrada || null,
+        parcelas: q.parcelas || null,
+        valorParcela: q.valorParcela || null,
         status: 'Pago'
       })),
       ...towingQuotes.map((t: any) => ({
@@ -200,6 +203,9 @@ export class ClientDashboardService {
         tipo: 'Guincho',
         data: t.updatedAt,
         valor: t.valorTotal,
+        valorEntrada: null,
+        parcelas: null,
+        valorParcela: null,
         status: 'Pago'
       }))
     ].sort((a: any, b: any) => b.data.getTime() - a.data.getTime()); // desc
