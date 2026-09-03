@@ -558,8 +558,7 @@ export function Clients() {
                             label: 'Receita do Cliente',
                             icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
                             onClick: () => {
-                              setSelectedRevenueClient(client);
-                              setIsRevenueModalOpen(true);
+                              navigate(`/clients/${client.id}/dashboard`, { state: { client } });
                             }
                           }
                         ]

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { 
-  X, 
   DollarSign, 
   TrendingUp, 
   TrendingDown,
@@ -17,7 +17,6 @@ import {
   ChevronRight,
   ArrowLeft
 } from 'lucide-react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AreaChart,
   Area,
@@ -32,10 +31,10 @@ import {
   Legend
 } from 'recharts';
 import { toast } from 'sonner';
-import { api } from '../../services/api';
-import { formatCurrency, formatDate } from '../../utils/formatters';
-import type { ClientDashboardResponse } from '../../types/clientDashboard';
-import { HeatMap } from '../charts/HeatMap';
+import { api } from '../services/api';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import type { ClientDashboardResponse } from '../types/clientDashboard';
+import { HeatMap } from '../components/charts/HeatMap';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -57,7 +56,7 @@ export function ClientDashboard() {
     
     const groups: Record<string, { label: string; dateVal: number; total: number; count: number; items: any[] }> = {};
     
-    data.tableData.forEach(row => {
+    data.tableData.forEach((row: any) => {
       // row.data is an ISO date string
       const date = new Date(row.data);
       const monthStr = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
@@ -307,7 +306,7 @@ export function ClientDashboard() {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {data.revenueByService.map((_, index) => (
+                          {data.revenueByService.map((_: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
