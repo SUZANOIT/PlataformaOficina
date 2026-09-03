@@ -24,7 +24,7 @@ export class ClientDashboardService {
       where: {
         clientId: this.clientId,
         companyId: this.companyId,
-        status: 'Pago'
+        status: { in: ['Pago', 'Parcialmente Pago'] }
       },
       include: {
         history: {
@@ -42,7 +42,7 @@ export class ClientDashboardService {
       where: {
         clientId: this.clientId,
         companyId: this.companyId,
-        status: 'Pago'
+        status: { in: ['Pago', 'Parcialmente Pago'] }
       }
     });
 
