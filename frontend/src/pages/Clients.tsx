@@ -376,11 +376,12 @@ export function Clients() {
           <table className="w-full text-left border-collapse table-fixed break-words">
             <thead>
               <tr className="bg-muted/40 border-b border-border text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                <th className="p-4 w-4/12 lg:w-3.12">Nome / Razão Social</th>
+                <th className="p-4 w-5/12 lg:w-3/12">Nome / Razão Social</th>
                 <th className="p-4 hidden lg:table-cell w-2/12">Documento</th>
-                <th className="p-4 w-4/12 lg:w-3.5/12">Contato</th>
-                <th className="p-4 hidden xl:table-cell w-3/12">Localização</th>
-                <th className="p-4 w-4/12 lg:w-1.3/12 text-right">Ações</th>
+                <th className="p-4 w-4/12 lg:w-2/12">Contato</th>
+                <th className="p-4 hidden xl:table-cell w-2/12">Localização</th>
+                <th className="p-4 hidden md:table-cell w-2/12">Receita Total</th>
+                <th className="p-4 w-3/12 lg:w-1/12 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -444,6 +445,15 @@ export function Clients() {
                           <MapPin className="shrink-0 text-muted-foreground/70" size={13} /> 
                           <span className="truncate font-medium">{client.cidade} - {client.estado || ''}</span>
                         </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">-</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs hidden md:table-cell truncate">
+                      {client.valorTotal > 0 ? (
+                        <span className="font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-md">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.valorTotal)}
+                        </span>
                       ) : (
                         <span className="text-muted-foreground italic">-</span>
                       )}

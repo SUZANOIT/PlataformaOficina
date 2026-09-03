@@ -142,22 +142,26 @@ export const RegistryController = {
         include: {
           quotes: {
             where: { status: 'Pago' },
-            select: { id: true },
-            take: 1
+            select: { valorTotal: true }
           },
           towingQuotes: {
             where: { status: 'Pago' },
-            select: { id: true },
-            take: 1
+            select: { valorTotal: true }
           }
         }
       });
       
       const response = clients.map((c: any) => {
         const { quotes, towingQuotes, ...rest } = c;
+        
+        const quotesTotal = (quotes || []).reduce((acc: number, q: any) => acc + (Number(q.valorTotal) || 0), 0);
+        const towingTotal = (towingQuotes || []).reduce((acc: number, q: any) => acc + (Number(q.valorTotal) || 0), 0);
+        const valorTotal = quotesTotal + towingTotal;
+
         return {
           ...rest,
-          hasRevenue: (quotes && quotes.length > 0) || (towingQuotes && towingQuotes.length > 0)
+          hasRevenue: valorTotal > 0,
+          valorTotal
         };
       });
 
