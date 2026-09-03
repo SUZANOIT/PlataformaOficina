@@ -134,21 +134,23 @@ exports.RegistryController = {
                 include: {
                     quotes: {
                         where: { status: 'Pago' },
-                        select: { id: true },
-                        take: 1
+                        select: { total: true }
                     },
                     towingQuotes: {
                         where: { status: 'Pago' },
-                        select: { id: true },
-                        take: 1
+                        select: { valorTotal: true }
                     }
                 }
             });
             const response = clients.map((c) => {
                 const { quotes, towingQuotes, ...rest } = c;
+                const quotesTotal = (quotes || []).reduce((acc, q) => acc + (Number(q.total) || 0), 0);
+                const towingTotal = (towingQuotes || []).reduce((acc, q) => acc + (Number(q.valorTotal) || 0), 0);
+                const valorTotal = quotesTotal + towingTotal;
                 return {
                     ...rest,
-                    hasRevenue: (quotes && quotes.length > 0) || (towingQuotes && towingQuotes.length > 0)
+                    hasRevenue: valorTotal > 0,
+                    valorTotal
                 };
             });
             return res.json(response);
