@@ -5,9 +5,11 @@ import type { AccountingSummaryData, TipoDocumentoFiscal } from './fiscal/types'
 import {
   MESES, TIPOS_DOCUMENTO, TIPO_PASTA_LABEL, formatCurrency, buildFilterParams
 } from './fiscal/types';
+import { BulkUploadImpostos } from '../portalContabilidade/BulkUploadImpostos';
 
 export function FiscalAccountingPortal() {
   const [user, setUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'download' | 'upload'>('download');
   const [ano, setAno] = useState(new Date().getFullYear());
   const [data, setData] = useState<AccountingSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,33 +114,62 @@ export function FiscalAccountingPortal() {
             )}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Download de XMLs organizados por mês e tipo de NF — Entradas, Saídas e Serviços
+            Gestão de documentos fiscais e upload de impostos da contabilidade
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-end">
-          <div>
-            <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">Ano</label>
-            <select
-              value={ano}
-              onChange={e => setAno(parseInt(e.target.value, 10))}
-              className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
+        
+        {activeTab === 'download' && (
+          <div className="flex flex-wrap gap-2 items-end">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">Ano</label>
+              <select
+                value={ano}
+                onChange={e => setAno(parseInt(e.target.value, 10))}
+                className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
+              >
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <button onClick={fetchSummary} className="flex items-center gap-2 bg-secondary border border-border px-3 py-2 rounded-lg text-sm">
+              <RefreshCw size={14} /> Atualizar
+            </button>
+            <button
+              onClick={() => downloadXmlPack({ label: 'ano-completo' })}
+              disabled={!!downloading || totalXmlAno === 0}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
             >
-              {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+              <Archive size={16} />
+              {downloading === 'ano-todos' ? 'Gerando ZIP...' : `Baixar Ano ${ano} Completo`}
+            </button>
           </div>
-          <button onClick={fetchSummary} className="flex items-center gap-2 bg-secondary border border-border px-3 py-2 rounded-lg text-sm">
-            <RefreshCw size={14} /> Atualizar
-          </button>
-          <button
-            onClick={() => downloadXmlPack({ label: 'ano-completo' })}
-            disabled={!!downloading || totalXmlAno === 0}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-          >
-            <Archive size={16} />
-            {downloading === 'ano-todos' ? 'Gerando ZIP...' : `Baixar Ano ${ano} Completo`}
-          </button>
-        </div>
+        )}
       </div>
+
+      <div className="flex gap-4 border-b border-border mt-4">
+        <button
+          onClick={() => setActiveTab('download')}
+          className={`pb-2 text-sm font-medium transition-colors ${
+            activeTab === 'download'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Download de XMLs
+        </button>
+        <button
+          onClick={() => setActiveTab('upload')}
+          className={`pb-2 text-sm font-medium transition-colors ${
+            activeTab === 'upload'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Upload de Impostos
+        </button>
+      </div>
+
+      {activeTab === 'download' && (
+        <>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard label="Documentos no Ano" value={String(totalAno)} />
@@ -262,6 +293,14 @@ export function FiscalAccountingPortal() {
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {activeTab === 'upload' && (
+        <div className="mt-4">
+          <BulkUploadImpostos />
+        </div>
+      )}
     </div>
   );
 }
