@@ -6,9 +6,9 @@ const impostoService = new PortalImpostoService();
 export class PortalImpostoController {
   async create(req: Request, res: Response) {
     try {
-      // Considerando que o middleware de auth coloca o usuario no req.user e a empresa no req.companyId
+      // O middleware de auth coloca o usuário em req.userId e a empresa em req.companyId
       const companyId = req.body.companyId || (req as any).companyId;
-      const createdBy = (req as any).user?.id;
+      const createdBy = (req as any).userId;
 
       const data = { ...req.body, companyId, createdBy };
       
@@ -54,7 +54,7 @@ export class PortalImpostoController {
   async updateStatus(req: Request, res: Response) {
     try {
       const companyId = ((req as any).companyId || req.body.companyId) as string;
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).userId as string;
       const id = req.params.id as string;
 
       if (!companyId || !userId) {
@@ -71,7 +71,7 @@ export class PortalImpostoController {
   async uploadAnexo(req: Request, res: Response) {
     try {
       const companyId = ((req as any).companyId || req.body.companyId) as string;
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).userId as string;
       const id = req.params.id as string;
 
       if (!companyId || !userId) {
@@ -91,7 +91,7 @@ export class PortalImpostoController {
 
   async bulkUpload(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).userId as string;
       const files = req.files as Express.Multer.File[];
       const { competencia, tipoImposto, vencimento } = req.body;
 

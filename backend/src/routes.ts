@@ -93,9 +93,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         '/fiscal/documents/accounting/summary',
         '/fiscal/documents/export/xml-pack',
       ];
-      if (!allowedPaths.includes(path)) {
+      const isPortalContabilidade = path.startsWith('/portal-contabilidade');
+      if (!allowedPaths.includes(path) && !isPortalContabilidade) {
         return res.status(403).json({
-          error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade',
+          error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade e o portal de impostos',
           code: 'CONTABILIDADE_ONLY',
         });
       }
