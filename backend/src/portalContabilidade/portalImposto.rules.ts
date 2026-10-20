@@ -77,6 +77,29 @@ export function isValidCompetencia(value: string): boolean {
   return /^(0[1-9]|1[0-2])\/\d{4}$/.test(value);
 }
 
+const MAX_MESES_FILTRO = 240;
+
+export function competenciasEntre(de?: string, ate?: string): string[] | null {
+  const inicio = de && isValidCompetencia(de) ? de : null;
+  const fim = ate && isValidCompetencia(ate) ? ate : null;
+  if (!inicio && !fim) return null;
+
+  const toIndex = (value: string) => {
+    const [mes, ano] = value.split('/').map(Number);
+    return ano * 12 + (mes - 1);
+  };
+  const first = inicio ? toIndex(inicio) : toIndex(fim!) - (MAX_MESES_FILTRO - 1);
+  const last = fim ? toIndex(fim) : toIndex(inicio!) + (MAX_MESES_FILTRO - 1);
+  if (first > last) return [];
+
+  const meses: string[] = [];
+  for (let index = first; index <= last && meses.length < MAX_MESES_FILTRO; index += 1) {
+    const mes = String((index % 12) + 1).padStart(2, '0');
+    meses.push(`${mes}/${Math.floor(index / 12)}`);
+  }
+  return meses;
+}
+
 export function parseVencimento(value: string): Date | null {
   if (!value || typeof value !== 'string') return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {

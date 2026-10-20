@@ -32,6 +32,11 @@ export const PortalContabilidadeService = {
     return data;
   },
 
+  lancarContasPagar: async (id: string) => {
+    const { data } = await api.post(`/portal-contabilidade/impostos/${id}/contas-pagar`);
+    return data as { payableId: string; numeroLancamento: number };
+  },
+
   downloadImposto: async (id: string, inline = false) => {
     return api.get(`/portal-contabilidade/impostos/${id}/arquivo`, {
       params: inline ? { disposition: 'inline' } : undefined,

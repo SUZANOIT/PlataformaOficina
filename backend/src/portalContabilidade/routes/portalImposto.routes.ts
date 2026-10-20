@@ -50,6 +50,16 @@ function requireManage(req: Request, res: Response, next: NextFunction) {
   return next();
 }
 
+function requireContasPagar(req: Request, res: Response, next: NextFunction) {
+  const flags = flagsFrom(req);
+  const access = resolvePortalAccess(flags);
+  if (!access.canRead || !(flags.admin || flags.contasPagar)) {
+    return res.status(403).json({ error: 'Apenas Contas a Pagar ou administradores podem lançar impostos.' });
+  }
+  (req as any).portalAccess = access;
+  return next();
+}
+
 const router = Router();
 const impostoController = new PortalImpostoController();
 
@@ -58,6 +68,7 @@ router.post('/bulk-upload', requireManage, runUpload(upload.array('files')), imp
 router.post('/download-lote', requireRead, impostoController.downloadLote.bind(impostoController));
 router.get('/:id/arquivo', requireRead, impostoController.downloadArquivo.bind(impostoController));
 router.get('/:id', requireRead, impostoController.findById.bind(impostoController));
+router.post('/:id/contas-pagar', requireContasPagar, impostoController.lancarContasPagar.bind(impostoController));
 router.patch('/:id/status', requireManage, impostoController.updateStatus.bind(impostoController));
 router.patch('/:id', requireManage, impostoController.update.bind(impostoController));
 router.delete('/:id', requireManage, impostoController.remove.bind(impostoController));

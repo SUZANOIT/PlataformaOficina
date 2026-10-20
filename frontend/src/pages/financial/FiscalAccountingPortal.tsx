@@ -86,6 +86,7 @@ export function FiscalAccountingPortal() {
   if (!user) return null;
   const canManageImpostos = !!(user.roleAdmin || user.roleContabilidade);
   const canConsultImpostos = canManageImpostos || !!(user.roleContasPagar || user.roleContasReceber);
+  const canLancarContasPagar = !!(user.roleAdmin || user.roleContasPagar);
   if (!canConsultImpostos) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -310,7 +311,7 @@ export function FiscalAccountingPortal() {
 
       {(activeTab === 'upload' || !canManageImpostos) && (
         <div className="mt-4">
-          <BulkUploadImpostos canManage={canManageImpostos} />
+          <BulkUploadImpostos canManage={canManageImpostos} canLancarContasPagar={canLancarContasPagar} />
         </div>
       )}
     </div>

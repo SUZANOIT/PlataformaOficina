@@ -51,6 +51,13 @@ test('financeiro consulta a própria empresa e contabilidade gerencia todos', ()
     const orcamentista = (0, portalImposto_rules_1.resolvePortalAccess)({ admin: false, contabilidade: false, contasPagar: false, contasReceber: false });
     assert_1.default.strictEqual(orcamentista.canRead, false);
 });
+test('período de competência gera os meses entre as datas', () => {
+    assert_1.default.deepStrictEqual((0, portalImposto_rules_1.competenciasEntre)('11/2025', '02/2026'), ['11/2025', '12/2025', '01/2026', '02/2026']);
+    assert_1.default.deepStrictEqual((0, portalImposto_rules_1.competenciasEntre)('05/2026', '05/2026'), ['05/2026']);
+    assert_1.default.deepStrictEqual((0, portalImposto_rules_1.competenciasEntre)('06/2026', '05/2026'), []);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.competenciasEntre)('', ''), null);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.competenciasEntre)('08/2026', '')?.[0], '08/2026');
+});
 test('falha parcial preserva os arquivos processados com sucesso', async () => {
     const files = [{ originalname: 'a.pdf' }, { originalname: 'b.pdf' }, { originalname: 'c.pdf' }];
     const result = await (0, portalImposto_rules_1.processBatch)(files, async (file) => {

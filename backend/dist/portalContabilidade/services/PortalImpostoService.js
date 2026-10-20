@@ -59,6 +59,7 @@ function mapImposto(imposto) {
         observacao: imposto.observacao,
         arquivoNome: anexo?.nome || '',
         anexoId: anexo?.id || null,
+        payableId: imposto.payableId || null,
         createdAt: imposto.createdAt,
     };
 }
@@ -104,14 +105,21 @@ class PortalImpostoService {
             deletedAt: null,
             ...companyWhere(scope),
         };
-        if (filters.competencia)
-            where.competencia = String(filters.competencia);
+        const competencias = (0, portalImposto_rules_1.competenciasEntre)(filters.competenciaDe, filters.competenciaAte);
+        if (competencias)
+            where.competencia = { in: competencias };
         if (filters.tipoImposto)
             where.tipoImposto = String(filters.tipoImposto);
         if (filters.status)
             where.status = String(filters.status);
-        if (filters.cnpj) {
-            where.company = { cnpjSemMascara: String(filters.cnpj).replace(/\D/g, '') };
+        const vencimentoDe = filters.vencimentoDe ? (0, portalImposto_rules_1.parseVencimento)(String(filters.vencimentoDe)) : null;
+        const vencimentoAte = filters.vencimentoAte ? (0, portalImposto_rules_1.parseVencimento)(String(filters.vencimentoAte)) : null;
+        if (vencimentoDe || vencimentoAte) {
+            where.vencimento = {};
+            if (vencimentoDe)
+                where.vencimento.gte = new Date(vencimentoDe.setHours(0, 0, 0, 0));
+            if (vencimentoAte)
+                where.vencimento.lte = new Date(vencimentoAte.setHours(23, 59, 59, 999));
         }
         const [total, rows] = await Promise.all([
             prisma_1.prisma.portalImposto.count({ where }),
@@ -246,6 +254,60 @@ class PortalImpostoService {
             },
         });
         return { ok: true };
+    }
+    async lancarContasPagar(id, userId, scope) {
+        const imposto = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
+        });
+        if (!imposto)
+            throw new PortalHttpError('Imposto não encontrado', 404);
+        if (imposto.payableId)
+            throw new PortalHttpError('Este imposto já foi lançado em Contas a Pagar.', 409);
+        const user = await prisma_1.prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        const responsavel = user?.name || 'Portal Contabilidade';
+        return prisma_1.prisma.$transaction(async (tx) => {
+            const payable = await tx.financialPayable.create({
+                data: {
+                    companyId: imposto.companyId,
+                    fornecedor: `Guia ${imposto.tipoImposto}`,
+                    categoria: 'Impostos',
+                    centroCusto: 'Administrativo',
+                    descricao: `Imposto ${imposto.tipoImposto} - competência ${imposto.competencia}`,
+                    valor: imposto.valor,
+                    dataEmissao: new Date(),
+                    vencimento: imposto.vencimento,
+                    formaPagamento: 'Boleto',
+                    responsavel,
+                    status: 'PENDENTE',
+                    observacoes: `Lançado a partir do Portal Contabilidade (imposto ${imposto.id}).`,
+                    responsavel_lancamento_id: userId,
+                    responsavel_lancamento_nome: responsavel,
+                },
+            });
+            const vinculo = await tx.portalImposto.updateMany({
+                where: { id, payableId: null },
+                data: { payableId: payable.id },
+            });
+            if (vinculo.count === 0)
+                throw new PortalHttpError('Este imposto já foi lançado em Contas a Pagar.', 409);
+            await tx.portalHistorico.create({
+                data: {
+                    impostoId: id,
+                    usuarioId: userId,
+                    acao: 'CONTAS_PAGAR',
+                    descricao: `Lançado em Contas a Pagar (lançamento ${payable.numeroLancamento}) com vencimento copiado do imposto.`,
+                },
+            });
+            await tx.portalAuditoria.create({
+                data: {
+                    companyId: imposto.companyId,
+                    usuarioId: userId,
+                    acao: 'LANCAR_CONTAS_PAGAR',
+                    descricao: `Imposto ${id} lançado em Contas a Pagar (${payable.id}).`,
+                },
+            });
+            return { payableId: payable.id, numeroLancamento: payable.numeroLancamento };
+        });
     }
     async uploadAnexo(impostoId, scope, userId, file) {
         const validacao = (0, portalImposto_rules_1.validateBulkFile)(file);

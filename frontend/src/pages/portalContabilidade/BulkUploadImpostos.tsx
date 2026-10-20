@@ -10,9 +10,10 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 interface Props {
   canManage?: boolean;
+  canLancarContasPagar?: boolean;
 }
 
-export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
+export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLancarContasPagar = false }) => {
   const [competencia, setCompetencia] = useState('');
   const [tipoImposto, setTipoImposto] = useState('');
   const [vencimento, setVencimento] = useState('');
@@ -238,7 +239,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
       </>
       )}
 
-      <ConsultarImpostos canManage={canManage} refreshKey={refreshKey} />
+      <ConsultarImpostos canManage={canManage} canLancarContasPagar={canLancarContasPagar} refreshKey={refreshKey} />
     </Box>
   );
 };

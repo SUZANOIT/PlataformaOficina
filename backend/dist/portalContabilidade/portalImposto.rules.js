@@ -4,6 +4,7 @@ exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
 exports.resolvePortalAccess = resolvePortalAccess;
 exports.parseValorBrasileiro = parseValorBrasileiro;
 exports.isValidCompetencia = isValidCompetencia;
+exports.competenciasEntre = competenciasEntre;
 exports.parseVencimento = parseVencimento;
 exports.isValidCnpj = isValidCnpj;
 exports.extractCnpjFromFilename = extractCnpjFromFilename;
@@ -72,6 +73,27 @@ function parseValorBrasileiro(input) {
 }
 function isValidCompetencia(value) {
     return /^(0[1-9]|1[0-2])\/\d{4}$/.test(value);
+}
+const MAX_MESES_FILTRO = 240;
+function competenciasEntre(de, ate) {
+    const inicio = de && isValidCompetencia(de) ? de : null;
+    const fim = ate && isValidCompetencia(ate) ? ate : null;
+    if (!inicio && !fim)
+        return null;
+    const toIndex = (value) => {
+        const [mes, ano] = value.split('/').map(Number);
+        return ano * 12 + (mes - 1);
+    };
+    const first = inicio ? toIndex(inicio) : toIndex(fim) - (MAX_MESES_FILTRO - 1);
+    const last = fim ? toIndex(fim) : toIndex(inicio) + (MAX_MESES_FILTRO - 1);
+    if (first > last)
+        return [];
+    const meses = [];
+    for (let index = first; index <= last && meses.length < MAX_MESES_FILTRO; index += 1) {
+        const mes = String((index % 12) + 1).padStart(2, '0');
+        meses.push(`${mes}/${Math.floor(index / 12)}`);
+    }
+    return meses;
 }
 function parseVencimento(value) {
     if (!value || typeof value !== 'string')

@@ -1,5 +1,6 @@
 import assert from 'assert';
 import {
+  competenciasEntre,
   duplicateMotivo,
   extractCnpjFromFilename,
   parseValorBrasileiro,
@@ -69,6 +70,14 @@ test('financeiro consulta a própria empresa e contabilidade gerencia todos', ()
 
   const orcamentista = resolvePortalAccess({ admin: false, contabilidade: false, contasPagar: false, contasReceber: false });
   assert.strictEqual(orcamentista.canRead, false);
+});
+
+test('período de competência gera os meses entre as datas', () => {
+  assert.deepStrictEqual(competenciasEntre('11/2025', '02/2026'), ['11/2025', '12/2025', '01/2026', '02/2026']);
+  assert.deepStrictEqual(competenciasEntre('05/2026', '05/2026'), ['05/2026']);
+  assert.deepStrictEqual(competenciasEntre('06/2026', '05/2026'), []);
+  assert.strictEqual(competenciasEntre('', ''), null);
+  assert.strictEqual(competenciasEntre('08/2026', '')?.[0], '08/2026');
 });
 
 test('falha parcial preserva os arquivos processados com sucesso', async () => {

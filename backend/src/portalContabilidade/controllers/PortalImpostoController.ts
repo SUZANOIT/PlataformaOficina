@@ -37,10 +37,12 @@ export class PortalImpostoController {
   async findAll(req: Request, res: Response) {
     try {
       const impostos = await impostoService.findAll(scopeOf(req), {
-        competencia: req.query.competencia,
+        competenciaDe: req.query.competenciaDe,
+        competenciaAte: req.query.competenciaAte,
+        vencimentoDe: req.query.vencimentoDe,
+        vencimentoAte: req.query.vencimentoAte,
         tipoImposto: req.query.tipoImposto,
         status: req.query.status,
-        cnpj: req.query.cnpj,
         page: req.query.page,
         pageSize: req.query.pageSize,
         sortBy: req.query.sortBy,
@@ -58,6 +60,15 @@ export class PortalImpostoController {
       return res.json(imposto);
     } catch (error: any) {
       return sendError(res, error, 404);
+    }
+  }
+
+  async lancarContasPagar(req: Request, res: Response) {
+    try {
+      const result = await impostoService.lancarContasPagar(req.params.id as string, userIdOf(req), scopeOf(req));
+      return res.status(201).json(result);
+    } catch (error: any) {
+      return sendError(res, error);
     }
   }
 

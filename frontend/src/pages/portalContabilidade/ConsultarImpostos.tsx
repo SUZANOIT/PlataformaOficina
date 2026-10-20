@@ -19,9 +19,10 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { DeleteOutlined, Download, EditOutlined, Visibility } from '@mui/icons-material';
+import { CheckCircleOutlined, DeleteOutlined, Download, EditOutlined, PostAdd, Visibility } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { formatBrlInput, formatBrlNumber, formatDateBr, parseBrl, toDateInputValue } from '../../utils/brl';
@@ -45,11 +46,27 @@ export interface ImpostoListItem {
   valor: number;
   arquivoNome: string;
   status: string;
+  payableId: string | null;
 }
 
 interface Props {
   canManage: boolean;
+  canLancarContasPagar?: boolean;
   refreshKey?: number;
+}
+
+const EMPTY_FILTERS = {
+  competenciaDe: '',
+  competenciaAte: '',
+  vencimentoDe: '',
+  vencimentoAte: '',
+  tipoImposto: '',
+  status: '',
+};
+
+function formatCompetenciaInput(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 6);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
 }
 
 function filenameFrom(header: string | undefined, fallback: string) {
@@ -66,8 +83,8 @@ function saveBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
-  const [filters, setFilters] = useState({ competencia: '', tipoImposto: '', cnpj: '', status: '' });
+export function ConsultarImpostos({ canManage, canLancarContasPagar = false, refreshKey = 0 }: Props) {
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [applied, setApplied] = useState(filters);
   const [sortBy, setSortBy] = useState('vencimento');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -83,6 +100,7 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
   const [confirmEdit, setConfirmEdit] = useState(false);
   const [removing, setRemoving] = useState<ImpostoListItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lancando, setLancando] = useState<ImpostoListItem | null>(null);
   const pageSize = 10;
 
   const load = useCallback(async () => {
@@ -201,6 +219,21 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
     }
   };
 
+  const confirmLancar = async () => {
+    if (!lancando) return;
+    setSaving(true);
+    try {
+      const result = await PortalContabilidadeService.lancarContasPagar(lancando.id);
+      toast.success(`Lançado em Contas a Pagar (nº ${result.numeroLancamento}) com vencimento ${formatDateBr(lancando.vencimento)}.`);
+      setLancando(null);
+      await load();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Não foi possível lançar em Contas a Pagar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const pages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -221,11 +254,38 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
         </Box>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
             <TextField
-              label="Competência (MM/AAAA)"
-              value={filters.competencia}
-              onChange={(event) => setFilters({ ...filters, competencia: event.target.value })}
+              label="Competência de"
+              placeholder="MM/AAAA"
+              value={filters.competenciaDe}
+              onChange={(event) => setFilters({ ...filters, competenciaDe: formatCompetenciaInput(event.target.value) })}
               size="small"
-              sx={{ flex: '1 1 160px' }}
+              sx={{ flex: '1 1 130px' }}
+            />
+            <TextField
+              label="Competência até"
+              placeholder="MM/AAAA"
+              value={filters.competenciaAte}
+              onChange={(event) => setFilters({ ...filters, competenciaAte: formatCompetenciaInput(event.target.value) })}
+              size="small"
+              sx={{ flex: '1 1 130px' }}
+            />
+            <TextField
+              label="Vencimento de"
+              type="date"
+              value={filters.vencimentoDe}
+              onChange={(event) => setFilters({ ...filters, vencimentoDe: event.target.value })}
+              size="small"
+              sx={{ flex: '1 1 150px' }}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              label="Vencimento até"
+              type="date"
+              value={filters.vencimentoAte}
+              onChange={(event) => setFilters({ ...filters, vencimentoAte: event.target.value })}
+              size="small"
+              sx={{ flex: '1 1 150px' }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
             <TextField
               select
@@ -238,13 +298,6 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
               <MenuItem value="">Todos</MenuItem>
               {TIPOS_IMPOSTO.map((tipo) => <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>)}
             </TextField>
-            <TextField
-              label="CNPJ"
-              value={filters.cnpj}
-              onChange={(event) => setFilters({ ...filters, cnpj: event.target.value })}
-              size="small"
-              sx={{ flex: '1 1 180px' }}
-            />
             <TextField
               select
               label="Status"
@@ -264,6 +317,15 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
               }}
             >
               Filtrar
+            </Button>
+            <Button
+              onClick={() => {
+                setFilters(EMPTY_FILTERS);
+                setPage(1);
+                setApplied(EMPTY_FILTERS);
+              }}
+            >
+              Limpar
             </Button>
           </Box>
 
@@ -326,6 +388,20 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
                         <IconButton aria-label="Baixar PDF" onClick={() => downloadOne(item, false)} disabled={!item.arquivoNome}>
                           <Download fontSize="small" />
                         </IconButton>
+                        {canLancarContasPagar && (
+                          <Tooltip title={item.payableId ? 'Já lançado em Contas a Pagar' : 'Adicionar em Contas a Pagar'}>
+                            <span>
+                              <IconButton
+                                aria-label="Adicionar em Contas a Pagar"
+                                color={item.payableId ? 'success' : 'primary'}
+                                disabled={!!item.payableId}
+                                onClick={() => setLancando(item)}
+                              >
+                                {item.payableId ? <CheckCircleOutlined fontSize="small" /> : <PostAdd fontSize="small" />}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
                         {canManage && (
                           <>
                             <IconButton aria-label="Editar imposto" onClick={() => openEdit(item)}>
@@ -378,6 +454,19 @@ export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
         <DialogActions>
           <Button onClick={() => setConfirmEdit(false)}>Voltar</Button>
           <Button variant="contained" disabled={saving} onClick={saveEdit}>Confirmar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!lancando} onClose={() => setLancando(null)}>
+        <DialogTitle>Adicionar em Contas a Pagar</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Criar conta a pagar de {lancando?.tipoImposto} (competência {lancando?.competencia}) no valor de {formatBrlNumber(lancando?.valor ?? 0)} com vencimento em {lancando ? formatDateBr(lancando.vencimento) : ''}?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLancando(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={confirmLancar}>Adicionar</Button>
         </DialogActions>
       </Dialog>
 
