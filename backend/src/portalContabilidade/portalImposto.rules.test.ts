@@ -1,6 +1,9 @@
 import assert from 'assert';
 import {
+  competenciaAtual,
+  competenciaDeData,
   competenciasEntre,
+  montarResumoMensal,
   duplicateMotivo,
   extractCnpjFromFilename,
   parseValorBrasileiro,
@@ -78,6 +81,27 @@ test('período de competência gera os meses entre as datas', () => {
   assert.deepStrictEqual(competenciasEntre('06/2026', '05/2026'), []);
   assert.strictEqual(competenciasEntre('', ''), null);
   assert.strictEqual(competenciasEntre('08/2026', '')?.[0], '08/2026');
+});
+
+test('resumo mensal soma por competência e tipo', () => {
+  const resumo = montarResumoMensal(['07/2026', '08/2026'], [
+    { competencia: '07/2026', tipoImposto: 'DAS', valor: 100, quantidade: 1 },
+    { competencia: '07/2026', tipoImposto: 'FGTS', valor: 50, quantidade: 2 },
+    { competencia: '08/2026', tipoImposto: 'DAS', valor: 30, quantidade: 1 },
+    { competencia: '09/2026', tipoImposto: 'DAS', valor: 999, quantidade: 1 },
+  ]);
+  assert.deepStrictEqual(resumo.tipos, ['DAS', 'FGTS']);
+  assert.strictEqual(resumo.linhas[0].total, 150);
+  assert.strictEqual(resumo.linhas[1].porTipo.DAS, 30);
+  assert.deepStrictEqual(resumo.totalPorTipo, { DAS: 130, FGTS: 50 });
+  assert.strictEqual(resumo.total, 180);
+  assert.strictEqual(resumo.quantidade, 4);
+});
+
+test('converte datas do painel em competência', () => {
+  assert.strictEqual(competenciaDeData('2026-03-15'), '03/2026');
+  assert.strictEqual(competenciaDeData(''), null);
+  assert.strictEqual(competenciaAtual(-11, new Date(2026, 9, 20)), '11/2025');
 });
 
 test('falha parcial preserva os arquivos processados com sucesso', async () => {

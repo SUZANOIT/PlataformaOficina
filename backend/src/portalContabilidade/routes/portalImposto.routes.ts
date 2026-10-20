@@ -64,6 +64,7 @@ const router = Router();
 const impostoController = new PortalImpostoController();
 
 router.get('/', requireRead, impostoController.findAll.bind(impostoController));
+router.get('/resumo-mensal', requireRead, impostoController.resumoMensal.bind(impostoController));
 router.post('/bulk-upload', requireManage, runUpload(upload.array('files')), impostoController.bulkUpload.bind(impostoController));
 router.post('/download-lote', requireRead, impostoController.downloadLote.bind(impostoController));
 router.get('/:id/arquivo', requireRead, impostoController.downloadArquivo.bind(impostoController));

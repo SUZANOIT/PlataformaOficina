@@ -100,6 +100,52 @@ export function competenciasEntre(de?: string, ate?: string): string[] | null {
   return meses;
 }
 
+export function competenciaDeData(value?: string): string | null {
+  const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(value || '');
+  return match ? `${match[2]}/${match[1]}` : null;
+}
+
+export function competenciaAtual(offsetMeses = 0, hoje = new Date()): string {
+  const data = new Date(hoje.getFullYear(), hoje.getMonth() + offsetMeses, 1);
+  return `${String(data.getMonth() + 1).padStart(2, '0')}/${data.getFullYear()}`;
+}
+
+export interface ResumoImpostoRow {
+  competencia: string;
+  tipoImposto: string;
+  valor: number;
+  quantidade: number;
+}
+
+export function montarResumoMensal(meses: string[], rows: ResumoImpostoRow[]) {
+  const tipos = Array.from(new Set(rows.map((row) => row.tipoImposto))).sort();
+  const linhas = meses.map((competencia) => ({
+    competencia,
+    total: 0,
+    quantidade: 0,
+    porTipo: {} as Record<string, number>,
+  }));
+  const porMes = new Map(linhas.map((linha) => [linha.competencia, linha]));
+  const totalPorTipo: Record<string, number> = {};
+
+  for (const row of rows) {
+    const linha = porMes.get(row.competencia);
+    if (!linha) continue;
+    linha.porTipo[row.tipoImposto] = (linha.porTipo[row.tipoImposto] || 0) + row.valor;
+    linha.total += row.valor;
+    linha.quantidade += row.quantidade;
+    totalPorTipo[row.tipoImposto] = (totalPorTipo[row.tipoImposto] || 0) + row.valor;
+  }
+
+  return {
+    tipos,
+    linhas,
+    totalPorTipo,
+    total: linhas.reduce((sum, linha) => sum + linha.total, 0),
+    quantidade: linhas.reduce((sum, linha) => sum + linha.quantidade, 0),
+  };
+}
+
 export function parseVencimento(value: string): Date | null {
   if (!value || typeof value !== 'string') return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {

@@ -4,7 +4,10 @@ import { prisma } from '../../lib/prisma';
 import { S3Service } from '../../services/s3.service';
 import {
   STATUS_IMPOSTO,
+  competenciaAtual,
+  competenciaDeData,
   competenciasEntre,
+  montarResumoMensal,
   duplicateMotivo,
   parseVencimento,
   processBatch,
@@ -158,6 +161,34 @@ export class PortalImpostoService {
       page,
       pageSize,
     };
+  }
+
+  async resumoMensal(scope: ImpostoScope, filters: { companyId?: string; startDate?: string; endDate?: string }) {
+    const de = competenciaDeData(filters.startDate) || competenciaAtual(-11);
+    const ate = competenciaDeData(filters.endDate) || competenciaAtual(0);
+    const meses = competenciasEntre(de, ate) || [];
+
+    const where: any = {
+      deletedAt: null,
+      status: { not: 'Cancelado' },
+      competencia: { in: meses },
+      ...companyWhere(scope),
+    };
+    if (scope.allCompanies && filters.companyId) where.companyId = filters.companyId;
+
+    const grupos = await prisma.portalImposto.groupBy({
+      by: ['competencia', 'tipoImposto'],
+      where,
+      _sum: { valor: true },
+      _count: { _all: true },
+    });
+
+    return montarResumoMensal(meses, grupos.map((grupo) => ({
+      competencia: grupo.competencia,
+      tipoImposto: grupo.tipoImposto,
+      valor: grupo._sum.valor || 0,
+      quantidade: grupo._count._all,
+    })));
   }
 
   async findById(id: string, scope: ImpostoScope) {

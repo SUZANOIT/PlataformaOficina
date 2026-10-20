@@ -141,6 +141,31 @@ class PortalImpostoService {
             pageSize,
         };
     }
+    async resumoMensal(scope, filters) {
+        const de = (0, portalImposto_rules_1.competenciaDeData)(filters.startDate) || (0, portalImposto_rules_1.competenciaAtual)(-11);
+        const ate = (0, portalImposto_rules_1.competenciaDeData)(filters.endDate) || (0, portalImposto_rules_1.competenciaAtual)(0);
+        const meses = (0, portalImposto_rules_1.competenciasEntre)(de, ate) || [];
+        const where = {
+            deletedAt: null,
+            status: { not: 'Cancelado' },
+            competencia: { in: meses },
+            ...companyWhere(scope),
+        };
+        if (scope.allCompanies && filters.companyId)
+            where.companyId = filters.companyId;
+        const grupos = await prisma_1.prisma.portalImposto.groupBy({
+            by: ['competencia', 'tipoImposto'],
+            where,
+            _sum: { valor: true },
+            _count: { _all: true },
+        });
+        return (0, portalImposto_rules_1.montarResumoMensal)(meses, grupos.map((grupo) => ({
+            competencia: grupo.competencia,
+            tipoImposto: grupo.tipoImposto,
+            valor: grupo._sum.valor || 0,
+            quantidade: grupo._count._all,
+        })));
+    }
     async findById(id, scope) {
         const imposto = await prisma_1.prisma.portalImposto.findFirst({
             where: { id, deletedAt: null, ...companyWhere(scope) },

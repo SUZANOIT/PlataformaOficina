@@ -54,6 +54,19 @@ export class PortalImpostoController {
     }
   }
 
+  async resumoMensal(req: Request, res: Response) {
+    try {
+      const resumo = await impostoService.resumoMensal(scopeOf(req), {
+        companyId: req.query.companyId as string | undefined,
+        startDate: req.query.startDate as string | undefined,
+        endDate: req.query.endDate as string | undefined,
+      });
+      return res.json(resumo);
+    } catch (error: any) {
+      return sendError(res, error);
+    }
+  }
+
   async findById(req: Request, res: Response) {
     try {
       const imposto = await impostoService.findById(req.params.id as string, scopeOf(req));

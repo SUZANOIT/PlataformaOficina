@@ -58,6 +58,25 @@ test('período de competência gera os meses entre as datas', () => {
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciasEntre)('', ''), null);
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciasEntre)('08/2026', '')?.[0], '08/2026');
 });
+test('resumo mensal soma por competência e tipo', () => {
+    const resumo = (0, portalImposto_rules_1.montarResumoMensal)(['07/2026', '08/2026'], [
+        { competencia: '07/2026', tipoImposto: 'DAS', valor: 100, quantidade: 1 },
+        { competencia: '07/2026', tipoImposto: 'FGTS', valor: 50, quantidade: 2 },
+        { competencia: '08/2026', tipoImposto: 'DAS', valor: 30, quantidade: 1 },
+        { competencia: '09/2026', tipoImposto: 'DAS', valor: 999, quantidade: 1 },
+    ]);
+    assert_1.default.deepStrictEqual(resumo.tipos, ['DAS', 'FGTS']);
+    assert_1.default.strictEqual(resumo.linhas[0].total, 150);
+    assert_1.default.strictEqual(resumo.linhas[1].porTipo.DAS, 30);
+    assert_1.default.deepStrictEqual(resumo.totalPorTipo, { DAS: 130, FGTS: 50 });
+    assert_1.default.strictEqual(resumo.total, 180);
+    assert_1.default.strictEqual(resumo.quantidade, 4);
+});
+test('converte datas do painel em competência', () => {
+    assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaDeData)('2026-03-15'), '03/2026');
+    assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaDeData)(''), null);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaAtual)(-11, new Date(2026, 9, 20)), '11/2025');
+});
 test('falha parcial preserva os arquivos processados com sucesso', async () => {
     const files = [{ originalname: 'a.pdf' }, { originalname: 'b.pdf' }, { originalname: 'c.pdf' }];
     const result = await (0, portalImposto_rules_1.processBatch)(files, async (file) => {

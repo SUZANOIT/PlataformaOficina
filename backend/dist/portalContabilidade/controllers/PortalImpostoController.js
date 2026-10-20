@@ -50,6 +50,19 @@ class PortalImpostoController {
             return sendError(res, error);
         }
     }
+    async resumoMensal(req, res) {
+        try {
+            const resumo = await impostoService.resumoMensal(scopeOf(req), {
+                companyId: req.query.companyId,
+                startDate: req.query.startDate,
+                endDate: req.query.endDate,
+            });
+            return res.json(resumo);
+        }
+        catch (error) {
+            return sendError(res, error);
+        }
+    }
     async findById(req, res) {
         try {
             const imposto = await impostoService.findById(req.params.id, scopeOf(req));

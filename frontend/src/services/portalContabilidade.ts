@@ -32,6 +32,17 @@ export const PortalContabilidadeService = {
     return data;
   },
 
+  getResumoMensal: async (params: { companyId?: string; startDate?: string; endDate?: string }) => {
+    const { data } = await api.get('/portal-contabilidade/impostos/resumo-mensal', { params });
+    return data as {
+      tipos: string[];
+      linhas: Array<{ competencia: string; total: number; quantidade: number; porTipo: Record<string, number> }>;
+      totalPorTipo: Record<string, number>;
+      total: number;
+      quantidade: number;
+    };
+  },
+
   lancarContasPagar: async (id: string) => {
     const { data } = await api.post(`/portal-contabilidade/impostos/${id}/contas-pagar`);
     return data as { payableId: string; numeroLancamento: number };

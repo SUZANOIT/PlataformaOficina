@@ -9,6 +9,7 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImpostosMensaisCard } from './ImpostosMensaisCard';
 
 interface DashboardData {
   kpis: {
@@ -478,6 +479,8 @@ export function FinancialDashboard() {
             </div>
           )}
         </div>
+
+        <ImpostosMensaisCard companyId={selectedCompanyId} startDate={startDate} endDate={endDate} />
 
         {/* Gráfico 4: Divisão por Centro de Custo */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-xs">
