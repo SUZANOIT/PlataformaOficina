@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PortalImpostoService = void 0;
-const client_1 = require("@prisma/client");
+exports.PortalImpostoService = exports.PortalHttpError = void 0;
 const zod_1 = require("zod");
-const s3_service_1 = require("../../services/s3.service");
 const crypto_1 = __importDefault(require("crypto"));
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../../lib/prisma");
+const s3_service_1 = require("../../services/s3.service");
+const pdfText_1 = require("../pdfText");
+const portalImposto_rules_1 = require("../portalImposto.rules");
 const createImpostoSchema = zod_1.z.object({
     companyId: zod_1.z.string().uuid(),
     competencia: zod_1.z.string().regex(/^\d{2}\/\d{4}$/, 'Competência deve estar no formato MM/AAAA'),
@@ -19,20 +20,53 @@ const createImpostoSchema = zod_1.z.object({
     createdBy: zod_1.z.string().uuid().optional(),
 });
 const updateImpostoStatusSchema = zod_1.z.object({
-    status: zod_1.z.enum([
-        'Aguardando envio',
-        'Enviado',
-        'Recebido',
-        'Pago',
-        'Em atraso',
-        'Reenviado',
-        'Cancelado',
-    ]),
+    status: zod_1.z.enum(portalImposto_rules_1.STATUS_IMPOSTO),
 });
+const updateImpostoSchema = zod_1.z.object({
+    competencia: zod_1.z.string().regex(/^(0[1-9]|1[0-2])\/\d{4}$/, 'Competência deve estar no formato MM/AAAA'),
+    tipoImposto: zod_1.z.string().min(1),
+    valor: zod_1.z.number().positive(),
+    vencimento: zod_1.z.string().min(1),
+});
+class PortalHttpError extends Error {
+    status;
+    constructor(message, status = 400) {
+        super(message);
+        this.status = status;
+    }
+}
+exports.PortalHttpError = PortalHttpError;
+const SORT_FIELDS = ['vencimento', 'valor', 'competencia', 'status', 'createdAt'];
+function companyWhere(scope) {
+    if (scope.allCompanies)
+        return {};
+    if (!scope.companyId)
+        throw new PortalHttpError('Company ID é obrigatório', 400);
+    return { companyId: scope.companyId };
+}
+function mapImposto(imposto) {
+    const anexo = imposto.anexos?.[0];
+    return {
+        id: imposto.id,
+        companyId: imposto.companyId,
+        cnpj: imposto.company?.cnpj || imposto.company?.cnpjSemMascara || '',
+        cnpjSemMascara: imposto.company?.cnpjSemMascara || '',
+        razaoSocial: imposto.company?.razaoSocial || '',
+        competencia: imposto.competencia,
+        tipoImposto: imposto.tipoImposto,
+        vencimento: imposto.vencimento,
+        valor: imposto.valor,
+        status: imposto.status,
+        observacao: imposto.observacao,
+        arquivoNome: anexo?.nome || '',
+        anexoId: anexo?.id || null,
+        createdAt: imposto.createdAt,
+    };
+}
 class PortalImpostoService {
     async create(data) {
         const validatedData = createImpostoSchema.parse(data);
-        const imposto = await prisma.portalImposto.create({
+        const imposto = await prisma_1.prisma.portalImposto.create({
             data: {
                 companyId: validatedData.companyId,
                 competencia: validatedData.competencia,
@@ -44,8 +78,7 @@ class PortalImpostoService {
                 status: 'Aguardando envio',
             },
         });
-        // Registrar auditoria
-        await prisma.portalAuditoria.create({
+        await prisma_1.prisma.portalAuditoria.create({
             data: {
                 companyId: validatedData.companyId,
                 usuarioId: validatedData.createdBy,
@@ -53,8 +86,7 @@ class PortalImpostoService {
                 descricao: `Imposto ${validatedData.tipoImposto} da competência ${validatedData.competencia} criado.`,
             },
         });
-        // Registrar histórico
-        await prisma.portalHistorico.create({
+        await prisma_1.prisma.portalHistorico.create({
             data: {
                 impostoId: imposto.id,
                 usuarioId: validatedData.createdBy,
@@ -64,29 +96,50 @@ class PortalImpostoService {
         });
         return imposto;
     }
-    async findAll(companyId, filters = {}) {
-        const where = { companyId };
+    async findAll(scope, filters = {}) {
+        const page = Math.max(1, Number(filters.page) || 1);
+        const pageSize = Math.min(100, Math.max(1, Number(filters.pageSize) || 20));
+        const sortBy = SORT_FIELDS.includes(filters.sortBy) ? filters.sortBy : 'vencimento';
+        const sortDir = filters.sortDir === 'asc' ? 'asc' : 'desc';
+        const where = {
+            deletedAt: null,
+            ...companyWhere(scope),
+        };
         if (filters.competencia)
-            where.competencia = filters.competencia;
+            where.competencia = String(filters.competencia);
         if (filters.tipoImposto)
-            where.tipoImposto = filters.tipoImposto;
+            where.tipoImposto = String(filters.tipoImposto);
         if (filters.status)
-            where.status = filters.status;
-        return prisma.portalImposto.findMany({
-            where,
-            include: {
-                anexos: true,
-            },
-            orderBy: {
-                vencimento: 'asc',
-            },
-        });
+            where.status = String(filters.status);
+        if (filters.cnpj) {
+            where.company = { cnpjSemMascara: String(filters.cnpj).replace(/\D/g, '') };
+        }
+        const [total, rows] = await Promise.all([
+            prisma_1.prisma.portalImposto.count({ where }),
+            prisma_1.prisma.portalImposto.findMany({
+                where,
+                include: {
+                    company: { select: { cnpj: true, cnpjSemMascara: true, razaoSocial: true } },
+                    anexos: { orderBy: { createdAt: 'desc' }, take: 1 },
+                },
+                orderBy: { [sortBy]: sortDir },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            }),
+        ]);
+        return {
+            items: rows.map(mapImposto),
+            total,
+            page,
+            pageSize,
+        };
     }
-    async findById(id, companyId) {
-        const imposto = await prisma.portalImposto.findFirst({
-            where: { id, companyId },
+    async findById(id, scope) {
+        const imposto = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
             include: {
-                anexos: true,
+                company: { select: { cnpj: true, cnpjSemMascara: true, razaoSocial: true } },
+                anexos: { orderBy: { createdAt: 'desc' } },
                 comentarios: {
                     include: { usuario: { select: { name: true, email: true } } },
                     orderBy: { createdAt: 'desc' },
@@ -98,24 +151,66 @@ class PortalImpostoService {
             },
         });
         if (!imposto)
-            throw new Error('Imposto não encontrado');
+            throw new PortalHttpError('Imposto não encontrado', 404);
+        return { ...mapImposto(imposto), anexos: imposto.anexos, comentarios: imposto.comentarios, historico: imposto.historico };
+    }
+    async update(id, userId, scope, data) {
+        const parsed = updateImpostoSchema.parse(data);
+        const metadata = (0, portalImposto_rules_1.validateLoteMetadata)({
+            competencia: parsed.competencia,
+            tipoImposto: parsed.tipoImposto,
+            vencimento: parsed.vencimento,
+            valor: parsed.valor,
+        });
+        if (!metadata.ok)
+            throw new PortalHttpError(metadata.motivo);
+        const existente = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
+        });
+        if (!existente)
+            throw new PortalHttpError('Imposto não encontrado', 404);
+        const imposto = await prisma_1.prisma.portalImposto.update({
+            where: { id },
+            data: {
+                competencia: metadata.competencia,
+                tipoImposto: metadata.tipoImposto,
+                valor: metadata.valor,
+                vencimento: metadata.vencimento,
+            },
+        });
+        await prisma_1.prisma.portalHistorico.create({
+            data: {
+                impostoId: id,
+                usuarioId: userId,
+                acao: 'EDICAO',
+                descricao: `Metadados atualizados. Competência ${metadata.competencia}, tipo ${metadata.tipoImposto}, valor ${metadata.valor}.`,
+            },
+        });
+        await prisma_1.prisma.portalAuditoria.create({
+            data: {
+                companyId: existente.companyId,
+                usuarioId: userId,
+                acao: 'EDITAR_IMPOSTO',
+                descricao: `Imposto ${id} editado sem novo upload.`,
+            },
+        });
         return imposto;
     }
-    async updateStatus(id, companyId, userId, data) {
+    async updateStatus(id, scope, userId, data) {
         const { status } = updateImpostoStatusSchema.parse(data);
-        const impostoExistente = await prisma.portalImposto.findFirst({ where: { id, companyId } });
+        const impostoExistente = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
+        });
         if (!impostoExistente)
-            throw new Error('Imposto não encontrado');
+            throw new PortalHttpError('Imposto não encontrado', 404);
         const updateData = { status };
-        if (status === 'Pago') {
+        if (status === 'Pago')
             updateData.pagamento = new Date();
-        }
-        const imposto = await prisma.portalImposto.update({
+        const imposto = await prisma_1.prisma.portalImposto.update({
             where: { id },
             data: updateData,
         });
-        // Registrar histórico
-        await prisma.portalHistorico.create({
+        await prisma_1.prisma.portalHistorico.create({
             data: {
                 impostoId: imposto.id,
                 usuarioId: userId,
@@ -125,13 +220,46 @@ class PortalImpostoService {
         });
         return imposto;
     }
-    async uploadAnexo(impostoId, companyId, userId, file) {
-        const imposto = await prisma.portalImposto.findFirst({ where: { id: impostoId, companyId } });
+    async remove(id, userId, scope) {
+        const existente = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
+        });
+        if (!existente)
+            throw new PortalHttpError('Imposto não encontrado', 404);
+        await prisma_1.prisma.portalImposto.update({
+            where: { id },
+            data: { deletedAt: new Date(), status: 'Cancelado' },
+        });
+        await prisma_1.prisma.portalHistorico.create({
+            data: {
+                impostoId: id,
+                usuarioId: userId,
+                acao: 'EXCLUSAO',
+                descricao: 'Registro excluído logicamente. O arquivo permanece associado para auditoria.',
+            },
+        });
+        await prisma_1.prisma.portalAuditoria.create({
+            data: {
+                companyId: existente.companyId,
+                usuarioId: userId,
+                acao: 'EXCLUIR_IMPOSTO',
+                descricao: `Imposto ${id} marcado como excluído.`,
+            },
+        });
+        return { ok: true };
+    }
+    async uploadAnexo(impostoId, scope, userId, file) {
+        const validacao = (0, portalImposto_rules_1.validateBulkFile)(file);
+        if (!validacao.ok)
+            throw new PortalHttpError(validacao.motivo);
+        const imposto = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id: impostoId, deletedAt: null, ...companyWhere(scope) },
+        });
         if (!imposto)
-            throw new Error('Imposto não encontrado');
+            throw new PortalHttpError('Imposto não encontrado', 404);
         const hash = crypto_1.default.createHash('sha256').update(file.buffer).digest('hex');
         const uploadResult = await s3_service_1.S3Service.uploadImpostoFile(file.buffer, file.originalname, file.mimetype, imposto.id, imposto.competencia);
-        const anexo = await prisma.portalImpostoAnexo.create({
+        const anexo = await prisma_1.prisma.portalImpostoAnexo.create({
             data: {
                 impostoId: imposto.id,
                 nome: file.originalname,
@@ -140,96 +268,149 @@ class PortalImpostoService {
                 tamanho: uploadResult.size,
                 hash,
                 uploadedBy: userId,
-            }
+            },
         });
-        await prisma.portalHistorico.create({
+        await prisma_1.prisma.portalHistorico.create({
             data: {
                 impostoId: imposto.id,
                 usuarioId: userId,
                 acao: 'UPLOAD_ANEXO',
                 descricao: `Anexo ${file.originalname} adicionado.`,
-            }
+            },
         });
         return anexo;
     }
-    async bulkUpload(userId, competencia, tipoImposto, vencimento, files) {
-        const resultados = {
-            sucesso: [],
-            erros: [],
-        };
-        const regexCnpj = /\b\d{14}\b/; // Busca exatos 14 números seguidos
-        for (const file of files) {
-            try {
-                // Tenta achar o CNPJ no nome original do arquivo
-                const nomeArquivoSemMascara = file.originalname.replace(/\D/g, '');
-                const match = nomeArquivoSemMascara.match(regexCnpj);
-                if (!match) {
-                    resultados.erros.push({
-                        arquivo: file.originalname,
-                        motivo: 'CNPJ não encontrado no nome do arquivo.',
-                    });
-                    continue;
-                }
-                const cnpjEncontrado = match[0];
-                // Busca a empresa
-                const company = await prisma.company.findFirst({
-                    where: { cnpjSemMascara: cnpjEncontrado },
-                });
-                if (!company) {
-                    resultados.erros.push({
-                        arquivo: file.originalname,
-                        motivo: `Empresa com CNPJ ${cnpjEncontrado} não localizada no sistema.`,
-                    });
-                    continue;
-                }
-                // Cria o imposto para a empresa
-                const imposto = await prisma.portalImposto.create({
-                    data: {
+    async getArquivo(id, scope) {
+        const imposto = await prisma_1.prisma.portalImposto.findFirst({
+            where: { id, deletedAt: null, ...companyWhere(scope) },
+            include: { anexos: { orderBy: { createdAt: 'desc' }, take: 1 } },
+        });
+        if (!imposto)
+            throw new PortalHttpError('Imposto não encontrado', 404);
+        const anexo = imposto.anexos[0];
+        if (!anexo)
+            throw new PortalHttpError('Nenhum arquivo associado a este imposto.', 404);
+        const buffer = await s3_service_1.S3Service.getObjectBuffer(anexo.arquivo);
+        return { buffer, filename: anexo.nome, mime: anexo.tipo || 'application/pdf' };
+    }
+    async getArquivos(ids, scope) {
+        const uniqueIds = [...new Set(ids)].slice(0, 30);
+        const impostos = await prisma_1.prisma.portalImposto.findMany({
+            where: { id: { in: uniqueIds }, deletedAt: null, ...companyWhere(scope) },
+            include: { anexos: { orderBy: { createdAt: 'desc' }, take: 1 } },
+        });
+        const files = [];
+        for (const imposto of impostos) {
+            const anexo = imposto.anexos[0];
+            if (!anexo)
+                continue;
+            const buffer = await s3_service_1.S3Service.getObjectBuffer(anexo.arquivo);
+            files.push({ filename: anexo.nome, buffer });
+        }
+        if (files.length === 0)
+            throw new PortalHttpError('Nenhum arquivo disponível para download.', 404);
+        return files;
+    }
+    async bulkUpload(userId, competencia, tipoImposto, vencimento, valorInformado, files) {
+        const metadata = (0, portalImposto_rules_1.validateLoteMetadata)({ competencia, tipoImposto, vencimento, valor: valorInformado });
+        if (!metadata.ok)
+            throw new PortalHttpError(metadata.motivo);
+        return (0, portalImposto_rules_1.processBatch)(files, async (file) => {
+            const atual = file;
+            const validacao = (0, portalImposto_rules_1.validateBulkFile)(atual);
+            if (!validacao.ok)
+                throw new Error(validacao.motivo);
+            let candidatos;
+            if (validacao.cnpj) {
+                candidatos = [validacao.cnpj];
+            }
+            else {
+                const texto = await (0, pdfText_1.extractPdfText)(atual.buffer).catch(() => '');
+                candidatos = (0, portalImposto_rules_1.extractValidCnpjsFromText)(texto);
+            }
+            if (candidatos.length === 0)
+                throw new Error(portalImposto_rules_1.CNPJ_NAO_ENCONTRADO);
+            const empresas = await prisma_1.prisma.company.findMany({
+                where: { cnpjSemMascara: { in: candidatos } },
+            });
+            const company = candidatos
+                .map((cnpj) => empresas.find((empresa) => empresa.cnpjSemMascara === cnpj))
+                .find(Boolean);
+            if (!company) {
+                throw new Error(`Empresa com CNPJ ${candidatos.join(', ')} não localizada no sistema.`);
+            }
+            const hash = crypto_1.default.createHash('sha256').update(atual.buffer).digest('hex');
+            const duplicado = await prisma_1.prisma.portalImpostoAnexo.findFirst({
+                where: {
+                    hash,
+                    imposto: {
                         companyId: company.id,
-                        competencia,
-                        tipoImposto,
-                        valor: 0, // Valor zerado, contabilidade pode ajustar depois se necessário
-                        vencimento: new Date(vencimento),
-                        createdBy: userId,
-                        status: 'Enviado',
-                        observacao: 'Gerado via importação em lote.',
+                        competencia: metadata.competencia,
+                        tipoImposto: metadata.tipoImposto,
+                        deletedAt: null,
                     },
-                });
-                const hash = crypto_1.default.createHash('sha256').update(file.buffer).digest('hex');
-                const uploadResult = await s3_service_1.S3Service.uploadImpostoFile(file.buffer, file.originalname, file.mimetype, imposto.id, imposto.competencia);
-                await prisma.portalImpostoAnexo.create({
-                    data: {
-                        impostoId: imposto.id,
-                        nome: file.originalname,
-                        arquivo: uploadResult.key,
-                        tipo: file.mimetype,
-                        tamanho: uploadResult.size,
-                        hash,
-                        uploadedBy: userId,
-                    }
-                });
-                await prisma.portalHistorico.create({
-                    data: {
-                        impostoId: imposto.id,
-                        usuarioId: userId,
-                        acao: 'IMPORTACAO_LOTE',
-                        descricao: `Boleto importado em lote e imposto gerado.`,
-                    }
-                });
-                resultados.sucesso.push({
-                    arquivo: file.originalname,
-                    empresa: company.razaoSocial,
-                    impostoId: imposto.id,
+                },
+            });
+            if (duplicado)
+                throw new Error((0, portalImposto_rules_1.duplicateMotivo)());
+            const impostoId = crypto_1.default.randomUUID();
+            const uploadResult = await s3_service_1.S3Service.uploadImpostoFile(atual.buffer, atual.originalname, atual.mimetype || 'application/pdf', impostoId, metadata.competencia);
+            try {
+                await prisma_1.prisma.$transaction(async (tx) => {
+                    await tx.portalImposto.create({
+                        data: {
+                            id: impostoId,
+                            companyId: company.id,
+                            competencia: metadata.competencia,
+                            tipoImposto: metadata.tipoImposto,
+                            valor: metadata.valor,
+                            vencimento: metadata.vencimento,
+                            createdBy: userId,
+                            status: 'Enviado',
+                            observacao: 'Gerado via importação em lote.',
+                        },
+                    });
+                    await tx.portalImpostoAnexo.create({
+                        data: {
+                            impostoId,
+                            nome: atual.originalname,
+                            arquivo: uploadResult.key,
+                            tipo: atual.mimetype || 'application/pdf',
+                            tamanho: uploadResult.size,
+                            hash,
+                            uploadedBy: userId,
+                        },
+                    });
+                    await tx.portalHistorico.create({
+                        data: {
+                            impostoId,
+                            usuarioId: userId,
+                            acao: 'IMPORTACAO_LOTE',
+                            descricao: `Boleto importado em lote no valor de ${metadata.valor}.`,
+                        },
+                    });
+                    await tx.portalAuditoria.create({
+                        data: {
+                            companyId: company.id,
+                            usuarioId: userId,
+                            acao: 'IMPORTACAO_LOTE',
+                            descricao: `Imposto ${metadata.tipoImposto} ${metadata.competencia} criado para ${company.razaoSocial}.`,
+                        },
+                    });
                 });
             }
             catch (error) {
-                resultados.erros.push({
-                    arquivo: file.originalname,
-                    motivo: error.message || 'Erro inesperado.',
-                });
+                await s3_service_1.S3Service.deleteFile(uploadResult.key).catch(() => undefined);
+                throw error;
             }
-        }
-        return resultados;
+            return {
+                arquivo: atual.originalname,
+                empresa: company.razaoSocial,
+                cnpj: company.cnpj,
+                impostoId,
+                valor: metadata.valor,
+            };
+        });
     }
 }
 exports.PortalImpostoService = PortalImpostoService;

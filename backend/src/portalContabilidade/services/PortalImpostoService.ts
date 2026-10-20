@@ -2,9 +2,12 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { prisma } from '../../lib/prisma';
 import { S3Service } from '../../services/s3.service';
+import { extractPdfText } from '../pdfText';
 import {
+  CNPJ_NAO_ENCONTRADO,
   STATUS_IMPOSTO,
   duplicateMotivo,
+  extractValidCnpjsFromText,
   processBatch,
   validateBulkFile,
   validateLoteMetadata,
@@ -369,11 +372,23 @@ export class PortalImpostoService {
       const validacao = validateBulkFile(atual);
       if (!validacao.ok) throw new Error(validacao.motivo);
 
-      const company = await prisma.company.findFirst({
-        where: { cnpjSemMascara: validacao.cnpj },
+      let candidatos: string[];
+      if (validacao.cnpj) {
+        candidatos = [validacao.cnpj];
+      } else {
+        const texto = await extractPdfText(atual.buffer).catch(() => '');
+        candidatos = extractValidCnpjsFromText(texto);
+      }
+      if (candidatos.length === 0) throw new Error(CNPJ_NAO_ENCONTRADO);
+
+      const empresas = await prisma.company.findMany({
+        where: { cnpjSemMascara: { in: candidatos } },
       });
+      const company = candidatos
+        .map((cnpj) => empresas.find((empresa) => empresa.cnpjSemMascara === cnpj))
+        .find(Boolean);
       if (!company) {
-        throw new Error(`Empresa com CNPJ ${validacao.cnpj} não localizada no sistema.`);
+        throw new Error(`Empresa com CNPJ ${candidatos.join(', ')} não localizada no sistema.`);
       }
 
       const hash = crypto.createHash('sha256').update(atual.buffer).digest('hex');

@@ -114,6 +114,16 @@ export function extractValidCnpj(filename: string): string | null {
   return null;
 }
 
+export function extractValidCnpjsFromText(text: string): string[] {
+  const found = new Set<string>();
+  const pattern = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
+  for (const match of text.matchAll(pattern)) {
+    const digits = match[0].replace(/\D/g, '');
+    if (isValidCnpj(digits)) found.add(digits);
+  }
+  return [...found];
+}
+
 export function isPdfFile(originalname: string, mimetype: string): boolean {
   const extensionOk = originalname.toLowerCase().endsWith('.pdf');
   const type = (mimetype || '').toLowerCase();
@@ -121,8 +131,11 @@ export function isPdfFile(originalname: string, mimetype: string): boolean {
   return extensionOk && typeOk;
 }
 
+export const CNPJ_NAO_ENCONTRADO =
+  'CNPJ válido não encontrado no nome do arquivo nem no conteúdo do PDF.';
+
 export function validateBulkFile(file: { originalname: string; mimetype: string; size: number }):
-  | { ok: true; cnpj: string }
+  | { ok: true; cnpj: string | null }
   | { ok: false; motivo: string } {
   if (!file.originalname) return { ok: false, motivo: 'Nome do arquivo ausente.' };
   if (!isPdfFile(file.originalname, file.mimetype)) {
@@ -131,9 +144,7 @@ export function validateBulkFile(file: { originalname: string; mimetype: string;
   if (!file.size || file.size <= 0) return { ok: false, motivo: 'Arquivo vazio.' };
   if (file.size > MAX_PDF_BYTES) return { ok: false, motivo: 'O arquivo excede o limite de 20 MB.' };
 
-  const cnpj = extractValidCnpj(file.originalname);
-  if (!cnpj) return { ok: false, motivo: 'CNPJ válido de 14 dígitos não encontrado no nome do arquivo.' };
-  return { ok: true, cnpj };
+  return { ok: true, cnpj: extractValidCnpj(file.originalname) };
 }
 
 export function validateLoteMetadata(input: {

@@ -1,0 +1,182 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CNPJ_NAO_ENCONTRADO = exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
+exports.resolvePortalAccess = resolvePortalAccess;
+exports.parseValorBrasileiro = parseValorBrasileiro;
+exports.isValidCompetencia = isValidCompetencia;
+exports.parseVencimento = parseVencimento;
+exports.isValidCnpj = isValidCnpj;
+exports.extractValidCnpj = extractValidCnpj;
+exports.extractValidCnpjsFromText = extractValidCnpjsFromText;
+exports.isPdfFile = isPdfFile;
+exports.validateBulkFile = validateBulkFile;
+exports.validateLoteMetadata = validateLoteMetadata;
+exports.duplicateMotivo = duplicateMotivo;
+exports.processBatch = processBatch;
+exports.TIPOS_IMPOSTO = [
+    'DAS',
+    'Simples Nacional',
+    'FGTS',
+    'INSS',
+    'IRRF',
+    'PIS',
+    'COFINS',
+    'CSLL',
+    'ICMS',
+    'ISS',
+    'IPI',
+    'DARF',
+    'GPS',
+    'GARE',
+    'Outros',
+];
+exports.STATUS_IMPOSTO = [
+    'Aguardando envio',
+    'Enviado',
+    'Recebido',
+    'Pago',
+    'Em atraso',
+    'Reenviado',
+    'Cancelado',
+];
+exports.MAX_PDF_BYTES = 20 * 1024 * 1024;
+function resolvePortalAccess(flags) {
+    const canManage = flags.admin || flags.contabilidade;
+    const canRead = canManage || flags.contasPagar || flags.contasReceber;
+    return {
+        canRead,
+        canManage,
+        scope: canManage ? 'all' : 'company',
+    };
+}
+function parseValorBrasileiro(input) {
+    if (typeof input === 'number') {
+        if (!Number.isFinite(input) || input <= 0)
+            return null;
+        return Math.round(input * 100) / 100;
+    }
+    if (typeof input !== 'string')
+        return null;
+    const trimmed = input.trim();
+    if (!trimmed)
+        return null;
+    let normalized = trimmed.replace(/\s/g, '').replace(/^R\$\s?/i, '');
+    if (normalized.includes(',')) {
+        normalized = normalized.replace(/\./g, '').replace(',', '.');
+    }
+    else if (/^\d{1,3}(\.\d{3})+$/.test(normalized)) {
+        normalized = normalized.replace(/\./g, '');
+    }
+    const value = Number(normalized);
+    if (!Number.isFinite(value) || value <= 0)
+        return null;
+    return Math.round(value * 100) / 100;
+}
+function isValidCompetencia(value) {
+    return /^(0[1-9]|1[0-2])\/\d{4}$/.test(value);
+}
+function parseVencimento(value) {
+    if (!value || typeof value !== 'string')
+        return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        const date = new Date(year, month - 1, day, 12, 0, 0);
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day)
+            return null;
+        return date;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+function isValidCnpj(cnpj) {
+    if (!/^\d{14}$/.test(cnpj))
+        return false;
+    if (/^(\d)\1{13}$/.test(cnpj))
+        return false;
+    const digit = (base, factors) => {
+        const sum = base.split('').reduce((acc, char, index) => acc + Number(char) * factors[index], 0);
+        const mod = sum % 11;
+        return mod < 2 ? 0 : 11 - mod;
+    };
+    const first = digit(cnpj.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    const second = digit(cnpj.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    return cnpj.endsWith(`${first}${second}`);
+}
+function extractValidCnpj(filename) {
+    const digits = filename.replace(/\D/g, '');
+    if (digits.length < 14)
+        return null;
+    for (let index = 0; index <= digits.length - 14; index += 1) {
+        const candidate = digits.slice(index, index + 14);
+        if (isValidCnpj(candidate))
+            return candidate;
+    }
+    return null;
+}
+function extractValidCnpjsFromText(text) {
+    const found = new Set();
+    const pattern = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
+    for (const match of text.matchAll(pattern)) {
+        const digits = match[0].replace(/\D/g, '');
+        if (isValidCnpj(digits))
+            found.add(digits);
+    }
+    return [...found];
+}
+function isPdfFile(originalname, mimetype) {
+    const extensionOk = originalname.toLowerCase().endsWith('.pdf');
+    const type = (mimetype || '').toLowerCase();
+    const typeOk = type === 'application/pdf' || type === 'application/x-pdf' || type === 'application/octet-stream' || type === '';
+    return extensionOk && typeOk;
+}
+exports.CNPJ_NAO_ENCONTRADO = 'CNPJ válido não encontrado no nome do arquivo nem no conteúdo do PDF.';
+function validateBulkFile(file) {
+    if (!file.originalname)
+        return { ok: false, motivo: 'Nome do arquivo ausente.' };
+    if (!isPdfFile(file.originalname, file.mimetype)) {
+        return { ok: false, motivo: 'Apenas arquivos PDF são permitidos.' };
+    }
+    if (!file.size || file.size <= 0)
+        return { ok: false, motivo: 'Arquivo vazio.' };
+    if (file.size > exports.MAX_PDF_BYTES)
+        return { ok: false, motivo: 'O arquivo excede o limite de 20 MB.' };
+    return { ok: true, cnpj: extractValidCnpj(file.originalname) };
+}
+function validateLoteMetadata(input) {
+    const competencia = (input.competencia || '').trim();
+    const tipoImposto = (input.tipoImposto || '').trim();
+    const vencimentoRaw = (input.vencimento || '').trim();
+    if (!isValidCompetencia(competencia)) {
+        return { ok: false, motivo: 'Competência deve estar no formato MM/AAAA.' };
+    }
+    if (!exports.TIPOS_IMPOSTO.includes(tipoImposto)) {
+        return { ok: false, motivo: 'Tipo de imposto inválido.' };
+    }
+    const vencimento = parseVencimento(vencimentoRaw);
+    if (!vencimento)
+        return { ok: false, motivo: 'Data de vencimento inválida.' };
+    const valor = parseValorBrasileiro(input.valor);
+    if (valor == null)
+        return { ok: false, motivo: 'Informe um valor maior que zero.' };
+    return { ok: true, competencia, tipoImposto, vencimento, valor };
+}
+function duplicateMotivo() {
+    return 'Arquivo já importado para esta empresa, competência e tipo de imposto.';
+}
+async function processBatch(files, handler) {
+    const sucesso = [];
+    const erros = [];
+    for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        try {
+            sucesso.push(await handler(file, index));
+        }
+        catch (error) {
+            erros.push({
+                arquivo: file.originalname,
+                motivo: error?.message || 'Erro inesperado.',
+            });
+        }
+    }
+    return { sucesso, erros };
+}

@@ -174,7 +174,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
               Arraste seus PDFs aqui ou clique para selecionar
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              Nomes dos arquivos devem conter o CNPJ da empresa (14 dígitos).
+              O CNPJ da empresa é lido do nome do arquivo ou, se não estiver no nome, do conteúdo do PDF.
             </Typography>
             {files.length > 0 && (
               <Chip 

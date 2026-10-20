@@ -109,6 +109,15 @@ const authMiddleware = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
         }
+        req.roles = {
+            admin: !!user.roleAdmin,
+            orcamentista: !!user.roleOrcamentista,
+            contasPagar: !!user.roleContasPagar,
+            contasReceber: !!user.roleContasReceber,
+            contabilidade: !!user.roleContabilidade,
+            rh: !!user.roleRh,
+            colaborador: !!user.roleColaborador,
+        };
         // Usuários cujo único nível de acesso é Contabilidade só podem usar a Exportação XML Contabilidade
         const isContabilidadeOnly = user.roleContabilidade
             && !user.roleAdmin
@@ -124,9 +133,10 @@ const authMiddleware = async (req, res, next) => {
                 '/fiscal/documents/accounting/summary',
                 '/fiscal/documents/export/xml-pack',
             ];
-            if (!allowedPaths.includes(path)) {
+            const isPortalContabilidade = path.startsWith('/portal-contabilidade');
+            if (!allowedPaths.includes(path) && !isPortalContabilidade) {
                 return res.status(403).json({
-                    error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade',
+                    error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade e o portal de impostos',
                     code: 'CONTABILIDADE_ONLY',
                 });
             }

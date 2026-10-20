@@ -9,6 +9,11 @@ const STORAGE_ENDPOINT = process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.
 const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j';
 const STORAGE_ACCESS_KEY = process.env.STORAGE_ACCESS_KEY || '';
 const STORAGE_SECRET_KEY = process.env.STORAGE_SECRET_KEY || '';
+const GUIA_IMPOSTO_ENDPOINT = process.env.GUIA_IMPOSTO_STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
+const GUIA_IMPOSTO_BUCKET = process.env.GUIA_IMPOSTO_STORAGE_BUCKET || 'stocked-crate-y-ubqvwuxrv';
+const GUIA_IMPOSTO_ACCESS_KEY = process.env.GUIA_IMPOSTO_STORAGE_ACCESS_KEY || '';
+const GUIA_IMPOSTO_SECRET_KEY = process.env.GUIA_IMPOSTO_STORAGE_SECRET_KEY || '';
+const GUIA_IMPOSTO_PREFIX = 'guia_imposto';
 const s3Client = new client_s3_1.S3Client({
     endpoint: STORAGE_ENDPOINT,
     forcePathStyle: true,
@@ -16,6 +21,15 @@ const s3Client = new client_s3_1.S3Client({
     credentials: {
         accessKeyId: STORAGE_ACCESS_KEY,
         secretAccessKey: STORAGE_SECRET_KEY,
+    },
+});
+const guiaImpostoClient = new client_s3_1.S3Client({
+    endpoint: GUIA_IMPOSTO_ENDPOINT,
+    forcePathStyle: true,
+    region: 'auto',
+    credentials: {
+        accessKeyId: GUIA_IMPOSTO_ACCESS_KEY,
+        secretAccessKey: GUIA_IMPOSTO_SECRET_KEY,
     },
 });
 class S3Service {
@@ -74,10 +88,10 @@ class S3Service {
         const uuid = (0, uuid_1.v4)();
         const safeOriginalName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const safeCompetencia = competencia.replace(/\//g, '-');
-        const key = `imposto/${safeCompetencia}/${impostoId}/${uuid}-${safeOriginalName}`;
+        const key = `${GUIA_IMPOSTO_PREFIX}/${safeCompetencia}/${impostoId}/${uuid}-${safeOriginalName}`;
         const size = fileBuffer.length;
         const command = new client_s3_1.PutObjectCommand({
-            Bucket: STORAGE_BUCKET,
+            Bucket: GUIA_IMPOSTO_BUCKET,
             Key: key,
             Body: fileBuffer,
             ContentType: mimeType,
@@ -90,10 +104,10 @@ class S3Service {
                 attempts++;
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-                const response = await s3Client.send(command, { abortSignal: controller.signal });
+                const response = await guiaImpostoClient.send(command, { abortSignal: controller.signal });
                 clearTimeout(timeoutId);
                 return {
-                    bucket: STORAGE_BUCKET,
+                    bucket: GUIA_IMPOSTO_BUCKET,
                     key,
                     contentType: mimeType,
                     size,
@@ -113,12 +127,13 @@ class S3Service {
      * Exclui um arquivo do S3
      */
     static async deleteFile(key) {
+        const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
         const command = new client_s3_1.DeleteObjectCommand({
-            Bucket: STORAGE_BUCKET,
+            Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
             Key: key,
         });
         try {
-            await s3Client.send(command);
+            await (isGuiaImposto ? guiaImpostoClient : s3Client).send(command);
             return true;
         }
         catch (error) {
@@ -130,13 +145,26 @@ class S3Service {
      * Gera uma URL pré-assinada para visualização/download de um arquivo.
      * A URL expira por padrão em 1 hora (3600 segundos).
      */
-    static async getPresignedUrl(key, expiresIn = 3600) {
+    static async getObjectBuffer(key) {
+        const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
         const command = new client_s3_1.GetObjectCommand({
-            Bucket: STORAGE_BUCKET,
+            Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
+            Key: key,
+        });
+        const response = await (isGuiaImposto ? guiaImpostoClient : s3Client).send(command);
+        if (!response.Body) {
+            throw new Error('Arquivo não encontrado no armazenamento.');
+        }
+        return Buffer.from(await response.Body.transformToByteArray());
+    }
+    static async getPresignedUrl(key, expiresIn = 3600) {
+        const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
+        const command = new client_s3_1.GetObjectCommand({
+            Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
             Key: key,
         });
         try {
-            return await (0, s3_request_presigner_1.getSignedUrl)(s3Client, command, { expiresIn });
+            return await (0, s3_request_presigner_1.getSignedUrl)(isGuiaImposto ? guiaImpostoClient : s3Client, command, { expiresIn });
         }
         catch (error) {
             console.error(`Erro ao gerar pre-signed URL (Key: ${key}):`, error);
