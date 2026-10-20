@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { Box, Button, Typography, TextField, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress } from '@mui/material';
-import { CloudUpload, CheckCircle, ErrorOutlined, Search } from '@mui/icons-material';
+import { CloudUpload, CheckCircle, ErrorOutlined } from '@mui/icons-material';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { toast } from 'sonner';
 import { formatBrlInput } from '../../utils/brl';
-import { ConsultarImpostosModal } from './ConsultarImpostosModal';
+import { ConsultarImpostos } from './ConsultarImpostos';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
@@ -19,7 +19,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
   const [valor, setValor] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [consultOpen, setConsultOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const [results, setResults] = useState<{
     sucesso: any[];
@@ -72,6 +72,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
       setResults(null);
       const data = await PortalContabilidadeService.bulkUpload(competencia, tipoImposto, vencimento, valor, files);
       setResults(data);
+      if (data.sucesso.length > 0) setRefreshKey((current) => current + 1);
       if (data.sucesso.length > 0 && data.erros.length === 0) {
         toast.success(`Importação concluída! ${data.sucesso.length} importados com sucesso.`);
         setFiles([]);
@@ -79,7 +80,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
         toast.warning(`${data.sucesso.length} importados e ${data.erros.length} com erro.`);
         setFiles([]);
       } else {
-        toast.error('Nenhum arquivo foi importado.');
+        toast.error(`Nenhum arquivo foi importado: ${data.erros[0]?.motivo || 'erro desconhecido'}`);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao realizar upload em lote.');
@@ -90,16 +91,9 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 4 }}>
-        <Typography variant="h4" className="text-gray-800" sx={{ fontWeight: 'bold' }}>
-          {canManage ? 'Importação em Lote de Boletos' : 'Impostos importados'}
-        </Typography>
-        <Button variant="outlined" startIcon={<Search />} onClick={() => setConsultOpen(true)}>
-          Consultar / Baixar Impostos
-        </Button>
-      </Box>
-
-      <ConsultarImpostosModal open={consultOpen} canManage={canManage} onClose={() => setConsultOpen(false)} />
+      <Typography variant="h4" className="text-gray-800" sx={{ fontWeight: 'bold', mb: 4 }}>
+        {canManage ? 'Importação em Lote de Boletos' : 'Impostos importados'}
+      </Typography>
 
       {canManage && (
       <>
@@ -243,6 +237,8 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
       )}
       </>
       )}
+
+      <ConsultarImpostos canManage={canManage} refreshKey={refreshKey} />
     </Box>
   );
 };

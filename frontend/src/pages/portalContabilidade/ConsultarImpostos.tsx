@@ -11,6 +11,7 @@ import {
   DialogTitle,
   IconButton,
   MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
@@ -20,7 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Close, DeleteOutlined, Download, EditOutlined, Visibility } from '@mui/icons-material';
+import { DeleteOutlined, Download, EditOutlined, Visibility } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { formatBrlInput, formatBrlNumber, formatDateBr, parseBrl, toDateInputValue } from '../../utils/brl';
@@ -47,23 +48,8 @@ export interface ImpostoListItem {
 }
 
 interface Props {
-  open: boolean;
   canManage: boolean;
-  onClose: () => void;
-}
-
-function useNarrowScreen() {
-  const query = '(max-width: 900px)';
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
-
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const onChange = () => setNarrow(media.matches);
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
-  }, []);
-
-  return narrow;
+  refreshKey?: number;
 }
 
 function filenameFrom(header: string | undefined, fallback: string) {
@@ -80,8 +66,7 @@ function saveBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ConsultarImpostosModal({ open, canManage, onClose }: Props) {
-  const narrow = useNarrowScreen();
+export function ConsultarImpostos({ canManage, refreshKey = 0 }: Props) {
   const [filters, setFilters] = useState({ competencia: '', tipoImposto: '', cnpj: '', status: '' });
   const [applied, setApplied] = useState(filters);
   const [sortBy, setSortBy] = useState('vencimento');
@@ -122,8 +107,8 @@ export function ConsultarImpostosModal({ open, canManage, onClose }: Props) {
   }, [applied, page, sortBy, sortDir]);
 
   useEffect(() => {
-    if (open) load();
-  }, [open, load]);
+    load();
+  }, [load, refreshKey]);
 
   const toggleSort = (field: string) => {
     setPage(1);
@@ -220,14 +205,20 @@ export function ConsultarImpostosModal({ open, canManage, onClose }: Props) {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" fullScreen={narrow}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          Consultar / Baixar Impostos
-          <IconButton aria-label="Fechar" onClick={onClose}>
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
+      <Paper sx={{ p: 3, mt: 4 }} elevation={2} className="rounded-xl border border-gray-100 shadow-sm">
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          <Typography variant="h6" className="text-gray-700">
+            Consultar / Baixar Impostos
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
+            disabled={selected.length === 0 || downloading}
+            onClick={downloadSelected}
+          >
+            Baixar selecionados ({selected.length})
+          </Button>
+        </Box>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
             <TextField
               label="Competência (MM/AAAA)"
@@ -361,19 +352,7 @@ export function ConsultarImpostosModal({ open, canManage, onClose }: Props) {
               <Button disabled={page >= pages} onClick={() => setPage((current) => current + 1)}>Próxima</Button>
             </Box>
           </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
-          <Button
-            variant="contained"
-            startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
-            disabled={selected.length === 0 || downloading}
-            onClick={downloadSelected}
-          >
-            Baixar selecionados
-          </Button>
-          <Button onClick={onClose}>Fechar</Button>
-        </DialogActions>
-      </Dialog>
+      </Paper>
 
       <Dialog open={!!editing} onClose={() => setEditing(null)} fullWidth maxWidth="sm">
         <DialogTitle>Editar imposto</DialogTitle>
