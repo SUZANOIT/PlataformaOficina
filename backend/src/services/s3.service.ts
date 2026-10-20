@@ -8,6 +8,12 @@ const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j'
 const STORAGE_ACCESS_KEY = process.env.STORAGE_ACCESS_KEY || '';
 const STORAGE_SECRET_KEY = process.env.STORAGE_SECRET_KEY || '';
 
+const GUIA_IMPOSTO_ENDPOINT = process.env.GUIA_IMPOSTO_STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
+const GUIA_IMPOSTO_BUCKET = process.env.GUIA_IMPOSTO_STORAGE_BUCKET || 'stocked-crate-y-ubqvwuxrv';
+const GUIA_IMPOSTO_ACCESS_KEY = process.env.GUIA_IMPOSTO_STORAGE_ACCESS_KEY || '';
+const GUIA_IMPOSTO_SECRET_KEY = process.env.GUIA_IMPOSTO_STORAGE_SECRET_KEY || '';
+const GUIA_IMPOSTO_PREFIX = 'guia_imposto';
+
 const s3Client = new S3Client({
   endpoint: STORAGE_ENDPOINT,
   forcePathStyle: true,
@@ -15,6 +21,16 @@ const s3Client = new S3Client({
   credentials: {
     accessKeyId: STORAGE_ACCESS_KEY,
     secretAccessKey: STORAGE_SECRET_KEY,
+  },
+});
+
+const guiaImpostoClient = new S3Client({
+  endpoint: GUIA_IMPOSTO_ENDPOINT,
+  forcePathStyle: true,
+  region: 'auto',
+  credentials: {
+    accessKeyId: GUIA_IMPOSTO_ACCESS_KEY,
+    secretAccessKey: GUIA_IMPOSTO_SECRET_KEY,
   },
 });
 
@@ -92,11 +108,11 @@ export class S3Service {
     const safeOriginalName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const safeCompetencia = competencia.replace(/\//g, '-');
     
-    const key = `imposto/${safeCompetencia}/${impostoId}/${uuid}-${safeOriginalName}`;
+    const key = `${GUIA_IMPOSTO_PREFIX}/${safeCompetencia}/${impostoId}/${uuid}-${safeOriginalName}`;
     const size = fileBuffer.length;
 
     const command = new PutObjectCommand({
-      Bucket: STORAGE_BUCKET,
+      Bucket: GUIA_IMPOSTO_BUCKET,
       Key: key,
       Body: fileBuffer,
       ContentType: mimeType,
@@ -112,11 +128,11 @@ export class S3Service {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        const response = await s3Client.send(command, { abortSignal: controller.signal });
+        const response = await guiaImpostoClient.send(command, { abortSignal: controller.signal });
         clearTimeout(timeoutId);
 
         return {
-          bucket: STORAGE_BUCKET,
+          bucket: GUIA_IMPOSTO_BUCKET,
           key,
           contentType: mimeType,
           size,
@@ -137,13 +153,14 @@ export class S3Service {
    * Exclui um arquivo do S3
    */
   static async deleteFile(key: string): Promise<boolean> {
+    const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
     const command = new DeleteObjectCommand({
-      Bucket: STORAGE_BUCKET,
+      Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
       Key: key,
     });
 
     try {
-      await s3Client.send(command);
+      await (isGuiaImposto ? guiaImpostoClient : s3Client).send(command);
       return true;
     } catch (error) {
       console.error(`Erro ao deletar arquivo do S3 (Key: ${key}):`, error);
@@ -156,13 +173,14 @@ export class S3Service {
    * A URL expira por padrão em 1 hora (3600 segundos).
    */
   static async getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+    const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
     const command = new GetObjectCommand({
-      Bucket: STORAGE_BUCKET,
+      Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
       Key: key,
     });
 
     try {
-      return await getSignedUrl(s3Client, command, { expiresIn });
+      return await getSignedUrl(isGuiaImposto ? guiaImpostoClient : s3Client, command, { expiresIn });
     } catch (error) {
       console.error(`Erro ao gerar pre-signed URL (Key: ${key}):`, error);
       throw error;
