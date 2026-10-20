@@ -8,7 +8,6 @@ const zod_1 = require("zod");
 const crypto_1 = __importDefault(require("crypto"));
 const prisma_1 = require("../../lib/prisma");
 const s3_service_1 = require("../../services/s3.service");
-const pdfText_1 = require("../pdfText");
 const portalImposto_rules_1 = require("../portalImposto.rules");
 const createImpostoSchema = zod_1.z.object({
     companyId: zod_1.z.string().uuid(),
@@ -25,7 +24,7 @@ const updateImpostoStatusSchema = zod_1.z.object({
 const updateImpostoSchema = zod_1.z.object({
     competencia: zod_1.z.string().regex(/^(0[1-9]|1[0-2])\/\d{4}$/, 'Competência deve estar no formato MM/AAAA'),
     tipoImposto: zod_1.z.string().min(1),
-    valor: zod_1.z.number().positive(),
+    valor: zod_1.z.number().nonnegative(),
     vencimento: zod_1.z.string().min(1),
 });
 class PortalHttpError extends Error {
@@ -311,7 +310,7 @@ class PortalImpostoService {
             throw new PortalHttpError('Nenhum arquivo disponível para download.', 404);
         return files;
     }
-    async bulkUpload(userId, competencia, tipoImposto, vencimento, valorInformado, files) {
+    async bulkUpload(userId, competencia, tipoImposto, vencimento, valorInformado, files, fallbackCompanyId) {
         const metadata = (0, portalImposto_rules_1.validateLoteMetadata)({ competencia, tipoImposto, vencimento, valor: valorInformado });
         if (!metadata.ok)
             throw new PortalHttpError(metadata.motivo);
@@ -320,24 +319,14 @@ class PortalImpostoService {
             const validacao = (0, portalImposto_rules_1.validateBulkFile)(atual);
             if (!validacao.ok)
                 throw new Error(validacao.motivo);
-            let candidatos;
-            if (validacao.cnpj) {
-                candidatos = [validacao.cnpj];
-            }
-            else {
-                const texto = await (0, pdfText_1.extractPdfText)(atual.buffer).catch(() => '');
-                candidatos = (0, portalImposto_rules_1.extractValidCnpjsFromText)(texto);
-            }
-            if (candidatos.length === 0)
-                throw new Error(portalImposto_rules_1.CNPJ_NAO_ENCONTRADO);
-            const empresas = await prisma_1.prisma.company.findMany({
-                where: { cnpjSemMascara: { in: candidatos } },
-            });
-            const company = candidatos
-                .map((cnpj) => empresas.find((empresa) => empresa.cnpjSemMascara === cnpj))
-                .find(Boolean);
+            const company = (validacao.cnpj
+                ? await prisma_1.prisma.company.findFirst({ where: { cnpjSemMascara: validacao.cnpj } })
+                : null) ??
+                (fallbackCompanyId
+                    ? await prisma_1.prisma.company.findFirst({ where: { id: fallbackCompanyId } })
+                    : null);
             if (!company) {
-                throw new Error(`Empresa com CNPJ ${candidatos.join(', ')} não localizada no sistema.`);
+                throw new Error('Empresa não identificada para este arquivo.');
             }
             const hash = crypto_1.default.createHash('sha256').update(atual.buffer).digest('hex');
             const duplicado = await prisma_1.prisma.portalImpostoAnexo.findFirst({

@@ -1,14 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CNPJ_NAO_ENCONTRADO = exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
+exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
 exports.resolvePortalAccess = resolvePortalAccess;
 exports.parseValorBrasileiro = parseValorBrasileiro;
 exports.isValidCompetencia = isValidCompetencia;
 exports.parseVencimento = parseVencimento;
 exports.isValidCnpj = isValidCnpj;
-exports.extractValidCnpj = extractValidCnpj;
-exports.extractValidCnpjsFromText = extractValidCnpjsFromText;
-exports.isPdfFile = isPdfFile;
+exports.extractCnpjFromFilename = extractCnpjFromFilename;
 exports.validateBulkFile = validateBulkFile;
 exports.validateLoteMetadata = validateLoteMetadata;
 exports.duplicateMotivo = duplicateMotivo;
@@ -102,45 +100,19 @@ function isValidCnpj(cnpj) {
     const second = digit(cnpj.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
     return cnpj.endsWith(`${first}${second}`);
 }
-function extractValidCnpj(filename) {
-    const digits = filename.replace(/\D/g, '');
-    if (digits.length < 14)
-        return null;
-    for (let index = 0; index <= digits.length - 14; index += 1) {
-        const candidate = digits.slice(index, index + 14);
-        if (isValidCnpj(candidate))
-            return candidate;
-    }
-    return null;
+function extractCnpjFromFilename(filename) {
+    const match = filename.replace(/[.\-/\s]/g, '').match(/\d{14}/);
+    return match ? match[0] : null;
 }
-function extractValidCnpjsFromText(text) {
-    const found = new Set();
-    const pattern = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
-    for (const match of text.matchAll(pattern)) {
-        const digits = match[0].replace(/\D/g, '');
-        if (isValidCnpj(digits))
-            found.add(digits);
-    }
-    return [...found];
-}
-function isPdfFile(originalname, mimetype) {
-    const extensionOk = originalname.toLowerCase().endsWith('.pdf');
-    const type = (mimetype || '').toLowerCase();
-    const typeOk = type === 'application/pdf' || type === 'application/x-pdf' || type === 'application/octet-stream' || type === '';
-    return extensionOk && typeOk;
-}
-exports.CNPJ_NAO_ENCONTRADO = 'CNPJ válido não encontrado no nome do arquivo nem no conteúdo do PDF.';
 function validateBulkFile(file) {
     if (!file.originalname)
         return { ok: false, motivo: 'Nome do arquivo ausente.' };
-    if (!isPdfFile(file.originalname, file.mimetype)) {
+    if (!file.originalname.toLowerCase().endsWith('.pdf')) {
         return { ok: false, motivo: 'Apenas arquivos PDF são permitidos.' };
     }
-    if (!file.size || file.size <= 0)
-        return { ok: false, motivo: 'Arquivo vazio.' };
     if (file.size > exports.MAX_PDF_BYTES)
         return { ok: false, motivo: 'O arquivo excede o limite de 20 MB.' };
-    return { ok: true, cnpj: extractValidCnpj(file.originalname) };
+    return { ok: true, cnpj: extractCnpjFromFilename(file.originalname) };
 }
 function validateLoteMetadata(input) {
     const competencia = (input.competencia || '').trim();
@@ -155,9 +127,7 @@ function validateLoteMetadata(input) {
     const vencimento = parseVencimento(vencimentoRaw);
     if (!vencimento)
         return { ok: false, motivo: 'Data de vencimento inválida.' };
-    const valor = parseValorBrasileiro(input.valor);
-    if (valor == null)
-        return { ok: false, motivo: 'Informe um valor maior que zero.' };
+    const valor = parseValorBrasileiro(input.valor) ?? 0;
     return { ok: true, competencia, tipoImposto, vencimento, valor };
 }
 function duplicateMotivo() {

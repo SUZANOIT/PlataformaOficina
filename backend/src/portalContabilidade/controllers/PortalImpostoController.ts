@@ -149,7 +149,15 @@ export class PortalImpostoController {
       if (files.length === 0) return res.status(400).json({ error: 'Nenhum arquivo enviado para importação' });
 
       const { competencia, tipoImposto, vencimento, valor } = req.body;
-      const resultados = await impostoService.bulkUpload(userId, competencia, tipoImposto, vencimento, valor, files);
+      const resultados = await impostoService.bulkUpload(
+        userId,
+        competencia,
+        tipoImposto,
+        vencimento,
+        valor,
+        files,
+        (req as any).companyId
+      );
       return res.status(200).json(resultados);
     } catch (error: any) {
       return sendError(res, error, 500);

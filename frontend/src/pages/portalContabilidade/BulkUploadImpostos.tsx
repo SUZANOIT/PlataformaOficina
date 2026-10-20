@@ -3,7 +3,7 @@ import { Box, Button, Typography, TextField, MenuItem, Paper, Table, TableBody, 
 import { CloudUpload, CheckCircle, ErrorOutlined, Search } from '@mui/icons-material';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { toast } from 'sonner';
-import { formatBrlInput, parseBrl } from '../../utils/brl';
+import { formatBrlInput } from '../../utils/brl';
 import { ConsultarImpostosModal } from './ConsultarImpostosModal';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -62,8 +62,8 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
   };
 
   const handleUpload = async () => {
-    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(competencia) || !tipoImposto || !vencimento || !parseBrl(valor) || files.length === 0) {
-      toast.error('Preencha competência, tipo, vencimento, valor maior que zero e selecione os PDFs.');
+    if (!competencia || !tipoImposto || !vencimento || files.length === 0) {
+      toast.error('Preencha competência, tipo, vencimento e selecione os PDFs.');
       return;
     }
 
@@ -149,7 +149,6 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
             placeholder="Ex: 1.250,50"
             value={valor}
             onChange={(e) => setValor(formatBrlInput(e.target.value))}
-            required
             sx={{ flex: '1 1 160px' }}
           />
         </Box>
@@ -174,7 +173,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
               Arraste seus PDFs aqui ou clique para selecionar
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              O CNPJ da empresa é lido do nome do arquivo ou, se não estiver no nome, do conteúdo do PDF.
+              Se o nome do arquivo tiver o CNPJ de uma empresa cadastrada, o imposto vai para ela. Caso contrário, fica na sua empresa.
             </Typography>
             {files.length > 0 && (
               <Chip 

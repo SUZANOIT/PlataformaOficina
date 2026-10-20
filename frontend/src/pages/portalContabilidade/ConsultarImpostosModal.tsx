@@ -180,11 +180,7 @@ export function ConsultarImpostosModal({ open, canManage, onClose }: Props) {
 
   const saveEdit = async () => {
     if (!editing) return;
-    const valor = parseBrl(editForm.valor);
-    if (!valor) {
-      toast.error('Informe um valor maior que zero.');
-      return;
-    }
+    const valor = parseBrl(editForm.valor) ?? 0;
     setSaving(true);
     try {
       await PortalContabilidadeService.updateImposto(editing.id, {

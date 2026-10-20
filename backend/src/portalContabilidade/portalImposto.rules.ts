@@ -104,47 +104,21 @@ export function isValidCnpj(cnpj: string): boolean {
   return cnpj.endsWith(`${first}${second}`);
 }
 
-export function extractValidCnpj(filename: string): string | null {
-  const digits = filename.replace(/\D/g, '');
-  if (digits.length < 14) return null;
-  for (let index = 0; index <= digits.length - 14; index += 1) {
-    const candidate = digits.slice(index, index + 14);
-    if (isValidCnpj(candidate)) return candidate;
-  }
-  return null;
+export function extractCnpjFromFilename(filename: string): string | null {
+  const match = filename.replace(/[.\-/\s]/g, '').match(/\d{14}/);
+  return match ? match[0] : null;
 }
 
-export function extractValidCnpjsFromText(text: string): string[] {
-  const found = new Set<string>();
-  const pattern = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
-  for (const match of text.matchAll(pattern)) {
-    const digits = match[0].replace(/\D/g, '');
-    if (isValidCnpj(digits)) found.add(digits);
-  }
-  return [...found];
-}
-
-export function isPdfFile(originalname: string, mimetype: string): boolean {
-  const extensionOk = originalname.toLowerCase().endsWith('.pdf');
-  const type = (mimetype || '').toLowerCase();
-  const typeOk = type === 'application/pdf' || type === 'application/x-pdf' || type === 'application/octet-stream' || type === '';
-  return extensionOk && typeOk;
-}
-
-export const CNPJ_NAO_ENCONTRADO =
-  'CNPJ válido não encontrado no nome do arquivo nem no conteúdo do PDF.';
-
-export function validateBulkFile(file: { originalname: string; mimetype: string; size: number }):
+export function validateBulkFile(file: { originalname: string; size: number }):
   | { ok: true; cnpj: string | null }
   | { ok: false; motivo: string } {
   if (!file.originalname) return { ok: false, motivo: 'Nome do arquivo ausente.' };
-  if (!isPdfFile(file.originalname, file.mimetype)) {
+  if (!file.originalname.toLowerCase().endsWith('.pdf')) {
     return { ok: false, motivo: 'Apenas arquivos PDF são permitidos.' };
   }
-  if (!file.size || file.size <= 0) return { ok: false, motivo: 'Arquivo vazio.' };
   if (file.size > MAX_PDF_BYTES) return { ok: false, motivo: 'O arquivo excede o limite de 20 MB.' };
 
-  return { ok: true, cnpj: extractValidCnpj(file.originalname) };
+  return { ok: true, cnpj: extractCnpjFromFilename(file.originalname) };
 }
 
 export function validateLoteMetadata(input: {
@@ -166,8 +140,7 @@ export function validateLoteMetadata(input: {
   const vencimento = parseVencimento(vencimentoRaw);
   if (!vencimento) return { ok: false, motivo: 'Data de vencimento inválida.' };
 
-  const valor = parseValorBrasileiro(input.valor);
-  if (valor == null) return { ok: false, motivo: 'Informe um valor maior que zero.' };
+  const valor = parseValorBrasileiro(input.valor) ?? 0;
 
   return { ok: true, competencia, tipoImposto, vencimento, valor };
 }

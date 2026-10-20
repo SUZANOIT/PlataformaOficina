@@ -2,12 +2,9 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { prisma } from '../../lib/prisma';
 import { S3Service } from '../../services/s3.service';
-import { extractPdfText } from '../pdfText';
 import {
-  CNPJ_NAO_ENCONTRADO,
   STATUS_IMPOSTO,
   duplicateMotivo,
-  extractValidCnpjsFromText,
   processBatch,
   validateBulkFile,
   validateLoteMetadata,
@@ -30,7 +27,7 @@ const updateImpostoStatusSchema = z.object({
 const updateImpostoSchema = z.object({
   competencia: z.string().regex(/^(0[1-9]|1[0-2])\/\d{4}$/, 'Competência deve estar no formato MM/AAAA'),
   tipoImposto: z.string().min(1),
-  valor: z.number().positive(),
+  valor: z.number().nonnegative(),
   vencimento: z.string().min(1),
 });
 
@@ -362,7 +359,8 @@ export class PortalImpostoService {
     tipoImposto: string,
     vencimento: string,
     valorInformado: unknown,
-    files: Express.Multer.File[]
+    files: Express.Multer.File[],
+    fallbackCompanyId?: string
   ) {
     const metadata = validateLoteMetadata({ competencia, tipoImposto, vencimento, valor: valorInformado });
     if (!metadata.ok) throw new PortalHttpError(metadata.motivo);
@@ -372,23 +370,15 @@ export class PortalImpostoService {
       const validacao = validateBulkFile(atual);
       if (!validacao.ok) throw new Error(validacao.motivo);
 
-      let candidatos: string[];
-      if (validacao.cnpj) {
-        candidatos = [validacao.cnpj];
-      } else {
-        const texto = await extractPdfText(atual.buffer).catch(() => '');
-        candidatos = extractValidCnpjsFromText(texto);
-      }
-      if (candidatos.length === 0) throw new Error(CNPJ_NAO_ENCONTRADO);
-
-      const empresas = await prisma.company.findMany({
-        where: { cnpjSemMascara: { in: candidatos } },
-      });
-      const company = candidatos
-        .map((cnpj) => empresas.find((empresa) => empresa.cnpjSemMascara === cnpj))
-        .find(Boolean);
+      const company =
+        (validacao.cnpj
+          ? await prisma.company.findFirst({ where: { cnpjSemMascara: validacao.cnpj } })
+          : null) ??
+        (fallbackCompanyId
+          ? await prisma.company.findFirst({ where: { id: fallbackCompanyId } })
+          : null);
       if (!company) {
-        throw new Error(`Empresa com CNPJ ${candidatos.join(', ')} não localizada no sistema.`);
+        throw new Error('Empresa não identificada para este arquivo.');
       }
 
       const hash = crypto.createHash('sha256').update(atual.buffer).digest('hex');
