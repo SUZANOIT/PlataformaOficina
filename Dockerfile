@@ -10,7 +10,8 @@ WORKDIR /app/frontend
 RUN npm ci --ignore-scripts
 
 COPY frontend/ ./
-RUN npm run build
+ARG FRONTEND_REV=20261020-impostos
+RUN echo "frontend rev ${FRONTEND_REV}" && npm run build
 
 # --- Backend build ---
 WORKDIR /app
