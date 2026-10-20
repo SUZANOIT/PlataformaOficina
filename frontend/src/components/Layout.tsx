@@ -354,6 +354,16 @@ export function Layout() {
                     <Tag size={16} className="text-violet-500" />
                     <span>Categorias</span>
                   </Link>
+                  {(user?.roleContasPagar || user?.roleContasReceber) && (
+                    <Link
+                      to="/accounting/xml-export"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <FileText size={16} className="text-emerald-500" />
+                      <span>Consultar Impostos</span>
+                    </Link>
+                  )}
                   {user?.roleAdmin && (
                     <Link 
                       to="/financial/fiscal-documents" 
@@ -853,6 +863,15 @@ export function Layout() {
                     <Tag size={16} className="text-violet-500" />
                     <span>Categorias</span>
                   </Link>
+                  {(user?.roleContasPagar || user?.roleContasReceber) && (
+                    <Link
+                      to="/accounting/xml-export"
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                    >
+                      <FileText size={16} className="text-emerald-500" />
+                      <span>Consultar Impostos</span>
+                    </Link>
+                  )}
                   {user?.roleAdmin && (
                     <Link 
                       to="/financial/fiscal-documents" 

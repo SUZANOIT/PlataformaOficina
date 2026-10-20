@@ -22,12 +22,34 @@ export const PortalContabilidadeService = {
     return data;
   },
 
+  updateImposto: async (id: string, payload: { competencia: string; tipoImposto: string; vencimento: string; valor: number }) => {
+    const { data } = await api.patch(`/portal-contabilidade/impostos/${id}`, payload);
+    return data;
+  },
+
+  deleteImposto: async (id: string) => {
+    const { data } = await api.delete(`/portal-contabilidade/impostos/${id}`);
+    return data;
+  },
+
+  downloadImposto: async (id: string, inline = false) => {
+    return api.get(`/portal-contabilidade/impostos/${id}/arquivo`, {
+      params: inline ? { disposition: 'inline' } : undefined,
+      responseType: 'blob',
+    });
+  },
+
+  downloadLote: async (ids: string[]) => {
+    return api.post('/portal-contabilidade/impostos/download-lote', { ids }, { responseType: 'blob' });
+  },
+
   // Upload em Lote (Bulk Upload)
-  bulkUpload: async (competencia: string, tipoImposto: string, vencimento: string, files: File[]) => {
+  bulkUpload: async (competencia: string, tipoImposto: string, vencimento: string, valor: string, files: File[]) => {
     const formData = new FormData();
     formData.append('competencia', competencia);
     formData.append('tipoImposto', tipoImposto);
     formData.append('vencimento', vencimento);
+    formData.append('valor', valor);
 
     files.forEach((file) => {
       formData.append('files', file);

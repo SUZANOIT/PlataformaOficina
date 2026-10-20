@@ -38,6 +38,9 @@ export function FiscalAccountingPortal() {
 
   useEffect(() => { fetchUser(); }, []);
   useEffect(() => {
+    if (user && !user.roleAdmin && !user.roleContabilidade) setActiveTab('upload');
+  }, [user]);
+  useEffect(() => {
     if (user?.roleAdmin || user?.roleContabilidade) fetchSummary();
   }, [user, fetchSummary]);
 
@@ -81,10 +84,12 @@ export function FiscalAccountingPortal() {
   };
 
   if (!user) return null;
-  if (!user.roleAdmin && !user.roleContabilidade) {
+  const canManageImpostos = !!(user.roleAdmin || user.roleContabilidade);
+  const canConsultImpostos = canManageImpostos || !!(user.roleContasPagar || user.roleContasReceber);
+  if (!canConsultImpostos) {
     return (
       <div className="p-8 text-center text-muted-foreground">
-        Acesso restrito a perfis Admin ou Contabilidade.
+        Acesso restrito aos perfis Admin, Contabilidade ou Financeiro.
       </div>
     );
   }
@@ -112,13 +117,18 @@ export function FiscalAccountingPortal() {
                 <Tag size={10} className="inline" /> Contabilidade
               </span>
             )}
+            {!canManageImpostos && (
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full uppercase font-bold">
+                Financeiro
+              </span>
+            )}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gestão de documentos fiscais e upload de impostos da contabilidade
           </p>
         </div>
         
-        {activeTab === 'download' && (
+        {canManageImpostos && activeTab === 'download' && (
           <div className="flex flex-wrap gap-2 items-end">
             <div>
               <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-1">Ano</label>
@@ -146,6 +156,7 @@ export function FiscalAccountingPortal() {
       </div>
 
       <div className="flex gap-4 border-b border-border mt-4">
+        {canManageImpostos && (
         <button
           onClick={() => setActiveTab('download')}
           className={`pb-2 text-sm font-medium transition-colors ${
@@ -156,6 +167,7 @@ export function FiscalAccountingPortal() {
         >
           Download de XMLs
         </button>
+        )}
         <button
           onClick={() => setActiveTab('upload')}
           className={`pb-2 text-sm font-medium transition-colors ${
@@ -168,7 +180,7 @@ export function FiscalAccountingPortal() {
         </button>
       </div>
 
-      {activeTab === 'download' && (
+      {canManageImpostos && activeTab === 'download' && (
         <>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -296,9 +308,9 @@ export function FiscalAccountingPortal() {
       </>
       )}
 
-      {activeTab === 'upload' && (
+      {(activeTab === 'upload' || !canManageImpostos) && (
         <div className="mt-4">
-          <BulkUploadImpostos />
+          <BulkUploadImpostos canManage={canManageImpostos} />
         </div>
       )}
     </div>

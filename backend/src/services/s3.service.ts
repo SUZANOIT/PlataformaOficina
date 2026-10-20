@@ -172,6 +172,21 @@ export class S3Service {
    * Gera uma URL pré-assinada para visualização/download de um arquivo.
    * A URL expira por padrão em 1 hora (3600 segundos).
    */
+  static async getObjectBuffer(key: string): Promise<Buffer> {
+    const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
+    const command = new GetObjectCommand({
+      Bucket: isGuiaImposto ? GUIA_IMPOSTO_BUCKET : STORAGE_BUCKET,
+      Key: key,
+    });
+
+    const response = await (isGuiaImposto ? guiaImpostoClient : s3Client).send(command);
+    if (!response.Body) {
+      throw new Error('Arquivo não encontrado no armazenamento.');
+    }
+
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+
   static async getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
     const isGuiaImposto = key.startsWith(`${GUIA_IMPOSTO_PREFIX}/`);
     const command = new GetObjectCommand({

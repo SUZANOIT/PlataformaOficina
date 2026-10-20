@@ -77,6 +77,16 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
+    (req as any).roles = {
+      admin: !!user.roleAdmin,
+      orcamentista: !!user.roleOrcamentista,
+      contasPagar: !!user.roleContasPagar,
+      contasReceber: !!user.roleContasReceber,
+      contabilidade: !!user.roleContabilidade,
+      rh: !!user.roleRh,
+      colaborador: !!user.roleColaborador,
+    };
+
     // Usuários cujo único nível de acesso é Contabilidade só podem usar a Exportação XML Contabilidade
     const isContabilidadeOnly = user.roleContabilidade
       && !user.roleAdmin

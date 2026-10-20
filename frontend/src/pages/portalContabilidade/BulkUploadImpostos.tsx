@@ -1,15 +1,25 @@
 import React, { useState, useCallback } from 'react';
 import { Box, Button, Typography, TextField, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress } from '@mui/material';
-import { CloudUpload, CheckCircle, ErrorOutlined } from '@mui/icons-material';
+import { CloudUpload, CheckCircle, ErrorOutlined, Search } from '@mui/icons-material';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { toast } from 'sonner';
+import { formatBrlInput, parseBrl } from '../../utils/brl';
+import { ConsultarImpostosModal } from './ConsultarImpostosModal';
 
-export const BulkUploadImpostos: React.FC = () => {
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
+interface Props {
+  canManage?: boolean;
+}
+
+export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true }) => {
   const [competencia, setCompetencia] = useState('');
   const [tipoImposto, setTipoImposto] = useState('');
   const [vencimento, setVencimento] = useState('');
+  const [valor, setValor] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [consultOpen, setConsultOpen] = useState(false);
   
   const [results, setResults] = useState<{
     sucesso: any[];
@@ -21,17 +31,30 @@ export const BulkUploadImpostos: React.FC = () => {
     'PIS', 'COFINS', 'CSLL', 'ICMS', 'ISS', 'IPI', 'DARF', 'GPS', 'GARE', 'Outros'
   ];
 
+  const acceptFiles = (incoming: File[]) => {
+    const accepted: File[] = [];
+    incoming.forEach((file) => {
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+      if (!isPdf) {
+        toast.error(`${file.name}: apenas PDF é permitido.`);
+        return;
+      }
+      if (file.size > MAX_PDF_BYTES) {
+        toast.error(`${file.name}: o arquivo excede 20 MB.`);
+        return;
+      }
+      accepted.push(file);
+    });
+    if (accepted.length > 0) setFiles(accepted);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles(Array.from(e.target.files));
-    }
+    if (e.target.files) acceptFiles(Array.from(e.target.files));
   };
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (e.dataTransfer.files) {
-      setFiles(Array.from(e.dataTransfer.files));
-    }
+    if (e.dataTransfer.files) acceptFiles(Array.from(e.dataTransfer.files));
   }, []);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -39,19 +62,25 @@ export const BulkUploadImpostos: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!competencia || !tipoImposto || !vencimento || files.length === 0) {
-      toast.error('Preencha todos os campos e selecione os arquivos.');
+    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(competencia) || !tipoImposto || !vencimento || !parseBrl(valor) || files.length === 0) {
+      toast.error('Preencha competência, tipo, vencimento, valor maior que zero e selecione os PDFs.');
       return;
     }
 
     try {
       setIsUploading(true);
-      const data = await PortalContabilidadeService.bulkUpload(competencia, tipoImposto, vencimento, files);
+      setResults(null);
+      const data = await PortalContabilidadeService.bulkUpload(competencia, tipoImposto, vencimento, valor, files);
       setResults(data);
-      toast.success(`Importação concluída! ${data.sucesso.length} importados com sucesso.`);
-      
-      // Limpa formulário após sucesso (opcional)
-      setFiles([]);
+      if (data.sucesso.length > 0 && data.erros.length === 0) {
+        toast.success(`Importação concluída! ${data.sucesso.length} importados com sucesso.`);
+        setFiles([]);
+      } else if (data.sucesso.length > 0) {
+        toast.warning(`${data.sucesso.length} importados e ${data.erros.length} com erro.`);
+        setFiles([]);
+      } else {
+        toast.error('Nenhum arquivo foi importado.');
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao realizar upload em lote.');
     } finally {
@@ -60,24 +89,33 @@ export const BulkUploadImpostos: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" className="text-gray-800" sx={{ mb: 4, fontWeight: 'bold' }}>
-        Importação em Lote de Boletos
-      </Typography>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 4 }}>
+        <Typography variant="h4" className="text-gray-800" sx={{ fontWeight: 'bold' }}>
+          {canManage ? 'Importação em Lote de Boletos' : 'Impostos importados'}
+        </Typography>
+        <Button variant="outlined" startIcon={<Search />} onClick={() => setConsultOpen(true)}>
+          Consultar / Baixar Impostos
+        </Button>
+      </Box>
 
+      <ConsultarImpostosModal open={consultOpen} canManage={canManage} onClose={() => setConsultOpen(false)} />
+
+      {canManage && (
+      <>
       <Paper sx={{ p: 3, mb: 4 }} elevation={2} className="rounded-xl border border-gray-100 shadow-sm">
         <Typography variant="h6" className="text-gray-700" sx={{ mb: 3 }}>
           Dados Gerais (Aplicados a todos os arquivos)
         </Typography>
         
-        <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+        <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
           <TextField
             label="Competência (MM/AAAA)"
             placeholder="Ex: 07/2026"
             value={competencia}
             onChange={(e) => setCompetencia(e.target.value)}
-            fullWidth
             required
+            sx={{ flex: '1 1 180px' }}
           />
           
           <TextField
@@ -85,8 +123,8 @@ export const BulkUploadImpostos: React.FC = () => {
             label="Tipo de Imposto"
             value={tipoImposto}
             onChange={(e) => setTipoImposto(e.target.value)}
-            fullWidth
             required
+            sx={{ flex: '1 1 180px' }}
           >
             {tiposImposto.map((tipo) => (
               <MenuItem key={tipo} value={tipo}>
@@ -101,9 +139,18 @@ export const BulkUploadImpostos: React.FC = () => {
             variant="outlined"
             value={vencimento}
             onChange={(e) => setVencimento(e.target.value)}
-            fullWidth
             required
-            focused
+            sx={{ flex: '1 1 180px' }}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+
+          <TextField
+            label="Valor (R$)"
+            placeholder="Ex: 1.250,50"
+            value={valor}
+            onChange={(e) => setValor(formatBrlInput(e.target.value))}
+            required
+            sx={{ flex: '1 1 160px' }}
           />
         </Box>
 
@@ -180,7 +227,7 @@ export const BulkUploadImpostos: React.FC = () => {
                   <TableRow key={`succ-${idx}`}>
                     <TableCell>{s.arquivo}</TableCell>
                     <TableCell><Chip size="small" label="Sucesso" color="success" variant="outlined" /></TableCell>
-                    <TableCell>Empresa: {s.empresa}</TableCell>
+                    <TableCell>Empresa: {s.empresa}{s.valor != null ? ` · ${Number(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}</TableCell>
                   </TableRow>
                 ))}
                 {results.erros.map((e, idx) => (
@@ -194,6 +241,8 @@ export const BulkUploadImpostos: React.FC = () => {
             </Table>
           </TableContainer>
         </Paper>
+      )}
+      </>
       )}
     </Box>
   );
