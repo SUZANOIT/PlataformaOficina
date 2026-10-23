@@ -8,6 +8,7 @@ exports.competenciasEntre = competenciasEntre;
 exports.competenciaDeData = competenciaDeData;
 exports.competenciaAtual = competenciaAtual;
 exports.montarResumoMensal = montarResumoMensal;
+exports.possuiBoleto = possuiBoleto;
 exports.parseVencimento = parseVencimento;
 exports.isValidCnpj = isValidCnpj;
 exports.extractCnpjFromFilename = extractCnpjFromFilename;
@@ -132,6 +133,11 @@ function montarResumoMensal(meses, rows) {
         total: linhas.reduce((sum, linha) => sum + linha.total, 0),
         quantidade: linhas.reduce((sum, linha) => sum + linha.quantidade, 0),
     };
+}
+function possuiBoleto(anexo) {
+    if (!anexo?.arquivo)
+        return false;
+    return /pdf/i.test(anexo.tipo || '') || /\.pdf$/i.test(anexo.nome || '');
 }
 function parseVencimento(value) {
     if (!value || typeof value !== 'string')

@@ -146,6 +146,11 @@ export function montarResumoMensal(meses: string[], rows: ResumoImpostoRow[]) {
   };
 }
 
+export function possuiBoleto(anexo?: { arquivo?: string | null; tipo?: string | null; nome?: string | null } | null): boolean {
+  if (!anexo?.arquivo) return false;
+  return /pdf/i.test(anexo.tipo || '') || /\.pdf$/i.test(anexo.nome || '');
+}
+
 export function parseVencimento(value: string): Date | null {
   if (!value || typeof value !== 'string') return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {

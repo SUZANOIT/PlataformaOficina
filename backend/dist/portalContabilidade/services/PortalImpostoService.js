@@ -59,6 +59,7 @@ function mapImposto(imposto) {
         observacao: imposto.observacao,
         arquivoNome: anexo?.nome || '',
         anexoId: anexo?.id || null,
+        possuiBoleto: (0, portalImposto_rules_1.possuiBoleto)(anexo),
         payableId: imposto.payableId || null,
         createdAt: imposto.createdAt,
     };

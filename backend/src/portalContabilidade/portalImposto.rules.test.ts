@@ -4,6 +4,7 @@ import {
   competenciaDeData,
   competenciasEntre,
   montarResumoMensal,
+  possuiBoleto,
   duplicateMotivo,
   extractCnpjFromFilename,
   parseValorBrasileiro,
@@ -102,6 +103,14 @@ test('converte datas do painel em competência', () => {
   assert.strictEqual(competenciaDeData('2026-03-15'), '03/2026');
   assert.strictEqual(competenciaDeData(''), null);
   assert.strictEqual(competenciaAtual(-11, new Date(2026, 9, 20)), '11/2025');
+});
+
+test('boleto existe apenas com PDF armazenado', () => {
+  assert.strictEqual(possuiBoleto({ arquivo: 'guia_imposto/08-2026/x/a.pdf', tipo: 'application/pdf', nome: 'a.pdf' }), true);
+  assert.strictEqual(possuiBoleto({ arquivo: 'guia_imposto/08-2026/x/a.pdf', tipo: '', nome: 'GUIA.PDF' }), true);
+  assert.strictEqual(possuiBoleto({ arquivo: '', tipo: 'application/pdf', nome: 'a.pdf' }), false);
+  assert.strictEqual(possuiBoleto({ arquivo: 'x/nota.xml', tipo: 'application/xml', nome: 'nota.xml' }), false);
+  assert.strictEqual(possuiBoleto(undefined), false);
 });
 
 test('falha parcial preserva os arquivos processados com sucesso', async () => {

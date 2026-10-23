@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -45,6 +46,7 @@ export interface ImpostoListItem {
   vencimento: string;
   valor: number;
   arquivoNome: string;
+  possuiBoleto: boolean;
   status: string;
   payableId: string | null;
 }
@@ -367,6 +369,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
                     <TableCell onClick={() => toggleSort('vencimento')} sx={{ cursor: 'pointer' }}>Vencimento</TableCell>
                     <TableCell onClick={() => toggleSort('valor')} sx={{ cursor: 'pointer' }}>Valor (R$)</TableCell>
                     <TableCell>Arquivo</TableCell>
+                    <TableCell align="center">Boleto</TableCell>
                     <TableCell onClick={() => toggleSort('status')} sx={{ cursor: 'pointer' }}>Status</TableCell>
                     <TableCell>Ações</TableCell>
                   </TableRow>
@@ -389,6 +392,14 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
                       <TableCell>{formatDateBr(item.vencimento)}</TableCell>
                       <TableCell>{formatBrlNumber(item.valor)}</TableCell>
                       <TableCell>{item.arquivoNome || '—'}</TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          size="small"
+                          label={item.possuiBoleto ? 'Sim' : 'Não'}
+                          color={item.possuiBoleto ? 'success' : 'default'}
+                          variant={item.possuiBoleto ? 'filled' : 'outlined'}
+                        />
+                      </TableCell>
                       <TableCell>{item.status}</TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
                         <IconButton aria-label="Visualizar PDF" onClick={() => downloadOne(item, true)} disabled={!item.arquivoNome}>

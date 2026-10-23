@@ -77,6 +77,13 @@ test('converte datas do painel em competência', () => {
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaDeData)(''), null);
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaAtual)(-11, new Date(2026, 9, 20)), '11/2025');
 });
+test('boleto existe apenas com PDF armazenado', () => {
+    assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)({ arquivo: 'guia_imposto/08-2026/x/a.pdf', tipo: 'application/pdf', nome: 'a.pdf' }), true);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)({ arquivo: 'guia_imposto/08-2026/x/a.pdf', tipo: '', nome: 'GUIA.PDF' }), true);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)({ arquivo: '', tipo: 'application/pdf', nome: 'a.pdf' }), false);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)({ arquivo: 'x/nota.xml', tipo: 'application/xml', nome: 'nota.xml' }), false);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)(undefined), false);
+});
 test('falha parcial preserva os arquivos processados com sucesso', async () => {
     const files = [{ originalname: 'a.pdf' }, { originalname: 'b.pdf' }, { originalname: 'c.pdf' }];
     const result = await (0, portalImposto_rules_1.processBatch)(files, async (file) => {

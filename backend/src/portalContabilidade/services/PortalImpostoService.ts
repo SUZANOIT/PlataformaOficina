@@ -10,6 +10,7 @@ import {
   montarResumoMensal,
   duplicateMotivo,
   parseVencimento,
+  possuiBoleto,
   processBatch,
   validateBulkFile,
   validateLoteMetadata,
@@ -74,6 +75,7 @@ function mapImposto(imposto: any) {
     observacao: imposto.observacao,
     arquivoNome: anexo?.nome || '',
     anexoId: anexo?.id || null,
+    possuiBoleto: possuiBoleto(anexo),
     payableId: imposto.payableId || null,
     createdAt: imposto.createdAt,
   };
