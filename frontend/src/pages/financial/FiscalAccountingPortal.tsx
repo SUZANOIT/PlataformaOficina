@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Archive, Download, FileCode, RefreshCw, ShieldCheck, Tag } from 'lucide-react';
+import { Archive, Download, FileCode, RefreshCw, ShieldCheck, Tag, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AccountingSummaryData, TipoDocumentoFiscal } from './fiscal/types';
 import {
@@ -104,10 +104,10 @@ export function FiscalAccountingPortal() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col lg:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            Portal Contabilidade Externa
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex flex-wrap items-center gap-2">
+            Portal de Contabilidade Externa
             {user.roleAdmin && (
               <span className="text-[10px] bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full uppercase font-bold">
                 <ShieldCheck size={10} className="inline" /> Admin
@@ -124,8 +124,10 @@ export function FiscalAccountingPortal() {
               </span>
             )}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestão de documentos fiscais e upload de impostos da contabilidade
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            {canManageImpostos
+              ? 'Envie as guias de impostos em lote, consulte e baixe os boletos e exporte os XMLs fiscais para a contabilidade.'
+              : 'Consulte e baixe as guias de impostos enviadas pela contabilidade.'}
           </p>
         </div>
         
@@ -156,33 +158,43 @@ export function FiscalAccountingPortal() {
         )}
       </div>
 
-      <div className="flex gap-4 border-b border-border mt-4">
+      <div role="tablist" aria-label="Seções do portal" className="flex gap-1 border-b border-border overflow-x-auto">
         {canManageImpostos && (
-        <button
-          onClick={() => setActiveTab('download')}
-          className={`pb-2 text-sm font-medium transition-colors ${
-            activeTab === 'download'
-              ? 'border-b-2 border-primary text-primary'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Download de XMLs
-        </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-download"
+            aria-selected={activeTab === 'download'}
+            aria-controls="painel-portal"
+            onClick={() => setActiveTab('download')}
+            className={`-mb-px flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 rounded-t-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+              activeTab === 'download'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+          >
+            <FileCode size={16} aria-hidden="true" /> Download de XMLs
+          </button>
         )}
         <button
+          type="button"
+          role="tab"
+          id="tab-upload"
+          aria-selected={activeTab === 'upload' || !canManageImpostos}
+          aria-controls="painel-portal"
           onClick={() => setActiveTab('upload')}
-          className={`pb-2 text-sm font-medium transition-colors ${
-            activeTab === 'upload'
-              ? 'border-b-2 border-primary text-primary'
-              : 'text-muted-foreground hover:text-foreground'
+          className={`-mb-px flex items-center gap-2 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 rounded-t-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+            activeTab === 'upload' || !canManageImpostos
+              ? 'border-primary text-primary bg-primary/5'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary'
           }`}
         >
-          Upload de Impostos
+          <Upload size={16} aria-hidden="true" /> {canManageImpostos ? 'Upload de Impostos' : 'Impostos'}
         </button>
       </div>
 
       {canManageImpostos && activeTab === 'download' && (
-        <>
+        <div id="painel-portal" role="tabpanel" aria-labelledby="tab-download" className="space-y-6">
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard label="Documentos no Ano" value={String(totalAno)} />
@@ -306,11 +318,11 @@ export function FiscalAccountingPortal() {
           </div>
         )}
       </div>
-      </>
+      </div>
       )}
 
       {(activeTab === 'upload' || !canManageImpostos) && (
-        <div className="mt-4">
+        <div id="painel-portal" role="tabpanel" aria-labelledby="tab-upload">
           <BulkUploadImpostos canManage={canManageImpostos} canLancarContasPagar={canLancarContasPagar} />
         </div>
       )}

@@ -82,7 +82,7 @@ export function GlobalBreadcrumbs() {
     if (pathname === '/accounting/fiscal-documents') {
       baseItems.push({ label: 'Documentos Fiscais', path: '/accounting/fiscal-documents', icon: 'FileText' });
     } else if (pathname === '/accounting/xml-export') {
-      baseItems.push({ label: 'Exportação XML Contabilidade', path: '/accounting/xml-export', icon: 'FileText' });
+      baseItems.push({ label: 'Portal de Contabilidade Externa', path: '/accounting/xml-export', icon: 'FileText' });
     }
   } else if (pathname.startsWith('/fleet')) {
     baseItems.push({ label: 'Frotas', icon: 'Truck' });

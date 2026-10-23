@@ -29,6 +29,21 @@ export function formatDateBr(value: string | Date): string {
   return date.toLocaleDateString('pt-BR');
 }
 
+export function formatCompetenciaInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 6);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+}
+
+export function isCompetenciaValida(value: string): boolean {
+  return /^(0[1-9]|1[0-2])\/\d{4}$/.test(value);
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} KB`;
+  return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
+}
+
 export function toDateInputValue(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
