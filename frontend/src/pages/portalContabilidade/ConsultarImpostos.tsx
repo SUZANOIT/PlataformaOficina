@@ -22,7 +22,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { CheckCircleOutlined, DeleteOutlined, Download, EditOutlined, PostAdd, Visibility } from '@mui/icons-material';
+import { CheckCircleOutlined, Close, DeleteOutlined, Download, EditOutlined, PostAdd, Visibility } from '@mui/icons-material';
 import { toast } from 'sonner';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
 import { formatBrlInput, formatBrlNumber, formatDateBr, parseBrl, toDateInputValue } from '../../utils/brl';
@@ -53,6 +53,8 @@ interface Props {
   canManage: boolean;
   canLancarContasPagar?: boolean;
   refreshKey?: number;
+  embedded?: boolean;
+  onLancado?: () => void;
 }
 
 const EMPTY_FILTERS = {
@@ -83,7 +85,7 @@ function saveBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ConsultarImpostos({ canManage, canLancarContasPagar = false, refreshKey = 0 }: Props) {
+export function ConsultarImpostos({ canManage, canLancarContasPagar = false, refreshKey = 0, embedded = false, onLancado }: Props) {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [applied, setApplied] = useState(filters);
   const [sortBy, setSortBy] = useState('vencimento');
@@ -226,6 +228,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
       const result = await PortalContabilidadeService.lancarContasPagar(lancando.id);
       toast.success(`Lançado em Contas a Pagar (nº ${result.numeroLancamento}) com vencimento ${formatDateBr(lancando.vencimento)}.`);
       setLancando(null);
+      onLancado?.();
       await load();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Não foi possível lançar em Contas a Pagar.');
@@ -238,11 +241,17 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
 
   return (
     <>
-      <Paper sx={{ p: 3, mt: 4 }} elevation={2} className="rounded-xl border border-gray-100 shadow-sm">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-          <Typography variant="h6" className="text-gray-700">
-            Consultar / Baixar Impostos
-          </Typography>
+      <Paper
+        sx={embedded ? { p: 0 } : { p: 3, mt: 4 }}
+        elevation={embedded ? 0 : 2}
+        className={embedded ? undefined : 'rounded-xl border border-gray-100 shadow-sm'}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: embedded ? 'flex-end' : 'space-between', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+          {!embedded && (
+            <Typography variant="h6" className="text-gray-700">
+              Consultar / Baixar Impostos
+            </Typography>
+          )}
           <Button
             variant="contained"
             startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
@@ -483,5 +492,29 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
         </DialogActions>
       </Dialog>
     </>
+  );
+}
+
+interface ModalProps extends Omit<Props, 'embedded' | 'refreshKey'> {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function ConsultarImpostosModal({ open, onClose, ...props }: ModalProps) {
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper">
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        Consultar / Baixar Impostos
+        <IconButton aria-label="Fechar" onClick={onClose}>
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        {open && <ConsultarImpostos {...props} embedded />}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Fechar</Button>
+      </DialogActions>
+    </Dialog>
   );
 }

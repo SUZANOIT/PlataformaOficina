@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 import { useAuth } from '../../hooks/useAuth';
+import { ConsultarImpostosModal } from '../portalContabilidade/ConsultarImpostos';
 
 interface Attachment {
   id?: string;
@@ -69,6 +70,10 @@ interface Payable {
 
 export function FinancialPayables() {
   const { user: currentUser } = useAuth();
+  const [isImpostosOpen, setIsImpostosOpen] = useState(false);
+  const canConsultImpostos = !!(
+    currentUser?.roleAdmin || currentUser?.roleContabilidade || currentUser?.roleContasPagar || currentUser?.roleContasReceber
+  );
   const [payables, setPayables] = useState<Payable[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -619,13 +624,32 @@ export function FinancialPayables() {
           <p className="text-muted-foreground text-sm">Controle de saídas de caixa, agendamentos recorrentes e comprovantes.</p>
         </div>
 
-        <button 
-          onClick={handleCreateOpen}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:bg-primary/95 transition-all shadow-sm shrink-0"
-        >
-          <Plus size={16} /> Novo Lançamento
-        </button>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          {canConsultImpostos && (
+            <button
+              type="button"
+              onClick={() => setIsImpostosOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground font-semibold text-sm rounded-xl hover:bg-secondary transition-all shadow-sm"
+            >
+              <FileText size={16} /> Consultar / Baixar Impostos
+            </button>
+          )}
+          <button 
+            onClick={handleCreateOpen}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold text-sm rounded-xl hover:bg-primary/95 transition-all shadow-sm"
+          >
+            <Plus size={16} /> Novo Lançamento
+          </button>
+        </div>
       </div>
+
+      <ConsultarImpostosModal
+        open={isImpostosOpen}
+        onClose={() => setIsImpostosOpen(false)}
+        canManage={!!(currentUser?.roleAdmin || currentUser?.roleContabilidade)}
+        canLancarContasPagar={!!(currentUser?.roleAdmin || currentUser?.roleContasPagar)}
+        onLancado={fetchPayables}
+      />
 
       {/* Advanced Filters Panel */}
       <div className="bg-card border border-border rounded-xl p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">

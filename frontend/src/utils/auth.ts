@@ -27,6 +27,8 @@ export interface UserProfile {
   company?: CompanyInfo | null;
   roleAdmin?: boolean;
   roleContabilidade?: boolean;
+  roleContasPagar?: boolean;
+  roleContasReceber?: boolean;
 }
 
 export const TOKEN_KEY = 'token';
