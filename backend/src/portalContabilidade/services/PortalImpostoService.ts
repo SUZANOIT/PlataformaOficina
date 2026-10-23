@@ -7,6 +7,7 @@ import {
   competenciaAtual,
   competenciaDeData,
   competenciasEntre,
+  linhasResumoContasPagar,
   montarResumoMensal,
   duplicateMotivo,
   parseBoleto,
@@ -175,26 +176,26 @@ export class PortalImpostoService {
     const meses = competenciasEntre(de, ate) || [];
 
     const where: any = {
-      deletedAt: null,
-      status: { not: 'Cancelado' },
+      payableId: { not: null },
       competencia: { in: meses },
       ...companyWhere(scope),
     };
     if (scope.allCompanies && filters.companyId) where.companyId = filters.companyId;
 
-    const grupos = await prisma.portalImposto.groupBy({
-      by: ['competencia', 'tipoImposto'],
+    const impostos = await prisma.portalImposto.findMany({
       where,
-      _sum: { valor: true },
-      _count: { _all: true },
+      select: { competencia: true, tipoImposto: true, payableId: true },
     });
 
-    return montarResumoMensal(meses, grupos.map((grupo) => ({
-      competencia: grupo.competencia,
-      tipoImposto: grupo.tipoImposto,
-      valor: grupo._sum.valor || 0,
-      quantidade: grupo._count._all,
-    })));
+    const payableIds = impostos.map((imposto) => imposto.payableId).filter((id): id is string => !!id);
+    const payables = payableIds.length
+      ? await prisma.financialPayable.findMany({
+          where: { id: { in: payableIds } },
+          select: { id: true, valor: true, status: true },
+        })
+      : [];
+
+    return montarResumoMensal(meses, linhasResumoContasPagar(impostos, payables));
   }
 
   async findById(id: string, scope: ImpostoScope) {

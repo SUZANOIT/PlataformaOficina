@@ -72,6 +72,27 @@ test('resumo mensal soma por competência e tipo', () => {
     assert_1.default.strictEqual(resumo.total, 180);
     assert_1.default.strictEqual(resumo.quantidade, 4);
 });
+test('resumo usa apenas o valor lançado em Contas a Pagar', () => {
+    const rows = (0, portalImposto_rules_1.linhasResumoContasPagar)([
+        { competencia: '07/2026', tipoImposto: 'DAS', payableId: 'p1' },
+        { competencia: '07/2026', tipoImposto: 'DAS', payableId: null },
+        { competencia: '07/2026', tipoImposto: 'FGTS', payableId: 'p2' },
+        { competencia: '08/2026', tipoImposto: 'DAS', payableId: 'p3' },
+        { competencia: '08/2026', tipoImposto: 'DAS', payableId: 'p-excluido' },
+        { competencia: '08/2026', tipoImposto: 'DAS', payableId: 'p1' },
+    ], [
+        { id: 'p1', valor: 250.5, status: 'PENDENTE' },
+        { id: 'p2', valor: 80, status: 'CANCELADA' },
+        { id: 'p3', valor: 40, status: 'PAGA' },
+    ]);
+    assert_1.default.deepStrictEqual(rows, [
+        { competencia: '07/2026', tipoImposto: 'DAS', valor: 250.5, quantidade: 1 },
+        { competencia: '08/2026', tipoImposto: 'DAS', valor: 40, quantidade: 1 },
+    ]);
+    const resumo = (0, portalImposto_rules_1.montarResumoMensal)(['07/2026', '08/2026'], rows);
+    assert_1.default.strictEqual(resumo.total, 290.5);
+    assert_1.default.deepStrictEqual(resumo.tipos, ['DAS']);
+});
 test('converte datas do painel em competência', () => {
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaDeData)('2026-03-15'), '03/2026');
     assert_1.default.strictEqual((0, portalImposto_rules_1.competenciaDeData)(''), null);

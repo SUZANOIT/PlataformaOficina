@@ -117,6 +117,27 @@ export interface ResumoImpostoRow {
   quantidade: number;
 }
 
+const STATUS_PAGAR_NAO_APLICAVEIS = ['CANCELADA', 'REPROVADA'];
+
+export function linhasResumoContasPagar(
+  impostos: Array<{ competencia: string; tipoImposto: string; payableId: string | null }>,
+  payables: Array<{ id: string; valor: number; status: string }>
+): ResumoImpostoRow[] {
+  const payablePorId = new Map(payables.map((payable) => [payable.id, payable]));
+  const usados = new Set<string>();
+  const rows: ResumoImpostoRow[] = [];
+
+  for (const imposto of impostos) {
+    if (!imposto.payableId || usados.has(imposto.payableId)) continue;
+    const payable = payablePorId.get(imposto.payableId);
+    if (!payable || STATUS_PAGAR_NAO_APLICAVEIS.includes(payable.status)) continue;
+    usados.add(payable.id);
+    rows.push({ competencia: imposto.competencia, tipoImposto: imposto.tipoImposto, valor: payable.valor, quantidade: 1 });
+  }
+
+  return rows;
+}
+
 export function montarResumoMensal(meses: string[], rows: ResumoImpostoRow[]) {
   const tipos = Array.from(new Set(rows.map((row) => row.tipoImposto))).sort();
   const linhas = meses.map((competencia) => ({

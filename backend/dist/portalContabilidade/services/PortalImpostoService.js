@@ -149,25 +149,24 @@ class PortalImpostoService {
         const ate = (0, portalImposto_rules_1.competenciaDeData)(filters.endDate) || (0, portalImposto_rules_1.competenciaAtual)(0);
         const meses = (0, portalImposto_rules_1.competenciasEntre)(de, ate) || [];
         const where = {
-            deletedAt: null,
-            status: { not: 'Cancelado' },
+            payableId: { not: null },
             competencia: { in: meses },
             ...companyWhere(scope),
         };
         if (scope.allCompanies && filters.companyId)
             where.companyId = filters.companyId;
-        const grupos = await prisma_1.prisma.portalImposto.groupBy({
-            by: ['competencia', 'tipoImposto'],
+        const impostos = await prisma_1.prisma.portalImposto.findMany({
             where,
-            _sum: { valor: true },
-            _count: { _all: true },
+            select: { competencia: true, tipoImposto: true, payableId: true },
         });
-        return (0, portalImposto_rules_1.montarResumoMensal)(meses, grupos.map((grupo) => ({
-            competencia: grupo.competencia,
-            tipoImposto: grupo.tipoImposto,
-            valor: grupo._sum.valor || 0,
-            quantidade: grupo._count._all,
-        })));
+        const payableIds = impostos.map((imposto) => imposto.payableId).filter((id) => !!id);
+        const payables = payableIds.length
+            ? await prisma_1.prisma.financialPayable.findMany({
+                where: { id: { in: payableIds } },
+                select: { id: true, valor: true, status: true },
+            })
+            : [];
+        return (0, portalImposto_rules_1.montarResumoMensal)(meses, (0, portalImposto_rules_1.linhasResumoContasPagar)(impostos, payables));
     }
     async findById(id, scope) {
         const imposto = await prisma_1.prisma.portalImposto.findFirst({

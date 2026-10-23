@@ -7,6 +7,7 @@ exports.isValidCompetencia = isValidCompetencia;
 exports.competenciasEntre = competenciasEntre;
 exports.competenciaDeData = competenciaDeData;
 exports.competenciaAtual = competenciaAtual;
+exports.linhasResumoContasPagar = linhasResumoContasPagar;
 exports.montarResumoMensal = montarResumoMensal;
 exports.parseBoleto = parseBoleto;
 exports.validarQuantidadeArquivos = validarQuantidadeArquivos;
@@ -108,6 +109,22 @@ function competenciaDeData(value) {
 function competenciaAtual(offsetMeses = 0, hoje = new Date()) {
     const data = new Date(hoje.getFullYear(), hoje.getMonth() + offsetMeses, 1);
     return `${String(data.getMonth() + 1).padStart(2, '0')}/${data.getFullYear()}`;
+}
+const STATUS_PAGAR_NAO_APLICAVEIS = ['CANCELADA', 'REPROVADA'];
+function linhasResumoContasPagar(impostos, payables) {
+    const payablePorId = new Map(payables.map((payable) => [payable.id, payable]));
+    const usados = new Set();
+    const rows = [];
+    for (const imposto of impostos) {
+        if (!imposto.payableId || usados.has(imposto.payableId))
+            continue;
+        const payable = payablePorId.get(imposto.payableId);
+        if (!payable || STATUS_PAGAR_NAO_APLICAVEIS.includes(payable.status))
+            continue;
+        usados.add(payable.id);
+        rows.push({ competencia: imposto.competencia, tipoImposto: imposto.tipoImposto, valor: payable.valor, quantidade: 1 });
+    }
+    return rows;
 }
 function montarResumoMensal(meses, rows) {
     const tipos = Array.from(new Set(rows.map((row) => row.tipoImposto))).sort();

@@ -60,7 +60,7 @@ export function ImpostosMensaisCard({ companyId, startDate, endDate }: Props) {
           Impostos por Competência (mês a mês por tipo)
         </h4>
         <div className="flex gap-4 text-xs">
-          <span className="text-muted-foreground">Guias: <span className="font-bold text-foreground">{resumo?.quantidade ?? 0}</span></span>
+          <span className="text-muted-foreground">Lançamentos: <span className="font-bold text-foreground">{resumo?.quantidade ?? 0}</span></span>
           <span className="text-muted-foreground">Total: <span className="font-bold text-red-500">{formatCurrency(resumo?.total ?? 0)}</span></span>
         </div>
       </div>
@@ -71,7 +71,7 @@ export function ImpostosMensaisCard({ companyId, startDate, endDate }: Props) {
         <div className="flex items-center justify-center h-48 text-red-500 text-sm">{error}</div>
       ) : !resumo || resumo.quantidade === 0 ? (
         <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-          Nenhum imposto importado no período selecionado
+          Nenhum imposto encontrado para o período selecionado.
         </div>
       ) : (
         <div className="space-y-6">
