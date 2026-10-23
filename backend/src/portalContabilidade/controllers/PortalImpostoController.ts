@@ -170,15 +170,14 @@ export class PortalImpostoController {
       if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
       const files = (req.files as Express.Multer.File[]) || [];
-      if (files.length === 0) return res.status(400).json({ error: 'Nenhum arquivo enviado para importação' });
-
-      const { competencia, tipoImposto, vencimento, valor } = req.body;
+      const { competencia, tipoImposto, vencimento, valor, boleto } = req.body;
       const resultados = await impostoService.bulkUpload(
         userId,
         competencia,
         tipoImposto,
         vencimento,
         valor,
+        boleto,
         files,
         (req as any).companyId
       );

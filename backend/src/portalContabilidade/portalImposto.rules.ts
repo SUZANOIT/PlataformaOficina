@@ -146,6 +146,22 @@ export function montarResumoMensal(meses: string[], rows: ResumoImpostoRow[]) {
   };
 }
 
+export const MAX_ARQUIVOS_POR_ENVIO = 1;
+
+export function parseBoleto(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (['sim', 'true', '1', 's'].includes(normalized)) return true;
+  if (['nao', 'false', '0', 'n'].includes(normalized)) return false;
+  return null;
+}
+
+export function validarQuantidadeArquivos(quantidade: number): string | null {
+  if (quantidade === 0) return 'Nenhum arquivo enviado para importação';
+  if (quantidade > MAX_ARQUIVOS_POR_ENVIO) return 'Envie apenas um arquivo por vez. A importação em lote não é permitida.';
+  return null;
+}
+
 export function possuiBoleto(anexo?: { arquivo?: string | null; tipo?: string | null; nome?: string | null } | null): boolean {
   if (!anexo?.arquivo) return false;
   return /pdf/i.test(anexo.tipo || '') || /\.pdf$/i.test(anexo.nome || '');

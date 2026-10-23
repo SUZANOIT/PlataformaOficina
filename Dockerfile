@@ -10,7 +10,7 @@ WORKDIR /app/frontend
 RUN npm ci --ignore-scripts
 
 COPY frontend/ ./
-ARG FRONTEND_REV=20261023-portal-ux
+ARG FRONTEND_REV=20261023-boleto-arquivo-unico
 RUN echo "frontend rev ${FRONTEND_REV}" && npm run build
 
 # --- Backend build ---

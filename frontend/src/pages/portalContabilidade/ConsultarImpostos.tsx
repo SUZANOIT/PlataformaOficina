@@ -74,6 +74,7 @@ export interface ImpostoListItem {
   valor: number;
   arquivoNome: string;
   possuiBoleto: boolean;
+  boleto: boolean;
   status: string;
   payableId: string | null;
 }
@@ -156,7 +157,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
   const [selected, setSelected] = useState<Record<string, ImpostoListItem>>({});
   const [downloading, setDownloading] = useState(false);
   const [editing, setEditing] = useState<ImpostoListItem | null>(null);
-  const [editForm, setEditForm] = useState({ competencia: '', tipoImposto: '', vencimento: '', valor: '' });
+  const [editForm, setEditForm] = useState({ competencia: '', boleto: 'sim', tipoImposto: '', vencimento: '', valor: '' });
   const [confirmEdit, setConfirmEdit] = useState(false);
   const [removing, setRemoving] = useState<ImpostoListItem | null>(null);
   const [saving, setSaving] = useState(false);
@@ -271,6 +272,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
     setEditing(item);
     setEditForm({
       competencia: item.competencia,
+      boleto: item.boleto ? 'sim' : 'nao',
       tipoImposto: item.tipoImposto,
       vencimento: toDateInputValue(item.vencimento),
       valor: formatBrlInput(String(Math.round(item.valor * 100))),
@@ -287,6 +289,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
         tipoImposto: editForm.tipoImposto,
         vencimento: editForm.vencimento,
         valor,
+        boleto: editForm.boleto === 'sim',
       });
       toast.success('Imposto atualizado.');
       setConfirmEdit(false);
@@ -620,9 +623,9 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
                         <TableCell align="center">
                           <Chip
                             size="small"
-                            label={item.possuiBoleto ? 'Sim' : 'Não'}
-                            color={item.possuiBoleto ? 'success' : 'default'}
-                            variant={item.possuiBoleto ? 'filled' : 'outlined'}
+                            label={item.boleto ? 'Sim' : 'Não'}
+                            color={item.boleto ? 'success' : 'default'}
+                            variant={item.boleto ? 'filled' : 'outlined'}
                           />
                         </TableCell>
                         <TableCell>
@@ -708,6 +711,10 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
             sx={{ mt: 1 }}
             slotProps={{ htmlInput: { inputMode: 'numeric' } }}
           />
+          <TextField select label="Boleto" value={editForm.boleto} onChange={(event) => setEditForm({ ...editForm, boleto: event.target.value })} fullWidth>
+            <MenuItem value="sim">Sim</MenuItem>
+            <MenuItem value="nao">Não</MenuItem>
+          </TextField>
           <TextField select label="Tipo de imposto" value={editForm.tipoImposto} onChange={(event) => setEditForm({ ...editForm, tipoImposto: event.target.value })} fullWidth>
             {TIPOS_IMPOSTO.map((tipo) => <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>)}
           </TextField>
@@ -723,7 +730,7 @@ export function ConsultarImpostos({ canManage, canLancarContasPagar = false, ref
       <Dialog open={confirmEdit} onClose={() => setConfirmEdit(false)}>
         <DialogTitle>Confirmar alterações</DialogTitle>
         <DialogContent>
-          <Typography>Deseja salvar a competência, o tipo, o vencimento e o valor deste imposto?</Typography>
+          <Typography>Deseja salvar a competência, o boleto, o tipo, o vencimento e o valor deste imposto?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmEdit(false)}>Voltar</Button>

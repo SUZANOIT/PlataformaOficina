@@ -1,0 +1,1 @@
+ALTER TABLE "portal_impostos" ADD COLUMN IF NOT EXISTS "boleto" BOOLEAN NOT NULL DEFAULT true;

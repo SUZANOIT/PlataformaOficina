@@ -26,6 +26,7 @@ const updateImpostoSchema = zod_1.z.object({
     tipoImposto: zod_1.z.string().min(1),
     valor: zod_1.z.number().nonnegative(),
     vencimento: zod_1.z.string().min(1),
+    boleto: zod_1.z.boolean().optional(),
 });
 class PortalHttpError extends Error {
     status;
@@ -60,6 +61,7 @@ function mapImposto(imposto) {
         arquivoNome: anexo?.nome || '',
         anexoId: anexo?.id || null,
         possuiBoleto: (0, portalImposto_rules_1.possuiBoleto)(anexo),
+        boleto: imposto.boleto ?? true,
         payableId: imposto.payableId || null,
         createdAt: imposto.createdAt,
     };
@@ -209,6 +211,7 @@ class PortalImpostoService {
                 tipoImposto: metadata.tipoImposto,
                 valor: metadata.valor,
                 vencimento: metadata.vencimento,
+                ...(parsed.boleto !== undefined && { boleto: parsed.boleto }),
             },
         });
         await prisma_1.prisma.portalHistorico.create({
@@ -216,7 +219,7 @@ class PortalImpostoService {
                 impostoId: id,
                 usuarioId: userId,
                 acao: 'EDICAO',
-                descricao: `Metadados atualizados. Competência ${metadata.competencia}, tipo ${metadata.tipoImposto}, valor ${metadata.valor}.`,
+                descricao: `Metadados atualizados. Competência ${metadata.competencia}, tipo ${metadata.tipoImposto}, valor ${metadata.valor}, boleto ${imposto.boleto ? 'Sim' : 'Não'}.`,
             },
         });
         await prisma_1.prisma.portalAuditoria.create({
@@ -398,10 +401,16 @@ class PortalImpostoService {
             throw new PortalHttpError('Nenhum arquivo disponível para download.', 404);
         return files;
     }
-    async bulkUpload(userId, competencia, tipoImposto, vencimento, valorInformado, files, fallbackCompanyId) {
+    async bulkUpload(userId, competencia, tipoImposto, vencimento, valorInformado, boletoInformado, files, fallbackCompanyId) {
+        const quantidadeInvalida = (0, portalImposto_rules_1.validarQuantidadeArquivos)(files.length);
+        if (quantidadeInvalida)
+            throw new PortalHttpError(quantidadeInvalida);
         const metadata = (0, portalImposto_rules_1.validateLoteMetadata)({ competencia, tipoImposto, vencimento, valor: valorInformado });
         if (!metadata.ok)
             throw new PortalHttpError(metadata.motivo);
+        const boleto = (0, portalImposto_rules_1.parseBoleto)(boletoInformado);
+        if (boleto === null)
+            throw new PortalHttpError('Informe se o imposto tem boleto (Sim ou Não).');
         return (0, portalImposto_rules_1.processBatch)(files, async (file) => {
             const atual = file;
             const validacao = (0, portalImposto_rules_1.validateBulkFile)(atual);
@@ -444,6 +453,7 @@ class PortalImpostoService {
                             vencimento: metadata.vencimento,
                             createdBy: userId,
                             status: 'Enviado',
+                            boleto,
                             observacao: 'Gerado via importação em lote.',
                         },
                     });

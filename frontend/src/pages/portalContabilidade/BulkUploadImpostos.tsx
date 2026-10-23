@@ -42,6 +42,7 @@ const fileKey = (file: File) => `${file.name}::${file.size}`;
 
 export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLancarContasPagar = false }) => {
   const [competencia, setCompetencia] = useState('');
+  const [boleto, setBoleto] = useState<'' | 'sim' | 'nao'>('');
   const [tipoImposto, setTipoImposto] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [valor, setValor] = useState('');
@@ -63,27 +64,28 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
     : !isCompetenciaValida(competencia)
       ? 'Use o formato MM/AAAA, por exemplo 08/2026.'
       : '';
+  const boletoErro = boleto ? '' : 'Informe se há boleto.';
   const tipoErro = tipoImposto ? '' : 'Selecione o tipo de imposto.';
   const vencimentoErro = vencimento ? '' : 'Informe a data de vencimento.';
-  const arquivosErro = files.length > 0 ? '' : 'Selecione ao menos um PDF.';
-  const pendencias = [competenciaErro, tipoErro, vencimentoErro, arquivosErro].filter(Boolean);
+  const arquivosErro = files.length > 0 ? '' : 'Selecione o PDF.';
+  const pendencias = [competenciaErro, boletoErro, tipoErro, vencimentoErro, arquivosErro].filter(Boolean);
   const canSubmit = pendencias.length === 0 && !isUploading;
 
   const acceptFiles = (incoming: File[]) => {
     const novosRejeitados: Array<{ nome: string; motivo: string }> = [];
-    const aceitos: File[] = [];
-    incoming.forEach((file) => {
+    const [file, ...extras] = incoming;
+    extras.forEach((extra) => novosRejeitados.push({ nome: extra.name, motivo: 'envie apenas um arquivo por vez' }));
+    let aceito: File | null = null;
+    if (file) {
       const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
       if (!isPdf) novosRejeitados.push({ nome: file.name, motivo: 'apenas arquivos PDF são aceitos' });
       else if (file.size > MAX_PDF_BYTES) novosRejeitados.push({ nome: file.name, motivo: 'o arquivo excede 20 MB' });
-      else aceitos.push(file);
-    });
+      else aceito = file;
+    }
     setRejeitados(novosRejeitados);
-    if (aceitos.length > 0) {
-      setFiles((current) => {
-        const existentes = new Set(current.map(fileKey));
-        return [...current, ...aceitos.filter((file) => !existentes.has(fileKey(file)))];
-      });
+    if (aceito) {
+      setFiles([aceito]);
+      setFileErrors({});
       setResults(null);
     }
   };
@@ -116,7 +118,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
   const handleUpload = async () => {
     setSubmitted(true);
     if (!canSubmit) {
-      toast.error('Preencha competência, tipo, vencimento e selecione os PDFs.');
+      toast.error('Preencha competência, boleto, tipo, vencimento e selecione o PDF.');
       return;
     }
 
@@ -124,7 +126,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
       setIsUploading(true);
       setResults(null);
       setFileErrors({});
-      const data: ImportResult = await PortalContabilidadeService.bulkUpload(competencia, tipoImposto, vencimento, valor, files);
+      const data: ImportResult = await PortalContabilidadeService.bulkUpload(competencia, boleto as 'sim' | 'nao', tipoImposto, vencimento, valor, files);
       setResults(data);
 
       const erros = Object.fromEntries(data.erros.map((erro) => [erro.arquivo, erro.motivo]));
@@ -133,7 +135,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
       if (data.sucesso.length > 0) setRefreshKey((current) => current + 1);
 
       if (data.sucesso.length > 0 && data.erros.length === 0) {
-        toast.success(`Importação concluída! ${data.sucesso.length} importados com sucesso.`);
+        toast.success('Imposto importado com sucesso.');
         setSubmitted(false);
         setTouched({});
       } else if (data.sucesso.length > 0) {
@@ -156,10 +158,10 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
         <Paper component="section" aria-labelledby="importacao-titulo" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
           <Box sx={{ mb: 2.5 }}>
             <Typography id="importacao-titulo" variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-              Importação em Lote de Boletos
+              Importação de Imposto
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Os dados abaixo são aplicados a todos os PDFs enviados neste lote.
+              Preencha os dados do imposto e envie o PDF da guia. Um arquivo por vez.
             </Typography>
           </Box>
 
@@ -167,7 +169,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
             sx={{
               display: 'grid',
               gap: 2,
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
               mb: 2.5,
             }}
           >
@@ -183,6 +185,22 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
               helperText={showError('competencia') && competenciaErro ? competenciaErro : 'Formato MM/AAAA'}
               slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: 'numeric' } }}
             />
+            <TextField
+              select
+              label="Boleto"
+              value={boleto}
+              onChange={(e) => setBoleto(e.target.value as 'sim' | 'nao')}
+              onBlur={touch('boleto')}
+              required
+              fullWidth
+              error={showError('boleto') && !!boletoErro}
+              helperText={showError('boleto') && boletoErro ? boletoErro : 'Sim ou Não'}
+              slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+            >
+              <MenuItem value="" disabled>Selecione</MenuItem>
+              <MenuItem value="sim">Sim</MenuItem>
+              <MenuItem value="nao">Não</MenuItem>
+            </TextField>
             <TextField
               select
               label="Tipo de imposto"
@@ -218,7 +236,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
               value={valor}
               onChange={(e) => setValor(formatBrlInput(e.target.value))}
               fullWidth
-              helperText="Opcional · aplicado a todos os PDFs"
+              helperText="Opcional"
               slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: 'numeric' } }}
             />
           </Box>
@@ -226,7 +244,6 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
           <input
             ref={inputRef}
             type="file"
-            multiple
             accept="application/pdf,.pdf"
             onChange={handleFileChange}
             style={{ display: 'none' }}
@@ -237,7 +254,7 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
           <Box
             role="button"
             tabIndex={isUploading ? -1 : 0}
-            aria-label="Selecionar PDFs para importar. Também é possível arrastar e soltar os arquivos aqui."
+            aria-label="Selecionar o PDF para importar. Também é possível arrastar e soltar o arquivo aqui."
             aria-disabled={isUploading}
             aria-describedby="upload-regras"
             onClick={openPicker}
@@ -285,13 +302,13 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
               {dropzoneState === 'processing'
                 ? 'Processando importação…'
                 : dropzoneState === 'dragging'
-                  ? 'Solte os arquivos para adicionar'
+                  ? 'Solte o arquivo para adicionar'
                   : dropzoneState === 'selected'
-                    ? `${files.length} PDF(s) prontos · clique ou arraste para adicionar mais`
-                    : 'Arraste os PDFs aqui ou clique para selecionar'}
+                    ? 'PDF pronto · clique ou arraste para trocar o arquivo'
+                    : 'Arraste o PDF aqui ou clique para selecionar'}
             </Typography>
             <Typography id="upload-regras" variant="body2" color="text.secondary">
-              Somente PDF · até 20 MB por arquivo · vários arquivos por vez
+              Somente PDF · até 20 MB · um arquivo por vez (sem importação em lote)
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 560 }}>
               Se o nome do arquivo tiver o CNPJ de uma empresa cadastrada, o imposto vai para ela. Caso contrário, fica na sua empresa.
@@ -364,17 +381,12 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="body2" color="text.secondary" role="status" aria-live="polite">
               {isUploading
-                ? `Enviando ${files.length} arquivo(s)…`
+                ? 'Enviando arquivo…'
                 : pendencias.length > 0
                   ? `Pendente: ${pendencias.map((item) => item.replace(/\.$/, '').toLowerCase()).join(' · ')}`
-                  : `${files.length} arquivo(s) prontos para importar`}
+                  : 'Pronto para importar'}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {files.length > 0 && (
-                <Button color="inherit" disabled={isUploading} onClick={() => { setFiles([]); setFileErrors({}); }}>
-                  Remover todos
-                </Button>
-              )}
               <Button
                 variant="contained"
                 size="large"
@@ -395,8 +407,9 @@ export const BulkUploadImpostos: React.FC<Props> = ({ canManage = true, canLanca
                 severity={results.erros.length === 0 ? 'success' : results.sucesso.length > 0 ? 'warning' : 'error'}
                 sx={{ mb: 2 }}
               >
-                {results.sucesso.length + results.erros.length} arquivo(s) processado(s): {results.sucesso.length} importado(s) e {results.erros.length} com erro.
-                {results.erros.length > 0 && ' Os arquivos com erro continuam na lista acima para correção ou remoção.'}
+                {results.erros.length === 0
+                  ? 'Imposto importado com sucesso.'
+                  : 'O arquivo não foi importado. Ele continua selecionado acima para correção ou troca.'}
               </Alert>
               <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
                 <Table size="small" aria-label="Relatório de importação" sx={{ minWidth: 560 }}>

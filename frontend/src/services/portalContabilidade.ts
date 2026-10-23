@@ -22,7 +22,7 @@ export const PortalContabilidadeService = {
     return data;
   },
 
-  updateImposto: async (id: string, payload: { competencia: string; tipoImposto: string; vencimento: string; valor: number }) => {
+  updateImposto: async (id: string, payload: { competencia: string; tipoImposto: string; vencimento: string; valor: number; boleto: boolean }) => {
     const { data } = await api.patch(`/portal-contabilidade/impostos/${id}`, payload);
     return data;
   },
@@ -60,9 +60,10 @@ export const PortalContabilidadeService = {
   },
 
   // Upload em Lote (Bulk Upload)
-  bulkUpload: async (competencia: string, tipoImposto: string, vencimento: string, valor: string, files: File[]) => {
+  bulkUpload: async (competencia: string, boleto: 'sim' | 'nao', tipoImposto: string, vencimento: string, valor: string, files: File[]) => {
     const formData = new FormData();
     formData.append('competencia', competencia);
+    formData.append('boleto', boleto);
     formData.append('tipoImposto', tipoImposto);
     formData.append('vencimento', vencimento);
     formData.append('valor', valor);

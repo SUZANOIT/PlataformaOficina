@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer';
 import { PortalImpostoController } from '../controllers/PortalImpostoController';
-import { PortalRoleFlags, resolvePortalAccess } from '../portalImposto.rules';
+import { MAX_ARQUIVOS_POR_ENVIO, PortalRoleFlags, resolvePortalAccess } from '../portalImposto.rules';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -16,7 +16,9 @@ function runUpload(parser: (req: Request, res: Response, next: NextFunction) => 
       if (!error) return next();
       const message = error.code === 'LIMIT_FILE_SIZE'
         ? 'O arquivo excede o limite de 20 MB.'
-        : error.message || 'Falha no upload.';
+        : error.code === 'LIMIT_UNEXPECTED_FILE'
+          ? 'Envie apenas um arquivo por vez. A importação em lote não é permitida.'
+          : error.message || 'Falha no upload.';
       return res.status(400).json({ error: message });
     });
   };
@@ -65,7 +67,7 @@ const impostoController = new PortalImpostoController();
 
 router.get('/', requireRead, impostoController.findAll.bind(impostoController));
 router.get('/resumo-mensal', requireRead, impostoController.resumoMensal.bind(impostoController));
-router.post('/bulk-upload', requireManage, runUpload(upload.array('files')), impostoController.bulkUpload.bind(impostoController));
+router.post('/bulk-upload', requireManage, runUpload(upload.array('files', MAX_ARQUIVOS_POR_ENVIO)), impostoController.bulkUpload.bind(impostoController));
 router.post('/download-lote', requireRead, impostoController.downloadLote.bind(impostoController));
 router.get('/:id/arquivo', requireRead, impostoController.downloadArquivo.bind(impostoController));
 router.get('/:id', requireRead, impostoController.findById.bind(impostoController));

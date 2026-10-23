@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
+exports.MAX_ARQUIVOS_POR_ENVIO = exports.MAX_PDF_BYTES = exports.STATUS_IMPOSTO = exports.TIPOS_IMPOSTO = void 0;
 exports.resolvePortalAccess = resolvePortalAccess;
 exports.parseValorBrasileiro = parseValorBrasileiro;
 exports.isValidCompetencia = isValidCompetencia;
@@ -8,6 +8,8 @@ exports.competenciasEntre = competenciasEntre;
 exports.competenciaDeData = competenciaDeData;
 exports.competenciaAtual = competenciaAtual;
 exports.montarResumoMensal = montarResumoMensal;
+exports.parseBoleto = parseBoleto;
+exports.validarQuantidadeArquivos = validarQuantidadeArquivos;
 exports.possuiBoleto = possuiBoleto;
 exports.parseVencimento = parseVencimento;
 exports.isValidCnpj = isValidCnpj;
@@ -133,6 +135,24 @@ function montarResumoMensal(meses, rows) {
         total: linhas.reduce((sum, linha) => sum + linha.total, 0),
         quantidade: linhas.reduce((sum, linha) => sum + linha.quantidade, 0),
     };
+}
+exports.MAX_ARQUIVOS_POR_ENVIO = 1;
+function parseBoleto(value) {
+    if (typeof value === 'boolean')
+        return value;
+    const normalized = String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (['sim', 'true', '1', 's'].includes(normalized))
+        return true;
+    if (['nao', 'false', '0', 'n'].includes(normalized))
+        return false;
+    return null;
+}
+function validarQuantidadeArquivos(quantidade) {
+    if (quantidade === 0)
+        return 'Nenhum arquivo enviado para importação';
+    if (quantidade > exports.MAX_ARQUIVOS_POR_ENVIO)
+        return 'Envie apenas um arquivo por vez. A importação em lote não é permitida.';
+    return null;
 }
 function possuiBoleto(anexo) {
     if (!anexo?.arquivo)

@@ -9,8 +9,10 @@ import {
   competenciasEntre,
   montarResumoMensal,
   duplicateMotivo,
+  parseBoleto,
   parseVencimento,
   possuiBoleto,
+  validarQuantidadeArquivos,
   processBatch,
   validateBulkFile,
   validateLoteMetadata,
@@ -35,6 +37,7 @@ const updateImpostoSchema = z.object({
   tipoImposto: z.string().min(1),
   valor: z.number().nonnegative(),
   vencimento: z.string().min(1),
+  boleto: z.boolean().optional(),
 });
 
 export class PortalHttpError extends Error {
@@ -76,6 +79,7 @@ function mapImposto(imposto: any) {
     arquivoNome: anexo?.nome || '',
     anexoId: anexo?.id || null,
     possuiBoleto: possuiBoleto(anexo),
+    boleto: imposto.boleto ?? true,
     payableId: imposto.payableId || null,
     createdAt: imposto.createdAt,
   };
@@ -236,6 +240,7 @@ export class PortalImpostoService {
         tipoImposto: metadata.tipoImposto,
         valor: metadata.valor,
         vencimento: metadata.vencimento,
+        ...(parsed.boleto !== undefined && { boleto: parsed.boleto }),
       },
     });
 
@@ -244,7 +249,7 @@ export class PortalImpostoService {
         impostoId: id,
         usuarioId: userId,
         acao: 'EDICAO',
-        descricao: `Metadados atualizados. Competência ${metadata.competencia}, tipo ${metadata.tipoImposto}, valor ${metadata.valor}.`,
+        descricao: `Metadados atualizados. Competência ${metadata.competencia}, tipo ${metadata.tipoImposto}, valor ${metadata.valor}, boleto ${imposto.boleto ? 'Sim' : 'Não'}.`,
       },
     });
 
@@ -459,11 +464,18 @@ export class PortalImpostoService {
     tipoImposto: string,
     vencimento: string,
     valorInformado: unknown,
+    boletoInformado: unknown,
     files: Express.Multer.File[],
     fallbackCompanyId?: string
   ) {
+    const quantidadeInvalida = validarQuantidadeArquivos(files.length);
+    if (quantidadeInvalida) throw new PortalHttpError(quantidadeInvalida);
+
     const metadata = validateLoteMetadata({ competencia, tipoImposto, vencimento, valor: valorInformado });
     if (!metadata.ok) throw new PortalHttpError(metadata.motivo);
+
+    const boleto = parseBoleto(boletoInformado);
+    if (boleto === null) throw new PortalHttpError('Informe se o imposto tem boleto (Sim ou Não).');
 
     return processBatch(files, async (file) => {
       const atual = file as Express.Multer.File;
@@ -516,6 +528,7 @@ export class PortalImpostoService {
               vencimento: metadata.vencimento,
               createdBy: userId,
               status: 'Enviado',
+              boleto,
               observacao: 'Gerado via importação em lote.',
             },
           });

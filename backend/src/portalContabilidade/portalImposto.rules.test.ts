@@ -4,7 +4,9 @@ import {
   competenciaDeData,
   competenciasEntre,
   montarResumoMensal,
+  parseBoleto,
   possuiBoleto,
+  validarQuantidadeArquivos,
   duplicateMotivo,
   extractCnpjFromFilename,
   parseValorBrasileiro,
@@ -111,6 +113,21 @@ test('boleto existe apenas com PDF armazenado', () => {
   assert.strictEqual(possuiBoleto({ arquivo: '', tipo: 'application/pdf', nome: 'a.pdf' }), false);
   assert.strictEqual(possuiBoleto({ arquivo: 'x/nota.xml', tipo: 'application/xml', nome: 'nota.xml' }), false);
   assert.strictEqual(possuiBoleto(undefined), false);
+});
+
+test('campo boleto aceita apenas sim ou não', () => {
+  assert.strictEqual(parseBoleto('sim'), true);
+  assert.strictEqual(parseBoleto('Não'), false);
+  assert.strictEqual(parseBoleto('nao'), false);
+  assert.strictEqual(parseBoleto(true), true);
+  assert.strictEqual(parseBoleto(''), null);
+  assert.strictEqual(parseBoleto('talvez'), null);
+});
+
+test('importação aceita somente um arquivo por vez', () => {
+  assert.strictEqual(validarQuantidadeArquivos(1), null);
+  assert.ok(validarQuantidadeArquivos(0));
+  assert.match(validarQuantidadeArquivos(2) || '', /apenas um arquivo/);
 });
 
 test('falha parcial preserva os arquivos processados com sucesso', async () => {

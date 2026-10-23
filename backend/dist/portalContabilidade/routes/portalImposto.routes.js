@@ -21,7 +21,9 @@ function runUpload(parser) {
                 return next();
             const message = error.code === 'LIMIT_FILE_SIZE'
                 ? 'O arquivo excede o limite de 20 MB.'
-                : error.message || 'Falha no upload.';
+                : error.code === 'LIMIT_UNEXPECTED_FILE'
+                    ? 'Envie apenas um arquivo por vez. A importação em lote não é permitida.'
+                    : error.message || 'Falha no upload.';
             return res.status(400).json({ error: message });
         });
     };
@@ -65,7 +67,7 @@ exports.portalImpostoRoutes = router;
 const impostoController = new PortalImpostoController_1.PortalImpostoController();
 router.get('/', requireRead, impostoController.findAll.bind(impostoController));
 router.get('/resumo-mensal', requireRead, impostoController.resumoMensal.bind(impostoController));
-router.post('/bulk-upload', requireManage, runUpload(upload.array('files')), impostoController.bulkUpload.bind(impostoController));
+router.post('/bulk-upload', requireManage, runUpload(upload.array('files', portalImposto_rules_1.MAX_ARQUIVOS_POR_ENVIO)), impostoController.bulkUpload.bind(impostoController));
 router.post('/download-lote', requireRead, impostoController.downloadLote.bind(impostoController));
 router.get('/:id/arquivo', requireRead, impostoController.downloadArquivo.bind(impostoController));
 router.get('/:id', requireRead, impostoController.findById.bind(impostoController));

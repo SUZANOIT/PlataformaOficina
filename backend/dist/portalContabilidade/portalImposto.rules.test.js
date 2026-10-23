@@ -84,6 +84,19 @@ test('boleto existe apenas com PDF armazenado', () => {
     assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)({ arquivo: 'x/nota.xml', tipo: 'application/xml', nome: 'nota.xml' }), false);
     assert_1.default.strictEqual((0, portalImposto_rules_1.possuiBoleto)(undefined), false);
 });
+test('campo boleto aceita apenas sim ou não', () => {
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)('sim'), true);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)('Não'), false);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)('nao'), false);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)(true), true);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)(''), null);
+    assert_1.default.strictEqual((0, portalImposto_rules_1.parseBoleto)('talvez'), null);
+});
+test('importação aceita somente um arquivo por vez', () => {
+    assert_1.default.strictEqual((0, portalImposto_rules_1.validarQuantidadeArquivos)(1), null);
+    assert_1.default.ok((0, portalImposto_rules_1.validarQuantidadeArquivos)(0));
+    assert_1.default.match((0, portalImposto_rules_1.validarQuantidadeArquivos)(2) || '', /apenas um arquivo/);
+});
 test('falha parcial preserva os arquivos processados com sucesso', async () => {
     const files = [{ originalname: 'a.pdf' }, { originalname: 'b.pdf' }, { originalname: 'c.pdf' }];
     const result = await (0, portalImposto_rules_1.processBatch)(files, async (file) => {
