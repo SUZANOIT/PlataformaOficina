@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
 import { PortalContabilidadeService } from '../../services/portalContabilidade';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+} from '../../components/charts/ChartTooltip';
 
 type Resumo = Awaited<ReturnType<typeof PortalContabilidadeService.getResumoMensal>>;
 
@@ -77,7 +85,18 @@ export function ImpostosMensaisCard({ companyId, startDate, endDate }: Props) {
         <div className="space-y-6">
           <div className="relative h-56 w-full flex items-end justify-around gap-1 border-b border-border/80 pb-2 pt-6 px-2 overflow-x-auto">
             {linhas.map((linha) => (
-              <div key={linha.competencia} className="flex flex-col items-center gap-2 min-w-12 flex-1">
+              <ChartHover
+                key={linha.competencia}
+                className="flex flex-col items-center gap-2 min-w-12 flex-1"
+                title={linha.competencia}
+                rows={chartRows([
+                  ...tipos.filter((tipo) => linha.porTipo[tipo]).map((tipo) =>
+                    chartMetricRow(tipo, formatChartCurrency(linha.porTipo[tipo]), corDe(tipo))
+                  ),
+                  chartMetricRow('Total', formatChartCurrency(linha.total)),
+                  chartRow('Lançamentos', formatChartCount(linha.quantidade, 'lançamento', 'lançamentos')),
+                ])}
+              >
                 <div className="h-40 w-full flex items-end justify-center">
                   <div
                     className="w-6 sm:w-8 flex flex-col-reverse rounded-t-md overflow-hidden"
@@ -87,13 +106,12 @@ export function ImpostosMensaisCard({ companyId, startDate, endDate }: Props) {
                       <div
                         key={tipo}
                         style={{ height: `${(linha.porTipo[tipo] / linha.total) * 100}%`, backgroundColor: corDe(tipo) }}
-                        title={`${tipo} ${linha.competencia}: ${formatCurrency(linha.porTipo[tipo])}`}
-                      ></div>
+                      />
                     ))}
                   </div>
                 </div>
                 <span className="text-[10px] text-muted-foreground font-black tracking-wider">{linha.competencia}</span>
-              </div>
+              </ChartHover>
             ))}
           </div>
 

@@ -15,6 +15,16 @@ import {
   Star
 } from 'lucide-react';
 import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from '../components/charts/ChartTooltip';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -151,9 +161,11 @@ export function Dashboard() {
 
   const topClients = s.strategicIndicators?.topClients || [];
   const maxClientPaid = Math.max(...topClients.map((c: any) => c.totalPaid), 1);
+  const clientsTotal = topClients.reduce((sum: number, item: any) => sum + (Number(item.totalPaid) || 0), 0);
 
   const topMechanics = s.strategicIndicators?.topMechanics || [];
   const maxMechanicPaid = Math.max(...topMechanics.map((m: any) => m.valorFaturado), 1);
+  const mechanicsTotal = topMechanics.reduce((sum: number, item: any) => sum + (Number(item.valorFaturado) || 0), 0);
 
   const totalFaturamento = s.faturamentoMesAtual || 0;
   const prevFaturamento = s.faturamentoMesAnterior || 0;
@@ -417,15 +429,15 @@ export function Dashboard() {
                     const valPct = (m.valorPago / maxMonthlyVal) * 80;
                     const qtyPct = (m.qtdServicos / maxMonthlyQty) * 80;
                     return (
-                      <div key={`${m.month}-${idx}`} className="flex-1 flex flex-col items-center group relative h-full justify-end min-w-[32px] z-10">
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-xl shadow-lg text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20 flex flex-col gap-0.5">
-                          <span className="text-muted-foreground">{m.month} / {m.year}</span>
-                          <span className="text-emerald-600">Total: {formatCurrency(m.valorPago)}</span>
-                          <span className="text-foreground">Serviços: {m.qtdServicos}</span>
-                        </div>
-
-                        {/* Bars */}
+                      <ChartHover
+                        key={`${m.month}-${idx}`}
+                        className="flex-1 flex flex-col items-center relative h-full justify-end min-w-[32px] z-10"
+                        title={`${m.month} / ${m.year}`}
+                        rows={[
+                          chartMetricRow('Faturamento', formatChartCurrency(m.valorPago), '#059669'),
+                          chartMetricRow('Serviços', formatChartCount(m.qtdServicos, 'serviço', 'serviços')),
+                        ]}
+                      >
                         <div className="w-full flex justify-center items-end flex-1 gap-1">
                           <div
                             style={{ height: m.valorPago > 0 ? `${Math.max(valPct, 6)}%` : '0%' }}
@@ -437,7 +449,7 @@ export function Dashboard() {
                           />
                         </div>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-2.5">{m.month}</span>
-                      </div>
+                      </ChartHover>
                     );
                   })}
                 </div>
@@ -511,9 +523,18 @@ export function Dashboard() {
                     topClients.map((c: any, index: number) => {
                       const pct = (c.totalPaid / maxClientPaid) * 100;
                       return (
-                        <div key={c.clientId || index} className="flex items-center gap-4">
+                        <ChartHover
+                          key={c.clientId || index}
+                          className="flex items-center gap-4 rounded-lg"
+                          title={c.name || 'Cliente'}
+                          rows={chartRows([
+                            chartMetricRow('Receita', formatChartCurrency(c.totalPaid), '#3b82f6'),
+                            chartMetricRow('Ordens', formatChartCount(c.countOS, 'ordem', 'ordens')),
+                            chartRow('Participação', formatChartPercent(sharePercent(c.totalPaid, clientsTotal))),
+                          ])}
+                        >
                           <div className="w-6 font-bold text-xs text-muted-foreground text-center">{index + 1}</div>
-                          <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate" title={c.name}>
+                          <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate">
                             {c.name}
                           </div>
                           <div className="flex-1 bg-muted rounded-full h-7 overflow-hidden relative">
@@ -528,7 +549,7 @@ export function Dashboard() {
                           <div className="w-28 text-right font-extrabold text-sm text-foreground">
                             {formatCurrency(c.totalPaid)}
                           </div>
-                        </div>
+                        </ChartHover>
                       );
                     })
                   )}
@@ -548,9 +569,18 @@ export function Dashboard() {
                     topMechanics.map((m: any, index: number) => {
                       const pct = (m.valorFaturado / maxMechanicPaid) * 100;
                       return (
-                        <div key={m.id || index} className="flex items-center gap-4">
+                        <ChartHover
+                          key={m.id || index}
+                          className="flex items-center gap-4 rounded-lg"
+                          title={m.name || 'Mecânico'}
+                          rows={chartRows([
+                            chartMetricRow('Faturamento', formatChartCurrency(m.valorFaturado), '#6366f1'),
+                            chartMetricRow('Atendimentos', formatChartCount(m.atendimentos, 'atendimento', 'atendimentos')),
+                            chartRow('Participação', formatChartPercent(sharePercent(m.valorFaturado, mechanicsTotal))),
+                          ])}
+                        >
                           <div className="w-6 font-bold text-xs text-muted-foreground text-center">{index + 1}</div>
-                          <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate" title={m.name}>
+                          <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate">
                             {m.name}
                           </div>
                           <div className="flex-1 bg-muted rounded-full h-7 overflow-hidden relative">
@@ -565,7 +595,7 @@ export function Dashboard() {
                           <div className="w-28 text-right font-extrabold text-sm text-foreground">
                             {formatCurrency(m.valorFaturado)}
                           </div>
-                        </div>
+                        </ChartHover>
                       );
                     })
                   )}

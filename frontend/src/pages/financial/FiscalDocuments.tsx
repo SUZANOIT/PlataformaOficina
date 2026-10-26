@@ -10,6 +10,12 @@ import type { DashboardData, FiscalFilters, UnifiedDoc } from './fiscal/types';
 import { MESES, STATUS_OPTIONS, TIPOS_DOCUMENTO, buildFilterParams, formatCurrency, yearFromChaveAcesso } from './fiscal/types';
 import { MonthDetailsModal, DocumentDetailModal } from './fiscal/FiscalModals';
 import { Link } from 'react-router-dom';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRows,
+  formatChartCurrency,
+} from '../../components/charts/ChartTooltip';
 
 const defaultFilters = (): FiscalFilters => ({
   ano: new Date().getFullYear(),
@@ -26,33 +32,51 @@ const defaultFilters = (): FiscalFilters => ({
   pageSize: 20
 });
 
-function BarChart({ data, keys, colors }: {
+function BarChart({ data, keys, colors, labels = {} }: {
   data: Array<Record<string, string | number>>;
   keys: string[];
   colors: string[];
+  labels?: Record<string, string>;
 }) {
+  const seriesLabels: Record<string, string> = {
+    servicos: 'Serviços',
+    saidas: 'Saídas',
+    entradas: 'Entradas',
+    ...labels,
+  };
   const max = Math.max(...data.flatMap(d => keys.map(k => Number(d[k] || 0))), 1);
   return (
     <div className="flex items-end gap-2 h-48 overflow-x-auto pb-2">
-      {data.map((row, i) => (
-        <div key={i} className="flex flex-col items-center gap-1 min-w-[60px]">
-          <div className="flex items-end gap-0.5 h-36">
-            {keys.map((key, ki) => (
-              <div
-                key={key}
-                className="w-3 rounded-t-sm transition-all"
-                style={{
-                  height: `${(Number(row[key] || 0) / max) * 100}%`,
-                  backgroundColor: colors[ki],
-                  minHeight: Number(row[key]) > 0 ? '4px' : '0'
-                }}
-                title={`${key}: ${formatCurrency(Number(row[key] || 0))}`}
-              />
-            ))}
-          </div>
-          <span className="text-[9px] text-muted-foreground truncate max-w-[56px]">{row.mes as string}</span>
-        </div>
-      ))}
+      {data.map((row, i) => {
+        const values = keys.map((key) => Number(row[key] || 0));
+        const total = values.reduce((sum, value) => sum + value, 0);
+        return (
+          <ChartHover
+            key={i}
+            className="flex flex-col items-center gap-1 min-w-[60px]"
+            title={String(row.mes || 'Período')}
+            rows={chartRows([
+              ...keys.map((key, ki) => chartMetricRow(seriesLabels[key] ?? key, formatChartCurrency(values[ki]), colors[ki])),
+              keys.length > 1 ? chartMetricRow('Total', formatChartCurrency(total)) : null,
+            ])}
+          >
+            <div className="flex items-end gap-0.5 h-36">
+              {keys.map((key, ki) => (
+                <div
+                  key={key}
+                  className="w-3 rounded-t-sm transition-all"
+                  style={{
+                    height: `${(values[ki] / max) * 100}%`,
+                    backgroundColor: colors[ki],
+                    minHeight: values[ki] > 0 ? '4px' : '0'
+                  }}
+                />
+              ))}
+            </div>
+            <span className="text-[9px] text-muted-foreground truncate max-w-[56px]">{row.mes as string}</span>
+          </ChartHover>
+        );
+      })}
     </div>
   );
 }
@@ -75,7 +99,16 @@ function ComparativoFinanceiroChart({ data }: {
     <div>
       <div className="flex items-end gap-3 h-52 overflow-x-auto pb-2 px-1">
         {data.map((row, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 min-w-[72px] shrink-0">
+          <ChartHover
+            key={i}
+            className="flex flex-col items-center gap-1.5 min-w-[72px] shrink-0"
+            title={row.mes || 'Período'}
+            rows={COMPARATIVO_SERIES.map((series) => {
+              const value = Number(row[series.key] || 0);
+              const isNegativeResult = series.key === 'resultado' && value < 0;
+              return chartMetricRow(series.label, formatChartCurrency(value), isNegativeResult ? '#f97316' : series.color);
+            })}
+          >
             <div className="flex items-end justify-center gap-1 h-40 w-full">
               {COMPARATIVO_SERIES.map(s => {
                 const value = Number(row[s.key] || 0);
@@ -91,13 +124,12 @@ function ComparativoFinanceiroChart({ data }: {
                       minHeight: value !== 0 ? '4px' : '0',
                       opacity: value === 0 ? 0.25 : 1
                     }}
-                    title={`${s.label}: ${formatCurrency(value)}`}
                   />
                 );
               })}
             </div>
             <span className="text-[9px] text-muted-foreground truncate max-w-[68px] text-center">{row.mes}</span>
-          </div>
+          </ChartHover>
         ))}
         {!data.length && (
           <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground h-40">

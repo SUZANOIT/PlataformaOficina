@@ -10,6 +10,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImpostosMensaisCard } from './ImpostosMensaisCard';
+import {
+  ChartHover,
+  chartMetricRow,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from '../../components/charts/ChartTooltip';
 
 interface DashboardData {
   kpis: {
@@ -168,20 +175,27 @@ export function FinancialDashboard() {
               const strokeColor = colors[idx % colors.length];
 
               return (
-                <circle
+                <ChartHover
+                  as="g"
                   key={cat}
-                  cx="60"
-                  cy="60"
-                  r={radius}
-                  fill="transparent"
-                  stroke={strokeColor}
-                  strokeWidth="12"
-                  strokeDasharray={`${strokeLength} ${circumference}`}
-                  strokeDashoffset={strokeOffset}
-                  className="transition-all duration-500 hover:stroke-[14px] cursor-pointer"
+                  title={cat}
+                  rows={[
+                    chartMetricRow('Valor', formatChartCurrency(val), strokeColor),
+                    chartMetricRow('Participação', formatChartPercent(percent)),
+                  ]}
                 >
-                  <title>{`${cat}: ${formatCurrency(val)} (${percent.toFixed(1)}%)`}</title>
-                </circle>
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="transparent"
+                    stroke={strokeColor}
+                    strokeWidth="12"
+                    strokeDasharray={`${strokeLength} ${circumference}`}
+                    strokeDashoffset={strokeOffset}
+                    className="transition-all duration-500 hover:stroke-[14px]"
+                  />
+                </ChartHover>
               );
             })}
             <circle cx="60" cy="60" r="38" className="fill-card" />
@@ -198,7 +212,15 @@ export function FinancialDashboard() {
             const percent = (val / total) * 100;
             const color = colors[idx % colors.length];
             return (
-              <div key={cat} className="flex items-center justify-between text-xs">
+              <ChartHover
+                key={cat}
+                className="flex items-center justify-between text-xs rounded-md"
+                title={cat}
+                rows={[
+                  chartMetricRow('Valor', formatChartCurrency(val), color),
+                  chartMetricRow('Participação', formatChartPercent(percent)),
+                ]}
+              >
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></span>
                   <span className="text-muted-foreground font-medium truncate max-w-[120px]">{cat}</span>
@@ -206,7 +228,7 @@ export function FinancialDashboard() {
                 <div className="font-semibold text-foreground">
                   {formatCurrency(val)} <span className="text-[10px] text-muted-foreground/60">({percent.toFixed(0)}%)</span>
                 </div>
-              </div>
+              </ChartHover>
             );
           })}
         </div>
@@ -426,29 +448,25 @@ export function FinancialDashboard() {
                     const desPercent = (val.despesas / maxVal) * 100;
 
                     return (
-                      <div key={mesAno} className="flex flex-col items-center gap-2 w-20 group relative z-10">
+                      <ChartHover
+                        key={mesAno}
+                        className="flex flex-col items-center gap-2 w-20 relative z-10"
+                        title={mesAno}
+                        rows={[
+                          chartMetricRow('Receitas', formatChartCurrency(val.receitas), '#10b981'),
+                          chartMetricRow('Despesas', formatChartCurrency(val.despesas), '#ef4444'),
+                          chartMetricRow('Saldo', formatChartCurrency(val.saldo), val.saldo >= 0 ? '#10b981' : '#ef4444'),
+                        ]}
+                      >
                         <div className="flex items-end gap-2 h-40 w-full justify-center">
-                          {/* Barra de Receitas */}
-                          <div 
-                            style={{ height: `${Math.max(recPercent, 4)}%` }} 
-                            className="w-5 sm:w-6 bg-gradient-to-t from-emerald-500/80 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 rounded-t-md shadow-xs transition-all duration-300 relative group cursor-pointer"
-                          >
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2.5 py-1.5 rounded-lg text-[10px] text-foreground font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-20 pointer-events-none">
-                              <span className="text-emerald-500">Receitas</span>: {formatCurrency(val.receitas)}
-                            </div>
-                          </div>
-                          
-                          {/* Barra de Despesas */}
-                          <div 
-                            style={{ height: `${Math.max(desPercent, 4)}%` }} 
-                            className="w-5 sm:w-6 bg-gradient-to-t from-red-500/80 to-red-400 hover:from-red-500 hover:to-red-300 rounded-t-md shadow-xs transition-all duration-300 relative group cursor-pointer"
-                          >
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 bg-popover border border-border px-2.5 py-1.5 rounded-lg text-[10px] text-foreground font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap mb-1 z-20 pointer-events-none">
-                              <span className="text-red-500">Despesas</span>: {formatCurrency(val.despesas)}
-                            </div>
-                          </div>
+                          <div
+                            style={{ height: `${Math.max(recPercent, 4)}%` }}
+                            className="w-5 sm:w-6 bg-gradient-to-t from-emerald-500/80 to-emerald-400 hover:from-emerald-500 hover:to-emerald-300 rounded-t-md shadow-xs transition-all duration-300"
+                          />
+                          <div
+                            style={{ height: `${Math.max(desPercent, 4)}%` }}
+                            className="w-5 sm:w-6 bg-gradient-to-t from-red-500/80 to-red-400 hover:from-red-500 hover:to-red-300 rounded-t-md shadow-xs transition-all duration-300"
+                          />
                         </div>
 
                         {/* Label de Mes */}
@@ -458,7 +476,7 @@ export function FinancialDashboard() {
                         <div className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-2xs ${val.saldo >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                           {val.saldo >= 0 ? '+' : ''}{formatCurrency(val.saldo)}
                         </div>
-                      </div>
+                      </ChartHover>
                     );
                   });
                 })()}
@@ -501,14 +519,25 @@ export function FinancialDashboard() {
               (() => {
                 const entries = Object.entries(graficos.contasPorCentroCusto);
                 const maxVal = Math.max(...entries.map(([_, v]) => v), 1);
+                const totalCentros = entries.reduce((sum, [, value]) => sum + value, 0);
+                const bgColors = ['bg-primary', 'bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-emerald-500'];
+                const dotColors = ['#f97316', '#f59e0b', '#3b82f6', '#a855f7', '#10b981'];
 
                 return entries.map(([center, val], idx) => {
                   const percent = (val / maxVal) * 100;
-                  const bgColors = ['bg-primary', 'bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-emerald-500'];
                   const colorClass = bgColors[idx % bgColors.length];
+                  const dotColor = dotColors[idx % dotColors.length];
 
                   return (
-                    <div key={center} className="space-y-1">
+                    <ChartHover
+                      key={center}
+                      className="space-y-1 rounded-md"
+                      title={center}
+                      rows={[
+                        chartMetricRow('Valor', formatChartCurrency(val), dotColor),
+                        chartMetricRow('Participação', formatChartPercent(sharePercent(val, totalCentros))),
+                      ]}
+                    >
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-foreground">{center}</span>
                         <span className="font-bold text-foreground">{formatCurrency(val)}</span>
@@ -516,7 +545,7 @@ export function FinancialDashboard() {
                       <div className="w-full bg-input rounded-full h-2">
                         <div className={`h-full rounded-full ${colorClass} transition-all duration-500`} style={{ width: `${percent}%` }}></div>
                       </div>
-                    </div>
+                    </ChartHover>
                   );
                 });
               })()
@@ -544,7 +573,16 @@ export function FinancialDashboard() {
                 const totalComp = val.pagar + val.receber;
 
                 return (
-                  <div key={companyName} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <ChartHover
+                    key={companyName}
+                    className="block border-b border-border/40 pb-3 last:border-0 last:pb-0 rounded-md"
+                    title={companyName}
+                    rows={[
+                      chartMetricRow('A receber', formatChartCurrency(val.receber), '#10b981'),
+                      chartMetricRow('A pagar', formatChartCurrency(val.pagar), '#ef4444'),
+                      chartMetricRow('Volume', formatChartCurrency(totalComp)),
+                    ]}
+                  >
                     <div className="flex items-center justify-between text-xs mb-1.5">
                       <span className="font-semibold text-foreground flex items-center gap-1.5">
                         <Briefcase size={13} className="text-primary/70" />
@@ -557,24 +595,22 @@ export function FinancialDashboard() {
 
                     <div className="flex items-center gap-2">
                       <div className="flex-1 flex gap-0.5 rounded-full overflow-hidden bg-input h-3">
-                        <div 
-                          style={{ width: `${(val.receber / (totalComp || 1)) * 100}%` }} 
+                        <div
+                          style={{ width: `${(val.receber / (totalComp || 1)) * 100}%` }}
                           className="bg-emerald-500/80 h-full"
-                          title={`Receber: ${formatCurrency(val.receber)}`}
-                        ></div>
-                        <div 
-                          style={{ width: `${(val.pagar / (totalComp || 1)) * 100}%` }} 
+                        />
+                        <div
+                          style={{ width: `${(val.pagar / (totalComp || 1)) * 100}%` }}
                           className="bg-red-500/80 h-full"
-                          title={`Pagar: ${formatCurrency(val.pagar)}`}
-                        ></div>
+                        />
                       </div>
-                      
+
                       <div className="flex gap-2.5 text-[10px] font-bold shrink-0">
                         <span className="text-emerald-500">Rec: {formatCurrency(val.receber)}</span>
                         <span className="text-red-500">Pag: {formatCurrency(val.pagar)}</span>
                       </div>
                     </div>
-                  </div>
+                  </ChartHover>
                 );
               })
             )}

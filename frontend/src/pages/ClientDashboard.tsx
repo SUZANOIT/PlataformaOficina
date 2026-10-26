@@ -36,6 +36,13 @@ import { api } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import type { ClientDashboardResponse } from '../types/clientDashboard';
 import { HeatMap } from '../components/charts/HeatMap';
+import {
+  chartRow,
+  formatChartCount,
+  formatChartPercent,
+  RechartsChartTooltip,
+  sharePercent,
+} from '../components/charts/ChartTooltip';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -317,10 +324,24 @@ export function ClientDashboard() {
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
                           <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '1rem', border: '1px solid hsl(var(--border))', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                            formatter={(value: any) => [formatCurrency(value as number), 'Receita']}
-                            labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold', marginBottom: '8px' }}
+                          <Tooltip
+                            animationDuration={120}
+                            wrapperStyle={{ zIndex: 40, outline: 'none' }}
+                            filterNull
+                            itemSorter={() => 0}
+                            content={(
+                              <RechartsChartTooltip
+                                formats={{ receita: 'currency' }}
+                                labels={{ receita: 'Receita' }}
+                                title={(point, axisLabel) => {
+                                  if (point?.mes && point?.ano) return `${point.mes} de ${point.ano}`;
+                                  return axisLabel != null ? String(axisLabel) : undefined;
+                                }}
+                                extra={(point) => [
+                                  chartRow('Quantidade', formatChartCount(Number(point.quantidade), 'ordem', 'ordens')),
+                                ]}
+                              />
+                            )}
                           />
                           <Area type="monotone" dataKey="receita" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }} />
                         </AreaChart>
@@ -353,7 +374,22 @@ export function ClientDashboard() {
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(value: any) => formatCurrency(value as number)} />
+                          <Tooltip
+                            animationDuration={120}
+                            wrapperStyle={{ zIndex: 40, outline: 'none' }}
+                            filterNull
+                            content={(
+                              <RechartsChartTooltip
+                                formats={{ value: 'currency' }}
+                                labels={{ value: 'Valor' }}
+                                title={(point) => typeof point?.name === 'string' ? point.name : undefined}
+                                extra={(point) => {
+                                  const total = data.revenueByService.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+                                  return [chartRow('Participação', formatChartPercent(sharePercent(Number(point.value), total)))];
+                                }}
+                              />
+                            )}
+                          />
                           <Legend layout="vertical" verticalAlign="middle" align="center" iconType="circle" wrapperStyle={{ fontSize: '13px', paddingTop: '20px' }} />
                         </PieChart>
                       </ResponsiveContainer>

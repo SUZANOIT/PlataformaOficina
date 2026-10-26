@@ -13,6 +13,15 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+  formatChartPercent,
+} from '../../components/charts/ChartTooltip';
 
 interface DashboardStats {
   kpis: {
@@ -132,12 +141,18 @@ export function Dashboard() {
 
           {/* Points circles */}
           {points.map((p, idx) => (
-            <g key={idx} className="group/dot cursor-pointer">
-              <circle cx={p.x} cy={p.y} r={4} fill="#6366f1" stroke="#0f172a" strokeWidth={1.5} className="hover:scale-150 transition-all" />
-              <text x={p.x} y={p.y - 8} textAnchor="middle" fill="#f8fafc" className="text-[8px] font-bold opacity-0 group-hover/dot:opacity-100 transition-opacity bg-slate-900 px-1 py-0.5 rounded">
-                {formatCurrency(p.receita)}
-              </text>
-            </g>
+            <ChartHover
+              as="g"
+              key={idx}
+              title={p.mes}
+              rows={chartRows([
+                chartMetricRow('Receita', formatChartCurrency(p.receita), '#6366f1'),
+                chartRow('Crescimento', formatChartPercent(p.crescimento)),
+              ])}
+            >
+              <circle cx={p.x} cy={p.y} r={12} fill="transparent" />
+              <circle cx={p.x} cy={p.y} r={4} fill="#6366f1" stroke="#0f172a" strokeWidth={1.5} />
+            </ChartHover>
           ))}
 
           {/* Axis Labels */}
@@ -162,23 +177,27 @@ export function Dashboard() {
           const churnHeight = (d.churn / maxVal) * 80;
 
           return (
-            <div key={i} className="flex flex-col items-center gap-1.5 w-12 group cursor-pointer relative">
+            <ChartHover
+              key={i}
+              className="flex flex-col items-center gap-1.5 w-12 relative"
+              title={d.mes}
+              rows={[
+                chartMetricRow('Novos clientes', formatChartCount(d.novos, 'cliente', 'clientes'), '#10b981'),
+                chartMetricRow('Churn', formatChartCount(d.churn, 'cancelamento', 'cancelamentos'), '#f43f5e'),
+              ]}
+            >
               <div className="flex items-end gap-1 h-20 justify-center">
-                {/* Novos Clientes (Green) */}
-                <div 
-                  style={{ height: `${Math.max(newHeight, 3)}px` }} 
-                  className="w-3 bg-emerald-500 rounded-t-sm transition-all duration-300 group-hover:bg-emerald-400"
-                  title={`Novos Clientes: ${d.novos}`}
-                ></div>
-                {/* Churn (Red) */}
-                <div 
-                  style={{ height: `${Math.max(churnHeight, 3)}px` }} 
-                  className="w-3 bg-rose-500 rounded-t-sm transition-all duration-300 group-hover:bg-rose-400"
-                  title={`Churn: ${d.churn}`}
-                ></div>
+                <div
+                  style={{ height: `${Math.max(newHeight, 3)}px` }}
+                  className="w-3 bg-emerald-500 rounded-t-sm transition-all duration-300"
+                />
+                <div
+                  style={{ height: `${Math.max(churnHeight, 3)}px` }}
+                  className="w-3 bg-rose-500 rounded-t-sm transition-all duration-300"
+                />
               </div>
               <span className="text-[9px] text-slate-500 font-bold">{d.mes}</span>
-            </div>
+            </ChartHover>
           );
         })}
       </div>
@@ -328,7 +347,16 @@ export function Dashboard() {
               const colorClass = barColors[idx % barColors.length];
 
               return (
-                <div key={pd.planoNome} className="space-y-1.5">
+                <ChartHover
+                  key={pd.planoNome}
+                  className="space-y-1.5 rounded-md"
+                  title={pd.planoNome}
+                  rows={chartRows([
+                    chartMetricRow('Clientes', formatChartCount(pd.quantidade, 'cliente', 'clientes')),
+                    chartMetricRow('MRR', formatChartCurrency(pd.mrrContribuicao), '#6366f1'),
+                    chartRow('Participação', formatChartPercent(percentage)),
+                  ])}
+                >
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-slate-300">{pd.planoNome}</span>
                     <span className="font-mono text-slate-400">{pd.quantidade} {pd.quantidade === 1 ? 'cliente' : 'clientes'} ({percentage.toFixed(0)}%)</span>
@@ -339,7 +367,7 @@ export function Dashboard() {
                     </div>
                     <span className="text-[10px] font-bold text-slate-300 w-16 text-right">{formatCurrency(pd.mrrContribuicao)}</span>
                   </div>
-                </div>
+                </ChartHover>
               );
             })}
           </div>

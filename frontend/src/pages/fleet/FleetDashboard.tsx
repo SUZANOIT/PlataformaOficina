@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { Truck, AlertTriangle, CheckCircle, Wrench, ShieldAlert, DollarSign, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from '../../components/charts/ChartTooltip';
 
 export default function FleetDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -146,18 +155,29 @@ export default function FleetDashboard() {
             {s.monthlyCosts.length === 0 ? (
               <div className="text-center py-8 text-gray-400">Sem registros financeiros nos últimos meses.</div>
             ) : (
-              s.monthlyCosts.map((m: any, idx: number) => (
-                <div key={idx} className="flex items-center gap-4">
-                  <div className="w-16 font-semibold text-sm text-gray-600 dark:text-gray-400">{m.month}</div>
-                  <div className="flex-1 bg-gray-100 dark:bg-gray-700 h-6 rounded-full overflow-hidden relative">
-                    <div 
-                      className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, (m.cost / Math.max(...s.monthlyCosts.map((c: any) => c.cost || 1))) * 100)}%` }}
-                    />
-                  </div>
-                  <div className="w-24 text-right font-bold text-sm text-gray-800 dark:text-white">{formatCurrency(m.cost)}</div>
-                </div>
-              ))
+              (() => {
+                const costsTotal = s.monthlyCosts.reduce((sum: number, item: any) => sum + (Number(item.cost) || 0), 0);
+                return s.monthlyCosts.map((m: any, idx: number) => (
+                  <ChartHover
+                    key={idx}
+                    className="flex items-center gap-4 rounded-lg"
+                    title={m.month || 'Período'}
+                    rows={chartRows([
+                      chartMetricRow('Custo', formatChartCurrency(m.cost), '#4f46e5'),
+                      chartRow('Participação', formatChartPercent(sharePercent(Number(m.cost), costsTotal))),
+                    ])}
+                  >
+                    <div className="w-16 font-semibold text-sm text-gray-600 dark:text-gray-400">{m.month}</div>
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-700 h-6 rounded-full overflow-hidden relative">
+                      <div
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (m.cost / Math.max(...s.monthlyCosts.map((c: any) => c.cost || 1))) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="w-24 text-right font-bold text-sm text-gray-800 dark:text-white">{formatCurrency(m.cost)}</div>
+                  </ChartHover>
+                ));
+              })()
             )}
           </div>
         </div>

@@ -14,6 +14,16 @@ import {
 } from 'lucide-react';
 import { TableActionMenu } from '../../components/ui/TableActionMenu';
 import { TablePagination } from '../../components/ui/TablePagination';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from '../../components/charts/ChartTooltip';
 
 export function TowingDashboard() {
   const navigate = useNavigate();
@@ -171,6 +181,7 @@ export function TowingDashboard() {
     .sort((a, b) => b.totalPaid - a.totalPaid)
     .slice(0, 10);
   const maxClientPaid = Math.max(...topClients.map((c) => c.totalPaid), 1);
+  const clientsTotal = topClients.reduce((sum, item) => sum + (Number(item.totalPaid) || 0), 0);
 
   // ─── Conversion rate ─────────────────────────────────────────────────────────
   const totalAll = quotes.length;
@@ -437,15 +448,15 @@ export function TowingDashboard() {
                     const valPct = (m.valorTotal / maxMonthlyVal) * 80;
                     const qtyPct = (m.qtd / maxMonthlyQty) * 80;
                     return (
-                      <div key={m.month} className="flex-1 flex flex-col items-center group relative h-full justify-end min-w-[32px]">
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 bg-popover border border-border px-3 py-2 rounded-xl shadow-lg text-xs font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 flex flex-col gap-0.5">
-                          <span className="text-muted-foreground">{m.month} / {currentYear}</span>
-                          <span className="text-blue-600">Total: {formatCurrency(m.valorTotal)}</span>
-                          <span className="text-foreground">Orçamentos: {m.qtd}</span>
-                        </div>
-
-                        {/* Bars */}
+                      <ChartHover
+                        key={m.month}
+                        className="flex-1 flex flex-col items-center relative h-full justify-end min-w-[32px]"
+                        title={`${m.month} / ${currentYear}`}
+                        rows={[
+                          chartMetricRow('Valor total', formatChartCurrency(m.valorTotal), '#2563eb'),
+                          chartMetricRow('Orçamentos', formatChartCount(m.qtd, 'orçamento', 'orçamentos')),
+                        ]}
+                      >
                         <div className="w-full flex justify-center items-end flex-1 gap-1">
                           <div
                             style={{ height: m.valorTotal > 0 ? `${Math.max(valPct, 6)}%` : '0%' }}
@@ -457,7 +468,7 @@ export function TowingDashboard() {
                           />
                         </div>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-2.5">{m.month}</span>
-                      </div>
+                      </ChartHover>
                     );
                   })}
                 </div>
@@ -619,9 +630,18 @@ export function TowingDashboard() {
                   topClients.map((c, index) => {
                     const pct = (c.totalPaid / maxClientPaid) * 100;
                     return (
-                      <div key={c.name} className="flex items-center gap-4">
+                      <ChartHover
+                        key={c.name}
+                        className="flex items-center gap-4 rounded-lg"
+                        title={c.name || 'Cliente'}
+                        rows={chartRows([
+                          chartMetricRow('Receita', formatChartCurrency(c.totalPaid), '#2563eb'),
+                          chartMetricRow('Orçamentos', formatChartCount(c.count, 'orçamento', 'orçamentos')),
+                          chartRow('Participação', formatChartPercent(sharePercent(c.totalPaid, clientsTotal))),
+                        ])}
+                      >
                         <div className="w-6 font-bold text-xs text-muted-foreground text-center">{index + 1}</div>
-                        <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate" title={c.name}>
+                        <div className="w-1/4 min-w-[120px] font-semibold text-sm text-foreground truncate">
                           {c.name}
                         </div>
                         <div className="flex-1 bg-muted rounded-full h-7 overflow-hidden relative">
@@ -636,7 +656,7 @@ export function TowingDashboard() {
                         <div className="w-28 text-right font-extrabold text-sm text-foreground">
                           {formatCurrency(c.totalPaid)}
                         </div>
-                      </div>
+                      </ChartHover>
                     );
                   })
                 )}

@@ -9,6 +9,13 @@ import {
   PlugZap
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartPercent,
+} from '../../components/charts/ChartTooltip';
 
 interface TelemetryData {
   cpuUsage: string | null;
@@ -117,12 +124,21 @@ export function Monitoramento() {
               <h3 className="text-xl font-black text-white">{telemetry.cpuUsage || '—'}</h3>
               <span className="text-[10px] text-slate-500 font-bold">Node Process</span>
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
-              <div 
-                style={{ width: `${getCPUProgress(telemetry.cpuUsage)}%` }} 
-                className="h-full rounded-full bg-indigo-500 transition-all duration-500" 
-              />
-            </div>
+            <ChartHover
+              className="block w-full"
+              title="Processamento (VCPU)"
+              rows={chartRows([
+                chartMetricRow('Uso', telemetry.cpuUsage),
+                telemetry.cpuUsage ? chartRow('Medidor', formatChartPercent(getCPUProgress(telemetry.cpuUsage))) : null,
+              ])}
+            >
+              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
+                <div
+                  style={{ width: `${getCPUProgress(telemetry.cpuUsage)}%` }}
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                />
+              </div>
+            </ChartHover>
           </div>
         </div>
 
@@ -134,19 +150,28 @@ export function Monitoramento() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-baseline">
-              <h3 className="text-base font-black text-white truncate max-w-[140px]" title={telemetry.memoryUsage || ''}>
+              <h3 className="text-base font-black text-white truncate max-w-[140px]">
                 {telemetry.memoryUsage ? telemetry.memoryUsage.split(' / ')[0] : '—'}
               </h3>
               {telemetry.memoryUsage && (
                 <span className="text-[9px] text-slate-500 font-bold">Total: {telemetry.memoryUsage.split(' / ')[1]}</span>
               )}
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
-              <div 
-                style={{ width: `${getMemoryUsagePercent(telemetry.memoryUsage)}%` }} 
-                className="h-full rounded-full bg-emerald-500 transition-all duration-500" 
-              />
-            </div>
+            <ChartHover
+              className="block w-full"
+              title="Memória heap"
+              rows={chartRows([
+                chartMetricRow('Uso', telemetry.memoryUsage),
+                telemetry.memoryUsage ? chartRow('Medidor', formatChartPercent(getMemoryUsagePercent(telemetry.memoryUsage))) : null,
+              ])}
+            >
+              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
+                <div
+                  style={{ width: `${getMemoryUsagePercent(telemetry.memoryUsage)}%` }}
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                />
+              </div>
+            </ChartHover>
           </div>
         </div>
 
@@ -180,12 +205,21 @@ export function Monitoramento() {
                 <span className="text-[9px] text-slate-500 font-bold">Uso: {telemetry.diskUsage.split(' (')[1]?.replace(')', '')}</span>
               )}
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
-              <div 
-                style={{ width: `${getDiskUsagePercent(telemetry.diskUsage)}%` }} 
-                className="h-full rounded-full bg-amber-500 transition-all duration-500" 
-              />
-            </div>
+            <ChartHover
+              className="block w-full"
+              title="Disco rígido (SSD)"
+              rows={chartRows([
+                chartMetricRow('Uso', telemetry.diskUsage),
+                telemetry.diskUsage ? chartRow('Medidor', formatChartPercent(getDiskUsagePercent(telemetry.diskUsage))) : null,
+              ])}
+            >
+              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850">
+                <div
+                  style={{ width: `${getDiskUsagePercent(telemetry.diskUsage)}%` }}
+                  className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                />
+              </div>
+            </ChartHover>
           </div>
         </div>
       </div>

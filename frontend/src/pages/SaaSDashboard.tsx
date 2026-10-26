@@ -16,6 +16,15 @@ import {
 import { toast } from 'sonner';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+  formatChartPercent,
+} from '../components/charts/ChartTooltip';
 
 interface Plan {
   id: string;
@@ -747,7 +756,16 @@ export function SaaSDashboard() {
                     {stats.planDistribution.map(pd => {
                       const percentage = stats.mrr > 0 ? (pd.mrrContribution / stats.mrr) * 100 : 0;
                       return (
-                        <div key={pd.planId} className="space-y-1">
+                        <ChartHover
+                          key={pd.planId}
+                          className="space-y-1 rounded-md"
+                          title={pd.planName}
+                          rows={chartRows([
+                            chartMetricRow('Empresas', formatChartCount(pd.companyCount, 'empresa', 'empresas')),
+                            chartMetricRow('MRR', formatChartCurrency(pd.mrrContribution), '#f97316'),
+                            chartRow('Participação', formatChartPercent(percentage)),
+                          ])}
+                        >
                           <div className="flex justify-between text-xs">
                             <span className="font-semibold text-foreground">{pd.planName}</span>
                             <span className="font-mono text-muted-foreground">{pd.companyCount} empresas ({percentage.toFixed(0)}%)</span>
@@ -755,7 +773,7 @@ export function SaaSDashboard() {
                           <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                             <div style={{ width: `${percentage}%` }} className="h-full bg-primary rounded-full" />
                           </div>
-                        </div>
+                        </ChartHover>
                       );
                     })}
                   </div>

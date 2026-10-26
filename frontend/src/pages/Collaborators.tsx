@@ -5,6 +5,15 @@ import { useGeneratePdf } from '../hooks/useGeneratePdf';
 import { AdvancePdfTemplate } from '../components/AdvancePdfTemplate';
 import { handleApiError } from '../utils/toast.helper';
 import { ModalFooterActions } from '../components/ui/ModalFooterActions';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from '../components/charts/ChartTooltip';
 
 export function Collaborators() {
   const [collaborators, setCollaborators] = useState<any[]>([]);
@@ -739,6 +748,7 @@ export function Collaborators() {
   });
 
   const companyRanking = [...dashboardStats].sort((a, b) => b.totalAdiantado - a.totalAdiantado);
+  const rankingTotal = companyRanking.reduce((sum, item) => sum + (Number(item.totalAdiantado) || 0), 0);
 
   const months = [
     { value: 1, label: 'Janeiro' },
@@ -1320,7 +1330,16 @@ export function Collaborators() {
                   const pct = (stat.totalAdiantado / maxVal) * 100;
                   
                   return (
-                    <div key={stat.companyId} className="space-y-1.5">
+                    <ChartHover
+                      key={stat.companyId}
+                      className="space-y-1.5 rounded-md"
+                      title={stat.razaoSocial || 'Empresa'}
+                      rows={chartRows([
+                        chartMetricRow('Adiantado', formatChartCurrency(stat.totalAdiantado), '#6366f1'),
+                        chartMetricRow('A descontar', formatChartCurrency(stat.totalPendente)),
+                        chartRow('Participação', formatChartPercent(sharePercent(stat.totalAdiantado, rankingTotal))),
+                      ])}
+                    >
                       <div className="flex justify-between items-center text-xs font-semibold">
                         <span className="text-foreground flex items-center gap-1.5">
                           <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
@@ -1330,16 +1349,16 @@ export function Collaborators() {
                         </span>
                         <span className="font-bold text-foreground">{formatCurrency(stat.totalAdiantado)}</span>
                       </div>
-                      
+
                       <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all duration-300 ${
                             idx === 0 ? 'bg-amber-400' : idx === 1 ? 'bg-indigo-500' : 'bg-emerald-500'
                           }`}
                           style={{ width: `${pct}%` }}
-                        ></div>
+                        />
                       </div>
-                    </div>
+                    </ChartHover>
                   );
                 })}
                 {companyRanking.length === 0 && (

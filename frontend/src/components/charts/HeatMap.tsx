@@ -1,5 +1,14 @@
 import React from 'react';
-import { formatCurrency } from '../../utils/formatters';
+import {
+  ChartHover,
+  chartMetricRow,
+  chartRow,
+  chartRows,
+  formatChartCount,
+  formatChartCurrency,
+  formatChartPercent,
+  sharePercent,
+} from './ChartTooltip';
 
 interface HeatMapProps {
   data: {
@@ -9,9 +18,17 @@ interface HeatMapProps {
     ano: number;
     mesIndex: number;
   }[];
+  valueLabel?: string;
+  countSingular?: string;
+  countPlural?: string;
 }
 
-export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
+export const HeatMap: React.FC<HeatMapProps> = ({
+  data,
+  valueLabel = 'Receita',
+  countSingular = 'ordem',
+  countPlural = 'ordens',
+}) => {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   
   // Group by year
@@ -58,33 +75,24 @@ export const HeatMap: React.FC<HeatMapProps> = ({ data }) => {
                   const count = cellData ? cellData.quantidade : 0;
                   
                   return (
-                    <div key={i} className="flex justify-center group relative">
-                      <div 
-                        className={`w-8 h-8 md:w-11 md:h-11 rounded-lg transition-all duration-300 hover:ring-4 hover:ring-emerald-500/20 hover:scale-110 hover:z-10 cursor-pointer flex items-center justify-center ${getIntensityClass(revenue)}`}
+                    <ChartHover
+                      key={i}
+                      className="flex justify-center"
+                      title={`${months[i]} de ${year}`}
+                      rows={chartRows([
+                        chartMetricRow(valueLabel, formatChartCurrency(revenue), '#10b981'),
+                        chartMetricRow('Quantidade', formatChartCount(count, countSingular, countPlural)),
+                        revenue > 0 ? chartRow('Intensidade', formatChartPercent(sharePercent(revenue, maxRevenue))) : null,
+                      ])}
+                    >
+                      <div
+                        className={`w-8 h-8 md:w-11 md:h-11 rounded-lg transition-all duration-300 hover:ring-4 hover:ring-emerald-500/20 hover:scale-110 hover:z-10 flex items-center justify-center ${getIntensityClass(revenue)}`}
                       >
                         {revenue > 0 && maxRevenue > 0 && (revenue / maxRevenue > 0.6) && (
                           <div className="w-1.5 h-1.5 rounded-full bg-white/50"></div>
                         )}
                       </div>
-                      
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max px-4 py-3 bg-slate-900 text-white text-xs rounded-xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-[100] shadow-2xl origin-bottom">
-                        <div className="font-black mb-1.5 text-[13px] border-b border-white/10 pb-1.5">
-                          {months[i]} de {year}
-                        </div>
-                        <div className="flex justify-between gap-4 items-center">
-                          <span className="text-white/70 font-medium">Receita:</span>
-                          <span className="font-bold text-emerald-400">{formatCurrency(revenue)}</span>
-                        </div>
-                        <div className="flex justify-between gap-4 items-center mt-0.5">
-                          <span className="text-white/70 font-medium">Ordens:</span>
-                          <span className="font-bold">{count}</span>
-                        </div>
-                        
-                        {/* Tooltip Arrow */}
-                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45"></div>
-                      </div>
-                    </div>
+                    </ChartHover>
                   );
                 })}
               </div>
