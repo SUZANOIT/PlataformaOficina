@@ -85,7 +85,7 @@ export function GlobalBreadcrumbs() {
       baseItems.push({ label: 'Portal de Contabilidade Externa', path: '/accounting/xml-export', icon: 'FileText' });
     }
   } else if (pathname.startsWith('/fleet')) {
-    baseItems.push({ label: 'Frotas', icon: 'Truck' });
+    baseItems.push({ label: 'Gestão de Frotas', icon: 'Truck' });
     if (pathname === '/fleet/dashboard') {
       baseItems.push({ label: 'Painel Geral', path: '/fleet/dashboard', icon: 'LayoutDashboard' });
     } else if (pathname === '/fleet/vehicles') {

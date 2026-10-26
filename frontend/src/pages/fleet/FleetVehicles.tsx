@@ -1,13 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { 
   Truck, Plus, Search, Edit2, Trash2, Sparkles, X,
-  ChevronDown, ChevronRight, Folder, FolderOpen, DollarSign,
+  ChevronDown, ChevronRight, ChevronsUpDown, DollarSign,
   Wrench, Package, Paperclip, Clipboard, CheckSquare, FileText, AlertCircle, AlertTriangle,
-  TrendingUp, TrendingDown, Activity
+  TrendingUp, TrendingDown, Activity, SlidersHorizontal, CircleOff, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleApiError } from '../../utils/toast.helper';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import {
+  classifyFleetSearch,
+  countVehiclesByStatus,
+  fleetDisplayValue,
+  fleetKpiStatus,
+  fleetStatusLabel,
+  fleetYearLabel,
+  formatFleetDate,
+  sortFleetVehicles,
+  type FleetStatusCounts,
+  type FleetVehicleSortKey,
+} from './fleetVehicles.ui';
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const tone = status === 'ATIVO'
+    ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+    : status === 'EM_MANUTENCAO'
+      ? 'bg-amber-500/15 text-amber-900 dark:text-amber-200'
+      : status === 'INATIVO'
+        ? 'bg-rose-500/10 text-rose-800 dark:text-rose-200'
+        : status === 'VENDIDO'
+          ? 'bg-slate-500/10 text-slate-700 dark:text-slate-200'
+          : 'bg-muted text-muted-foreground';
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+      {fleetStatusLabel(status)}
+    </span>
+  );
+}
+
+function InfoField({ label, value }: { label: string; value: unknown }) {
+  const text = fleetDisplayValue(value);
+  const empty = text === 'Não informado';
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={`mt-1 break-words text-sm ${empty ? 'italic text-muted-foreground' : 'font-medium text-foreground'}`}>{text}</p>
+    </div>
+  );
+}
 
 export default function FleetVehicles() {
   // Tree States
@@ -25,6 +68,20 @@ export default function FleetVehicles() {
   const [statusFilter, setStatusFilter] = useState('ATIVO'); // 'ATIVO' by default, can be 'all' or 'INATIVO'
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [quickSearch, setQuickSearch] = useState('');
+  const [plateOwnedByQuickSearch, setPlateOwnedByQuickSearch] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<FleetVehicleSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [counts, setCounts] = useState<FleetStatusCounts | null>(null);
+  const [countsLoading, setCountsLoading] = useState(true);
+  const [treeError, setTreeError] = useState(false);
+  const [clientVehiclesError, setClientVehiclesError] = useState<Record<string, boolean>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; placa: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [rowActionId, setRowActionId] = useState<string | null>(null);
+  const detailsPanelRef = useRef<HTMLDivElement>(null);
 
   // Selected Vehicle details state
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -83,6 +140,7 @@ export default function FleetVehicles() {
       if (res.ok) {
         const data = await res.json();
         setTreeClients(data);
+        setTreeError(false);
 
         // Reload open clients' vehicles
         Object.keys(expandedClients).forEach(cid => {
@@ -90,9 +148,13 @@ export default function FleetVehicles() {
             fetchClientVehicles(cid, params);
           }
         });
+      } else {
+        setTreeError(true);
+        toast.error('Erro ao carregar a estrutura de clientes.');
       }
     } catch (err) {
       console.error('[Tree] Failed to fetch tree clients', err);
+      setTreeError(true);
       toast.error('Erro ao carregar a estrutura de clientes.');
     } finally {
       setTreeLoading(false);
@@ -123,9 +185,25 @@ export default function FleetVehicles() {
       if (res.ok) {
         const data = await res.json();
         setClientVehicles(prev => ({ ...prev, [clientId]: data }));
+        setClientVehiclesError(prev => ({ ...prev, [clientId]: false }));
+        if (Array.isArray(data)) {
+          setExpandedSubfrotas(prev => {
+            const next = { ...prev };
+            data.forEach((vehicle: { subfrota?: string | null }) => {
+              if (vehicle.subfrota) {
+                const key = `${clientId}_${vehicle.subfrota}`;
+                if (next[key] === undefined) next[key] = true;
+              }
+            });
+            return next;
+          });
+        }
+      } else {
+        setClientVehiclesError(prev => ({ ...prev, [clientId]: true }));
       }
     } catch (err) {
       console.error('[Tree] Failed to fetch client vehicles', err);
+      setClientVehiclesError(prev => ({ ...prev, [clientId]: true }));
     } finally {
       setClientVehiclesLoading(prev => ({ ...prev, [clientId]: false }));
     }
@@ -147,6 +225,11 @@ export default function FleetVehicles() {
 
   const handleSelectVehicle = async (vehicleId: string) => {
     setSelectedVehicleId(vehicleId);
+    if (window.matchMedia('(max-width: 1279px)').matches) {
+      window.setTimeout(() => {
+        detailsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
     setDetailsLoading(true);
     setVehicleDetails(null);
     try {
@@ -183,9 +266,31 @@ export default function FleetVehicles() {
     }
   };
 
+  const fetchFleetCounts = async () => {
+    setCountsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/fleet/vehicles', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        setCounts(null);
+        return;
+      }
+      const data = await res.json();
+      setCounts(countVehiclesByStatus(Array.isArray(data) ? data : []));
+    } catch (err) {
+      console.error('[Fleet] Failed to count vehicles', err);
+      setCounts(null);
+    } finally {
+      setCountsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTreeClients();
     fetchClients();
+    fetchFleetCounts();
   }, []);
 
   // Trigger search on filter changes
@@ -298,7 +403,7 @@ export default function FleetVehicles() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.clienteId) {
       toast.warning('Selecione um cliente proprietário.');
@@ -328,6 +433,7 @@ export default function FleetVehicles() {
         toast.success(editingVehicleId ? 'Veículo atualizado com sucesso!' : 'Veículo cadastrado com sucesso!');
         setIsModalOpen(false);
         fetchTreeClients();
+        fetchFleetCounts();
         if (selectedVehicleId) {
           handleSelectVehicle(selectedVehicleId);
         }
@@ -342,11 +448,10 @@ export default function FleetVehicles() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este veículo? Todo o histórico de preventivas e manutenções será removido permanentemente.')) {
-      return;
-    }
-
+  const handleDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+    const id = deleteTarget.id;
+    setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/fleet/vehicles/${id}`, {
@@ -358,49 +463,247 @@ export default function FleetVehicles() {
         setSelectedVehicleId(null);
         setVehicleDetails(null);
         fetchTreeClients();
+        fetchFleetCounts();
       } else {
         toast.error('Erro ao excluir veículo.');
       }
     } catch (err) {
       console.error(err);
       toast.error('Erro de conexão ao excluir.');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleEditVehicle = async (vehicleId: string) => {
+    if (rowActionId) return;
+    if (vehicleDetails?.infoCadastral?.id === vehicleId) {
+      handleOpenEditModal(vehicleDetails.infoCadastral);
+      return;
+    }
+
+    setRowActionId(vehicleId);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/fleet/vehicles/${vehicleId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        handleOpenEditModal(await res.json());
+      } else {
+        toast.error('Erro ao carregar o veículo para edição.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro de conexão ao carregar o veículo.');
+    } finally {
+      setRowActionId(null);
+    }
+  };
+
+  const handleQuickSearchChange = (value: string) => {
+    setQuickSearch(value);
+    const classified = classifyFleetSearch(value);
+    if (classified.placa) {
+      setSearch('');
+      setPlacaFilter(classified.placa);
+      setPlateOwnedByQuickSearch(true);
+      return;
+    }
+    setSearch(classified.search);
+    if (plateOwnedByQuickSearch) {
+      setPlacaFilter('');
+      setPlateOwnedByQuickSearch(false);
+    }
+  };
+
+  const handlePlateFieldChange = (value: string) => {
+    const next = value.toUpperCase();
+    setPlacaFilter(next);
+    if (plateOwnedByQuickSearch) {
+      setQuickSearch(next);
+      setSearch('');
+      return;
+    }
+    setPlateOwnedByQuickSearch(false);
+  };
+
+  const clearQuickSearch = () => {
+    const classified = classifyFleetSearch(quickSearch);
+    setQuickSearch('');
+    setSearch('');
+    if (classified.placa && classified.placa === placaFilter.replace(/[\s-]/g, '').toUpperCase()) {
+      setPlacaFilter('');
+      setPlateOwnedByQuickSearch(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setQuickSearch('');
+    setSearch('');
+    setPlacaFilter('');
+    setChassiFilter('');
+    setStatusFilter('ATIVO');
+    setStartDate('');
+    setEndDate('');
+    setPlateOwnedByQuickSearch(false);
+  };
+
+  const toggleSort = (column: FleetVehicleSortKey) => {
+    if (sortKey === column) {
+      setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(column);
+    setSortDir('asc');
   };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  // Group vehicles loaded for tree rendering
+  const renderSortHeader = (label: string, column: FleetVehicleSortKey, className = '') => (
+    <th scope="col" aria-sort={sortKey === column ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'} className={className}>
+      <button
+        type="button"
+        onClick={() => toggleSort(column)}
+        className="inline-flex items-center gap-1 rounded py-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {label}
+        <ChevronsUpDown size={12} aria-hidden="true" className={sortKey === column ? 'text-foreground' : 'opacity-40'} />
+      </button>
+    </th>
+  );
+
+  const renderVehicleTable = (vehicles: any[]) => {
+    const ordered = sortFleetVehicles(vehicles, sortKey, sortDir);
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse text-left">
+          <thead className="border-b border-border">
+            <tr>
+              {renderSortHeader('Placa', 'placa', 'sticky left-0 z-10 bg-card px-3')}
+              {renderSortHeader('Veículo', 'modelo', 'px-3')}
+              {renderSortHeader('Ano', 'ano', 'hidden px-3 sm:table-cell')}
+              {renderSortHeader('Status', 'status', 'px-3')}
+              {renderSortHeader('Último serviço', 'servico', 'hidden px-3 md:table-cell')}
+              <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordered.map((v) => {
+              const isSelected = selectedVehicleId === v.id;
+              const vehicleName = `${v.marca || ''} ${v.modelo || ''}`.trim();
+              return (
+                <tr
+                  key={v.id}
+                  onClick={() => handleSelectVehicle(v.id)}
+                  className={`cursor-pointer border-t border-border ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/40'}`}
+                  aria-selected={isSelected}
+                >
+                  <td className={`sticky left-0 z-10 px-3 py-2.5 ${isSelected ? 'bg-primary/10' : 'bg-card'}`}>
+                    <span className="font-mono text-sm font-semibold tracking-wide text-foreground">{v.placa}</span>
+                  </td>
+                  <td className="max-w-[16rem] px-3 py-2.5">
+                    <span className="block truncate text-sm font-medium text-foreground">{vehicleName || 'Não informado'}</span>
+                    {v.chassi ? (
+                      <span className="block max-w-[16rem] truncate text-xs text-muted-foreground" title={v.chassi}>{v.chassi}</span>
+                    ) : null}
+                    {v.auditAlerts && v.auditAlerts.length > 0 && (
+                      <span
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-800 dark:text-amber-200"
+                        title={v.auditAlerts.join(', ')}
+                      >
+                        <AlertTriangle size={12} aria-hidden="true" />
+                        Atenção
+                      </span>
+                    )}
+                  </td>
+                  <td className="hidden whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:table-cell">
+                    {fleetYearLabel(v.anoFabricacao, v.ano)}
+                  </td>
+                  <td className="px-3 py-2.5"><StatusBadge status={v.status} /></td>
+                  <td className="hidden whitespace-nowrap px-3 py-2.5 text-sm text-foreground md:table-cell">
+                    {formatFleetDate(v.dataUltimoServico)}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Editar veículo ${v.placa}`}
+                        title="Editar"
+                        disabled={rowActionId === v.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleEditVehicle(v.id);
+                        }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      >
+                        <Edit2 size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Excluir veículo ${v.placa}`}
+                        title="Excluir"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDeleteTarget({ id: v.id, placa: v.placa });
+                        }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-rose-700 hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-rose-300"
+                      >
+                        <Trash2 size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const renderClientVehiclesTree = (clientId: string) => {
     const vehicles = clientVehicles[clientId] || [];
 
     if (clientVehiclesLoading[clientId]) {
       return (
-        <div className="pl-8 py-2 flex items-center gap-2 text-xs text-gray-400">
-          <div className="animate-spin rounded-full h-3 h-3 border border-primary border-t-transparent"></div>
-          <span>Carregando frota...</span>
+        <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Carregando veículos...
+        </div>
+      );
+    }
+
+    if (clientVehiclesError[clientId]) {
+      return (
+        <div className="flex flex-wrap items-center gap-3 px-3 py-4 text-sm text-muted-foreground">
+          <span>Não foi possível carregar os veículos deste cliente.</span>
+          <button
+            type="button"
+            onClick={() => fetchClientVehicles(clientId)}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Tentar novamente
+          </button>
         </div>
       );
     }
 
     if (vehicles.length === 0) {
       return (
-        <div className="pl-8 py-2 text-xs text-gray-400 italic">
+        <p className="px-3 py-4 text-sm italic text-muted-foreground">
           Nenhum veículo encontrado para os filtros ativos.
-        </div>
+        </p>
       );
     }
 
-    // Group vehicles by subfrota
     const subfrotasMap: Record<string, any[]> = {};
     const directVehicles: any[] = [];
-
-    vehicles.forEach(v => {
+    vehicles.forEach((v) => {
       if (v.subfrota) {
-        if (!subfrotasMap[v.subfrota]) {
-          subfrotasMap[v.subfrota] = [];
-        }
+        if (!subfrotasMap[v.subfrota]) subfrotasMap[v.subfrota] = [];
         subfrotasMap[v.subfrota].push(v);
       } else {
         directVehicles.push(v);
@@ -408,411 +711,363 @@ export default function FleetVehicles() {
     });
 
     return (
-      <div className="pl-4 space-y-1">
-        {/* Render subfrotas folders */}
+      <div className="space-y-2 border-t border-border bg-muted/20 px-2 py-2">
         {Object.entries(subfrotasMap).map(([subfrotaName, subVehicles]) => {
           const subKey = `${clientId}_${subfrotaName}`;
           const isSubExpanded = !!expandedSubfrotas[subKey];
           return (
-            <div key={subKey} className="space-y-1">
+            <div key={subKey} className="overflow-hidden rounded-lg border border-border bg-card">
               <button
+                type="button"
+                aria-expanded={isSubExpanded}
                 onClick={() => handleToggleSubfrota(clientId, subfrotaName)}
-                className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition text-left"
+                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
-                <div className="flex items-center gap-2">
-                  {isSubExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  {isSubExpanded ? <FolderOpen size={14} className="text-amber-500" /> : <Folder size={14} className="text-amber-500" />}
-                  <span>{subfrotaName}</span>
-                </div>
-                <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                  {isSubExpanded ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                  <span className="truncate">{subfrotaName}</span>
+                </span>
+                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   {subVehicles.length}
                 </span>
               </button>
-
-              {isSubExpanded && (
-                <div className="pl-6 space-y-0.5 border-l border-gray-100 dark:border-gray-700 ml-4">
-                  {subVehicles.map(v => renderVehicleNode(v))}
-                </div>
-              )}
+              {isSubExpanded && renderVehicleTable(subVehicles)}
             </div>
           );
         })}
-
-        {/* Render direct vehicles under client */}
-        {directVehicles.map(v => renderVehicleNode(v))}
+        {directVehicles.length > 0 && (
+          <div className="overflow-hidden rounded-lg border border-border bg-card">
+            {renderVehicleTable(directVehicles)}
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderVehicleNode = (v: any) => {
-    const isSelected = selectedVehicleId === v.id;
-    return (
-      <button
-        key={v.id}
-        onClick={() => handleSelectVehicle(v.id)}
-        className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition ${
-          isSelected 
-            ? 'bg-primary text-white shadow-sm' 
-            : 'text-gray-600 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-gray-700/30 hover:text-primary'
-        }`}
-      >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Truck size={14} className={isSelected ? 'text-white' : 'text-primary'} />
-          <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded tracking-wide border font-mono ${
-            isSelected 
-              ? 'bg-white text-primary border-white' 
-              : 'bg-white dark:bg-gray-800 text-gray-900 border-gray-300 dark:border-gray-600'
-          }`}>
-            {v.placa}
-          </span>
-          <span className="text-xs truncate font-medium">{v.marca} {v.modelo}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0 pl-1">
-          {v.auditAlerts && v.auditAlerts.length > 0 && (
-            <span 
-              title={`Inconsistência: ${v.auditAlerts.join(', ')}`}
-              className="text-amber-500 dark:text-amber-400 cursor-help"
-            >
-              <AlertTriangle size={14} />
-            </span>
-          )}
-          <span className={`w-2 h-2 rounded-full ${
-            v.status === 'ATIVO' ? 'bg-green-500' :
-            v.status === 'EM_MANUTENCAO' ? 'bg-amber-500' : 'bg-red-500'
-          }`} />
-        </div>
-      </button>
-    );
-  };
+  const fieldClass = 'h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const activeFilterCount = [quickSearch, placaFilter, chassiFilter, statusFilter !== 'ATIVO' ? statusFilter : '', startDate, endDate].filter(Boolean).length;
+  const quickSearchIsPlate = classifyFleetSearch(quickSearch).placa !== '';
+  const showDedicatedPlate = Boolean(placaFilter) && !quickSearchIsPlate;
+  const kpiValue = (value: number | undefined) => (countsLoading ? '—' : value === undefined || counts === null ? '—' : value.toLocaleString('pt-BR'));
+  const info = vehicleDetails?.infoCadastral;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* ═══════════ PREMIUM HEADER with Animated Gradient & Inline KPIs ═══════════ */}
-      <div className="relative overflow-hidden rounded-2xl shadow-sm border border-primary/20 bg-gradient-to-br from-primary/10 via-white to-primary/5 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 animate-gradient p-7">
-        {/* Decorative grid + floating orbs */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          {/* Left: Title & description */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-              <div className="p-2.5 bg-primary/20 rounded-xl backdrop-blur-sm border border-primary/10">
-                <Truck className="text-primary animate-float" size={26} />
-              </div>
-              Gestão de Frota Inteligente
-            </h1>
-            <p className="text-muted-foreground text-sm max-w-xl leading-relaxed">
-              Painel inteligente com visualização hierárquica de clientes, veículos, timeline de manutenção e análise financeira DRE em tempo real.
-            </p>
-          </div>
-
-          {/* Right: Mini KPI chips + CTA */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* KPI: Total Veículos */}
-            <div className="flex items-center gap-2 bg-primary/10 dark:bg-gray-800/80 backdrop-blur-sm border border-primary/20 dark:border-gray-700 rounded-xl px-3.5 py-2 text-foreground shine-hover">
-              <div className="p-1.5 bg-primary/20 rounded-lg">
-                <Truck size={14} className="text-primary" />
-              </div>
-              <div>
-                <span className="text-[9px] uppercase tracking-widest text-primary font-bold block">Veículos</span>
-                <span className="text-sm font-black">{treeClients.reduce((acc, c) => acc + (c._count?.veiculos || 0), 0)}</span>
-              </div>
-            </div>
-
-            {/* KPI: Clientes */}
-            <div className="flex items-center gap-2 bg-primary/10 dark:bg-gray-800/80 backdrop-blur-sm border border-primary/20 dark:border-gray-700 rounded-xl px-3.5 py-2 text-foreground shine-hover">
-              <div className="p-1.5 bg-primary/20 rounded-lg">
-                <Folder size={14} className="text-primary" />
-              </div>
-              <div>
-                <span className="text-[9px] uppercase tracking-widest text-primary font-bold block">Clientes</span>
-                <span className="text-sm font-black">{treeClients.length}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-indigo-400/40 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus size={18} />
-              Cadastrar Veículo
-            </button>
-          </div>
+    <div className="space-y-4">
+      {/* ═══════════ PAGE HEADER ═══════════ */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">Gestão de Frotas / Veículos</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Veículos</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Consulte, organize e acompanhe os veículos da sua frota.</p>
         </div>
-      </div>
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus size={16} aria-hidden="true" />
+          Cadastrar veículo
+        </button>
+      </header>
 
-      {/* ═══════════ GLASSMORPHIC FILTER BAR ═══════════ */}
-      <div className="glass-card rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-        <div className="flex justify-between items-center">
-          <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
-            <div className="p-1 bg-primary/20 dark:bg-primary/20 rounded-md">
-              <Search size={12} className="text-primary dark:text-primary" />
-            </div>
-            Filtros de Pesquisa e Período
-          </h3>
-          {(search || placaFilter || chassiFilter || statusFilter !== 'ATIVO' || startDate || endDate) && (
+      <section aria-label="Indicadores da frota" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {([
+          { kpi: 'total' as const, label: 'Total de veículos', value: counts?.total, icon: <Truck size={16} aria-hidden="true" /> },
+          { kpi: 'active' as const, label: 'Veículos ativos', value: counts?.active, icon: <CheckCircle2 size={16} aria-hidden="true" /> },
+          { kpi: 'inactive' as const, label: 'Veículos inativos', value: counts?.inactive, icon: <CircleOff size={16} aria-hidden="true" /> },
+          { kpi: 'maintenance' as const, label: 'Em manutenção', value: counts?.maintenance, icon: <Wrench size={16} aria-hidden="true" /> },
+        ]).map((item) => {
+          const status = fleetKpiStatus(item.kpi);
+          const pressed = statusFilter === status;
+          return (
             <button
-              onClick={() => { setSearch(''); setPlacaFilter(''); setChassiFilter(''); setStatusFilter('ATIVO'); setStartDate(''); setEndDate(''); }}
-              className="text-[10px] font-bold text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+              key={item.kpi}
+              type="button"
+              aria-pressed={pressed}
+              onClick={() => setStatusFilter(status)}
+              className={`rounded-xl border bg-card px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${pressed ? 'border-primary ring-1 ring-primary' : 'border-border hover:bg-muted/40'}`}
             >
-              <X size={10} />
-              Limpar filtros
-              <span className="bg-rose-500 text-white px-1.5 py-0.5 rounded-full text-[8px] font-black">
-                {[search, placaFilter, chassiFilter, statusFilter !== 'ATIVO' ? statusFilter : '', startDate, endDate].filter(Boolean).length}
+              <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                {item.label}
+                {item.icon}
               </span>
+              <span className="mt-1 block text-2xl font-semibold tabular-nums text-foreground">{kpiValue(item.value)}</span>
+            </button>
+          );
+        })}
+      </section>
+
+      <section aria-label="Busca e filtros" className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center justify-between gap-3 md:hidden">
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Search size={16} aria-hidden="true" />
+            Filtros
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{activeFilterCount}</span>
+            )}
+          </button>
+          {activeFilterCount > 0 && (
+            <button type="button" onClick={clearFilters} className="text-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Limpar filtros
             </button>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Cliente / Empresa</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar cliente..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-              />
-              <Folder size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+
+        <div className={filtersOpen ? 'space-y-3' : 'hidden space-y-3 md:block'}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+            <div className="md:col-span-5">
+              <label htmlFor="fleet-search" className="mb-1.5 block text-xs font-medium text-muted-foreground">Busca</label>
+              <div className="relative">
+                <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  id="fleet-search"
+                  type="search"
+                  value={quickSearch}
+                  onChange={(event) => handleQuickSearchChange(event.target.value)}
+                  placeholder="Buscar por placa, cliente ou empresa"
+                  className={`${fieldClass} pl-9`}
+                />
+              </div>
+            </div>
+            <div className="md:col-span-4">
+              <label htmlFor="fleet-status" className="mb-1.5 block text-xs font-medium text-muted-foreground">Status operacional</label>
+              <select id="fleet-status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className={fieldClass}>
+                <option value="ATIVO">Ativos</option>
+                <option value="all">Todos os status</option>
+                <option value="EM_MANUTENCAO">Em manutenção</option>
+                <option value="INATIVO">Inativos</option>
+                <option value="VENDIDO">Vendidos</option>
+              </select>
+            </div>
+            <div className="flex items-end gap-2 md:col-span-3">
+              <button
+                type="button"
+                aria-expanded={moreFiltersOpen}
+                onClick={() => setMoreFiltersOpen((open) => !open)}
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                Mais filtros
+              </button>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="hidden h-10 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex"
+              >
+                Limpar
+              </button>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Placa do Veículo</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Ex: ABC1234"
-                value={placaFilter}
-                onChange={(e) => setPlacaFilter(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 font-mono uppercase transition-all"
-              />
-              <Truck size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          {moreFiltersOpen && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <label htmlFor="fleet-plate" className="mb-1.5 block text-xs font-medium text-muted-foreground">Placa</label>
+                <input id="fleet-plate" type="text" value={placaFilter} onChange={(event) => handlePlateFieldChange(event.target.value)} placeholder="Placa parcial" className={`${fieldClass} font-mono uppercase`} />
+              </div>
+              <div>
+                <label htmlFor="fleet-chassi" className="mb-1.5 block text-xs font-medium text-muted-foreground">Chassi</label>
+                <input id="fleet-chassi" type="text" value={chassiFilter} onChange={(event) => setChassiFilter(event.target.value)} placeholder="Buscar chassi" className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor="fleet-start" className="mb-1.5 block text-xs font-medium text-muted-foreground">Início do período</label>
+                <input id="fleet-start" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label htmlFor="fleet-end" className="mb-1.5 block text-xs font-medium text-muted-foreground">Término do período</label>
+                <input id="fleet-end" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className={fieldClass} />
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Chassi</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar chassi..."
-                value={chassiFilter}
-                onChange={(e) => setChassiFilter(e.target.value)}
-                className="w-full text-xs p-2.5 pl-8 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-              />
-              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status Operacional</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-            >
-              <option value="ATIVO">Apenas Ativos</option>
-              <option value="all">Todos os Status</option>
-              <option value="EM_MANUTENCAO">Em Manutenção</option>
-              <option value="INATIVO">Apenas Inativos</option>
-              <option value="VENDIDO">Vendidos</option>
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Início do Período</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Término do Período</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl bg-white/80 dark:bg-gray-700/80 text-gray-800 dark:text-white border border-gray-200/80 dark:border-gray-600/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-            />
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* ═══════════ MAIN GRID: Tree + Cockpit ═══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-        
-        {/* ─── LEFT: Premium Hierarchical Tree View ─── */}
-        <div className="lg:col-span-4 glass-card rounded-2xl shadow-lg overflow-hidden min-h-[500px] flex flex-col">
-          {/* Tree Header with gradient */}
-          <div className="p-4 bg-gradient-to-r from-primary/10 via-primary/5/50 to-transparent dark:from-gray-800/80 dark:via-gray-800/60 dark:to-gray-800/80 border-b border-gray-100/80 dark:border-gray-700/80 flex justify-between items-center">
-            <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300 tracking-wider flex items-center gap-1.5">
-              <FolderOpen size={12} className="text-primary" />
-              Estrutura de Clientes e Frota
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary font-black px-2.5 py-1 rounded-full text-[9px]">
-                {treeClients.length} Clientes
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 flex-1 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)] space-y-2">
-            {treeLoading && treeClients.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-                <span className="text-xs font-semibold">Carregando árvore de frota...</span>
-              </div>
-            ) : treeClients.length === 0 ? (
-              <div className="text-center py-16 text-gray-400 space-y-3">
-                <div className="mx-auto w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center">
-                  <AlertCircle className="text-gray-300 dark:text-gray-500" size={28} />
-                </div>
-                <p className="text-xs font-semibold">Nenhum cliente ou veículo corresponde aos filtros.</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {treeClients.map(client => {
-                  const isClientExpanded = !!expandedClients[client.id];
-                  const avatarColors = ['bg-primary', 'bg-primary', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-fuchsia-500'];
-                  const avatarColor = avatarColors[client.nome.charCodeAt(0) % avatarColors.length];
-                  return (
-                    <div key={client.id} className="space-y-1">
-                      {/* Client Root Node */}
-                      <div
-                        onClick={() => handleToggleClient(client.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 select-none group ${
-                          isClientExpanded 
-                            ? 'bg-primary/10 dark:bg-primary/20 border-l-4 border-primary shadow-sm' 
-                            : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30 border-l-4 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          {isClientExpanded ? <ChevronDown size={16} className="text-primary shrink-0" /> : <ChevronRight size={16} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 transition" />}
-                          <div className={`w-8 h-8 rounded-full ${avatarColor} text-white flex items-center justify-center font-black text-xs shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm`}>
-                            {client.nome.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="overflow-hidden">
-                            <h4 className="text-xs font-bold text-gray-800 dark:text-white truncate">{client.nome}</h4>
-                            {client.empresa && (
-                              <p className="text-[10px] text-gray-400 truncate font-medium">{client.empresa}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary font-black px-2 py-0.5 rounded-full text-[9px] shrink-0">
-                          {client._count?.veiculos} {client._count?.veiculos === 1 ? 'Veículo' : 'Veículos'}
-                        </span>
-                      </div>
-
-                      {/* Client vehicles child node list */}
-                      {isClientExpanded && renderClientVehiclesTree(client.id)}
-                    </div>
-                  );
-                })}
-              </div>
+        {activeFilterCount > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {quickSearch && (
+              <button type="button" onClick={clearQuickSearch} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Busca: {quickSearch}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover busca</span>
+              </button>
+            )}
+            {showDedicatedPlate && (
+              <button type="button" onClick={() => { setPlacaFilter(''); setPlateOwnedByQuickSearch(false); }} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Placa: {placaFilter}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover placa</span>
+              </button>
+            )}
+            {chassiFilter && (
+              <button type="button" onClick={() => setChassiFilter('')} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Chassi: {chassiFilter}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover chassi</span>
+              </button>
+            )}
+            {statusFilter !== 'ATIVO' && (
+              <button type="button" onClick={() => setStatusFilter('ATIVO')} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Status: {fleetStatusLabel(statusFilter)}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover status</span>
+              </button>
+            )}
+            {startDate && (
+              <button type="button" onClick={() => setStartDate('')} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Início: {startDate.split('-').reverse().join('/')}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover início do período</span>
+              </button>
+            )}
+            {endDate && (
+              <button type="button" onClick={() => setEndDate('')} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Término: {endDate.split('-').reverse().join('/')}
+                <X size={12} aria-hidden="true" />
+                <span className="sr-only">Remover término do período</span>
+              </button>
             )}
           </div>
-        </div>
+        )}
+      </section>
 
-        {/* ─── RIGHT: Premium Vehicle Details Cockpit ─── */}
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+        <section aria-label="Lista de veículos" className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card xl:col-span-5">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <h2 className="text-sm font-semibold text-foreground">Clientes e veículos</h2>
+            <span className="text-xs text-muted-foreground">
+              {treeLoading && treeClients.length > 0 ? 'Atualizando...' : `${treeClients.length} ${treeClients.length === 1 ? 'cliente' : 'clientes'}`}
+            </span>
+          </div>
+
+          <div className="flex-1 space-y-2 overflow-y-auto p-3 xl:max-h-[calc(100vh-16rem)]">
+            {treeError && treeClients.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800 dark:text-rose-200">
+                <span>Não foi possível atualizar a lista.</span>
+                <button type="button" onClick={() => fetchTreeClients()} className="rounded-lg border border-current px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+            {treeLoading && treeClients.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-muted-foreground">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                Carregando veículos...
+              </div>
+            ) : treeClients.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <AlertCircle className="text-muted-foreground" size={28} aria-hidden="true" />
+                <p className="text-sm font-medium text-foreground">
+                  {treeError ? 'Não foi possível carregar os veículos.' : 'Nenhum cliente ou veículo corresponde aos filtros.'}
+                </p>
+                {treeError && (
+                  <button type="button" onClick={() => fetchTreeClients()} className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    Tentar novamente
+                  </button>
+                )}
+              </div>
+            ) : (
+              treeClients.map((client) => {
+                const isClientExpanded = !!expandedClients[client.id];
+                const isAudit = client.id === 'audit-orphans';
+                const vehicleCount = client._count?.veiculos || 0;
+                return (
+                  <div key={client.id} className={`overflow-hidden rounded-lg border ${isAudit ? 'border-amber-500/40' : 'border-border'}`}>
+                    <button
+                      type="button"
+                      aria-expanded={isClientExpanded}
+                      onClick={() => handleToggleClient(client.id)}
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${isClientExpanded ? 'bg-muted/60' : 'hover:bg-muted/40'}`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {isClientExpanded ? <ChevronDown size={16} aria-hidden="true" className="shrink-0" /> : <ChevronRight size={16} aria-hidden="true" className="shrink-0" />}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {isAudit && <AlertTriangle size={14} aria-hidden="true" className="mr-1 inline text-amber-700 dark:text-amber-300" />}
+                            {client.nome}
+                          </span>
+                          {client.empresa && <span className="block truncate text-xs text-muted-foreground">{client.empresa}</span>}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {vehicleCount} {vehicleCount === 1 ? 'veículo' : 'veículos'}
+                      </span>
+                    </button>
+                    {isClientExpanded && renderClientVehiclesTree(client.id)}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        <section ref={detailsPanelRef} aria-label="Detalhes do veículo" className="min-w-0 xl:col-span-7">
           {!selectedVehicleId ? (
-            <div className="glass-card rounded-2xl border-2 border-dashed border-gray-200/60 dark:border-gray-700/60 p-14 text-center text-gray-400 flex flex-col items-center justify-center min-h-[500px]">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/10/30 dark:to-transparent/30 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
-                <Truck size={36} className="text-primary dark:text-primary animate-float" />
-              </div>
-              <h3 className="text-lg font-black text-gray-700 dark:text-gray-200">Nenhum Veículo Selecionado</h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-md leading-relaxed">
-                Navegue pela árvore de clientes no painel esquerdo, expanda suas frotas e selecione um veículo para abrir o console de diagnósticos, histórico de manutenção e DRE financeiro.
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
+              <Truck size={32} className="text-muted-foreground" aria-hidden="true" />
+              <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhum veículo selecionado</h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                Expanda um cliente e selecione um veículo para consultar o cadastro, orçamentos, ordens de serviço, manutenção, peças, documentos e finanças.
               </p>
-              <div className="flex items-center gap-2 mt-6 text-[10px] font-bold text-primary dark:text-primary">
-                <ChevronRight size={14} />
-                <span>Selecione um veículo na árvore ao lado</span>
-              </div>
             </div>
           ) : detailsLoading ? (
-            <div className="glass-card rounded-2xl shadow-lg p-8 min-h-[500px] flex items-center justify-center">
-              <div className="space-y-4 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">Consultando banco de dados...</p>
-              </div>
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground">Carregando detalhes do veículo...</p>
             </div>
-          ) : !vehicleDetails ? (
-            <div className="glass-card rounded-2xl shadow-lg p-10 text-center text-gray-400 space-y-3">
-              <div className="mx-auto w-14 h-14 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center">
-                <AlertCircle size={28} className="text-rose-500" />
-              </div>
-              <p className="text-sm font-bold text-gray-600 dark:text-gray-300">Erro ao carregar detalhes do veículo.</p>
-              <p className="text-xs text-gray-400">Tente selecionar novamente ou verifique sua conexão.</p>
+          ) : !vehicleDetails || !info ? (
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-6 text-center">
+              <AlertCircle size={28} className="text-rose-600" aria-hidden="true" />
+              <p className="text-sm font-medium text-foreground">Não foi possível carregar os detalhes do veículo.</p>
+              {selectedVehicleId && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectVehicle(selectedVehicleId)}
+                  className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Tentar novamente
+                </button>
+              )}
             </div>
           ) : (
-            <div className="glass-card rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[550px] animate-fade-in-up">
-              
-              {/* ── Premium Vehicle Cockpit Header ── */}
-              <div className="p-6 bg-gradient-to-r from-slate-50 via-primary/5/30 to-slate-50 dark:from-gray-900/80 dark:via-primary/5/20 dark:to-gray-900/80 border-b border-gray-100/80 dark:border-gray-700/80 flex flex-col md:flex-row justify-between items-center gap-6">
-                
-                {/* 3D Mercosul Plate */}
-                <div className="plate-3d relative shrink-0 flex flex-col border-[3px] border-blue-600 rounded-xl overflow-hidden w-64 bg-white shadow-lg select-none">
-                  <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 px-3 py-1 flex justify-between items-center text-[9px] font-black text-white tracking-widest uppercase">
-                    <span>BRASIL</span>
-                    <span className="w-4 h-3 bg-yellow-400 rounded-sm inline-block relative overflow-hidden border border-blue-700">
-                      <span className="absolute inset-0 bg-blue-900 rounded-full w-2 h-2 m-auto"></span>
-                    </span>
+            <div className="flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-border bg-card">
+              <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-mono text-2xl font-semibold tracking-wide text-foreground">{info.placa}</p>
+                    <StatusBadge status={info.status} />
                   </div>
-                  <div className="px-6 py-3 text-center text-3xl font-extrabold tracking-[0.2em] text-gray-900 font-mono bg-gradient-to-b from-white to-gray-50">
-                    {vehicleDetails.infoCadastral.placa}
-                  </div>
-                </div>
-
-                {/* Technical Title and KPI Chips */}
-                <div className="flex-1 space-y-2 text-center md:text-left">
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-                    <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">{vehicleDetails.infoCadastral.marca} {vehicleDetails.infoCadastral.modelo}</h2>
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
-                      vehicleDetails.infoCadastral.status === 'ATIVO' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' :
-                      vehicleDetails.infoCadastral.status === 'EM_MANUTENCAO' ? 'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800' : 'bg-rose-500/10 text-rose-500 border-rose-200 dark:border-rose-800'
-                    }`}>
-                      {vehicleDetails.infoCadastral.status === 'EM_MANUTENCAO' && <span className="inline-block w-1.5 h-1.5 bg-amber-500 rounded-full mr-1 pulse-glow"></span>}
-                      {vehicleDetails.infoCadastral.status.replace("_", " ")}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold">
-                    Proprietário: <span className="text-gray-700 dark:text-gray-200">{vehicleDetails.infoCadastral.cliente?.nome || '—'}</span>
-                    {vehicleDetails.infoCadastral.subfrota && <span className="text-gray-400"> • Subfrota: {vehicleDetails.infoCadastral.subfrota}</span>}
+                  <h2 className="text-lg font-semibold text-foreground">{`${info.marca || ''} ${info.modelo || ''}`.trim() || 'Não informado'}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {info.cliente?.nome || 'Proprietário não informado'}
+                    {info.cliente?.empresa ? ` · ${info.cliente.empresa}` : ''}
+                    {info.subfrota ? ` · ${info.subfrota}` : ''}
                   </p>
-                  <div className="flex flex-wrap justify-center md:justify-start gap-2.5 pt-1.5">
-                    <span className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/70 border border-primary/30 dark:border-primary px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
-                      <Activity size={12} className="text-primary" /> {vehicleDetails.infoCadastral.kmAtual?.toLocaleString('pt-BR')} KM
-                    </span>
-                    <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800 px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
-                      <DollarSign size={12} className="text-emerald-500" /> {formatCurrency(vehicleDetails.financeiro.filter((f: any) => f.tipo === 'RECEITA').reduce((acc: number, f: any) => acc + f.valor, 0))} Faturado
-                    </span>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {info.kmAtual === null || info.kmAtual === undefined ? 'Quilometragem não informada' : `${Number(info.kmAtual).toLocaleString('pt-BR')} km`}
+                    {' · '}
+                    Faturado {formatCurrency(vehicleDetails.financeiro.filter((item: { tipo?: string; valor?: number }) => item.tipo === 'RECEITA').reduce((acc: number, item: { valor?: number }) => acc + (item.valor || 0), 0))}
+                  </p>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <button
-                    onClick={() => handleOpenEditModal(vehicleDetails.infoCadastral)}
-                    className="p-2.5 text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl border border-primary/30 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                    title="Editar Cadastro do Veículo"
+                    type="button"
+                    onClick={() => handleOpenEditModal(info)}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={15} aria-hidden="true" />
+                    Editar
                   </button>
                   <button
-                    onClick={() => handleDelete(vehicleDetails.infoCadastral.id)}
-                    className="p-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95"
-                    title="Remover Veículo e Histórico"
+                    type="button"
+                    onClick={() => setDeleteTarget({ id: info.id, placa: info.placa })}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-rose-500/40 px-3 text-sm font-medium text-rose-700 hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-rose-300"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} aria-hidden="true" />
+                    Excluir
                   </button>
                 </div>
               </div>
@@ -831,7 +1086,7 @@ export default function FleetVehicles() {
               )}
 
               {/* ── Glassmorphic Tab Menu with Glow ── */}
-              <div className="flex overflow-x-auto border-b border-gray-100/80 dark:border-gray-700/80 glass-panel px-6 hide-scrollbar shrink-0">
+              <div role="tablist" aria-label="Seções do veículo" className="flex shrink-0 overflow-x-auto border-b border-border px-2">
                 {[
                   { id: 'info', label: 'Cadastro', icon: <FileText size={14} /> },
                   { id: 'quotes', label: 'Orçamentos', icon: <Clipboard size={14} /> },
@@ -843,11 +1098,14 @@ export default function FleetVehicles() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={detailsTab === tab.id}
                     onClick={() => setDetailsTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 py-3.5 px-4 font-bold text-xs border-b-2 whitespace-nowrap transition-all duration-200 -mb-px ${
+                    className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                       detailsTab === tab.id
-                        ? 'border-primary text-primary dark:text-primary glow-underline'
-                        : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
+                        ? 'border-primary text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     {tab.icon}
@@ -861,63 +1119,39 @@ export default function FleetVehicles() {
 
                 {/* TAB 1: INFO CADASTRAL */}
                 {detailsTab === 'info' && (
-                  <div className="space-y-6 animate-fade-in-up">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gradient-to-br from-gray-50 to-transparent/30 dark:from-gray-700/25 dark:to-transparent/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
-                        <h3 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><FileText size={12} /> Ficha de Identificação</h3>
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Placa</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.placa}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Renavam</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.renavam || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Chassi</span>
-                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.chassi || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">VIN / Chassi Opcional</span>
-                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.vin || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Prefixo</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.prefixo || '—'}</span>
-                          </div>
+                  <div className="space-y-8">
+                    <section>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identificação</h3>
+                      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <InfoField label="Placa" value={info.placa} />
+                        <InfoField label="Chassi" value={info.chassi} />
+                        <InfoField label="RENAVAM" value={info.renavam} />
+                        <InfoField label="VIN" value={info.vin} />
+                        <InfoField label="Prefixo" value={info.prefixo} />
+                      </div>
+                    </section>
+                    <section className="border-t border-border pt-6">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dados técnicos</h3>
+                      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <InfoField label="Ano de fabricação / modelo" value={fleetYearLabel(info.anoFabricacao, info.anoModelo) === 'Não informado' ? '' : fleetYearLabel(info.anoFabricacao, info.anoModelo)} />
+                        <InfoField label="Cor" value={info.cor} />
+                        <InfoField label="Combustível" value={info.combustivel} />
+                        <InfoField label="Tipo" value={info.tipoVeiculo} />
+                        <InfoField label="Quilometragem" value={info.kmAtual === null || info.kmAtual === undefined ? '' : `${Number(info.kmAtual).toLocaleString('pt-BR')} km`} />
+                      </div>
+                    </section>
+                    <section className="border-t border-border pt-6">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dados administrativos</h3>
+                      <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <InfoField label="Proprietário" value={info.cliente?.nome} />
+                        <InfoField label="Empresa" value={info.cliente?.empresa} />
+                        <InfoField label="Frota" value={info.frota} />
+                        <InfoField label="Subfrota" value={info.subfrota} />
+                        <div className="sm:col-span-2">
+                          <InfoField label="Observações" value={info.observacoes} />
                         </div>
                       </div>
-
-                      <div className="bg-gradient-to-br from-gray-50 to-transparent/30 dark:from-gray-700/25 dark:to-transparent/10 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-4 shine-hover transition-all duration-200 hover:shadow-md">
-                        <h3 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><Wrench size={12} /> Parâmetros Técnicos</h3>
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Ano Fabricação / Modelo</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.anoFabricacao} / {vehicleDetails.infoCadastral.anoModelo}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Cor Predominante</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.cor || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Combustível</span>
-                            <span className="font-bold text-gray-800 dark:text-white">{vehicleDetails.infoCadastral.combustivel || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 block mb-0.5">Tipo do Veículo</span>
-                            <span className="font-bold text-gray-800 dark:text-white truncate block">{vehicleDetails.infoCadastral.tipoVeiculo || '—'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {vehicleDetails.infoCadastral.observacoes && (
-                      <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-700/25 dark:to-gray-800/25 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 space-y-2">
-                        <span className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><Clipboard size={12} /> Observações Administrativas</span>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">{vehicleDetails.infoCadastral.observacoes}</p>
-                      </div>
-                    )}
+                    </section>
                   </div>
                 )}
 
@@ -1299,7 +1533,7 @@ export default function FleetVehicles() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
 
       {/* ═══════════ PREMIUM MODAL ═══════════ */}
@@ -1308,19 +1542,13 @@ export default function FleetVehicles() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-[95%] max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
             
             {/* Modal Header with animated gradient */}
-            <div className="p-6 bg-gradient-to-r from-primary via-primary/80 to-primary/60 animate-gradient text-white flex justify-between items-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
-              <div className="relative z-10 flex items-center gap-3">
-                <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm border border-white/10">
-                  <Truck size={22} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black">{editingVehicleId ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}</h2>
-                  <p className="text-primary-foreground/80 text-xs mt-0.5">Preencha os dados técnicos ou consulte a placa.</p>
-                </div>
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">{editingVehicleId ? 'Editar veículo' : 'Cadastrar veículo'}</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">Preencha os dados ou consulte a placa.</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="relative z-10 text-white/80 hover:text-white transition p-1 hover:bg-white/10 rounded-lg">
-                <X size={22} />
+              <button type="button" aria-label="Fechar" onClick={() => setIsModalOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
@@ -1589,7 +1817,7 @@ export default function FleetVehicles() {
 
             <ModalFooterActions
               onCancel={() => setIsModalOpen(false)}
-              onPrimary={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+              onPrimary={() => handleSubmit({ preventDefault: () => {} } as FormEvent)}
               primaryLabel="Salvar Veículo"
               loading={isSubmitting}
               primaryType="button"
@@ -1597,6 +1825,19 @@ export default function FleetVehicles() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => {
+          if (!isDeleting) setDeleteTarget(null);
+        }}
+        onConfirm={handleDelete}
+        title="Excluir veículo"
+        message={deleteTarget ? `Excluir o veículo ${deleteTarget.placa}? Todo o histórico de preventivas e manutenções será removido permanentemente.` : ''}
+        confirmText={isDeleting ? 'Excluindo...' : 'Excluir'}
+        cancelText="Cancelar"
+        isDanger
+      />
     </div>
   );
 }
