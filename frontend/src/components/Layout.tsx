@@ -107,7 +107,7 @@ export function Layout() {
 
   const isMcaAdmin = user?.companyId === 'mca-padrao-company-uuid-000000000001';
   const hasGuinchoModule = hasModule('guincho') || hasModule('towing');
-  const showGuincho = !isOrcamentistaOnly && (isMcaAdmin || hasGuinchoModule || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || ''));
+  const showGuincho = !isOrcamentistaOnly && !isContabilidadeOnly && (isMcaAdmin || hasGuinchoModule || ['GUINCHO_PROVIDER', 'AMBOS'].includes(user?.company?.type || ''));
   const showOficina = isMcaAdmin || ['OFICINA', 'AMBOS', ''].includes(user?.company?.type || '') || (!showGuincho);
 
   useEffect(() => {
