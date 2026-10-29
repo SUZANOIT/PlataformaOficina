@@ -1,7 +1,14 @@
-import { X, Download, Eye } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { X, Download, Eye, Search } from 'lucide-react';
 import { ModalFooterActions } from '../../../components/ui/ModalFooterActions';
 import type { UnifiedDoc } from './types';
 import { TIPOS_DOCUMENTO, TIPO_BADGE_COLOR, formatCurrency } from './types';
+import {
+  countMonthDocumentsByTipo,
+  filterMonthDocuments,
+  sumMonthDocuments,
+  type MonthTipoFiltro,
+} from './monthDocs';
 
 function TipoBadge({ tipo }: { tipo: UnifiedDoc['tipoDocumento'] }) {
   const label = TIPOS_DOCUMENTO.find(t => t.value === tipo)?.label || tipo;
@@ -21,110 +28,158 @@ interface MonthModalProps {
   onDownload: (doc: UnifiedDoc) => void;
 }
 
+const MONTH_TIPO_FILTROS: { value: MonthTipoFiltro; label: string }[] = [
+  { value: 'TODOS', label: 'Todas' },
+  ...TIPOS_DOCUMENTO.map((tipo) => ({ value: tipo.value, label: tipo.label })),
+];
+
 export function MonthDetailsModal({ mesLabel, docs, loading, onClose, onSelectDoc, onDownload }: MonthModalProps) {
-  const totalValor = docs.reduce((s, d) => s + d.valorTotal, 0);
-  const totalImpostos = docs.reduce((s, d) => s + d.valorImpostos, 0);
+  const [tipoFiltro, setTipoFiltro] = useState<MonthTipoFiltro>('TODOS');
+  const [busca, setBusca] = useState('');
+  const counts = useMemo(() => countMonthDocumentsByTipo(docs), [docs]);
+  const visibleDocs = useMemo(() => filterMonthDocuments(docs, tipoFiltro, busca), [docs, tipoFiltro, busca]);
+  const totais = useMemo(() => sumMonthDocuments(visibleDocs), [visibleDocs]);
+  const tipoAtivo = MONTH_TIPO_FILTROS.find((item) => item.value === tipoFiltro)?.label ?? 'Todas';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-        <div className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-gradient-to-r from-card to-muted/20 border-b border-border rounded-t-2xl">
-          <div>
-            <h2 className="text-xl font-black text-foreground">Documentos — {mesLabel}</h2>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <div className="px-2.5 py-1 rounded-md bg-muted text-[11px] font-bold text-muted-foreground flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-foreground/40"></span>
-                {docs.length} Notas
-              </div>
-              <div className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-[11px] font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                Bruto: {formatCurrency(totalValor)}
-              </div>
-              <div className="px-2.5 py-1 rounded-md bg-destructive/10 text-destructive text-[11px] font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-destructive"></span>
-                Impostos: {formatCurrency(totalImpostos)}
-              </div>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="month-docs-title"
+        className="bg-card border border-border w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-xl overflow-hidden flex flex-col"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="px-4 py-3 border-b border-border bg-muted/10 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="month-docs-title" className="font-bold text-foreground text-sm">Documentos — {mesLabel}</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {loading ? 'Carregando notas do mês' : `${visibleDocs.length} de ${docs.length} notas · ${tipoAtivo}`}
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 mt-4 md:mt-0 rounded-xl bg-card border border-border shadow-sm hover:bg-muted transition-colors self-start md:self-auto">
-            <X size={18} className="text-muted-foreground" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition"
+            aria-label="Fechar"
+          >
+            <X size={16} />
           </button>
+        </div>
+
+        <div className="px-4 py-3 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo de nota">
+            {MONTH_TIPO_FILTROS.map((tipo) => {
+              const active = tipoFiltro === tipo.value;
+              return (
+                <button
+                  key={tipo.value}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={loading}
+                  onClick={() => setTipoFiltro(tipo.value)}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold border transition disabled:opacity-50 ${
+                    active ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {tipo.label}
+                  <span className="ml-1 tabular-nums">{counts[tipo.value]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="relative lg:ml-auto lg:w-72">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              placeholder="Nota, cliente ou fornecedor"
+              disabled={loading}
+              className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-sm disabled:opacity-50"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 border-b border-border">
+          <MonthTotal label="Bruto" value={formatCurrency(totais.bruto)} />
+          <MonthTotal label="Líquido" value={formatCurrency(totais.liquido)} />
+          <MonthTotal label="Impostos" value={formatCurrency(totais.impostos)} highlight />
         </div>
 
         <div className="overflow-auto flex-1 bg-card">
           {loading ? (
             <div className="p-16 flex flex-col items-center justify-center text-muted-foreground">
               <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-              <p className="text-sm font-medium animate-pulse">Carregando documentos...</p>
+              <p className="text-sm font-medium">Carregando documentos...</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 sticky top-0 backdrop-blur-md z-10 shadow-sm">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/30 sticky top-0 z-10">
                 <tr>
-                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Nota</th>
-                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Tipo</th>
-                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Cliente / Fornecedor</th>
-                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Emissão</th>
-                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Valor Bruto</th>
-                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Líquido</th>
-                  <th className="p-4 text-right text-[10px] uppercase font-black tracking-wider text-muted-foreground">Impostos</th>
-                  <th className="p-4 text-left text-[10px] uppercase font-black tracking-wider text-muted-foreground">Status</th>
-                  <th className="p-4 text-center text-[10px] uppercase font-black tracking-wider text-muted-foreground">Ações</th>
+                  <th className="p-3 text-left font-semibold text-muted-foreground">Nota</th>
+                  <th className="p-3 text-left font-semibold text-muted-foreground">Tipo</th>
+                  <th className="p-3 text-left font-semibold text-muted-foreground">Cliente / Fornecedor</th>
+                  <th className="p-3 text-left font-semibold text-muted-foreground">Emissão</th>
+                  <th className="p-3 text-right font-semibold text-muted-foreground">Valor Bruto</th>
+                  <th className="p-3 text-right font-semibold text-muted-foreground">Líquido</th>
+                  <th className="p-3 text-right font-semibold text-muted-foreground">Impostos</th>
+                  <th className="p-3 text-left font-semibold text-muted-foreground">Status</th>
+                  <th className="p-3 text-center font-semibold text-muted-foreground">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
-                {docs.map(doc => (
-                  <tr key={`${doc.source}-${doc.id}`} className="hover:bg-muted/30 transition-colors group">
-                    <td className="p-4 font-bold text-foreground">
-                      <div className="flex flex-col">
-                        <span>NF {doc.numeroNota}</span>
-                        {doc.serie && <span className="text-[10px] text-muted-foreground font-semibold uppercase">Série {doc.serie}</span>}
-                      </div>
-                    </td>
-                    <td className="p-4"><TipoBadge tipo={doc.tipoDocumento} /></td>
-                    <td className="p-4 max-w-[200px]">
-                      <div className="truncate font-medium text-foreground" title={doc.clienteNome || doc.fornecedorNome || ''}>
-                        {doc.clienteNome || doc.fornecedorNome || '—'}
-                      </div>
-                    </td>
-                    <td className="p-4 whitespace-nowrap text-muted-foreground font-medium text-xs">
-                      {doc.dataEmissao ? new Date(doc.dataEmissao).toLocaleDateString('pt-BR') : '—'}
-                    </td>
-                    <td className="p-4 text-right font-mono font-bold tabular-nums text-foreground">{formatCurrency(doc.valorBruto)}</td>
-                    <td className="p-4 text-right font-mono font-bold tabular-nums text-foreground">{formatCurrency(doc.valorLiquido)}</td>
-                    <td className="p-4 text-right font-mono font-bold tabular-nums text-destructive">{formatCurrency(doc.valorImpostos)}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        doc.status === 'EMITIDA' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
-                        doc.status === 'CANCELADA' ? 'bg-destructive/10 text-destructive' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {doc.status}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => onSelectDoc(doc)} className="p-2 hover:bg-background hover:shadow-sm border border-transparent hover:border-border rounded-lg transition-all text-primary" title="Ver Detalhes">
-                          <Eye size={16} />
-                        </button>
-                        {doc.xmlRecebido && (
-                          <button onClick={() => onDownload(doc)} className="p-2 hover:bg-background hover:shadow-sm border border-transparent hover:border-border rounded-lg transition-all text-muted-foreground hover:text-foreground" title="Download XML">
-                            <Download size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!docs.length && (
-                  <tr>
-                    <td colSpan={9} className="p-16 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                          <X size={24} className="text-muted-foreground/50" />
+              <tbody>
+                {visibleDocs.map(doc => {
+                  const parte = doc.tipoDocumento === 'ENTRADA'
+                    ? doc.fornecedorNome || doc.clienteNome
+                    : doc.clienteNome || doc.fornecedorNome;
+                  return (
+                    <tr key={`${doc.source}-${doc.id}`} className="border-t border-border hover:bg-muted/10">
+                      <td className="p-3 font-semibold text-foreground">
+                        <div className="flex flex-col">
+                          <span>NF {doc.numeroNota}</span>
+                          {doc.serie && <span className="text-[10px] text-muted-foreground font-semibold uppercase">Série {doc.serie}</span>}
                         </div>
-                        <p className="text-muted-foreground font-medium">Nenhum documento encontrado neste mês.</p>
-                      </div>
+                      </td>
+                      <td className="p-3"><TipoBadge tipo={doc.tipoDocumento} /></td>
+                      <td className="p-3 max-w-[220px]">
+                        <div className="truncate" title={parte || ''}>{parte || '—'}</div>
+                      </td>
+                      <td className="p-3 whitespace-nowrap text-muted-foreground">
+                        {doc.dataEmissao ? new Date(doc.dataEmissao).toLocaleDateString('pt-BR') : '—'}
+                      </td>
+                      <td className="p-3 text-right font-mono tabular-nums">{formatCurrency(doc.valorBruto)}</td>
+                      <td className="p-3 text-right font-mono tabular-nums">{formatCurrency(doc.valorLiquido)}</td>
+                      <td className="p-3 text-right font-mono tabular-nums text-destructive">{formatCurrency(doc.valorImpostos)}</td>
+                      <td className="p-3">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          doc.status === 'EMITIDA' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                          doc.status === 'CANCELADA' ? 'bg-destructive/10 text-destructive' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {doc.status}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <button type="button" onClick={() => onSelectDoc(doc)} className="p-1 hover:bg-muted rounded text-primary" title="Ver detalhes">
+                            <Eye size={14} />
+                          </button>
+                          {doc.xmlRecebido && (
+                            <button type="button" onClick={() => onDownload(doc)} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Download XML">
+                              <Download size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!visibleDocs.length && (
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                      {docs.length
+                        ? 'Nenhuma nota encontrada com esse filtro.'
+                        : 'Nenhum documento encontrado neste mês.'}
                     </td>
                   </tr>
                 )}
@@ -137,9 +192,17 @@ export function MonthDetailsModal({ mesLabel, docs, loading, onClose, onSelectDo
           onCancel={onClose}
           cancelLabel="Fechar"
           hidePrimary
-          flush
         />
       </div>
+    </div>
+  );
+}
+
+function MonthTotal({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="px-4 py-2.5 text-center border-r border-border last:border-r-0">
+      <p className="text-[10px] font-bold text-muted-foreground uppercase">{label}</p>
+      <p className={`text-sm font-mono font-bold mt-0.5 ${highlight ? 'text-destructive' : 'text-foreground'}`}>{value}</p>
     </div>
   );
 }
