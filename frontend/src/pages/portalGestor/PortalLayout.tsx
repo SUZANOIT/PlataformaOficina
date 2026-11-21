@@ -98,11 +98,16 @@ export function PortalLayout() {
         </div>
       )}
 
-      <main className="px-4 py-6 sm:px-6 lg:ml-64 lg:px-8 lg:py-8">
-        <div className="mx-auto max-w-7xl">
-          <Outlet />
-        </div>
-      </main>
+      <div className="flex min-h-[calc(100vh-57px)] flex-col lg:ml-64 lg:min-h-screen">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
+          </div>
+        </main>
+        <footer className="border-t border-border px-4 py-4 text-center text-xs tracking-wide text-muted-foreground sm:px-6 lg:px-8">
+          Desenvolvido por <span className="font-semibold text-foreground">Suzano IT</span>
+        </footer>
+      </div>
     </div>
   );
 }
