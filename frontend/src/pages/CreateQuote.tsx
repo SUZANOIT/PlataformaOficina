@@ -713,7 +713,7 @@ ${bankingText}`;
 
     toast.loading('Gerando PDF...', { id: 'pdf-toast' });
     try {
-      await generatePdf(pdfRef.current, pdfFilename);
+      await generatePdf(pdfRef.current, pdfFilename, { viewerPath: `/orcamentos/${quoteNum}/pdf`, title: `Orçamento #${quoteNum}` });
       toast.success('PDF gerado com sucesso!', { id: 'pdf-toast' });
     } catch (error) {
       toast.error('Houve um erro ao gerar o PDF.', { id: 'pdf-toast' });

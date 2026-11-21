@@ -42,7 +42,7 @@ function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () 
 
   const footer = !q ? null : mode === 'view' ? (
     <>
-      <button type="button" className={btnSecondary} disabled={isGeneratingPdf} onClick={() => generatePdf(pdfRef.current, `orcamento-${q.numeroOrcamento}.pdf`)}>
+      <button type="button" className={btnSecondary} disabled={isGeneratingPdf} onClick={() => generatePdf(pdfRef.current, `orcamento-${q.numeroOrcamento}.pdf`, { viewerPath: `/portal/orcamentos/${q.numeroOrcamento}/pdf`, title: `Orçamento #${q.numeroOrcamento}` })}>
         <Printer size={15} /> {isGeneratingPdf ? 'Gerando…' : 'Imprimir / PDF'}
       </button>
       {q.aguardandoAprovacao && (

@@ -225,6 +225,22 @@ async function main() {
     const y = await db.quote.findUnique({ where: { id: qYpending.id } });
     assert.strictEqual(y.status, 'Aguardando Aprovação');
   });
+  await test('Orçamento pelo número (URL legível do PDF): só a própria empresa', async () => {
+    const own = await http('GET', `/portal-gestor/orcamentos/${qXpaid.numeroOrcamento}`, tokenX);
+    assert.strictEqual(own.status, 200, own.text);
+    assert.strictEqual(own.body.id, qXpaid.id);
+    assert.ok(!own.text.includes('37.77'));
+    assert.strictEqual((await http('GET', `/portal-gestor/orcamentos/${qYpaid.numeroOrcamento}`, tokenX)).status, 404);
+    assert.strictEqual((await http('GET', `/portal-gestor/orcamentos/${qXpaid.numeroOrcamento}`, tokenY)).status, 404);
+    assert.strictEqual((await http('GET', '/portal-gestor/orcamentos/99999999999999999999', tokenX)).status, 404);
+  });
+  await test('Oficina: orçamento pelo número só dentro da própria oficina', async () => {
+    const own = await http('GET', `/quotes/${qXpaid.numeroOrcamento}`, tok(adminA));
+    assert.strictEqual(own.status, 200, own.text);
+    assert.strictEqual(own.body.id, qXpaid.id);
+    assert.strictEqual((await http('GET', `/quotes/${qXpaid.numeroOrcamento}`, tok(adminB))).status, 404);
+    assert.strictEqual((await http('GET', `/quotes/${qXpaid.numeroOrcamento}`, tokenX)).status, 403);
+  });
   await test('Cockpit do veículo no portal não expõe contas a pagar, anexos de fornecedor nem custo de peças', async () => {
     const r = await http('GET', `/portal-gestor/veiculos/${vX.id}`, tokenX);
     assert.strictEqual(r.status, 200, r.text);

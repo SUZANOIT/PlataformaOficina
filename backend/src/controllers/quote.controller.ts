@@ -642,8 +642,11 @@ export const QuoteController = {
   async show(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
-      const quote = await prisma.quote.findUnique({
-        where: { id },
+      // Aceita o UUID ou o número do orçamento (URLs legíveis, ex.: /orcamentos/1542/pdf).
+      // A extensão de tenant do prisma restringe a busca à oficina do usuário.
+      const where = /^\d{1,9}$/.test(id) ? { numeroOrcamento: Number(id) } : { id };
+      const quote = await prisma.quote.findFirst({
+        where,
         include: {
           items: true,
           client: true,

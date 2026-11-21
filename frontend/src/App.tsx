@@ -52,6 +52,7 @@ import { SaaSAuthProvider } from './context/SaaSAuthProvider';
 
 // Portal do Gestor de Frota (cliente PJ)
 import { PortalGestorRoute } from './routes/PortalGestorRoute';
+import { QuotePdfViewer, GenericDocumentViewer } from './pages/DocumentViewer';
 import { PortalLayout } from './pages/portalGestor/PortalLayout';
 import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
 import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
@@ -127,6 +128,11 @@ function App() {
               <Route path="configuracoes" element={<SaaSAuthGuard permission="configuracoes"><SaaSConfiguracoes /></SaaSAuthGuard>} />
             </Route>
             
+            {/* Visualização de PDF com URL legível (número do documento em vez de blob:<uuid>) */}
+            <Route path="/orcamentos/:numero/pdf" element={<ProtectedRoute><QuotePdfViewer source="oficina" /></ProtectedRoute>} />
+            <Route path="/portal/orcamentos/:numero/pdf" element={<PortalGestorRoute><QuotePdfViewer source="portal" /></PortalGestorRoute>} />
+            <Route path="/documento/:nome" element={<ProtectedRoute><GenericDocumentViewer /></ProtectedRoute>} />
+
             {/* Portal do Gestor de Frota — acesso exclusivo do cliente PJ */}
             <Route path="/portal" element={<PortalGestorRoute><PortalLayout /></PortalGestorRoute>}>
               <Route index element={<PortalDashboard />} />
