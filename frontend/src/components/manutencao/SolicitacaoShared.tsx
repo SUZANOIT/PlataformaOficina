@@ -17,6 +17,8 @@ export interface Solicitacao {
   status: string;
   statusLabel: string;
   descricao: string;
+  /** KM informada pelo gestor ao solicitar o orçamento */
+  km: number | null;
   motivoRecusa: string | null;
   createdAt: string;
   updatedAt: string;

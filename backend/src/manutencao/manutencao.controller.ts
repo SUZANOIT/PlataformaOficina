@@ -28,6 +28,10 @@ async function userName(userId?: string) {
 const novaSolicitacaoSchema = z.object({
   vehicleId: z.string().min(1, 'Selecione o veículo.'),
   descricao: z.string().trim().min(5, 'Descreva o problema ou serviço desejado (mínimo de 5 caracteres).').max(4000),
+  km: z.coerce.number({ error: 'Informe a KM atual do veículo.' })
+    .int('Informe a KM atual do veículo (número inteiro).')
+    .positive('Informe a KM atual do veículo.')
+    .max(9_999_999, 'KM atual inválida.'),
 });
 
 async function clienteActor(req: Request): Promise<Actor> {

@@ -36,7 +36,7 @@ export const portalGestorApi = {
   // Manutenção: solicitação de orçamento -> orçamento -> OS
   solicitacoes: () => get<any[]>('/solicitacoes'),
   solicitacao: (id: string) => get(`/solicitacoes/${id}`),
-  criarSolicitacao: async (data: { vehicleId: string; descricao: string }) => (await api.post('/portal-gestor/solicitacoes', data)).data,
+  criarSolicitacao: async (data: { vehicleId: string; descricao: string; km: number }) => (await api.post('/portal-gestor/solicitacoes', data)).data,
   gerarOrdemServico: async (id: string, km: number) => (await api.post(`/portal-gestor/solicitacoes/${id}/ordem-servico`, { km })).data,
 
   meuAcesso: () => get('/meu-acesso'),

@@ -128,7 +128,9 @@ function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void })
   const [vehicles, setVehicles] = useState<any[] | null>(null);
   const [vehicleId, setVehicleId] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [km, setKm] = useState('');
   const [sending, setSending] = useState(false);
+  const kmNum = Number(km.replace(/\D/g, ''));
 
   useEffect(() => { portalGestorApi.veiculos({ status: 'all' }).then(setVehicles).catch(() => setVehicles([])); }, []);
   const v = vehicles?.find(x => x.id === vehicleId);
@@ -136,12 +138,19 @@ function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void })
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!vehicleId) return toast.error('Selecione o veículo.');
+    if (!kmNum) return toast.error('Informe a KM atual do veículo.');
+    if (v && kmNum < (v.kmAtual || 0)) {
+      return toast.error(`A KM atual não pode ser menor que a última registrada (${(v.kmAtual || 0).toLocaleString('pt-BR')} km).`);
+    }
     if (descricao.trim().length < 5) return toast.error('Descreva o problema ou serviço desejado.');
     setSending(true);
     try {
-      const s = await portalGestorApi.criarSolicitacao({ vehicleId, descricao: descricao.trim() });
+      const s = await portalGestorApi.criarSolicitacao({ vehicleId, descricao: descricao.trim(), km: kmNum });
       toast.success(`Solicitação #${s.protocolo} enviada à oficina.`);
+      // A KM informada passa a ser a última registrada do veículo
+      setVehicles(list => list?.map(x => x.id === vehicleId && kmNum > (x.kmAtual || 0) ? { ...x, kmAtual: kmNum } : x) ?? list);
       setDescricao('');
+      setKm('');
       setVehicleId('');
       onCreated(s);
     } catch (err) {
@@ -156,17 +165,31 @@ function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void })
       <form onSubmit={submit} className="mt-3 space-y-3">
         <label className="block space-y-1">
           <span className="text-xs font-medium text-muted-foreground">Veículo</span>
-          <select required className={inputClass} value={vehicleId} onChange={e => setVehicleId(e.target.value)} disabled={!vehicles}>
+          <select required className={inputClass} value={vehicleId} onChange={e => { setVehicleId(e.target.value); setKm(''); }} disabled={!vehicles}>
             <option value="">{vehicles ? 'Selecione o veículo' : 'Carregando…'}</option>
             {(vehicles || []).map(x => <option key={x.id} value={x.id}>{x.placa} — {x.marca} {x.modelo}</option>)}
           </select>
         </label>
         {v && (
-          <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-2.5 text-xs">
+          <dl className="grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-2.5 text-xs sm:grid-cols-4">
             <div><dt className="text-muted-foreground">Placa</dt><dd className="font-semibold">{v.placa}</dd></div>
             <div><dt className="text-muted-foreground">Marca</dt><dd className="font-semibold">{v.marca}</dd></div>
             <div><dt className="text-muted-foreground">Modelo</dt><dd className="truncate font-semibold" title={v.modelo}>{v.modelo}</dd></div>
+            <div><dt className="text-muted-foreground">Última KM</dt><dd className="font-semibold tabular-nums">{(v.kmAtual || 0).toLocaleString('pt-BR')} km</dd></div>
           </dl>
+        )}
+        {v && (
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">KM Atual</span>
+            <input required inputMode="numeric" className={inputClass} value={km} aria-describedby="km-hint"
+              onChange={e => setKm(e.target.value.replace(/\D/g, '') ? Number(e.target.value.replace(/\D/g, '')).toLocaleString('pt-BR') : '')}
+              placeholder={`Mínimo ${(v.kmAtual || 0).toLocaleString('pt-BR')} km`} />
+            <span id="km-hint" className={`block text-xs ${kmNum && kmNum < (v.kmAtual || 0) ? 'text-rose-700' : 'text-muted-foreground'}`}>
+              {kmNum && kmNum < (v.kmAtual || 0)
+                ? `Menor que a última KM registrada (${(v.kmAtual || 0).toLocaleString('pt-BR')} km).`
+                : `Última KM registrada: ${(v.kmAtual || 0).toLocaleString('pt-BR')} km.`}
+            </span>
+          </label>
         )}
         {vehicleId && <OrdensDoVeiculo vehicleId={vehicleId} />}
         <label className="block space-y-1">
@@ -317,7 +340,7 @@ export function PortalManutencao() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h2 className="text-base font-semibold">Solicitação #{detail.protocolo}</h2>
-                      <p className="text-xs text-muted-foreground">Enviada em {formatDateTime(detail.createdAt)} · {detail.veiculo.placa} · {detail.veiculo.marca} {detail.veiculo.modelo}</p>
+                      <p className="text-xs text-muted-foreground">Enviada em {formatDateTime(detail.createdAt)} · {detail.veiculo.placa} · {detail.veiculo.marca} {detail.veiculo.modelo}{detail.km != null ? ` · ${detail.km.toLocaleString('pt-BR')} km` : ''}</p>
                     </div>
                     <SolicitacaoStatusBadge status={detail.status} label={detail.statusLabel} />
                   </div>
