@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -185,6 +185,41 @@ export class S3Service {
     }
 
     return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /** Indica se as credenciais do armazenamento principal estão configuradas (STORAGE_ACCESS_KEY/SECRET_KEY). */
+  static isConfigured(): boolean {
+    return !!STORAGE_ACCESS_KEY && !!STORAGE_SECRET_KEY;
+  }
+
+  /**
+   * Confere se o objeto existe no armazenamento principal, tentando o bucket
+   * configurado e depois os buckets informados (ex.: o gravado no anexo).
+   * Retorna o bucket onde o arquivo está, ou o motivo da falha.
+   */
+  static async locateObject(key: string, extraBuckets: (string | null | undefined)[] = []):
+    Promise<{ ok: true; bucket: string } | { ok: false; reason: 'not_configured' | 'not_found' | 'error'; detail?: string }> {
+    if (!S3Service.isConfigured()) return { ok: false, reason: 'not_configured' };
+    const buckets = Array.from(new Set([STORAGE_BUCKET, ...extraBuckets].filter(Boolean) as string[]));
+    let lastError = '';
+    let sawError = false;
+    for (const bucket of buckets) {
+      try {
+        await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+        return { ok: true, bucket };
+      } catch (error: any) {
+        const code = error?.name || error?.Code || '';
+        const status = error?.$metadata?.httpStatusCode;
+        lastError = `${bucket}: ${code || status || error?.message}`;
+        if (!(status === 404 || ['NotFound', 'NoSuchKey', 'NoSuchBucket'].includes(code))) sawError = true;
+      }
+    }
+    return { ok: false, reason: sawError ? 'error' : 'not_found', detail: lastError };
+  }
+
+  /** URL pré-assinada em um bucket específico do armazenamento principal. */
+  static async getPresignedUrlInBucket(bucket: string, key: string, expiresIn: number = 300): Promise<string> {
+    return getSignedUrl(s3Client, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn });
   }
 
   static async getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
