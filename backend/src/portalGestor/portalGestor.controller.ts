@@ -6,7 +6,7 @@ import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus } from '../utils/quoteReceivables.helper';
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
-import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, type FinPeriod } from './portalGestor.financials';
+import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
   findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
@@ -451,7 +451,7 @@ export const PortalGestorController = {
         },
         orderBy: { updatedAt: 'desc' },
       });
-      return res.json(quotes.map(q => ({ ...q, ultimaAtualizacao: q.history[0] || null, history: undefined })));
+      return res.json(quotes.map(q => ({ ...q, servicos: itemCategories(q.items), ultimaAtualizacao: q.history[0] || null, history: undefined })));
     } catch (error) {
       return handlePortalError(res, error, 'listServiceOrders');
     }

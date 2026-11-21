@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { computeFleetFinancials, FinQuote, FinAllocation } from './portalGestor.financials';
+import { computeFleetFinancials, itemCategories, FinQuote, FinAllocation } from './portalGestor.financials';
 
 const d = (y: number, m: number, day = 10) => new Date(y, m - 1, day);
 const now = d(2026, 11, 21);
@@ -45,6 +45,13 @@ const results: [string, () => void][] = [
     assert.strictEqual(all.resumo.totalOs, 8100 + 7777);
   }],
 ];
+results.push(['Serviços da OS: Peças, Mão de Obra ou ambos, conforme os itens', () => {
+  assert.deepStrictEqual(itemCategories([{ tipo: 'Peça' }, { tipo: 'Peça' }]), ['Peças']);
+  assert.deepStrictEqual(itemCategories([{ tipo: 'Mão de Obra' }]), ['Mão de Obra']);
+  assert.deepStrictEqual(itemCategories([{ tipo: 'Mão de Obra' }, { tipo: 'Peça' }]), ['Peças', 'Mão de Obra']);
+  assert.deepStrictEqual(itemCategories([{ tipo: 'Produto' }, { tipo: 'Serviço' }]), ['Peças', 'Mão de Obra']);
+  assert.deepStrictEqual(itemCategories([]), []);
+}]);
 let failed = 0;
 for (const [name, fn] of results) {
   try { fn(); console.log(`ok ${name}`); } catch (e: any) { failed++; console.log(`FALHOU ${name}: ${e.message}`); }
