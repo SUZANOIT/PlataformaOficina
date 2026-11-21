@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { portalGestorApi } from '../../services/portalGestor';
+import { VehicleSpendChart } from './VehicleSpendChart';
 import { Card, Loadable, PageHeader, Stat, StatusBadge, Table, formatCurrency, formatDate, useLoad, EmptyState } from './ui';
 
 export function PortalDashboard() {
@@ -23,6 +24,8 @@ export function PortalDashboard() {
               <Stat label="Motoristas ativos" value={d.motoristas.total} />
               <Stat label="CNH vencendo (30 dias)" value={d.motoristas.cnhVencendo.length} tone={d.motoristas.cnhVencendo.length ? 'warn' : 'default'} />
             </div>
+
+            <VehicleSpendChart />
 
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>

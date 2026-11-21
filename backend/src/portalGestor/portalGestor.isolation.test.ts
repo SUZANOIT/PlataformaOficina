@@ -576,6 +576,24 @@ async function main() {
     assert.strictEqual(r.status, 200, r.text);
     assert.strictEqual((await http('GET', '/portal-gestor/dashboard', tokenY)).status, 403);
   });
+  await test('Gastos por veículo: só veículos da empresa, só OS válidas, filtros e períodos', async () => {
+    const r = await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=12m', tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.meses.length, 12);
+    assert.ok(r.body.veiculos.every((v: any) => v.veiculoId === vX.id), JSON.stringify(r.body.veiculos));
+    // Só OS válidas de X no período (sem pendentes e cancelados), cada orçamento uma vez
+    const start = new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
+    const valid = await db.quote.findMany({ where: { clientId: clientX.id, createdAt: { gte: start }, status: { notIn: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação', 'Cancelado'] } } });
+    const expected = Math.round(valid.reduce((s2: number, q: any) => s2 + q.total, 0) * 100) / 100;
+    assert.strictEqual(r.body.total, expected);
+    assert.ok(!r.text.includes(qYpaid.id) && !r.text.includes(vY.placa));
+    for (const p of ['6m', 'ano']) assert.strictEqual((await http('GET', `/portal-gestor/dashboard/gastos-veiculos?periodo=${p}`, tokenX)).status, 200);
+    const one = await http('GET', `/portal-gestor/dashboard/gastos-veiculos?periodo=12m&veiculoId=${vX.id}`, tokenX);
+    assert.strictEqual(one.body.total, expected);
+    assert.strictEqual((await http('GET', `/portal-gestor/dashboard/gastos-veiculos?veiculoId=${vY.id}`, tokenX)).status, 404);
+    assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=99m', tokenX)).status, 400);
+    assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos', tok(adminA))).status, 403);
+  });
   await test('Dashboard do portal responde com dados da empresa', async () => {
     const r = await http('GET', '/portal-gestor/dashboard', tokenX);
     assert.strictEqual(r.status, 200, r.text);

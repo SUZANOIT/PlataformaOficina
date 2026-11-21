@@ -7,7 +7,7 @@ import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus, PENDING_QUOTE_STATUSES } from '../utils/quoteReceivables.helper';
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
-import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, type FinPeriod } from './portalGestor.financials';
+import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, computeVehicleMonthlySpend, spendMonths, type SpendPeriod, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
   clientHistoryWhere, findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
@@ -218,6 +218,43 @@ export const PortalGestorController = {
       });
     } catch (error) {
       return handlePortalError(res, error, 'dashboard');
+    }
+  },
+
+  /**
+   * Gastos mensais por veículo (gráfico do Dashboard).
+   * Query: periodo=6m|12m|ano (padrão 12m), veiculoId (opcional).
+   */
+  async vehicleSpend(req: Request, res: Response) {
+    try {
+      const scope = getPortalScope(req);
+      const periodo = (String(req.query.periodo || '12m')) as SpendPeriod;
+      if (!['6m', '12m', 'ano'].includes(periodo)) {
+        return res.status(400).json({ error: 'Período inválido. Use 6m, 12m ou ano.' });
+      }
+      const veiculoId = req.query.veiculoId ? String(req.query.veiculoId) : undefined;
+      if (veiculoId && !(await findScopedVehicle(scope, veiculoId))) {
+        return res.status(404).json({ error: 'Veículo não encontrado' });
+      }
+      const months = spendMonths(periodo);
+      const vehicleIds = await getClientVehicleIds(scope);
+      const [quotes, vehicles] = await Promise.all([
+        basePrisma.quote.findMany({
+          where: quoteWhere(scope, vehicleIds, {
+            createdAt: { gte: months[0].inicio, lt: months[months.length - 1].fim },
+            status: { notIn: [...PENDING_QUOTE_STATUSES, 'Cancelado'] },
+            ...(veiculoId ? { veiculoId } : {}),
+          }),
+          select: { id: true, status: true, total: true, createdAt: true, veiculoId: true, veiculoPlaca: true },
+        }),
+        basePrisma.vehicle.findMany({
+          where: vehicleWhere(scope, veiculoId ? { id: veiculoId } : {}),
+          select: { id: true, placa: true, marca: true, modelo: true },
+        }),
+      ]);
+      return res.json({ periodo, ...computeVehicleMonthlySpend({ quotes, vehicles, period: periodo }) });
+    } catch (error) {
+      return handlePortalError(res, error, 'vehicleSpend');
     }
   },
 
