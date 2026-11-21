@@ -264,10 +264,18 @@ async function main() {
     assert.ok(r.body.financeiro.some((f: any) => f.tipo === 'DESPESA' && f.valor === 75.54));
     assert.ok(r.body.documentos.some((d: any) => d.nome === 'nf-fornecedor-SEGREDO.pdf'));
   });
-  await test('Peças, manutenção e OS filtradas pela empresa', async () => {
-    const p = await http('GET', '/portal-gestor/pecas', tokenX);
-    assert.ok(p.body.pecas.every((x: any) => x.veiculoId === vX.id));
-    assert.ok(!p.text.includes('37.77'));
+  await test('Tela Peças removida do portal; peças continuam no cockpit do veículo e na oficina', async () => {
+    const removed = await http('GET', '/portal-gestor/pecas', tokenX);
+    assert.strictEqual(removed.status, 404, removed.text);
+    // Peças aplicadas continuam visíveis no cockpit do veículo (sem custo interno)...
+    const v = await http('GET', `/portal-gestor/veiculos/${vX.id}`, tokenX);
+    assert.ok(v.body.pecas.some((x: any) => x.descricao === 'Filtro de óleo'));
+    assert.ok(!v.text.includes('37.77'));
+    // ...e os itens de peça dos orçamentos continuam intactos para a oficina
+    const adm = await http('GET', `/quotes/${qXpaid.id}`, tok(adminA));
+    assert.ok(adm.body.items.some((i: any) => i.tipo === 'Peça' && i.valorCompraFornecedor === 37.77));
+  });
+  await test('Manutenção e OS filtradas pela empresa', async () => {
     const m = await http('GET', '/portal-gestor/manutencoes', tokenX);
     assert.ok(m.body.historico.every((x: any) => x.veiculoId === vX.id));
     assert.ok(m.body.historico.some((x: any) => x.descricao === 'Troca de pneus'));

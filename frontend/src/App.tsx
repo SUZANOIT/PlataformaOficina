@@ -57,7 +57,7 @@ import { PortalLayout } from './pages/portalGestor/PortalLayout';
 import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
 import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
 import { PortalVeiculos, PortalVeiculoDetalhe } from './pages/portalGestor/PortalVeiculos';
-import { PortalOrdensServico, PortalManutencao, PortalPecas, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
+import { PortalOrdensServico, PortalManutencao, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
 import { PortalFinanceiro } from './pages/portalGestor/PortalFinanceiro';
 import { PortalMotoristas } from './pages/portalGestor/PortalMotoristas';
 import { PortalMeuAcesso } from './pages/portalGestor/PortalMeuAcesso';
@@ -148,7 +148,6 @@ function App() {
               <Route path="orcamentos" element={<RedirectKeepingQuery to="/portal/ordens-servico" />} />
               <Route path="ordens-servico" element={<PortalOrdensServico />} />
               <Route path="manutencao" element={<PortalManutencao />} />
-              <Route path="pecas" element={<PortalPecas />} />
               <Route path="documentos" element={<PortalDocumentos />} />
               <Route path="financeiro" element={<PortalFinanceiro />} />
               <Route path="motoristas" element={<PortalMotoristas />} />
