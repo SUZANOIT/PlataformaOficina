@@ -19,7 +19,6 @@ export const portalGestorApi = {
   ordensServico: (params: { servico?: string; status?: string; veiculoId?: string; page?: number; pageSize?: number }) =>
     get<{ items: any[]; total: number; page: number; pageSize: number; totalPages: number; statusOptions: string[] }>('/ordens-servico', params),
   manutencoes: (params?: { veiculoId?: string }) => get('/manutencoes', params),
-  pecas: (params?: { veiculoId?: string }) => get('/pecas', params),
 
   documentos: () => get<any[]>('/documentos'),
   download: (downloadPath: string) => api.get(downloadPath).then(r => r.data as { url: string; nome: string }),

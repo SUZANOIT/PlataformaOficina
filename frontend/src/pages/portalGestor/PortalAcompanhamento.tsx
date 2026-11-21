@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
-import { Card, EmptyState, Loadable, PageHeader, Stat, StatusBadge, Table, VehicleFilter, btnSecondary, formatCurrency, formatDate, inputClass, useLoad } from './ui';
+import { Card, EmptyState, Loadable, PageHeader, StatusBadge, Table, VehicleFilter, btnSecondary, formatCurrency, formatDate, inputClass, useLoad } from './ui';
 import { QuoteDetailModal } from './QuoteDetailModal';
 import { TablePagination } from '../../components/ui/TablePagination';
 
@@ -174,45 +174,6 @@ export function PortalManutencao() {
                       <td className="px-4 py-2.5 tabular-nums">{h.km ? `${Number(h.km).toLocaleString('pt-BR')} km` : '—'}</td>
                       <td className="px-4 py-2.5 tabular-nums">{h.valor ? formatCurrency(h.valor) : '—'}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">{h.proximaTroca || '—'}</td>
-                    </tr>
-                  ))}
-                </Table>
-              )}
-            </Card>
-          </div>
-        )}
-      </Loadable>
-    </>
-  );
-}
-
-// ---------------- Peças Utilizadas ----------------
-export function PortalPecas() {
-  const [veiculoId, setVeiculoId] = useState('');
-  const state = useLoad(() => portalGestorApi.pecas({ veiculoId: veiculoId || undefined }), [veiculoId]);
-  return (
-    <>
-      <PageHeader title="Peças Utilizadas" description="Peças aplicadas nos veículos nas ordens de serviço da oficina." actions={<VehicleFilter value={veiculoId} onChange={setVeiculoId} />} />
-      <Loadable state={state}>
-        {(d: any) => (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-              <Stat label="Quantidade de peças" value={d.totais.quantidade.toLocaleString('pt-BR')} />
-              <Stat label="Valor em peças" value={formatCurrency(d.totais.valor)} />
-            </div>
-            <Card>
-              {d.pecas.length === 0 ? <EmptyState message="Nenhuma peça registrada." /> : (
-                <Table head={['Data', 'Veículo', 'OS', 'Peça', 'Código / Tipo', 'Qtd', 'Valor unit.', 'Total']}>
-                  {d.pecas.map((p: any) => (
-                    <tr key={p.id}>
-                      <td className="whitespace-nowrap px-4 py-2.5">{formatDate(p.data)}</td>
-                      <td className="px-4 py-2.5">{p.placa || '—'}</td>
-                      <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${p.quoteId}`} className="text-primary hover:underline">#{p.numeroOrcamento}</Link></td>
-                      <td className="px-4 py-2.5">{p.descricao}</td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{[p.codigoPeca, p.tipoPeca].filter(Boolean).join(' · ') || '—'}</td>
-                      <td className="px-4 py-2.5 tabular-nums">{p.quantidade}</td>
-                      <td className="px-4 py-2.5 tabular-nums">{formatCurrency(p.valorUnitario)}</td>
-                      <td className="px-4 py-2.5 tabular-nums">{formatCurrency(p.valorTotal)}</td>
                     </tr>
                   ))}
                 </Table>

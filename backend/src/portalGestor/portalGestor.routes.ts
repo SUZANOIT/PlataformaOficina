@@ -26,7 +26,6 @@ portalGestorRoutes.post('/orcamentos/:id/recusar', C.rejectQuote);
 
 portalGestorRoutes.get('/ordens-servico', C.listServiceOrders);
 portalGestorRoutes.get('/manutencoes', C.listMaintenance);
-portalGestorRoutes.get('/pecas', C.listParts);
 
 portalGestorRoutes.get('/documentos', C.listDocuments);
 portalGestorRoutes.get('/documentos/os/:id/download', C.downloadOsDocument);
@@ -41,3 +40,6 @@ portalGestorRoutes.delete('/motoristas/:id', C.deleteDriver);
 
 portalGestorRoutes.get('/meu-acesso', C.myAccess);
 portalGestorRoutes.post('/meu-acesso/senha', C.changePassword);
+
+// Rotas inexistentes do portal respondem 404 em JSON (não caem na página do app)
+portalGestorRoutes.use((_req, res) => res.status(404).json({ error: 'Recurso não encontrado no Portal do Gestor de Frota.' }));

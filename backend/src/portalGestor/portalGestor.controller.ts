@@ -534,39 +534,6 @@ export const PortalGestorController = {
     }
   },
 
-  // ---------------- Peças Utilizadas ----------------
-  async listParts(req: Request, res: Response) {
-    try {
-      const scope = getPortalScope(req);
-      const vehicleIds = await getClientVehicleIds(scope);
-      const quotes = await basePrisma.quote.findMany({
-        where: quoteWhere(scope, vehicleIds, {
-          status: { notIn: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação', 'Cancelado'] },
-          ...(req.query.veiculoId ? { veiculoId: String(req.query.veiculoId) } : {}),
-        }),
-        select: { id: true, numeroOrcamento: true, status: true, createdAt: true, veiculoId: true, veiculoPlaca: true, items: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      const pecas: any[] = [];
-      quotes.forEach(q => q.items.forEach(i => {
-        const t = (i.tipo || '').toLowerCase();
-        if (t !== 'peça' && t !== 'peca' && t !== 'produto') return;
-        pecas.push({
-          id: i.id, descricao: i.descricao, codigoPeca: i.codigoPeca, tipoPeca: i.tipoPeca,
-          quantidade: i.quantidade, valorUnitario: i.valorUnitario, valorTotal: i.valorTotal,
-          data: q.createdAt, numeroOrcamento: q.numeroOrcamento, quoteId: q.id, status: q.status,
-          veiculoId: q.veiculoId, placa: q.veiculoPlaca,
-        });
-      }));
-      return res.json({
-        pecas,
-        totais: { quantidade: pecas.reduce((s, p) => s + p.quantidade, 0), valor: pecas.reduce((s, p) => s + p.valorTotal, 0) },
-      });
-    } catch (error) {
-      return handlePortalError(res, error, 'listParts');
-    }
-  },
-
   // ---------------- Documentos ----------------
   async listDocuments(req: Request, res: Response) {
     try {
