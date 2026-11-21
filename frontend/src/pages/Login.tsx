@@ -37,7 +37,7 @@ export function Login() {
 
       // Primeiro acesso: troca obrigatória de senha
       if (response.status === 403 && data.error === 'REQUIRE_PASSWORD_CHANGE' && data.tempToken) {
-        localStorage.setItem('tempToken', data.tempToken);
+        sessionStorage.setItem('tempToken', data.tempToken);
         navigate('/force-password-change');
         return;
       }

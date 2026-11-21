@@ -18,6 +18,8 @@ model User {
   role               String  @default("ADMIN") // ADMINISTRADOR, FINANCEIRO, ATENDIMENTO, MECANICO, GESTOR
   status             String  @default("ATIVO") // ATIVO, INATIVO
   mustChangePassword Boolean @default(false)
+  // Incrementado ao trocar a senha ou bloquear o usuário: invalida os tokens já emitidos
+  tokenVersion       Int     @default(0)
 
   // Níveis de acesso / Permissões (Granular)
   roleAdmin         Boolean @default(false)

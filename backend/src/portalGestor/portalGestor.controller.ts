@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import { REVOKE_SESSIONS, signUserToken } from '../lib/security/session';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { basePrisma } from '../lib/prisma';
@@ -792,9 +793,13 @@ export const PortalGestorController = {
       if (await bcrypt.compare(novaSenha, user.password)) {
         return res.status(400).json({ error: 'A nova senha deve ser diferente da atual.' });
       }
-      await basePrisma.user.update({ where: { id: user.id }, data: { password: await bcrypt.hash(novaSenha, 10), mustChangePassword: false } });
+      // Encerra as demais sessões abertas e devolve um token novo para esta
+      const updated = await basePrisma.user.update({
+        where: { id: user.id },
+        data: { password: await bcrypt.hash(novaSenha, 10), mustChangePassword: false, ...REVOKE_SESSIONS },
+      });
       AuditLogger.log(scope.userId, scope.companyId, 'PORTAL_GESTOR_CHANGE_PASSWORD', 'Senha alterada', 'SUCCESS');
-      return res.json({ message: 'Senha alterada com sucesso.' });
+      return res.json({ message: 'Senha alterada com sucesso.', token: signUserToken(updated, { portal: true }, '1d') });
     } catch (error) {
       return handlePortalError(res, error, 'changePassword');
     }

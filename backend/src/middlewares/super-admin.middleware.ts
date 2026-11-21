@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../lib/prisma';
+import { basePrisma as prisma } from '../lib/prisma';
+import { isPlatformAdmin } from '../lib/security/platform';
 
 export const superAdminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const companyId = (req as any).companyId;
@@ -14,10 +15,8 @@ export const superAdminMiddleware = async (req: Request, res: Response, next: Ne
       where: { id: userId }
     });
 
-    if (
-      user?.role === 'SUPER_ADMIN' || 
-      (user?.roleAdmin && companyId === 'mca-padrao-company-uuid-000000000001')
-    ) {
+    // Avalia o cadastro do usuário, não a empresa escolhida via ?tenantId
+    if (isPlatformAdmin(user)) {
       (req as any).userEmail = user?.email;
       return next();
     }

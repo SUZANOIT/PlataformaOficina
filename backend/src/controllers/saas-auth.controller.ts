@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
@@ -83,7 +84,7 @@ export const SaaSAuthController = {
           role: roleName,
           permissions
         },
-        process.env.JWT_SECRET || 'secret',
+        getJwtSecret(),
         { expiresIn: '1d' }
       );
 

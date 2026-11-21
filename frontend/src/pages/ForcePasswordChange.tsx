@@ -6,7 +6,17 @@ import { toast } from 'sonner';
 export const ForcePasswordChange = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const tempToken = new URLSearchParams(location.search).get('token') || localStorage.getItem('tempToken');
+  // Token temporário fica só na aba atual (sessionStorage) e sai da barra de endereço,
+  // para não ficar no histórico do navegador nem em logs de acesso.
+  const [tempToken] = useState<string | null>(() => {
+    const fromUrl = new URLSearchParams(location.search).get('token');
+    try {
+      localStorage.removeItem('tempToken'); // versões antigas guardavam aqui
+      if (fromUrl) sessionStorage.setItem('tempToken', fromUrl);
+    } catch { /* armazenamento indisponível */ }
+    if (fromUrl) window.history.replaceState(null, '', location.pathname);
+    try { return fromUrl || sessionStorage.getItem('tempToken'); } catch { return fromUrl; }
+  });
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,7 +48,7 @@ export const ForcePasswordChange = () => {
       }
 
       toast.success('Senha atualizada com sucesso!');
-      localStorage.removeItem('tempToken');
+      try { sessionStorage.removeItem('tempToken'); } catch { /* ignore */ }
       navigate('/login');
     } catch (error: any) {
       toast.error(error.message);

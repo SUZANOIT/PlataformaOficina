@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
@@ -634,10 +635,11 @@ export const SaaSController = {
       const token = jwt.sign(
         {
           id: user.id,
+          tv: user.tokenVersion || 0,
           role: user.role,
           companyId: targetCompany.id
         },
-        process.env.JWT_SECRET || 'secret',
+        getJwtSecret(),
         { expiresIn: '1d' }
       );
 

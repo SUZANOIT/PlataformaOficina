@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { REVOKE_SESSIONS } from '../lib/security/session';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
@@ -619,7 +621,7 @@ export const SaaSPortalController = {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await prisma.user.update({
         where: { id: adminUser.id },
-        data: { password: hashedPassword }
+        data: { password: hashedPassword, ...REVOKE_SESSIONS }
       });
 
       await logSaaSAuditoria(adminEmail, 'Reset Senha Tenant Admin', `Resetou a senha do administrador local (${adminUser.email}) da empresa ${tenant.razaoSocial}`, tenant.id);
@@ -1608,9 +1610,10 @@ export const SaaSPortalController = {
       });
 
       // Gerar token operacional
-      const secret = process.env.JWT_SECRET || 'secret';
+      const secret = getJwtSecret();
       const tokenPayload = {
         id: user.id,
+        tv: user.tokenVersion || 0,
         email: user.email,
         role: user.role,
         companyId: tenant.companyId,

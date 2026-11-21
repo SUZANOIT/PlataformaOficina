@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 
@@ -11,7 +12,7 @@ export const saasAuthMiddleware = async (req: Request, res: Response, next: Next
   const [, token] = authHeader.split(' ');
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     if (!decoded.isSaaSUser) {
       return res.status(403).json({ error: 'Acesso negado. Este token não possui privilégios de administração do SaaS.' });
