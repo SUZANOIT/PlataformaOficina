@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, ClipboardCheck, FileText, Lock, Plus, Send, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
 import { QuoteDetailModal } from './QuoteDetailModal';
-import { Card, EmptyState, LoadingState, PageHeader, btnPrimary, btnSecondary, inputClass } from './ui';
+import { Card, EmptyState, LoadingState, PageHeader, StatusBadge, btnPrimary, btnSecondary, formatCurrency, formatDate, inputClass } from './ui';
 import {
   SolicitacaoHistorico, SolicitacaoStatusBadge, SolicitacaoTimeline, formatBRL, formatDateTime, type Solicitacao,
 } from '../../components/manutencao/SolicitacaoShared';
@@ -63,6 +64,66 @@ function Stepper({ s }: { s: Solicitacao | null }) {
   );
 }
 
+/** Todas as Ordens de Serviço (orçamentos e OS) do veículo selecionado, da mais recente para a mais antiga. */
+const OS_LIMIT = 100;
+function OrdensDoVeiculo({ vehicleId }: { vehicleId: string }) {
+  const [data, setData] = useState<{ items: any[]; total: number } | null>(null);
+  const [error, setError] = useState('');
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError('');
+    portalGestorApi.ordensServico({ veiculoId: vehicleId, pageSize: OS_LIMIT })
+      .then(d => setData({ items: d.items, total: d.total }))
+      .catch(e => { setData({ items: [], total: 0 }); setError(apiErrorMessage(e, 'Não foi possível carregar as ordens de serviço.')); });
+  }, [vehicleId]);
+  useEffect(() => { setData(null); load(); }, [load]);
+
+  return (
+    <div className="rounded-lg border border-border">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <p className="text-xs font-semibold">Ordens de Serviço do veículo{data ? ` (${data.total})` : ''}</p>
+        {data && data.total > 0 && (
+          <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="text-xs font-medium text-primary hover:underline">Ver na tela de OS</Link>
+        )}
+      </div>
+      {!data ? (
+        <p className="px-3 py-3 text-xs text-muted-foreground">Carregando…</p>
+      ) : error ? (
+        <p className="px-3 py-3 text-xs text-rose-700">{error}</p>
+      ) : data.items.length === 0 ? (
+        <p className="px-3 py-3 text-xs text-muted-foreground">Nenhuma ordem de serviço para este veículo.</p>
+      ) : (
+        <ul className="max-h-72 divide-y divide-border overflow-y-auto">
+          {data.items.map(os => (
+            <li key={os.id}>
+              <button type="button" onClick={() => setOpenId(os.id)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/40">
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-primary">#{os.numeroOrcamento}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {formatDate(os.createdAt)}{os.servicos?.length ? ` · ${os.servicos.join(', ')}` : ''}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-xs font-semibold tabular-nums">{formatCurrency(os.total)}</span>
+                  <StatusBadge status={os.status} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data && data.total > data.items.length && (
+        <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+          Mostrando as {data.items.length} mais recentes. <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="font-medium text-primary hover:underline">Ver todas</Link>
+        </p>
+      )}
+      {/* Fora do <form> da solicitação: Enter/ações no modal não enviam o formulário */}
+      {openId && createPortal(<QuoteDetailModal id={openId} onClose={() => setOpenId(null)} onChanged={load} />, document.body)}
+    </div>
+  );
+}
+
 function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void }) {
   const [vehicles, setVehicles] = useState<any[] | null>(null);
   const [vehicleId, setVehicleId] = useState('');
@@ -107,6 +168,7 @@ function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void })
             <div><dt className="text-muted-foreground">Modelo</dt><dd className="truncate font-semibold" title={v.modelo}>{v.modelo}</dd></div>
           </dl>
         )}
+        {vehicleId && <OrdensDoVeiculo vehicleId={vehicleId} />}
         <label className="block space-y-1">
           <span className="text-xs font-medium text-muted-foreground">Descrição do problema ou serviço desejado</span>
           <textarea required minLength={5} rows={4} className={`${inputClass} h-auto py-2`} value={descricao} onChange={e => setDescricao(e.target.value)}
