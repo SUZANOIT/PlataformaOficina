@@ -174,3 +174,76 @@ export function computeFleetFinancials(params: {
     porVeiculo: Array.from(porVeiculo.values()).sort((a, b) => b.total - a.total),
   };
 }
+
+// --------------------------------------------------------------------------
+// Gastos por veículo e por mês (Dashboard do portal)
+// --------------------------------------------------------------------------
+
+export type SpendPeriod = '6m' | '12m' | 'ano';
+
+/** Meses do período, em ordem cronológica (inclui o mês atual). */
+export function spendMonths(period: SpendPeriod, now = new Date()) {
+  const count = period === '6m' ? 6 : period === '12m' ? 12 : now.getMonth() + 1;
+  const months: { chave: string; ano: number; mes: number; inicio: Date; fim: Date }[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const inicio = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const fim = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 1);
+    months.push({
+      chave: `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}`,
+      ano: inicio.getFullYear(), mes: inicio.getMonth() + 1, inicio, fim,
+    });
+  }
+  return months;
+}
+
+/**
+ * Gasto mensal de cada veículo: total das OS (mesma regra de "Custo total" do
+ * DRE: orçamento aprovado, não pendente e não cancelado), pela data de abertura.
+ * Cada orçamento entra uma única vez, no veículo e mês dele.
+ */
+export function computeVehicleMonthlySpend(params: {
+  quotes: Pick<FinQuote, 'id' | 'status' | 'total' | 'createdAt' | 'veiculoId' | 'veiculoPlaca'>[];
+  vehicles: FinVehicle[];
+  period: SpendPeriod;
+  now?: Date;
+}) {
+  const months = spendMonths(params.period, params.now);
+  const inicio = months[0].inicio;
+  const fim = months[months.length - 1].fim;
+  const vehicleMap = new Map(params.vehicles.map(v => [v.id, v]));
+  const rows = new Map<string, { veiculoId: string | null; placa: string; modelo: string; valores: number[]; total: number }>();
+  const seen = new Set<string>();
+
+  for (const q of params.quotes) {
+    if (seen.has(q.id)) continue; // nunca soma o mesmo orçamento duas vezes
+    seen.add(q.id);
+    const d = new Date(q.createdAt);
+    if (!isServiceOrderStatus(q.status) || d < inicio || d >= fim) continue;
+    const idx = months.findIndex(m => d >= m.inicio && d < m.fim);
+    if (idx < 0) continue;
+    const key = q.veiculoId || `placa:${q.veiculoPlaca || 'sem-placa'}`;
+    if (!rows.has(key)) {
+      const v = q.veiculoId ? vehicleMap.get(q.veiculoId) : undefined;
+      rows.set(key, {
+        veiculoId: q.veiculoId || null,
+        placa: v?.placa || q.veiculoPlaca || 'Sem placa',
+        modelo: v ? `${v.marca} ${v.modelo}` : '',
+        valores: months.map(() => 0),
+        total: 0,
+      });
+    }
+    const row = rows.get(key)!;
+    row.valores[idx] += q.total || 0;
+    row.total += q.total || 0;
+  }
+
+  const veiculos = Array.from(rows.values())
+    .map(r => ({ ...r, valores: r.valores.map(round), total: round(r.total) }))
+    .sort((a, b) => b.total - a.total || a.placa.localeCompare(b.placa));
+
+  return {
+    meses: months.map(m => ({ chave: m.chave, ano: m.ano, mes: m.mes })),
+    veiculos,
+    total: round(veiculos.reduce((s, v) => s + v.total, 0)),
+  };
+}

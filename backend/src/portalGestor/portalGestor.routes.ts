@@ -12,6 +12,7 @@ export const portalGestorRoutes = Router();
 portalGestorRoutes.use(requirePortalUser);
 
 portalGestorRoutes.get('/dashboard', C.dashboard);
+portalGestorRoutes.get('/dashboard/gastos-veiculos', C.vehicleSpend);
 
 portalGestorRoutes.get('/empresa', C.getEmpresa);
 portalGestorRoutes.put('/empresa', C.updateEmpresa);
