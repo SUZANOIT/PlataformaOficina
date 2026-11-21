@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ensureClientStorageFolder, attachmentSubfolder } from '../services/clientStorageFolder.service';
 import { prisma } from '../lib/prisma';
 import { S3Service } from '../services/s3.service';
 
@@ -90,12 +91,14 @@ export const AttachmentController = {
         }
       }
 
-      // Faz upload para o S3
+      // Faz upload para o S3, dentro da pasta do cliente (notas-fiscais/ ou comprovantes/)
+      const clientFolder = quote.clientId ? await ensureClientStorageFolder(quote.clientId) : null;
       const uploadResult = await S3Service.uploadFile(
         file.buffer,
         file.originalname,
         file.mimetype,
-        quote.numeroOrcamento || quote.id
+        quote.numeroOrcamento || quote.id,
+        clientFolder ? `${clientFolder}${attachmentSubfolder(tipo)}` : undefined
       );
 
       // Salva no banco de dados

@@ -165,6 +165,10 @@ model Client {
   quotes          Quote[]
   towingQuotes    TowingQuote[]
   guiaTransportes GuiaTransporte[]
+  // Pasta do cliente no armazenamento (ex.: clientes/12345678000195-transportes-x-1a2b3c4d/)
+  pastaStorage         String?
+  pastaStorageCriadaEm DateTime?
+
   portalUsers     User[]           @relation("ClientPortalUsers")
   fleetDrivers    FleetDriver[]
 
