@@ -46,9 +46,9 @@ export function PortalEmpresa() {
     <>
       <PageHeader title="Cadastro da Empresa" description="Dados da sua empresa no cadastro da oficina. Razão social e CNPJ são mantidos pela oficina." />
       <Loadable state={state}>
-        {({ empresa, oficina }: any) => (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="p-5 lg:col-span-2">
+        {({ empresa }: any) => (
+          <div>
+            <Card className="p-5">
               <h2 className="text-sm font-semibold">Identificação</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <ReadOnly label="Razão social" value={empresa.empresa || empresa.nome} />
@@ -75,18 +75,6 @@ export function PortalEmpresa() {
                   <button type="submit" disabled={saving} className={btnPrimary}>{saving ? 'Salvando…' : 'Salvar contato'}</button>
                 </div>
               </form>
-            </Card>
-
-            <Card className="h-fit p-5">
-              <h2 className="text-sm font-semibold">Sua oficina</h2>
-              <div className="mt-4 space-y-3">
-                <ReadOnly label="Oficina" value={oficina?.nomeFantasia || oficina?.razaoSocial} />
-                <ReadOnly label="CNPJ" value={oficina?.cnpj} />
-                <ReadOnly label="Telefone" value={oficina?.telefone} />
-                <ReadOnly label="WhatsApp" value={oficina?.whatsapp} />
-                <ReadOnly label="E-mail" value={oficina?.email} />
-                <ReadOnly label="Endereço" value={oficina?.endereco} />
-              </div>
             </Card>
           </div>
         )}
