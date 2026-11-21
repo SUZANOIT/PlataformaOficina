@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Truck, ClipboardList, CheckSquare, Wrench, Package,
+  LayoutDashboard, Building2, Truck, CheckSquare, Wrench, Package,
   Paperclip, DollarSign, IdCard, KeyRound, LogOut, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,7 +11,6 @@ const MENU = [
   { to: '/portal', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/portal/empresa', label: 'Cadastro da Empresa', icon: Building2 },
   { to: '/portal/veiculos', label: 'Meus Veículos', icon: Truck },
-  { to: '/portal/orcamentos', label: 'Orçamentos', icon: ClipboardList },
   { to: '/portal/ordens-servico', label: 'Ordens de Serviço', icon: CheckSquare },
   { to: '/portal/manutencao', label: 'Manutenção', icon: Wrench },
   { to: '/portal/pecas', label: 'Peças Utilizadas', icon: Package },

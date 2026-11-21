@@ -52,6 +52,17 @@ export function itemCategories(items: { tipo?: string | null }[]): string[] {
   return cats;
 }
 
+/** Tipos de item tratados como Peças (comparação sem diferenciar maiúsculas). */
+export const PART_ITEM_TYPES = ['peça', 'peca', 'produto'];
+
+/**
+ * Filtro Prisma equivalente ao isPartItem, para filtrar no banco:
+ * mesma classificação usada em itemCategories e no DRE.
+ */
+export function partItemWhere() {
+  return { OR: PART_ITEM_TYPES.map(t => ({ tipo: { equals: t, mode: 'insensitive' as const } })) };
+}
+
 export function isPartItem(tipo?: string | null) {
   const t = (tipo || '').toLowerCase();
   return t === 'peça' || t === 'peca' || t === 'produto';

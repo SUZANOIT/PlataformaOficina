@@ -190,13 +190,13 @@ export function Modal({ title, onClose, children, footer, wide }: { title: strin
 }
 
 /** Filtro de veículos reutilizado nas listas do portal. */
-export function VehicleFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function VehicleFilter({ value, onChange, className = 'sm:w-64' }: { value: string; onChange: (v: string) => void; className?: string }) {
   const [vehicles, setVehicles] = useState<any[]>([]);
   useEffect(() => {
     portalGestorApi.veiculos({ status: 'all' }).then(setVehicles).catch(() => setVehicles([]));
   }, []);
   return (
-    <select aria-label="Filtrar por veículo" value={value} onChange={e => onChange(e.target.value)} className={`${inputClass} sm:w-64`}>
+    <select aria-label="Filtrar por veículo" value={value} onChange={e => onChange(e.target.value)} className={`${inputClass} ${className}`}>
       <option value="">Todos os veículos</option>
       {vehicles.map(v => <option key={v.id} value={v.id}>{v.placa} — {v.marca} {v.modelo}</option>)}
     </select>
