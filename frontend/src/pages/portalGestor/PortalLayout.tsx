@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCnpj } from './ui';
+import { NotificationBell } from '../../components/NotificationBell';
 
 const MENU = [
   { to: '/portal', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -46,7 +47,10 @@ export function PortalLayout() {
 
   const brand = (
     <div className="border-b border-border px-5 py-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-primary">Portal do Gestor de Frota</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-primary">Portal do Gestor de Frota</p>
+        <NotificationBell basePath="/portal-gestor/notificacoes" align="left" className="-mr-2 -mt-2 hidden lg:block" />
+      </div>
       <p className="mt-1 truncate text-sm font-semibold text-foreground" title={empresa}>{empresa}</p>
       <p className="text-xs text-muted-foreground">{formatCnpj(user?.cliente?.cnpj)}</p>
       {user?.oficina?.nome && <p className="mt-2 truncate text-xs text-muted-foreground">Oficina: {user.oficina.nome}</p>}
@@ -80,9 +84,12 @@ export function PortalLayout() {
           <p className="text-[11px] font-medium uppercase tracking-wide text-primary">Portal do Gestor</p>
           <p className="truncate text-sm font-semibold">{empresa}</p>
         </div>
-        <button type="button" aria-label={open ? 'Fechar menu' : 'Abrir menu'} onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell basePath="/portal-gestor/notificacoes" />
+          <button type="button" aria-label={open ? 'Fechar menu' : 'Abrir menu'} onClick={() => setOpen(!open)} className="rounded-lg p-2 hover:bg-muted">
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </header>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">

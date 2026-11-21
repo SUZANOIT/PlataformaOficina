@@ -26,8 +26,10 @@ import {
   Percent,
   ArrowLeftRight,
   Clock,
-  Briefcase
+  Briefcase,
+  Inbox
 } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -246,6 +248,16 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos da Oficina</span>
                 </Link>
+                {(user?.roleAdmin || user?.roleOrcamentista) && (
+                  <Link 
+                    to="/solicitacoes-orcamento" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Inbox size={16} className="text-muted-foreground" />
+                    <span>Solicitações do Portal</span>
+                  </Link>
+                )}
                 {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/clients" 
@@ -764,6 +776,15 @@ export function Layout() {
                   <FileText size={16} className="text-muted-foreground" />
                   <span>Orçamentos da Oficina</span>
                 </Link>
+                {(user?.roleAdmin || user?.roleOrcamentista) && (
+                  <Link 
+                    to="/solicitacoes-orcamento" 
+                    className="flex items-center gap-3 px-3 py-1.5 rounded-md hover:bg-secondary transition-colors text-sm"
+                  >
+                    <Inbox size={16} className="text-muted-foreground" />
+                    <span>Solicitações do Portal</span>
+                  </Link>
+                )}
                 {!isOrcamentistaOnly && hasModule('clientes') && (
                   <Link 
                     to="/clients" 
@@ -1165,6 +1186,8 @@ export function Layout() {
             <h2 className="text-base sm:text-lg font-medium">Painel de Controle</h2>
           </div>
           <div className="flex items-center gap-3">
+            {/* Notificações (solicitações de orçamento do Portal do Gestor de Frota) */}
+            <NotificationBell basePath="/notificacoes-usuario" />
             {user && (
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-sm font-semibold text-foreground leading-none mb-0.5">{user.name}</span>

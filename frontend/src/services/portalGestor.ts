@@ -32,6 +32,12 @@ export const portalGestorApi = {
   atualizarMotorista: async (id: string, data: any) => (await api.put(`/portal-gestor/motoristas/${id}`, data)).data,
   excluirMotorista: async (id: string) => api.delete(`/portal-gestor/motoristas/${id}`),
 
+  // Manutenção: solicitação de orçamento -> orçamento -> OS
+  solicitacoes: () => get<any[]>('/solicitacoes'),
+  solicitacao: (id: string) => get(`/solicitacoes/${id}`),
+  criarSolicitacao: async (data: { vehicleId: string; descricao: string }) => (await api.post('/portal-gestor/solicitacoes', data)).data,
+  gerarOrdemServico: async (id: string, km: number) => (await api.post(`/portal-gestor/solicitacoes/${id}/ordem-servico`, { km })).data,
+
   meuAcesso: () => get('/meu-acesso'),
   trocarSenha: async (senhaAtual: string, novaSenha: string) => (await api.post('/portal-gestor/meu-acesso/senha', { senhaAtual, novaSenha })).data,
 };

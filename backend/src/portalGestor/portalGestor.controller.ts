@@ -9,6 +9,7 @@ import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus, PEN
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
 import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, computeVehicleMonthlySpend, spendMonths, parseMonthRange, type SpendPeriod, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
+import { onClienteDecidiuOrcamento } from '../manutencao/manutencao.service';
 import {
   clientHistoryWhere, findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
   handlePortalError, onlyDigits, PortalScope, quoteWhere, vehicleWhere,
@@ -441,6 +442,9 @@ export const PortalGestorController = {
       });
 
       AuditLogger.log(scope.userId, scope.companyId, 'PORTAL_GESTOR_APPROVE_QUOTE', `Orçamento #${quote.numeroOrcamento} aprovado pelo cliente ${scope.clientId}`, 'SUCCESS');
+      // Fluxo de Manutenção: atualiza a solicitação vinculada e avisa a oficina
+      await onClienteDecidiuOrcamento(quote.id, 'APROVADA', { userId: scope.userId, nome: `${user?.name || 'Cliente'} (cliente)`, perfil: 'CLIENTE' })
+        .catch(err => console.error('[Manutencao] Falha ao registrar aprovação na solicitação:', err));
       return res.json(updated);
     } catch (error) {
       return handlePortalError(res, error, 'approveQuote');
@@ -480,6 +484,9 @@ export const PortalGestorController = {
       });
 
       AuditLogger.log(scope.userId, scope.companyId, 'PORTAL_GESTOR_REJECT_QUOTE', `Orçamento #${quote.numeroOrcamento} recusado pelo cliente ${scope.clientId}`, 'SUCCESS');
+      // Fluxo de Manutenção: atualiza a solicitação vinculada e avisa a oficina
+      await onClienteDecidiuOrcamento(quote.id, 'RECUSADA_CLIENTE', { userId: scope.userId, nome: `${user?.name || 'Cliente'} (cliente)`, perfil: 'CLIENTE' }, motivo)
+        .catch(err => console.error('[Manutencao] Falha ao registrar recusa na solicitação:', err));
       return res.json(updated);
     } catch (error) {
       return handlePortalError(res, error, 'rejectQuote');

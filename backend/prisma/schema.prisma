@@ -52,6 +52,9 @@ model User {
   portalNotificacoesCri PortalNotificacao[]  @relation("NotificacoesCriadas")
   portalAuditorias      PortalAuditoria[]
 
+  solicitacoesCriadas  SolicitacaoOrcamento[] @relation("SolicitacaoSolicitante")
+  ordensServicoGeradas OrdemServico[]         @relation("OrdemServicoGeradaPor")
+
   @@index([email])
   @@index([companyId])
   @@index([clientId])
@@ -120,6 +123,8 @@ model Company {
   plataformaContratoHistories PlataformaContratoHistory[]
 
   fleetDrivers       FleetDriver[]
+  solicitacoesOrcamento SolicitacaoOrcamento[]
+  ordensServico         OrdemServico[]
 
   portalImpostos     PortalImposto[]
   portalNotificacoes PortalNotificacao[]
@@ -171,6 +176,8 @@ model Client {
 
   portalUsers     User[]           @relation("ClientPortalUsers")
   fleetDrivers    FleetDriver[]
+  solicitacoesOrcamento SolicitacaoOrcamento[]
+  ordensServico         OrdemServico[]
 
   @@index([email])
   @@index([cnpj])
@@ -243,6 +250,10 @@ model Quote {
 
   history QuoteHistory[] @relation("QuoteHistoryToQuote")
   anexos  AnexoNF[]
+
+  // Novo fluxo de Manutenção (Portal do Gestor): solicitação de origem e OS emitida
+  solicitacaoOrcamento SolicitacaoOrcamento?
+  ordemServico         OrdemServico?
 
   @@index([companyId])
   @@index([clientId])
@@ -509,6 +520,8 @@ model Vehicle {
   events           VehicleEvent[]
   quotes           Quote[]
   fleetDrivers     FleetDriver[]
+  solicitacoesOrcamento SolicitacaoOrcamento[]
+  ordensServico         OrdemServico[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2150,4 +2163,77 @@ model PortalAuditoria {
   @@index([usuarioId])
   @@index([companyId])
   @@map("portal_auditoria")
+}
+
+// ---------------------------------------------------------------------------
+// Fluxo de Manutenção do Portal do Gestor de Frota:
+// solicitação do cliente -> orçamento da oficina (Quote existente) -> OS
+// ---------------------------------------------------------------------------
+
+model SolicitacaoOrcamento {
+  id            String   @id @default(uuid())
+  protocolo     Int      @unique @default(autoincrement())
+  companyId     String   @map("empresa_id")
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId      String   @map("cliente_id")
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vehicleId     String   @map("veiculo_id")
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  solicitanteId String?  @map("solicitante_id")
+  solicitante   User?    @relation("SolicitacaoSolicitante", fields: [solicitanteId], references: [id], onDelete: SetNull)
+  descricao     String   @db.Text
+  // AGUARDANDO_ANALISE, RECEBIDA, EM_ANALISE, ORCAMENTO_DISPONIVEL, APROVADA,
+  // RECUSADA_OFICINA, RECUSADA_CLIENTE, OS_GERADA
+  status        String   @default("AGUARDANDO_ANALISE")
+  motivoRecusa  String?  @map("motivo_recusa") @db.Text
+  quoteId       String?  @unique @map("orcamento_id")
+  quote         Quote?   @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  historico SolicitacaoHistorico[]
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([vehicleId])
+  @@index([status])
+  @@map("solicitacoes_orcamento")
+}
+
+model SolicitacaoHistorico {
+  id             String               @id @default(uuid())
+  solicitacaoId  String               @map("solicitacao_id")
+  solicitacao    SolicitacaoOrcamento @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  usuarioId      String?              @map("usuario_id")
+  responsavel    String
+  perfil         String // CLIENTE, OFICINA, SISTEMA
+  statusAnterior String?              @map("status_anterior")
+  statusNovo     String               @map("status_novo")
+  descricao      String               @db.Text
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  @@index([solicitacaoId])
+  @@map("solicitacoes_orcamento_historico")
+}
+
+model OrdemServico {
+  id          String   @id @default(uuid())
+  numero      Int      @unique @default(autoincrement())
+  quoteId     String   @unique @map("orcamento_id")
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  companyId   String   @map("empresa_id")
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId    String   @map("cliente_id")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vehicleId   String   @map("veiculo_id")
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  km          Int
+  geradaPorId String?  @map("gerada_por_id")
+  geradaPor   User?    @relation("OrdemServicoGeradaPor", fields: [geradaPorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([vehicleId])
+  @@map("ordens_servico")
 }
