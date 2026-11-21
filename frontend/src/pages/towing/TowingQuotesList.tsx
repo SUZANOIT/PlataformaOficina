@@ -79,7 +79,7 @@ export function TowingQuotesList() {
       const filename = `Orcamento_Guincho_${quote.numeroFormatado || quote.numeroSequencial || quote.id.substring(0, 8)}.pdf`;
       
       try {
-        await generatePdf(element, filename);
+        await generatePdf(element, filename, { title: `Orçamento de Guincho ${quote.numeroFormatado || quote.numeroSequencial || ''}`.trim() });
       } catch (error) {
         console.error(error);
         toast.error('Erro ao gerar PDF');

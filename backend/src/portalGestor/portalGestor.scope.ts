@@ -66,9 +66,13 @@ export function quoteWhere(scope: PortalScope, vehicleIds: string[], extra: Pris
   return { AND: [extra, { companyId: scope.companyId }, { OR: or }] };
 }
 
-export async function findScopedQuote(scope: PortalScope, quoteId: string, include?: Prisma.QuoteInclude) {
+/** Busca um orçamento da empresa pelo UUID ou pelo número do orçamento. */
+export async function findScopedQuote(scope: PortalScope, quoteIdOrNumber: string, include?: Prisma.QuoteInclude) {
   const vehicleIds = await getClientVehicleIds(scope);
-  return basePrisma.quote.findFirst({ where: quoteWhere(scope, vehicleIds, { id: quoteId }), include });
+  const key: Prisma.QuoteWhereInput = /^\d{1,9}$/.test(quoteIdOrNumber)
+    ? { numeroOrcamento: Number(quoteIdOrNumber) }
+    : { id: quoteIdOrNumber };
+  return basePrisma.quote.findFirst({ where: quoteWhere(scope, vehicleIds, key), include });
 }
 
 export async function findScopedVehicle(scope: PortalScope, vehicleId: string) {
