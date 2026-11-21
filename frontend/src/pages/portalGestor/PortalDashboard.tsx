@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { portalGestorApi } from '../../services/portalGestor';
 import { VehicleSpendChart } from './VehicleSpendChart';
+import { DashboardFinanceiro } from './DashboardFinanceiro';
 import { Card, Loadable, PageHeader, Stat, StatusBadge, Table, formatCurrency, formatDate, useLoad, EmptyState } from './ui';
 
 export function PortalDashboard() {
@@ -8,22 +9,22 @@ export function PortalDashboard() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Visão geral da sua frota na oficina." />
+      <PageHeader title="Dashboard" description="Visão geral da sua frota na oficina: operação, custos e pagamentos." />
       <Loadable state={state}>
         {(d: any) => (
           <div className="space-y-6">
+            {/* Operação */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat label="Veículos" value={d.veiculos.total} hint={`${d.veiculos.ativos} ativos · ${d.veiculos.emManutencao} em manutenção`} />
               <Stat label="Orçamentos aguardando aprovação" value={d.orcamentosPendentes.quantidade} hint={formatCurrency(d.orcamentosPendentes.valor)} tone={d.orcamentosPendentes.quantidade ? 'warn' : 'default'} />
               <Stat label="Ordens de serviço em andamento" value={d.ordensEmAndamento} />
-              <Stat label={`Gasto em ${d.ano}`} value={formatCurrency(d.financeiro.total)} hint={`${d.financeiro.quantidadeOs} ordens de serviço`} />
+              <Stat label="Motoristas ativos" value={d.motoristas.total}
+                hint={d.motoristas.cnhVencendo.length ? `${d.motoristas.cnhVencendo.length} CNH vencendo em 30 dias` : 'Nenhuma CNH vencendo'}
+                tone={d.motoristas.cnhVencendo.length ? 'warn' : 'default'} />
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Stat label={`Pago em ${d.ano}`} value={formatCurrency(d.financeiro.pago)} tone="ok" hint={d.financeiro.coberto > 0 ? `${formatCurrency(d.financeiro.coberto)} coberto (sem cobrança)` : undefined} />
-              <Stat label={`Em aberto (${d.ano})`} value={formatCurrency(d.financeiro.emAberto)} hint={d.financeiro.vencido > 0 ? `${formatCurrency(d.financeiro.vencido)} vencido` : 'Nada vencido'} tone={d.financeiro.vencido > 0 ? 'danger' : 'default'} />
-              <Stat label="Motoristas ativos" value={d.motoristas.total} />
-              <Stat label="CNH vencendo (30 dias)" value={d.motoristas.cnhVencendo.length} tone={d.motoristas.cnhVencendo.length ? 'warn' : 'default'} />
-            </div>
+
+            {/* Financeiro (antiga tela Finanças / DRE) */}
+            <DashboardFinanceiro />
 
             <VehicleSpendChart />
 

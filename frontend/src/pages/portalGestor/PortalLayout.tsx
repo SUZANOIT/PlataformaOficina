@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Truck, CheckSquare, Wrench,
-  Paperclip, DollarSign, IdCard, KeyRound, LogOut, Menu, X,
+  Paperclip, IdCard, KeyRound, LogOut, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCnpj } from './ui';
@@ -14,7 +14,6 @@ const MENU = [
   { to: '/portal/ordens-servico', label: 'Ordens de Serviço', icon: CheckSquare },
   { to: '/portal/manutencao', label: 'Manutenção', icon: Wrench },
   { to: '/portal/documentos', label: 'Documentos', icon: Paperclip },
-  { to: '/portal/financeiro', label: 'Finanças / DRE', icon: DollarSign },
   { to: '/portal/motoristas', label: 'Motoristas', icon: IdCard },
   { to: '/portal/meu-acesso', label: 'Meu Acesso', icon: KeyRound },
 ];

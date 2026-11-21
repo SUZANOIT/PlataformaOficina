@@ -94,7 +94,7 @@ export function PortalEmpresa() {
                       <p className="text-xs text-muted-foreground">CNPJ {formatCnpj(empresa.cnpj)}</p>
                     </div>
                   </div>
-                  <div className="grid flex-1 grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-2 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+                  <div className="grid flex-1 grid-cols-1 gap-2 border-t border-border pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
                     <ReadOnly label="Nome" value={empresa.nome} />
                     <ReadOnly label="Atividade principal" value={empresa.atividadePrincipal} />
                   </div>
