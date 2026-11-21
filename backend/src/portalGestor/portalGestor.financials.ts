@@ -179,14 +179,39 @@ export function computeFleetFinancials(params: {
 // Gastos por veículo e por mês (Dashboard do portal)
 // --------------------------------------------------------------------------
 
-export type SpendPeriod = '6m' | '12m' | 'ano';
+/** Período do gráfico: atalho (6m, 12m, ano atual) ou intervalo de meses (de/até, formato AAAA-MM). */
+export type SpendPeriod = '6m' | '12m' | 'ano' | { de: string; ate: string };
 
-/** Meses do período, em ordem cronológica (inclui o mês atual). */
+export const MAX_SPEND_MONTHS = 24;
+
+/**
+ * Valida um intervalo de meses "AAAA-MM" (de <= até, no máximo 24 meses).
+ * Retorna o intervalo normalizado ou uma mensagem de erro.
+ */
+export function parseMonthRange(de?: string, ate?: string): { de: string; ate: string } | { error: string } {
+  const re = /^(\d{4})-(0[1-9]|1[0-2])$/;
+  if (!de || !ate || !re.test(de) || !re.test(ate)) return { error: 'Informe o mês inicial e o mês final no formato AAAA-MM.' };
+  const toIndex = (v: string) => Number(v.slice(0, 4)) * 12 + Number(v.slice(5, 7)) - 1;
+  const diff = toIndex(ate) - toIndex(de);
+  if (diff < 0) return { error: 'O mês inicial deve ser anterior ou igual ao mês final.' };
+  if (diff + 1 > MAX_SPEND_MONTHS) return { error: `Selecione no máximo ${MAX_SPEND_MONTHS} meses.` };
+  return { de, ate };
+}
+
+/** Meses do período, em ordem cronológica (nos atalhos, inclui o mês atual). */
 export function spendMonths(period: SpendPeriod, now = new Date()) {
-  const count = period === '6m' ? 6 : period === '12m' ? 12 : now.getMonth() + 1;
+  let end = new Date(now.getFullYear(), now.getMonth(), 1);
+  let count: number;
+  if (typeof period === 'object') {
+    end = new Date(Number(period.ate.slice(0, 4)), Number(period.ate.slice(5, 7)) - 1, 1);
+    const start = new Date(Number(period.de.slice(0, 4)), Number(period.de.slice(5, 7)) - 1, 1);
+    count = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1;
+  } else {
+    count = period === '6m' ? 6 : period === '12m' ? 12 : now.getMonth() + 1;
+  }
   const months: { chave: string; ano: number; mes: number; inicio: Date; fim: Date }[] = [];
   for (let i = count - 1; i >= 0; i--) {
-    const inicio = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const inicio = new Date(end.getFullYear(), end.getMonth() - i, 1);
     const fim = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 1);
     months.push({
       chave: `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}`,
@@ -200,9 +225,14 @@ export function spendMonths(period: SpendPeriod, now = new Date()) {
  * Gasto mensal de cada veículo: total das OS (mesma regra de "Custo total" do
  * DRE: orçamento aprovado, não pendente e não cancelado), pela data de abertura.
  * Cada orçamento entra uma única vez, no veículo e mês dele.
+ *
+ * Divisão por tipo de serviço (mesma classificação do DRE): itens de peça =
+ * "Peças/Serviços"; demais itens = "Mão de Obra". O total da OS é repartido na
+ * proporção dos itens (descontos/ajustes entram proporcionalmente), de modo
+ * que pecas + maoDeObra = total em cada mês e no total do veículo.
  */
 export function computeVehicleMonthlySpend(params: {
-  quotes: Pick<FinQuote, 'id' | 'status' | 'total' | 'createdAt' | 'veiculoId' | 'veiculoPlaca'>[];
+  quotes: (Pick<FinQuote, 'id' | 'status' | 'total' | 'createdAt' | 'veiculoId' | 'veiculoPlaca'> & { items?: FinQuoteItem[] })[];
   vehicles: FinVehicle[];
   period: SpendPeriod;
   now?: Date;
@@ -211,7 +241,7 @@ export function computeVehicleMonthlySpend(params: {
   const inicio = months[0].inicio;
   const fim = months[months.length - 1].fim;
   const vehicleMap = new Map(params.vehicles.map(v => [v.id, v]));
-  const rows = new Map<string, { veiculoId: string | null; placa: string; modelo: string; valores: number[]; total: number }>();
+  const rows = new Map<string, { veiculoId: string | null; placa: string; modelo: string; valores: number[]; pecasRaw: number[]; total: number }>();
   const seen = new Set<string>();
 
   for (const q of params.quotes) {
@@ -229,16 +259,31 @@ export function computeVehicleMonthlySpend(params: {
         placa: v?.placa || q.veiculoPlaca || 'Sem placa',
         modelo: v ? `${v.marca} ${v.modelo}` : '',
         valores: months.map(() => 0),
+        pecasRaw: months.map(() => 0),
         total: 0,
       });
     }
     const row = rows.get(key)!;
-    row.valores[idx] += q.total || 0;
-    row.total += q.total || 0;
+    const total = q.total || 0;
+    const items = q.items || [];
+    const pecasItens = items.filter(i => isPartItem(i.tipo)).reduce((a, i) => a + (i.valorTotal || 0), 0);
+    const somaItens = items.reduce((a, i) => a + (i.valorTotal || 0), 0);
+    // Parte de peças no total da OS (sem itens: tudo em Mão de Obra)
+    const pecas = somaItens > 0 ? total * (pecasItens / somaItens) : 0;
+    row.valores[idx] += total;
+    row.pecasRaw[idx] += pecas;
+    row.total += total;
   }
 
   const veiculos = Array.from(rows.values())
-    .map(r => ({ ...r, valores: r.valores.map(round), total: round(r.total) }))
+    .map(({ pecasRaw, ...r }) => {
+      const valores = r.valores.map(round);
+      const pecas = pecasRaw.map(round);
+      const maoDeObra = valores.map((v, i) => round(v - pecas[i]));
+      const total = round(r.total);
+      const totalPecas = round(pecas.reduce((a, b) => a + b, 0));
+      return { ...r, valores, pecas, maoDeObra, total, totalPecas, totalMaoDeObra: round(total - totalPecas) };
+    })
     .sort((a, b) => b.total - a.total || a.placa.localeCompare(b.placa));
 
   return {
