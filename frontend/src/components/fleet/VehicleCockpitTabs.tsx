@@ -36,17 +36,14 @@ interface Props {
 }
 
 /** Finanças do veículo sob a ótica do cliente: o que a empresa gastou com o veículo. */
-function PortalVehicleFinance({ financeiro }: { financeiro: any[] }) {
-  const os = financeiro.filter(f => f.tipo === 'RECEITA');
-  const manut = financeiro.filter(f => f.tipo === 'DESPESA_MANUTENCAO');
-  const totalOs = os.reduce((a, f) => a + f.valor, 0);
-  const totalManut = manut.reduce((a, f) => a + f.valor, 0);
-  const pendente = os.filter(f => !['RECEBIDA', 'LIQUIDADO', 'PAGA', 'PAGO'].includes(String(f.status).toUpperCase())).reduce((a, f) => a + f.valor, 0);
+function PortalVehicleFinance({ financeiro, resumo }: { financeiro: any[]; resumo?: any }) {
+  // Indicadores pela mesma regra do Dashboard e de Finanças / DRE (calculados no backend)
+  const r = resumo || { total: 0, pecas: 0, servicos: 0, emAberto: 0, pago: 0 };
   const cards = [
-    { label: 'Serviços na oficina', value: totalOs },
-    { label: 'Outras manutenções', value: totalManut },
-    { label: 'Custo total do veículo', value: totalOs + totalManut },
-    { label: 'Em aberto', value: pendente },
+    { label: 'Custo total do veículo', value: r.total },
+    { label: 'Peças', value: r.pecas },
+    { label: 'Mão de obra / Serviços', value: r.servicos },
+    { label: 'Em aberto', value: r.emAberto },
   ];
   return (
     <div className="space-y-6">
@@ -427,7 +424,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
 
           {/* TAB 7: HISTÓRICO FINANCEIRO / DRE DO VEÍCULO */}
           {detailsTab === 'finance' && audience === 'portal' && (
-            <PortalVehicleFinance financeiro={vehicleDetails.financeiro || []} />
+            <PortalVehicleFinance financeiro={vehicleDetails.financeiro || []} resumo={vehicleDetails.resumoFinanceiro} />
           )}
 
           {detailsTab === 'finance' && audience !== 'portal' && (

@@ -5,7 +5,8 @@ import { basePrisma } from '../lib/prisma';
 import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus } from '../utils/quoteReceivables.helper';
-import { buildVehicleSections, sanitizeQuoteItemForPortal, BILLED_STATUSES } from '../services/vehicleDetails.service';
+import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
+import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
   findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
@@ -17,7 +18,7 @@ import {
 // --------------------------------------------------------------------------
 
 /** Orçamento passou da fase de aprovação (é uma OS em andamento ou concluída). */
-const isServiceOrder = (q: { status: string }) => !isPendingQuoteStatus(q.status) && q.status !== 'Cancelado';
+const isServiceOrder = (q: { status: string }) => isServiceOrderStatus(q.status);
 
 const quoteListSelect = {
   id: true, numeroOrcamento: true, status: true, createdAt: true, updatedAt: true,
@@ -97,24 +98,36 @@ async function loadClientReceivables(scope: PortalScope, quoteIds: string[]) {
       numeroEmpenho: r.numeroEmpenho,
       status: r.status,
       quoteIds: r.quoteId ? [r.quoteId] : r.linkedQuotes.map(l => l.quoteId).filter(Boolean),
+      // Parte do título atribuída a cada OS da empresa (base do "Pago / Em aberto" por OS)
+      alocacoes: (r.quoteId && quoteIds.includes(r.quoteId)
+        ? [{ quoteId: r.quoteId, valor: r.valor }]
+        : r.linkedQuotes.filter(l => l.quoteId).map(l => ({ quoteId: l.quoteId as string, valor: l.valorVinculado }))
+      ).map(a => ({ ...a, status: r.status, vencimento: r.vencimento })),
     };
   });
 }
 
-const isReceived = (status: string) => ['RECEBIDA', 'LIQUIDADO', 'PAGO', 'PAGA'].includes((status || '').toUpperCase());
-
-function isOverdue(r: { status: string; vencimento: Date }) {
-  return !isReceived(r.status) && (r.status || '').toUpperCase() !== 'CANCELADA' && new Date(r.vencimento) < new Date();
+/**
+ * Indicadores financeiros da frota pela regra única (portalGestor.financials.ts).
+ * Dashboard, Finanças / DRE e cockpit do veículo usam esta função.
+ */
+async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPeriod; vehicleId?: string } = {}) {
+  const [quotes, vehicles] = await Promise.all([
+    loadClientQuotes(scope, opts.vehicleId ? { veiculoId: opts.vehicleId } : {}),
+    loadClientVehiclesFull(scope, opts.vehicleId ? { id: opts.vehicleId } : {}),
+  ]);
+  const receivables = await loadClientReceivables(scope, quotes.map(q => q.id));
+  const result = computeFleetFinancials({
+    quotes,
+    allocations: receivables.flatMap(r => r.alocacoes),
+    vehicles,
+    period: opts.period,
+  });
+  return { ...result, receivables, quotes, vehicles };
 }
 
-function sumItems(items: any[], kind: 'peca' | 'servico') {
-  return items
-    .filter(i => {
-      const t = (i.tipo || '').toLowerCase();
-      const peca = t === 'peça' || t === 'peca' || t === 'produto';
-      return kind === 'peca' ? peca : !peca;
-    })
-    .reduce((s, i) => s + (i.valorTotal || 0), 0);
+function isOverdue(r: { status: string; vencimento: Date }) {
+  return !isReceivedStatus(r.status) && !isCancelledStatus(r.status) && new Date(r.vencimento) < new Date();
 }
 
 // --------------------------------------------------------------------------
@@ -157,16 +170,15 @@ export const PortalGestorController = {
         loadClientQuotes(scope),
         basePrisma.fleetDriver.findMany({ where: { clientId: scope.clientId, companyId: scope.companyId, status: 'ATIVO' } }),
       ]);
-      const receivables = await loadClientReceivables(scope, quotes.map(q => q.id));
 
       const now = new Date();
       const in30 = new Date(now.getTime() + 30 * 86400000);
-      const startYear = new Date(now.getFullYear(), 0, 1);
+      const ano = now.getFullYear();
+      // Mesmos números de Finanças / DRE para o ano corrente
+      const { resumo } = await loadFleetFinancials(scope, { period: { inicio: new Date(ano, 0, 1), fim: new Date(ano + 1, 0, 1) } });
 
       const pendentes = quotes.filter(q => isPendingQuoteStatus(q.status));
       const osAbertas = quotes.filter(q => isServiceOrder(q) && q.status !== 'Pago');
-      const faturadoAno = quotes.filter(q => BILLED_STATUSES.includes(q.status) && q.createdAt >= startYear)
-        .reduce((s, q) => s + q.total, 0);
 
       const proximasTrocas: any[] = [];
       vehicles.forEach(v => {
@@ -175,8 +187,6 @@ export const PortalGestorController = {
         if (m && m.proximaTrocaData <= in30) proximasTrocas.push({ veiculoId: v.id, placa: v.placa, tipo: 'Óleo do motor', data: m.proximaTrocaData, km: m.proximaTrocaKm, kmAtual: v.kmAtual });
         if (c && c.proximaTrocaData <= in30) proximasTrocas.push({ veiculoId: v.id, placa: v.placa, tipo: 'Óleo do câmbio', data: c.proximaTrocaData, km: c.proximaTrocaKm, kmAtual: v.kmAtual });
       });
-
-      const abertos = receivables.filter(r => !isReceived(r.status) && (r.status || '').toUpperCase() !== 'CANCELADA');
 
       return res.json({
         veiculos: {
@@ -187,11 +197,8 @@ export const PortalGestorController = {
         },
         orcamentosPendentes: { quantidade: pendentes.length, valor: pendentes.reduce((s, q) => s + q.total, 0) },
         ordensEmAndamento: osAbertas.length,
-        faturadoAno,
-        financeiro: {
-          emAberto: abertos.reduce((s, r) => s + r.valor, 0),
-          vencido: abertos.filter(isOverdue).reduce((s, r) => s + r.valor, 0),
-        },
+        ano,
+        financeiro: resumo,
         motoristas: {
           total: drivers.length,
           cnhVencendo: drivers.filter(d => d.validadeCnh && d.validadeCnh <= in30).map(d => ({ id: d.id, nome: d.nome, validadeCnh: d.validadeCnh })),
@@ -271,7 +278,8 @@ export const PortalGestorController = {
 
       const quotes = await loadClientQuotes(scope, { veiculoId: vehicle.id });
       const sections = buildVehicleSections(vehicle, quotes, 'portal');
-      return res.json({ infoCadastral: vehicleCard(vehicle), ...sections });
+      const { resumo } = await loadFleetFinancials(scope, { vehicleId: vehicle.id });
+      return res.json({ infoCadastral: vehicleCard(vehicle), ...sections, resumoFinanceiro: resumo });
     } catch (error) {
       return handlePortalError(res, error, 'getVehicle');
     }
@@ -593,64 +601,17 @@ export const PortalGestorController = {
       const inicio = new Date(ano, 0, 1);
       const fim = new Date(ano + 1, 0, 1);
 
-      const [quotes, vehicles] = await Promise.all([loadClientQuotes(scope), loadClientVehiclesFull(scope)]);
-      const receivables = await loadClientReceivables(scope, quotes.map(q => q.id));
+      const { resumo, meses, porVeiculo, receivables } = await loadFleetFinancials(scope, { period: { inicio, fim } });
 
-      const meses = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, pecas: 0, servicos: 0, totalOs: 0, manutencaoExterna: 0, total: 0 }));
-      const porVeiculo = new Map<string, { veiculoId: string | null; placa: string; modelo: string; totalOs: number; manutencaoExterna: number; total: number; quantidadeOs: number }>();
-      const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
-      const keyFor = (veiculoId: string | null, placa: string | null) => veiculoId || `placa:${placa || 'sem-placa'}`;
-      const ensure = (veiculoId: string | null, placa: string | null) => {
-        const k = keyFor(veiculoId, placa);
-        if (!porVeiculo.has(k)) {
-          const v = veiculoId ? vehicleMap.get(veiculoId) : undefined;
-          porVeiculo.set(k, { veiculoId, placa: v?.placa || placa || 'Sem placa', modelo: v ? `${v.marca} ${v.modelo}` : '', totalOs: 0, manutencaoExterna: 0, total: 0, quantidadeOs: 0 });
-        }
-        return porVeiculo.get(k)!;
-      };
-
-      quotes.filter(q => BILLED_STATUSES.includes(q.status) || q.status === 'Parcialmente Pago' || q.status === 'Aguardando Pagamento')
-        .filter(q => q.createdAt >= inicio && q.createdAt < fim)
-        .forEach(q => {
-          const m = meses[q.createdAt.getMonth()];
-          m.pecas += sumItems(q.items, 'peca');
-          m.servicos += sumItems(q.items, 'servico');
-          m.totalOs += q.total;
-          const pv = ensure(q.veiculoId, q.veiculoPlaca);
-          pv.totalOs += q.total;
-          pv.quantidadeOs += 1;
-        });
-
-      vehicles.forEach(v => {
-        buildVehicleSections(v, [], 'portal').manutencoes.forEach(mt => {
-          const d = new Date(mt.data);
-          if (!(d >= inicio && d < fim) || !(mt.valor > 0)) return;
-          meses[d.getMonth()].manutencaoExterna += mt.valor;
-          ensure(v.id, v.placa).manutencaoExterna += mt.valor;
-        });
-      });
-
-      meses.forEach(m => { m.total = m.totalOs + m.manutencaoExterna; });
-      porVeiculo.forEach(p => { p.total = p.totalOs + p.manutencaoExterna; });
-
+      // Títulos lançados pela oficina com vencimento no ano (lista informativa)
       const titulosAno = receivables.filter(r => new Date(r.vencimento) >= inicio && new Date(r.vencimento) < fim);
-      const ativos = titulosAno.filter(r => (r.status || '').toUpperCase() !== 'CANCELADA');
 
       return res.json({
         ano,
-        resumo: {
-          totalOs: meses.reduce((s, m) => s + m.totalOs, 0),
-          pecas: meses.reduce((s, m) => s + m.pecas, 0),
-          servicos: meses.reduce((s, m) => s + m.servicos, 0),
-          manutencaoExterna: meses.reduce((s, m) => s + m.manutencaoExterna, 0),
-          total: meses.reduce((s, m) => s + m.total, 0),
-          pago: ativos.filter(r => isReceived(r.status)).reduce((s, r) => s + r.valor, 0),
-          emAberto: ativos.filter(r => !isReceived(r.status)).reduce((s, r) => s + r.valor, 0),
-          vencido: ativos.filter(isOverdue).reduce((s, r) => s + r.valor, 0),
-        },
+        resumo,
         meses,
-        porVeiculo: Array.from(porVeiculo.values()).sort((a, b) => b.total - a.total),
-        titulos: titulosAno.map(r => ({ ...r, vencido: isOverdue(r) })),
+        porVeiculo,
+        titulos: titulosAno.map(({ alocacoes, ...r }) => ({ ...r, vencido: isOverdue(r) })),
       });
     } catch (error) {
       return handlePortalError(res, error, 'financial');

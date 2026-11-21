@@ -5,7 +5,7 @@ import { Card, EmptyState, Loadable, PageHeader, Stat, StatusBadge, Table, forma
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const COLOR_OS = 'hsl(var(--primary))';
-const COLOR_MANUT = '#64748b';
+const COLOR_SERV = '#64748b';
 
 /**
  * Finanças / DRE da frota do ponto de vista do cliente: custos com a oficina e
@@ -31,12 +31,17 @@ export function PortalFinanceiro() {
       <Loadable state={state}>
         {(d: any) => (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Stat label="Custo total da frota" value={formatCurrency(d.resumo.total)} hint={`${formatCurrency(d.resumo.totalOs)} em OS + ${formatCurrency(d.resumo.manutencaoExterna)} outras manutenções`} />
-              <Stat label="Peças / Mão de obra" value={formatCurrency(d.resumo.pecas)} hint={`Serviços: ${formatCurrency(d.resumo.servicos)}`} />
-              <Stat label="Títulos pagos" value={formatCurrency(d.resumo.pago)} tone="ok" />
-              <Stat label="Em aberto" value={formatCurrency(d.resumo.emAberto)} hint={d.resumo.vencido > 0 ? `${formatCurrency(d.resumo.vencido)} vencido` : 'Nada vencido'} tone={d.resumo.vencido > 0 ? 'danger' : 'default'} />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+              <Stat label="Custo total da frota" value={formatCurrency(d.resumo.total)} hint={`${d.resumo.quantidadeOs} ordens de serviço`} />
+              <Stat label="Peças" value={formatCurrency(d.resumo.pecas)} />
+              <Stat label="Mão de obra / Serviços" value={formatCurrency(d.resumo.servicos)} hint={d.resumo.ajustes !== 0 ? `Descontos/ajustes nas OS: ${formatCurrency(d.resumo.ajustes)}` : undefined} />
+              <Stat label="Pago" value={formatCurrency(d.resumo.pago)} tone="ok" hint={d.resumo.coberto > 0 ? `${formatCurrency(d.resumo.coberto)} coberto (sem cobrança)` : undefined} />
+              <Stat label="Em aberto" value={formatCurrency(d.resumo.emAberto)} hint={d.resumo.vencido > 0 ? `Inclui ${formatCurrency(d.resumo.vencido)} vencido` : 'Nada vencido'} tone={d.resumo.emAberto > 0 ? 'warn' : 'default'} />
+              <Stat label="Vencido" value={formatCurrency(d.resumo.vencido)} tone={d.resumo.vencido > 0 ? 'danger' : 'ok'} />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Ordens de serviço de {d.ano} pela data de abertura: {formatCurrency(d.resumo.totalOs)} = {formatCurrency(d.resumo.pago)} pago + {formatCurrency(d.resumo.emAberto)} em aberto{d.resumo.coberto > 0 ? ` + ${formatCurrency(d.resumo.coberto)} coberto` : ''}.
+            </p>
 
             <Card className="p-4">
               <h2 className="text-sm font-semibold">Custo mensal da frota — {d.ano}</h2>
@@ -51,8 +56,8 @@ export function PortalFinanceiro() {
                       <Tooltip formatter={(v: any) => formatCurrency(Number(v))} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
                         contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="totalOs" name="Ordens de serviço" stackId="c" fill={COLOR_OS} radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="manutencaoExterna" name="Outras manutenções" stackId="c" fill={COLOR_MANUT} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="pecas" name="Peças" stackId="c" fill={COLOR_OS} />
+                      <Bar dataKey="servicos" name="Mão de obra / Serviços" stackId="c" fill={COLOR_SERV} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -62,14 +67,13 @@ export function PortalFinanceiro() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">DRE mensal</h2>
-                <Table head={['Mês', 'Peças', 'Serviços', 'Total OS', 'Outras manut.', 'Total']}>
+                <Table head={['Mês', 'Peças', 'Serviços', ...(d.resumo.ajustes !== 0 ? ['Ajustes'] : []), 'Total']}>
                   {d.meses.map((m: any) => (
                     <tr key={m.mes} className={m.total === 0 ? 'text-muted-foreground' : ''}>
                       <td className="px-4 py-2">{MESES[m.mes - 1]}</td>
                       <td className="px-4 py-2 tabular-nums">{formatCurrency(m.pecas)}</td>
                       <td className="px-4 py-2 tabular-nums">{formatCurrency(m.servicos)}</td>
-                      <td className="px-4 py-2 tabular-nums">{formatCurrency(m.totalOs)}</td>
-                      <td className="px-4 py-2 tabular-nums">{formatCurrency(m.manutencaoExterna)}</td>
+                      {d.resumo.ajustes !== 0 && <td className="px-4 py-2 tabular-nums">{formatCurrency(m.ajustes)}</td>}
                       <td className="px-4 py-2 font-medium tabular-nums">{formatCurrency(m.total)}</td>
                     </tr>
                   ))}
@@ -77,8 +81,7 @@ export function PortalFinanceiro() {
                     <td className="px-4 py-2">Total</td>
                     <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.pecas)}</td>
                     <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.servicos)}</td>
-                    <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.totalOs)}</td>
-                    <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.manutencaoExterna)}</td>
+                    {d.resumo.ajustes !== 0 && <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.ajustes)}</td>}
                     <td className="px-4 py-2 tabular-nums">{formatCurrency(d.resumo.total)}</td>
                   </tr>
                 </Table>
@@ -87,14 +90,13 @@ export function PortalFinanceiro() {
               <Card>
                 <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Custo por veículo</h2>
                 {d.porVeiculo.length === 0 ? <EmptyState message="Sem custos por veículo neste ano." /> : (
-                  <Table head={['Veículo', 'OS', 'Total OS', 'Outras manut.', 'Total']}>
+                  <Table head={['Veículo', 'OS', 'Total', 'Em aberto']}>
                     {d.porVeiculo.map((v: any) => (
                       <tr key={v.veiculoId || v.placa}>
                         <td className="px-4 py-2 font-medium">{v.placa}<span className="block text-xs font-normal text-muted-foreground">{v.modelo}</span></td>
                         <td className="px-4 py-2 tabular-nums">{v.quantidadeOs}</td>
-                        <td className="px-4 py-2 tabular-nums">{formatCurrency(v.totalOs)}</td>
-                        <td className="px-4 py-2 tabular-nums">{formatCurrency(v.manutencaoExterna)}</td>
                         <td className="px-4 py-2 font-medium tabular-nums">{formatCurrency(v.total)}</td>
+                        <td className="px-4 py-2 tabular-nums">{formatCurrency(v.emAberto)}</td>
                       </tr>
                     ))}
                   </Table>
@@ -103,7 +105,7 @@ export function PortalFinanceiro() {
             </div>
 
             <Card>
-              <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Títulos da empresa ({d.ano})</h2>
+              <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Títulos lançados pela oficina (vencimento em {d.ano})</h2>
               {d.titulos.length === 0 ? <EmptyState message="Nenhum título com vencimento neste ano." /> : (
                 <Table head={['Nº', 'Descrição', 'Emissão', 'Vencimento', 'Pagamento', 'Forma', 'Valor', 'Situação']}>
                   {d.titulos.map((t: any) => (
