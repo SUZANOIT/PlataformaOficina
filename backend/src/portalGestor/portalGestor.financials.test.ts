@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { computeFleetFinancials, itemCategories, computeVehicleMonthlySpend, spendMonths, FinQuote, FinAllocation } from './portalGestor.financials';
+import { computeFleetFinancials, itemCategories, computeVehicleMonthlySpend, spendMonths, parseMonthRange, FinQuote, FinAllocation } from './portalGestor.financials';
 
 const d = (y: number, m: number, day = 10) => new Date(y, m - 1, day);
 const now = d(2026, 11, 21);
@@ -85,6 +85,43 @@ results.push(['Gastos por veículo: período sem gastos retorna lista vazia', ()
   assert.strictEqual(r.veiculos.length, 0);
   assert.strictEqual(r.total, 0);
   assert.strictEqual(r.meses.length, 6);
+}]);
+results.push(['Gastos por veículo: período por mês (um mês ou intervalo), com validação', () => {
+  assert.deepStrictEqual(spendMonths({ de: '2026-07', ate: '2026-07' }, now).map(m => m.chave), ['2026-07']);
+  assert.deepStrictEqual(spendMonths({ de: '2025-11', ate: '2026-02' }, now).map(m => m.chave), ['2025-11', '2025-12', '2026-01', '2026-02']);
+  const jul = computeVehicleMonthlySpend({ quotes, vehicles, period: { de: '2026-07', ate: '2026-07' }, now });
+  assert.strictEqual(jul.total, 900);
+  assert.strictEqual(jul.meses.length, 1);
+  const q2 = computeVehicleMonthlySpend({ quotes, vehicles, period: { de: '2026-03', ate: '2026-05' }, now });
+  assert.strictEqual(q2.total, 1000 + 500 + 3000);
+  assert.deepStrictEqual(parseMonthRange('2026-01', '2026-03'), { de: '2026-01', ate: '2026-03' });
+  assert.ok('error' in parseMonthRange('2026-05', '2026-01'));
+  assert.ok('error' in parseMonthRange('2026-13', '2026-12'));
+  assert.ok('error' in parseMonthRange('2024-01', '2026-01'));
+  assert.ok(!('error' in parseMonthRange('2024-02', '2026-01')));
+  assert.ok('error' in parseMonthRange(undefined, '2026-01'));
+}]);
+results.push(['Gastos por veículo: divisão Peças/Serviços x Mão de Obra soma o total (com desconto proporcional)', () => {
+  const r = computeVehicleMonthlySpend({ quotes, vehicles, period: 'ano', now });
+  for (const v of r.veiculos) {
+    v.valores.forEach((val, i) => assert.strictEqual(Math.round((v.pecas[i] + v.maoDeObra[i]) * 100) / 100, val, `${v.placa} mês ${i}`));
+    assert.strictEqual(Math.round((v.totalPecas + v.totalMaoDeObra) * 100) / 100, v.total);
+  }
+  const v1 = r.veiculos.find(v => v.veiculoId === 'v1')!;
+  // mar: Pago 1000 = peça 600 + mão de obra 400
+  assert.strictEqual(v1.pecas[2], 600); assert.strictEqual(v1.maoDeObra[2], 400);
+  // jul: Aprovado 900 com desconto de 100 sobre itens 600 peça + 400 MO -> 540 + 360
+  assert.strictEqual(v1.pecas[6], 540); assert.strictEqual(v1.maoDeObra[6], 360);
+  // ago: Emitir NF 700 só produto
+  assert.strictEqual(v1.pecas[7], 700); assert.strictEqual(v1.maoDeObra[7], 0);
+  // abr: Cobertura 500 só mão de obra
+  assert.strictEqual(v1.pecas[3], 0); assert.strictEqual(v1.maoDeObra[3], 500);
+  // OS sem itens: valor todo em Mão de Obra
+  const semItens = computeVehicleMonthlySpend({ quotes: [{ id: 'x', status: 'Pago', total: 123.45, createdAt: d(2026, 5), veiculoId: 'v1', veiculoPlaca: 'ABC1D23', items: [] }], vehicles, period: 'ano', now });
+  assert.strictEqual(semItens.veiculos[0].maoDeObra[4], 123.45);
+  // Arredondamento: 3 itens iguais em 100,00 continua fechando
+  const tri = computeVehicleMonthlySpend({ quotes: [{ id: 'y', status: 'Pago', total: 100, createdAt: d(2026, 5), veiculoId: 'v1', veiculoPlaca: 'ABC1D23', items: [item('Peça', 1), item('Peça', 1), item('Mão de Obra', 1)] }], vehicles, period: 'ano', now });
+  assert.strictEqual(tri.veiculos[0].pecas[4] + tri.veiculos[0].maoDeObra[4], 100);
 }]);
 let failed = 0;
 for (const [name, fn] of results) {

@@ -6,7 +6,7 @@ const get = async <T = any>(path: string, params?: Record<string, any>) => (awai
 export const portalGestorApi = {
   dashboard: () => get('/dashboard'),
   /** Gastos mensais por veículo (periodo: 6m | 12m | ano). */
-  gastosVeiculos: (periodo: string, veiculoId?: string) => get('/dashboard/gastos-veiculos', { periodo, veiculoId }),
+  gastosVeiculos: (periodo: string, opts: { veiculoId?: string; de?: string; ate?: string } = {}) => get('/dashboard/gastos-veiculos', { periodo, ...opts }),
   empresa: () => get('/empresa'),
   updateEmpresa: async (data: any) => (await api.put('/portal-gestor/empresa', data)).data,
 
