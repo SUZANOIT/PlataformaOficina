@@ -11,12 +11,13 @@ export const portalGestorApi = {
   veiculos: (params?: { status?: string; search?: string }) => get<any[]>('/veiculos', params),
   veiculo: (id: string) => get(`/veiculos/${id}`),
 
-  orcamentos: (params?: { status?: string; veiculoId?: string }) => get<any[]>('/orcamentos', params),
   orcamento: (id: string) => get(`/orcamentos/${id}`),
   aprovar: async (id: string) => (await api.post(`/portal-gestor/orcamentos/${id}/aprovar`)).data,
   recusar: async (id: string, motivo: string) => (await api.post(`/portal-gestor/orcamentos/${id}/recusar`, { motivo })).data,
 
-  ordensServico: (params?: { veiculoId?: string }) => get<any[]>('/ordens-servico', params),
+  /** Orçamentos e OS da empresa, com filtros (servico: todos|pecas|mao-de-obra, status) e paginação. */
+  ordensServico: (params: { servico?: string; status?: string; veiculoId?: string; page?: number; pageSize?: number }) =>
+    get<{ items: any[]; total: number; page: number; pageSize: number; totalPages: number; statusOptions: string[] }>('/ordens-servico', params),
   manutencoes: (params?: { veiculoId?: string }) => get('/manutencoes', params),
   pecas: (params?: { veiculoId?: string }) => get('/pecas', params),
 

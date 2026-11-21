@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useRef, useState } from 'react';
 import { CheckCircle2, Printer, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
 import { QuotePdfTemplate } from '../../components/QuotePdfTemplate';
 import { useGeneratePdf } from '../../hooks/useGeneratePdf';
 import {
-  Card, EmptyState, Field, Loadable, LoadingState, Modal, PageHeader, StatusBadge, Table, VehicleFilter,
+  Card, Field, LoadingState, Modal, StatusBadge, Table,
   btnDanger, btnPrimary, btnSecondary, formatCurrency, formatDate, inputClass, useLoad,
 } from './ui';
 
-function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+/**
+ * Detalhe do orçamento/OS no portal: visualizar, imprimir (PDF), aprovar ou recusar.
+ * Usado na tela Ordens de Serviço (consulta unificada de orçamentos e OS).
+ */
+export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
   const state = useLoad(() => portalGestorApi.orcamento(id), [id]);
   const [mode, setMode] = useState<'view' | 'approve' | 'reject'>('view');
   const [motivo, setMotivo] = useState('');
@@ -134,58 +137,5 @@ function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () 
         </div>
       )}
     </Modal>
-  );
-}
-
-export function PortalOrcamentos() {
-  const [params, setParams] = useSearchParams();
-  const [filtro, setFiltro] = useState<'pendentes' | 'all'>('all');
-  const [veiculoId, setVeiculoId] = useState('');
-  const [openId, setOpenId] = useState<string | null>(params.get('abrir'));
-  const state = useLoad(() => portalGestorApi.orcamentos({ status: filtro, veiculoId: veiculoId || undefined }), [filtro, veiculoId]);
-
-  useEffect(() => {
-    if (!openId && params.get('abrir')) { params.delete('abrir'); setParams(params, { replace: true }); }
-  }, [openId, params, setParams]);
-
-  return (
-    <>
-      <PageHeader title="Orçamentos" description="Visualize, imprima, aprove ou recuse os orçamentos da oficina para a sua frota." />
-      <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
-          <div role="tablist" aria-label="Filtro de orçamentos" className="flex rounded-lg border border-border p-0.5">
-            {([['all', 'Todos'], ['pendentes', 'Aguardando aprovação']] as const).map(([k, label]) => (
-              <button key={k} type="button" role="tab" aria-selected={filtro === k} onClick={() => setFiltro(k)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${filtro === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <VehicleFilter value={veiculoId} onChange={setVeiculoId} />
-        </div>
-        <Loadable state={state}>
-          {(quotes: any[]) => quotes.length === 0 ? <EmptyState message="Nenhum orçamento encontrado." /> : (
-            <Table head={['Nº', 'Data', 'Veículo', 'Itens', 'Valor', 'Status', '']}>
-              {quotes.map(q => (
-                <tr key={q.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-2.5 font-semibold">#{q.numeroOrcamento}</td>
-                  <td className="px-4 py-2.5">{formatDate(q.createdAt)}</td>
-                  <td className="px-4 py-2.5">{q.veiculoPlaca || '—'}</td>
-                  <td className="max-w-xs truncate px-4 py-2.5" title={q.items.map((i: any) => i.descricao).join(', ')}>{q.items.map((i: any) => i.descricao).join(', ')}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{formatCurrency(q.total)}</td>
-                  <td className="px-4 py-2.5"><StatusBadge status={q.status} /></td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button type="button" onClick={() => setOpenId(q.id)} className="text-sm font-medium text-primary hover:underline">
-                      {q.aguardandoAprovacao ? 'Analisar' : 'Ver'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Loadable>
-      </Card>
-      {openId && <QuoteDetailModal id={openId} onClose={() => setOpenId(null)} onChanged={state.reload} />}
-    </>
   );
 }

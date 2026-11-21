@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -57,7 +57,6 @@ import { PortalLayout } from './pages/portalGestor/PortalLayout';
 import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
 import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
 import { PortalVeiculos, PortalVeiculoDetalhe } from './pages/portalGestor/PortalVeiculos';
-import { PortalOrcamentos } from './pages/portalGestor/PortalOrcamentos';
 import { PortalOrdensServico, PortalManutencao, PortalPecas, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
 import { PortalFinanceiro } from './pages/portalGestor/PortalFinanceiro';
 import { PortalMotoristas } from './pages/portalGestor/PortalMotoristas';
@@ -85,6 +84,12 @@ import { TowingRates } from './pages/towing/TowingRates';
 import { TowingFleet } from './pages/towing/TowingFleet';
 import { TowingDrivers } from './pages/towing/TowingDrivers';
 import { TowingDashboard } from './pages/towing/TowingDashboard';
+
+/** Redireciona preservando a query string (ex.: /portal/orcamentos?abrir=<id>). */
+function RedirectKeepingQuery({ to }: { to: string }) {
+  const { search } = useLocation();
+  return <Navigate to={`${to}${search}`} replace />;
+}
 
 function App() {
   return (
@@ -139,7 +144,8 @@ function App() {
               <Route path="empresa" element={<PortalEmpresa />} />
               <Route path="veiculos" element={<PortalVeiculos />} />
               <Route path="veiculos/:id" element={<PortalVeiculoDetalhe />} />
-              <Route path="orcamentos" element={<PortalOrcamentos />} />
+              {/* Orçamentos foi unificada em Ordens de Serviço: links antigos (inclusive ?abrir=) continuam funcionando */}
+              <Route path="orcamentos" element={<RedirectKeepingQuery to="/portal/ordens-servico" />} />
               <Route path="ordens-servico" element={<PortalOrdensServico />} />
               <Route path="manutencao" element={<PortalManutencao />} />
               <Route path="pecas" element={<PortalPecas />} />

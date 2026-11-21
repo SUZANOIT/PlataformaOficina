@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
-import { Card, EmptyState, Loadable, PageHeader, Stat, StatusBadge, Table, VehicleFilter, formatCurrency, formatDate, useLoad } from './ui';
+import { Card, EmptyState, Loadable, PageHeader, Stat, StatusBadge, Table, VehicleFilter, btnSecondary, formatCurrency, formatDate, inputClass, useLoad } from './ui';
+import { QuoteDetailModal } from './QuoteDetailModal';
+import { TablePagination } from '../../components/ui/TablePagination';
 
 const MAINT_LABELS: Record<string, string> = {
   TROCA_OLEO_MOTOR: 'Troca de óleo (motor)',
@@ -17,33 +19,117 @@ const MAINT_LABELS: Record<string, string> = {
   ALTERACAO: 'Alteração',
 };
 
-// ---------------- Ordens de Serviço ----------------
+// ---------------- Ordens de Serviço (consulta unificada de orçamentos e OS) ----------------
+const SERVICO_OPTIONS = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'pecas', label: 'Peças' },
+  { value: 'mao-de-obra', label: 'Mão de Obra' },
+];
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export function PortalOrdensServico() {
-  const [veiculoId, setVeiculoId] = useState('');
-  const state = useLoad(() => portalGestorApi.ordensServico({ veiculoId: veiculoId || undefined }), [veiculoId]);
+  // Filtros e página ficam na URL: são mantidos ao navegar, voltar ou atualizar a página
+  const [params, setParams] = useSearchParams();
+  const servico = params.get('servico') || 'todos';
+  const status = params.get('status') || 'all';
+  const veiculoId = params.get('veiculo') || '';
+  const page = Math.max(1, Number(params.get('page')) || 1);
+  const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.get('pageSize'))) ? Number(params.get('pageSize')) : 10;
+  const openId = params.get('abrir');
+
+  const state = useLoad(
+    () => portalGestorApi.ordensServico({ servico, status, veiculoId: veiculoId || undefined, page, pageSize }),
+    [servico, status, veiculoId, page, pageSize],
+  );
+
+  const update = (changes: Record<string, string | number | null>, resetPage = true) => {
+    const next = new URLSearchParams(params);
+    Object.entries(changes).forEach(([k, v]) => {
+      if (v === null || v === '' || v === 'todos' || v === 'all') next.delete(k); else next.set(k, String(v));
+    });
+    if (resetPage) next.delete('page');
+    setParams(next, { replace: !resetPage });
+  };
+  const hasFilters = servico !== 'todos' || status !== 'all' || !!veiculoId;
+  const clearFilters = () => {
+    const next = new URLSearchParams();
+    if (pageSize !== 10) next.set('pageSize', String(pageSize));
+    setParams(next);
+  };
+
+  const data: any = state.data;
+  const statusOptions: string[] = data?.statusOptions || [];
+
   return (
     <>
-      <PageHeader title="Ordens de Serviço" description="Acompanhe as ordens de serviço aprovadas para os veículos da sua empresa." actions={<VehicleFilter value={veiculoId} onChange={setVeiculoId} />} />
+      <PageHeader title="Ordens de Serviço" description="Consulte e acompanhe os orçamentos e ordens de serviço dos veículos da sua empresa." />
       <Card>
+        <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Serviços</span>
+            <select aria-label="Filtrar por serviços" className={inputClass} value={servico} onChange={e => update({ servico: e.target.value })}>
+              {SERVICO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Status</span>
+            <select aria-label="Filtrar por status" className={inputClass} value={status} onChange={e => update({ status: e.target.value })}>
+              <option value="all">Todos</option>
+              {(statusOptions.length ? statusOptions : status !== 'all' ? [status] : []).map(st => <option key={st} value={st}>{st}</option>)}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Veículo</span>
+            <VehicleFilter value={veiculoId} onChange={v => update({ veiculo: v })} className="w-full" />
+          </label>
+          <button type="button" onClick={clearFilters} disabled={!hasFilters} className={`${btnSecondary} sm:col-span-2 lg:col-span-1`}>
+            Limpar filtros
+          </button>
+        </div>
+
         <Loadable state={state}>
-          {(rows: any[]) => rows.length === 0 ? <EmptyState message="Nenhuma ordem de serviço encontrada." /> : (
-            <Table head={['OS', 'Veículo', 'Serviços', 'Abertura', 'Última atualização', 'Valor', 'Status']}>
-              {rows.map(os => (
-                <tr key={os.id} className="align-top hover:bg-muted/40">
-                  <td className="whitespace-nowrap px-4 py-2.5"><Link to={`/portal/orcamentos?abrir=${os.id}`} className="font-semibold text-primary hover:underline">#{os.numeroOrcamento}</Link>{os.osExterna && <span className="block text-xs text-muted-foreground">OS ext. {os.osExterna}</span>}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5">{os.veiculoPlaca || '—'}</td>
-                  {/* Tipos de item do orçamento da OS: "Peças", "Mão de Obra" ou ambos */}
-                  <td className="whitespace-nowrap px-4 py-2.5">{os.servicos?.length ? os.servicos.join(', ') : '—'}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.createdAt)}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.updatedAt)}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums">{formatCurrency(os.total)}</td>
-                  <td className="px-4 py-2.5"><StatusBadge status={os.status} /></td>
-                </tr>
-              ))}
-            </Table>
+          {(d: any) => d.items.length === 0 ? (
+            <EmptyState message={hasFilters ? 'Nenhuma ordem de serviço encontrada com os filtros selecionados.' : 'Nenhuma ordem de serviço encontrada.'} />
+          ) : (
+            <>
+              <Table head={['OS', 'Veículo', 'Serviços', 'Abertura', 'Última atualização', 'Valor', 'Status', '']}>
+                {d.items.map((os: any) => (
+                  <tr key={os.id} className="hover:bg-muted/40">
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      <button type="button" onClick={() => update({ abrir: os.id }, false)} className="font-semibold text-primary hover:underline">#{os.numeroOrcamento}</button>
+                      {os.osExterna && <span className="block text-xs text-muted-foreground">OS ext. {os.osExterna}</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">{os.veiculoPlaca || '—'}</td>
+                    {/* Tipos de item do orçamento da OS: "Peças", "Mão de Obra" ou ambos */}
+                    <td className="whitespace-nowrap px-4 py-2.5">{os.servicos?.length ? os.servicos.join(', ') : '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.updatedAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 tabular-nums">{formatCurrency(os.total)}</td>
+                    <td className="px-4 py-2.5"><StatusBadge status={os.status} /></td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                      <button type="button" onClick={() => update({ abrir: os.id }, false)} className="text-sm font-medium text-primary hover:underline">
+                        {os.aguardandoAprovacao ? 'Analisar' : 'Ver'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+              <TablePagination
+                currentPage={d.page}
+                totalPages={d.totalPages}
+                totalCount={d.total}
+                pageSize={d.pageSize}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                onPageChange={p => update({ page: p === 1 ? null : p }, false)}
+                onPageSizeChange={size => update({ pageSize: size === 10 ? null : size })}
+              />
+            </>
           )}
         </Loadable>
       </Card>
+      {openId && (
+        <QuoteDetailModal id={openId} onClose={() => update({ abrir: null }, false)} onChanged={state.reload} />
+      )}
     </>
   );
 }
@@ -64,7 +150,7 @@ export function PortalManutencao() {
                 <Table head={['OS', 'Veículo', 'Oficina', 'Prazo', 'Atualizado em', 'Status']}>
                   {d.andamento.map((a: any) => (
                     <tr key={a.id}>
-                      <td className="px-4 py-2.5"><Link to={`/portal/orcamentos?abrir=${a.id}`} className="font-semibold text-primary hover:underline">#{a.numeroOrcamento}</Link></td>
+                      <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${a.id}`} className="font-semibold text-primary hover:underline">#{a.numeroOrcamento}</Link></td>
                       <td className="px-4 py-2.5">{a.veiculoPlaca || '—'}</td>
                       <td className="px-4 py-2.5">{a.oficina || '—'}</td>
                       <td className="px-4 py-2.5">{a.prazoExecucao || '—'}</td>
@@ -121,7 +207,7 @@ export function PortalPecas() {
                     <tr key={p.id}>
                       <td className="whitespace-nowrap px-4 py-2.5">{formatDate(p.data)}</td>
                       <td className="px-4 py-2.5">{p.placa || '—'}</td>
-                      <td className="px-4 py-2.5"><Link to={`/portal/orcamentos?abrir=${p.quoteId}`} className="text-primary hover:underline">#{p.numeroOrcamento}</Link></td>
+                      <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${p.quoteId}`} className="text-primary hover:underline">#{p.numeroOrcamento}</Link></td>
                       <td className="px-4 py-2.5">{p.descricao}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">{[p.codigoPeca, p.tipoPeca].filter(Boolean).join(' · ') || '—'}</td>
                       <td className="px-4 py-2.5 tabular-nums">{p.quantidade}</td>

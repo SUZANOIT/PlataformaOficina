@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { basePrisma } from '../lib/prisma';
 import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
-import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus } from '../utils/quoteReceivables.helper';
+import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus, PENDING_QUOTE_STATUSES } from '../utils/quoteReceivables.helper';
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
-import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, type FinPeriod } from './portalGestor.financials';
+import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
   clientHistoryWhere, findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
@@ -15,6 +16,15 @@ import {
 
 // --------------------------------------------------------------------------
 // Helpers
+// --------------------------------------------------------------------------
+
+/** Status de orçamento/OS existentes no sistema (mesma lista da oficina, QUOTE_STATUS_OPTIONS). */
+const PORTAL_QUOTE_STATUSES = [
+  'Aguardando Aprovação', 'Aprovado', 'Aguardando Pagamento', 'Parcialmente Pago',
+  'Emitir Nota Fiscal', 'Cobertura', 'Pago', 'Cancelado',
+];
+const PAGE_SIZES = [10, 25, 50, 100];
+
 // --------------------------------------------------------------------------
 
 /** Orçamento passou da fase de aprovação (é uma OS em andamento ou concluída). */
@@ -435,24 +445,68 @@ export const PortalGestorController = {
     }
   },
 
-  // ---------------- Ordens de Serviço ----------------
+  // ---------------- Ordens de Serviço (consulta unificada com os orçamentos) ----------------
+  /**
+   * Lista os orçamentos/OS da empresa (a OS é o próprio orçamento aprovado), com
+   * filtros por Serviços (itens reais do orçamento), Status (status existentes)
+   * e veículo, e paginação no banco.
+   *
+   * Query: servico=todos|pecas|mao-de-obra, status=<status>|all, veiculoId,
+   *        page (1..), pageSize (10|25|50|100)
+   */
   async listServiceOrders(req: Request, res: Response) {
     try {
       const scope = getPortalScope(req);
+      const q = req.query as Record<string, string | undefined>;
+
+      const servico = (q.servico || 'todos').toLowerCase();
+      if (!['todos', 'pecas', 'mao-de-obra'].includes(servico)) {
+        return res.status(400).json({ error: 'Filtro de serviços inválido. Use todos, pecas ou mao-de-obra.' });
+      }
+      const status = q.status && q.status !== 'all' ? q.status : null;
+      if (status && !PORTAL_QUOTE_STATUSES.includes(status)) {
+        return res.status(400).json({ error: 'Status inválido.' });
+      }
+      const pageSize = PAGE_SIZES.includes(Number(q.pageSize)) ? Number(q.pageSize) : 10;
+      const requestedPage = Math.max(1, Math.floor(Number(q.page)) || 1);
+
+      const filters: Prisma.QuoteWhereInput[] = [];
+      if (q.veiculoId) filters.push({ veiculoId: q.veiculoId });
+      // "Aguardando Aprovação" inclui os status legados equivalentes (mesma regra da oficina)
+      if (status) filters.push({ status: status === 'Aguardando Aprovação' ? { in: PENDING_QUOTE_STATUSES } : status });
+      if (servico === 'pecas') filters.push({ items: { some: partItemWhere() } });
+      if (servico === 'mao-de-obra') filters.push({ items: { some: { NOT: partItemWhere() } } });
+
       const vehicleIds = await getClientVehicleIds(scope);
+      const where = quoteWhere(scope, vehicleIds, { AND: filters });
+      const total = await basePrisma.quote.count({ where });
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const page = Math.min(requestedPage, totalPages);
+
       const quotes = await basePrisma.quote.findMany({
-        where: quoteWhere(scope, vehicleIds, {
-          status: { notIn: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação', 'Cancelado'] },
-          ...(req.query.veiculoId ? { veiculoId: String(req.query.veiculoId) } : {}),
-        }),
+        where,
         select: {
           ...quoteListSelect,
-          items: { select: { descricao: true, tipo: true, quantidade: true } },
+          items: { select: { tipo: true } },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: [{ updatedAt: 'desc' }, { numeroOrcamento: 'desc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       });
-      // "Última atualização" = data da última alteração da OS (sem expor logs internos da oficina)
-      return res.json(quotes.map(q => ({ ...q, servicos: itemCategories(q.items) })));
+
+      // "Última atualização" = data da última alteração (sem expor logs internos da oficina)
+      return res.json({
+        items: quotes.map(({ items, ...rest }) => ({
+          ...rest,
+          servicos: itemCategories(items),
+          aguardandoAprovacao: isPendingQuoteStatus(rest.status),
+        })),
+        total,
+        page,
+        pageSize,
+        totalPages,
+        statusOptions: PORTAL_QUOTE_STATUSES,
+      });
     } catch (error) {
       return handlePortalError(res, error, 'listServiceOrders');
     }

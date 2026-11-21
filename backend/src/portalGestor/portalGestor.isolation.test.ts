@@ -271,9 +271,9 @@ async function main() {
     const m = await http('GET', '/portal-gestor/manutencoes', tokenX);
     assert.ok(m.body.historico.every((x: any) => x.veiculoId === vX.id));
     assert.ok(m.body.historico.some((x: any) => x.descricao === 'Troca de pneus'));
-    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
-    assert.ok(os.body.every((x: any) => x.id !== qYpaid.id));
-    assert.ok(os.body.some((x: any) => x.id === qXpaid.id));
+    const os = await http('GET', '/portal-gestor/ordens-servico?pageSize=100', tokenX);
+    assert.ok(os.body.items.every((x: any) => x.id !== qYpaid.id && x.id !== qYpending.id));
+    assert.ok(os.body.items.some((x: any) => x.id === qXpaid.id));
   });
   await test('Documentos: só da empresa; download de anexo de outra empresa ou de conta a pagar retorna 404', async () => {
     const r = await http('GET', '/portal-gestor/documentos', tokenX);
@@ -369,7 +369,7 @@ async function main() {
     // Pelo número do orçamento e pela listagem de OS também não vaza
     const byNumber = await http('GET', `/portal-gestor/orcamentos/${qXpending.numeroOrcamento}`, tokenX);
     assert.ok(!byNumber.text.includes('LOG INTERNO'));
-    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
+    const os = await http('GET', '/portal-gestor/ordens-servico?pageSize=100', tokenX);
     assert.ok(!os.text.includes('LOG INTERNO') && !os.text.includes('LOG DE OUTRO CLIENTE') && !os.text.includes('PELO CLIENTE'));
 
     // Requisições manipuladas para a API de histórico da oficina são bloqueadas
@@ -398,8 +398,117 @@ async function main() {
   });
   await test('Atualização feita pela oficina aparece no portal', async () => {
     await db.quote.update({ where: { id: qXpending.id }, data: { status: 'Emitir Nota Fiscal' } });
-    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
-    assert.strictEqual(os.body.find((q: any) => q.id === qXpending.id).status, 'Emitir Nota Fiscal');
+    const os = await http('GET', '/portal-gestor/ordens-servico?pageSize=100', tokenX);
+    assert.strictEqual(os.body.items.find((q: any) => q.id === qXpending.id).status, 'Emitir Nota Fiscal');
+  });
+  await test('OS unificada: filtros por Serviços e Status, combinação e paginação', async () => {
+    const STATUSES = ['Aguardando Aprovação', 'Aprovado', 'Aguardando Pagamento', 'Parcialmente Pago', 'Emitir Nota Fiscal', 'Cobertura', 'Pago', 'Cancelado'];
+    const KINDS = ['pecas', 'mao', 'ambos'] as const;
+    const clientZ = await db.client.create({ data: { nome: 'Frota Z', empresa: 'Frota Z LTDA', cnpj: cnpjFrom(Math.floor(Math.random() * 9e7) + 1e7), companyId: compA.id } });
+    const vZ = await db.vehicle.create({ data: { clienteId: clientZ.id, companyId: compA.id, placa: `Z${SFX}9`.toUpperCase(), marca: 'X', modelo: 'Y', anoFabricacao: 2020, anoModelo: 2020 } });
+    const created: { id: string; status: string; kind: string }[] = [];
+    // 25 registros: todos os status (inclui o legado "Orçamento") x três combinações de itens
+    for (let i = 0; i < 25; i++) {
+      const status = i === 24 ? 'Orçamento' : STATUSES[i % STATUSES.length];
+      const kind = KINDS[i % KINDS.length];
+      const items = kind === 'pecas' ? [{ descricao: 'Peça', quantidade: 1, valorUnitario: 10, valorTotal: 10, tipo: 'Peça', tipoPeca: 'Original' }]
+        : kind === 'mao' ? [{ descricao: 'MO', quantidade: 1, valorUnitario: 10, valorTotal: 10, tipo: 'Mão de Obra' }]
+        : [{ descricao: 'Peça', quantidade: 1, valorUnitario: 10, valorTotal: 10, tipo: 'Peça', tipoPeca: 'Original' }, { descricao: 'MO', quantidade: 1, valorUnitario: 10, valorTotal: 10, tipo: 'Mão de Obra' }];
+      const qz = await db.quote.create({ data: { companyId: compA.id, clientId: clientZ.id, veiculoId: vZ.id, veiculoPlaca: vZ.placa, condicaoPagamento: 'À vista', validade: '7d', subtotal: 10, total: 10, status, updatedAt: new Date(Date.now() - i * 60000), items: { create: items } } });
+      created.push({ id: qz.id, status: status === 'Orçamento' ? 'Aguardando Aprovação' : status, kind });
+    }
+    await http('POST', `/registry/clients/${clientZ.id}/portal-access`, tok(adminA));
+    await db.user.updateMany({ where: { clientId: clientZ.id }, data: { mustChangePassword: false } });
+    const login = await http('POST', '/auth/portal-login', undefined, { cnpj: clientZ.cnpj, password: '#12345678*' });
+    const tz = login.body.token;
+    const list = async (qs: string) => {
+      const r = await http('GET', `/portal-gestor/ordens-servico${qs}`, tz);
+      assert.strictEqual(r.status, 200, r.text);
+      return r.body;
+    };
+    const ids = (arr: any[]) => arr.map(x => x.id).sort();
+    const expect = (f: (c: typeof created[number]) => boolean) => created.filter(f).map(c => c.id).sort();
+    const hasPecas = (c: any) => c.kind !== 'mao';
+    const hasMao = (c: any) => c.kind !== 'pecas';
+
+    // 1) Sem filtros: todos os orçamentos/OS (inclui aguardando aprovação e cancelados), 10 por página
+    const all = await list('');
+    assert.strictEqual(all.total, 25);
+    assert.strictEqual(all.items.length, 10);
+    assert.strictEqual(all.pageSize, 10);
+    assert.strictEqual(all.totalPages, 3);
+    assert.deepStrictEqual(all.statusOptions, STATUSES);
+    assert.ok(all.items.some((x: any) => x.aguardandoAprovacao));
+    const full = await list('?pageSize=100');
+    assert.deepStrictEqual(ids(full.items), expect(() => true));
+    // Serviços exibidos conferem com os itens reais
+    for (const it of full.items) {
+      const c = created.find(cc => cc.id === it.id)!;
+      assert.deepStrictEqual(it.servicos, c.kind === 'pecas' ? ['Peças'] : c.kind === 'mao' ? ['Mão de Obra'] : ['Peças', 'Mão de Obra']);
+    }
+
+    // 2) e 3) Serviços: Peças e Mão de Obra (OS com os dois tipos aparece nos dois filtros)
+    const pecas = await list('?servico=pecas&pageSize=100');
+    assert.deepStrictEqual(ids(pecas.items), expect(hasPecas));
+    assert.strictEqual(pecas.total, expect(hasPecas).length);
+    const mao = await list('?servico=mao-de-obra&pageSize=100');
+    assert.deepStrictEqual(ids(mao.items), expect(hasMao));
+    const ambos = created.filter(c => c.kind === 'ambos').map(c => c.id);
+    assert.ok(ambos.every(id => pecas.items.some((x: any) => x.id === id) && mao.items.some((x: any) => x.id === id)));
+    assert.strictEqual((await list('?servico=todos&pageSize=100')).total, 25);
+
+    // 4) Cada status ("Aguardando Aprovação" inclui o status legado "Orçamento")
+    for (const st of STATUSES) {
+      const r = await list(`?status=${encodeURIComponent(st)}&pageSize=100`);
+      assert.deepStrictEqual(ids(r.items), expect(c => c.status === st), st);
+      assert.ok(r.items.every((x: any) => st === 'Aguardando Aprovação' ? x.aguardandoAprovacao : x.status === st), st);
+    }
+    assert.strictEqual((await list('?status=all')).total, 25);
+
+    // 5) Combinação Serviços + Status
+    for (const st of STATUSES) {
+      const r = await list(`?servico=pecas&status=${encodeURIComponent(st)}&pageSize=100`);
+      assert.deepStrictEqual(ids(r.items), expect(c => hasPecas(c) && c.status === st), `pecas+${st}`);
+      const r2 = await list(`?servico=mao-de-obra&status=${encodeURIComponent(st)}&pageSize=100`);
+      assert.deepStrictEqual(ids(r2.items), expect(c => hasMao(c) && c.status === st), `mao+${st}`);
+    }
+
+    // 6) Paginação com filtro ativo: páginas sem repetição, cobrindo todos os registros filtrados
+    const p1 = await list('?servico=pecas&pageSize=10&page=1');
+    const p2 = await list('?servico=pecas&pageSize=10&page=2');
+    assert.strictEqual(p1.total, expect(hasPecas).length);
+    assert.strictEqual(p1.totalPages, Math.ceil(p1.total / 10));
+    assert.strictEqual(p1.items.length, 10);
+    assert.strictEqual(p2.page, 2);
+    assert.strictEqual(p2.items.length, p1.total - 10);
+    assert.deepStrictEqual([...ids(p1.items), ...ids(p2.items)].sort(), expect(hasPecas));
+    assert.strictEqual(new Set([...p1.items, ...p2.items].map((x: any) => x.id)).size, p1.total);
+    const beyond = await list('?servico=pecas&pageSize=10&page=99');
+    assert.strictEqual(beyond.page, p1.totalPages);
+    for (const size of [25, 50, 100]) assert.strictEqual((await list(`?pageSize=${size}`)).pageSize, size);
+    assert.strictEqual((await list('?pageSize=7')).pageSize, 10);
+    const empty = await list('?servico=pecas&status=Pago&veiculoId=inexistente');
+    assert.strictEqual(empty.total, 0);
+    assert.strictEqual(empty.items.length, 0);
+
+    // Parâmetros inválidos
+    assert.strictEqual((await http('GET', '/portal-gestor/ordens-servico?status=Inventado', tz)).status, 400);
+    assert.strictEqual((await http('GET', '/portal-gestor/ordens-servico?servico=xpto', tz)).status, 400);
+
+    // Isolamento: outra empresa não vê nada de Z, com qualquer filtro
+    const fromX = await http('GET', '/portal-gestor/ordens-servico?pageSize=100&servico=pecas', tokenX);
+    assert.ok(fromX.body.items.every((x: any) => !created.some(c => c.id === x.id)));
+
+    // 7) Painel administrativo: não usa a rota do portal e continua vendo os orçamentos normalmente
+    assert.strictEqual((await http('GET', '/portal-gestor/ordens-servico', tok(adminA))).status, 403);
+    const adminQuotes = await http('GET', '/quotes', tok(adminA));
+    assert.strictEqual(adminQuotes.status, 200);
+    assert.ok(created.every(c => adminQuotes.body.some((x: any) => x.id === c.id)));
+
+    await db.quote.deleteMany({ where: { clientId: clientZ.id } });
+    await db.vehicle.deleteMany({ where: { clienteId: clientZ.id } });
+    await db.user.deleteMany({ where: { clientId: clientZ.id } });
+    await db.client.delete({ where: { id: clientZ.id } });
   });
   await test('Cadastro da empresa: atualiza contato, não altera CNPJ nem dados de outra empresa', async () => {
     const r = await http('PUT', '/portal-gestor/empresa', tokenX, { telefone: '11999990000', cnpj: '00000000000000', nome: 'Hack' });

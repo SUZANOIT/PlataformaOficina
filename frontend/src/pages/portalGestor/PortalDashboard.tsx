@@ -28,13 +28,13 @@ export function PortalDashboard() {
               <Card>
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h2 className="text-sm font-semibold">Orçamentos aguardando sua aprovação</h2>
-                  <Link to="/portal/orcamentos" className="text-xs text-primary hover:underline">Ver todos</Link>
+                  <Link to={`/portal/ordens-servico?status=${encodeURIComponent('Aguardando Aprovação')}`} className="text-xs text-primary hover:underline">Ver todos</Link>
                 </div>
                 {d.ultimosOrcamentos.length === 0 ? <EmptyState message="Nenhum orçamento pendente." /> : (
                   <Table head={['Nº', 'Veículo', 'Data', 'Valor', 'Status']}>
                     {d.ultimosOrcamentos.map((q: any) => (
                       <tr key={q.id} className="hover:bg-muted/40">
-                        <td className="px-4 py-2.5"><Link to={`/portal/orcamentos?abrir=${q.id}`} className="font-medium text-primary hover:underline">#{q.numeroOrcamento}</Link></td>
+                        <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${q.id}`} className="font-medium text-primary hover:underline">#{q.numeroOrcamento}</Link></td>
                         <td className="px-4 py-2.5">{q.veiculoPlaca || '—'}</td>
                         <td className="px-4 py-2.5">{formatDate(q.createdAt)}</td>
                         <td className="px-4 py-2.5 tabular-nums">{formatCurrency(q.total)}</td>
