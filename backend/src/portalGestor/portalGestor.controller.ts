@@ -183,9 +183,7 @@ export const PortalGestorController = {
 
       const now = new Date();
       const in30 = new Date(now.getTime() + 30 * 86400000);
-      const ano = now.getFullYear();
-      // Mesmos números de Finanças / DRE para o ano corrente
-      const { resumo } = await loadFleetFinancials(scope, { period: { inicio: new Date(ano, 0, 1), fim: new Date(ano + 1, 0, 1) } });
+      // Indicadores financeiros ficam na seção Financeiro do Dashboard (GET /financeiro)
 
       const pendentes = quotes.filter(q => isPendingQuoteStatus(q.status));
       const osAbertas = quotes.filter(q => isServiceOrder(q) && q.status !== 'Pago');
@@ -207,8 +205,6 @@ export const PortalGestorController = {
         },
         orcamentosPendentes: { quantidade: pendentes.length, valor: pendentes.reduce((s, q) => s + q.total, 0) },
         ordensEmAndamento: osAbertas.length,
-        ano,
-        financeiro: resumo,
         motoristas: {
           total: drivers.length,
           cnhVencendo: drivers.filter(d => d.validadeCnh && d.validadeCnh <= in30).map(d => ({ id: d.id, nome: d.nome, validadeCnh: d.validadeCnh })),

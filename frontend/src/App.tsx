@@ -58,7 +58,6 @@ import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
 import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
 import { PortalVeiculos, PortalVeiculoDetalhe } from './pages/portalGestor/PortalVeiculos';
 import { PortalOrdensServico, PortalManutencao, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
-import { PortalFinanceiro } from './pages/portalGestor/PortalFinanceiro';
 import { PortalMotoristas } from './pages/portalGestor/PortalMotoristas';
 import { PortalMeuAcesso } from './pages/portalGestor/PortalMeuAcesso';
 import { SaaSAuthGuard } from './components/SaaSAuthGuard';
@@ -149,7 +148,8 @@ function App() {
               <Route path="ordens-servico" element={<PortalOrdensServico />} />
               <Route path="manutencao" element={<PortalManutencao />} />
               <Route path="documentos" element={<PortalDocumentos />} />
-              <Route path="financeiro" element={<PortalFinanceiro />} />
+              {/* Finanças / DRE foi unificada no Dashboard */}
+              <Route path="financeiro" element={<Navigate to="/portal" replace />} />
               <Route path="motoristas" element={<PortalMotoristas />} />
               <Route path="meu-acesso" element={<PortalMeuAcesso />} />
               <Route path="*" element={<Navigate to="/portal" replace />} />
