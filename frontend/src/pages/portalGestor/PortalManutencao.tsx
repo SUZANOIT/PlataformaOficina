@@ -15,17 +15,22 @@ import {
  * Ordem de Serviço informando a quilometragem.
  */
 
+// Fluxo: Solicitação de Orçamento -> Análise da Oficina -> Orçamento / Ordem de Serviço
 const STEPS = [
-  { n: 1, label: 'Orçamento', icon: FileText },
-  { n: 2, label: 'Aprovação da Oficina', icon: ClipboardCheck },
-  { n: 3, label: 'Ordem de Serviço', icon: Wrench },
+  { n: 1, label: 'Solicitação de Orçamento', icon: FileText },
+  { n: 2, label: 'Análise da Oficina', icon: ClipboardCheck },
+  { n: 3, label: 'Orçamento / Ordem de Serviço', icon: Wrench },
 ];
 
-/** Etapa atual do indicador: 1 = novo orçamento; 2 = com a oficina/aprovação; 3 = gerar OS; 4 = concluído. */
+/**
+ * Etapa atual do indicador:
+ * 1 = nova solicitação; 2 = com a oficina (aguardando, recebida, em análise);
+ * 3 = orçamento disponível/aprovado até gerar a OS; 4 = OS gerada (concluído).
+ */
 function currentStep(s: Solicitacao | null) {
   if (!s) return 1;
-  if (s.status === 'APROVADA') return 3;
   if (s.status === 'OS_GERADA') return 4;
+  if (['ORCAMENTO_DISPONIVEL', 'APROVADA', 'RECUSADA_CLIENTE'].includes(s.status)) return 3;
   return 2;
 }
 
@@ -37,7 +42,8 @@ function Stepper({ s }: { s: Solicitacao | null }) {
       {STEPS.map(({ n, label, icon: Icon }) => {
         const done = step > n;
         const active = step === n;
-        const failed = recusada && n === 2;
+        // Recusa pela oficina encerra na etapa 2; recusa do orçamento pelo cliente, na etapa 3
+        const failed = recusada && n === (s?.status === 'RECUSADA_CLIENTE' ? 3 : 2);
         return (
           <li key={n} aria-current={active ? 'step' : undefined}
             className={`flex items-center gap-3 rounded-xl border px-3 py-3 sm:px-4 ${
@@ -48,7 +54,7 @@ function Stepper({ s }: { s: Solicitacao | null }) {
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Etapa {n}</p>
-              <p className={`truncate text-sm font-semibold ${active ? 'text-primary' : 'text-foreground'}`}>{label}</p>
+              <p className={`text-xs font-semibold leading-tight sm:text-sm ${active ? 'text-primary' : 'text-foreground'}`}>{label}</p>
             </div>
           </li>
         );
