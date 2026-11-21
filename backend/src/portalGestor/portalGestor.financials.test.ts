@@ -25,15 +25,14 @@ const allocations: FinAllocation[] = [
   { quoteId: 'aprovado-desconto', valor: 900, status: 'CANCELADA', vencimento: d(2026, 7) }, // ignorado
   { quoteId: 'emitir-nf', valor: 700, status: 'PENDENTE', vencimento: d(2026, 10) }, // vencido
 ];
-const maintenance = [{ veiculoId: 'v1', placa: 'ABC1D23', modelo: 'VW', data: d(2026, 9), valor: 380 }];
 const vehicles = [{ id: 'v1', placa: 'ABC1D23', marca: 'VW', modelo: 'Delivery' }, { id: 'v2', placa: 'DEF4G56', marca: 'MB', modelo: 'Accelo' }];
 
-const r = computeFleetFinancials({ quotes, allocations, maintenance, vehicles, period: { inicio: d(2026, 1, 1), fim: d(2027, 1, 1) }, now });
+const r = computeFleetFinancials({ quotes, allocations, vehicles, period: { inicio: d(2026, 1, 1), fim: d(2027, 1, 1) }, now });
 const s = r.resumo;
 const results: [string, () => void][] = [
   ['Considera só OS do ano (sem pendentes, cancelados e outro ano)', () => { assert.strictEqual(s.quantidadeOs, 6); assert.strictEqual(s.totalOs, 8100); }],
   ['Total das OS = Peças + Mão de obra + Ajustes', () => { assert.strictEqual(s.pecas, 5400); assert.strictEqual(s.servicos, 2800); assert.strictEqual(s.ajustes, -100); assert.strictEqual(s.pecas + s.servicos + s.ajustes, s.totalOs); }],
-  ['Custo total = OS + outras manutenções', () => { assert.strictEqual(s.manutencaoExterna, 380); assert.strictEqual(s.total, 8480); }],
+  ['Custo total = total das OS (sem outras manutenções)', () => { assert.strictEqual(s.total, 8100); assert.strictEqual((s as any).manutencaoExterna, undefined); }],
   ['Pago + Em aberto + Coberto = Total das OS', () => { assert.strictEqual(Math.round((s.pago + s.emAberto + s.coberto) * 100) / 100, s.totalOs); }],
   ['Pago: OS paga + títulos recebidos + entrada sem título', () => { assert.strictEqual(s.pago, 1000 + 1000 + 800); }],
   ['Coberto separado do valor devido', () => { assert.strictEqual(s.coberto, 500); }],
@@ -42,7 +41,7 @@ const results: [string, () => void][] = [
   ['Soma dos meses = resumo', () => { assert.strictEqual(r.meses.reduce((a, m) => a + m.total, 0), s.total); assert.strictEqual(r.meses.reduce((a, m) => a + m.emAberto, 0), s.emAberto); }],
   ['Soma por veículo = resumo', () => { assert.strictEqual(r.porVeiculo.reduce((a, v) => a + v.total, 0), s.total); assert.strictEqual(r.porVeiculo.find(v => v.veiculoId === 'v2')!.totalOs, 3000); }],
   ['Sem período considera todos os anos', () => {
-    const all = computeFleetFinancials({ quotes, allocations, maintenance, vehicles, now });
+    const all = computeFleetFinancials({ quotes, allocations, vehicles, now });
     assert.strictEqual(all.resumo.totalOs, 8100 + 7777);
   }],
 ];

@@ -4,7 +4,7 @@
  * Usada pelo Dashboard, por Finanças / DRE e pelo cockpit do veículo, para que
  * os mesmos números apareçam em todas as telas e sempre fechem entre si:
  *
- *   Custo total      = Total das OS + Outras manutenções
+ *   Custo total      = Total das OS
  *   Total das OS     = Peças + Mão de obra/serviços + Ajustes (descontos/acréscimos)
  *   Total das OS     = Pago + Em aberto + Coberto
  *   Vencido          ⊆ Em aberto
@@ -27,7 +27,6 @@ export interface FinQuote {
 }
 /** Parte de um título (conta a receber) atribuída a uma OS. */
 export interface FinAllocation { quoteId: string; valor: number; status: string; vencimento: Date }
-export interface FinMaintenance { veiculoId: string; placa: string; modelo: string; data: Date; valor: number }
 export interface FinVehicle { id: string; placa: string; marca: string; modelo: string }
 
 export interface FinPeriod { inicio: Date; fim: Date }
@@ -71,7 +70,6 @@ export interface FinSummary {
   pecas: number;
   servicos: number;
   ajustes: number;
-  manutencaoExterna: number;
   total: number;
   pago: number;
   emAberto: number;
@@ -80,7 +78,7 @@ export interface FinSummary {
 }
 
 const emptySummary = (): FinSummary => ({
-  quantidadeOs: 0, totalOs: 0, pecas: 0, servicos: 0, ajustes: 0, manutencaoExterna: 0,
+  quantidadeOs: 0, totalOs: 0, pecas: 0, servicos: 0, ajustes: 0,
   total: 0, pago: 0, emAberto: 0, vencido: 0, coberto: 0,
 });
 
@@ -98,10 +96,10 @@ function addQuote(s: FinSummary, q: FinQuote, pay: ReturnType<typeof paymentStat
   s.coberto += pay.coberto;
 }
 
-const MONEY_FIELDS: (keyof FinSummary)[] = ['totalOs', 'pecas', 'servicos', 'ajustes', 'manutencaoExterna', 'total', 'pago', 'emAberto', 'vencido', 'coberto'];
+const MONEY_FIELDS: (keyof FinSummary)[] = ['totalOs', 'pecas', 'servicos', 'ajustes', 'total', 'pago', 'emAberto', 'vencido', 'coberto'];
 
 function finalize(s: FinSummary): FinSummary {
-  s.total = s.totalOs + s.manutencaoExterna;
+  s.total = s.totalOs;
   MONEY_FIELDS.forEach(k => { s[k] = round(s[k]); });
   return s;
 }
@@ -109,12 +107,11 @@ function finalize(s: FinSummary): FinSummary {
 export function computeFleetFinancials(params: {
   quotes: FinQuote[];
   allocations: FinAllocation[];
-  maintenance: FinMaintenance[];
   vehicles: FinVehicle[];
   period?: FinPeriod;
   now?: Date;
 }) {
-  const { quotes, allocations, maintenance, vehicles, period, now = new Date() } = params;
+  const { quotes, allocations, vehicles, period, now = new Date() } = params;
   const inPeriod = (d: Date) => !period || (d >= period.inicio && d < period.fim);
 
   const allocByQuote = new Map<string, FinAllocation[]>();
@@ -143,14 +140,6 @@ export function computeFleetFinancials(params: {
       addQuote(resumo, q, pay);
       addQuote(meses[new Date(q.createdAt).getMonth()], q, pay);
       addQuote(vehicleRow(q.veiculoId, q.veiculoPlaca), q, pay);
-    });
-
-  maintenance
-    .filter(m => m.valor > 0 && inPeriod(new Date(m.data)))
-    .forEach(m => {
-      resumo.manutencaoExterna += m.valor;
-      meses[new Date(m.data).getMonth()].manutencaoExterna += m.valor;
-      vehicleRow(m.veiculoId, m.placa).manutencaoExterna += m.valor;
     });
 
   finalize(resumo);

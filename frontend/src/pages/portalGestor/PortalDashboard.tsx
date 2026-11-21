@@ -15,7 +15,7 @@ export function PortalDashboard() {
               <Stat label="Veículos" value={d.veiculos.total} hint={`${d.veiculos.ativos} ativos · ${d.veiculos.emManutencao} em manutenção`} />
               <Stat label="Orçamentos aguardando aprovação" value={d.orcamentosPendentes.quantidade} hint={formatCurrency(d.orcamentosPendentes.valor)} tone={d.orcamentosPendentes.quantidade ? 'warn' : 'default'} />
               <Stat label="Ordens de serviço em andamento" value={d.ordensEmAndamento} />
-              <Stat label={`Gasto em ${d.ano}`} value={formatCurrency(d.financeiro.total)} hint={`${d.financeiro.quantidadeOs} OS + outras manutenções`} />
+              <Stat label={`Gasto em ${d.ano}`} value={formatCurrency(d.financeiro.total)} hint={`${d.financeiro.quantidadeOs} ordens de serviço`} />
             </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat label={`Pago em ${d.ano}`} value={formatCurrency(d.financeiro.pago)} tone="ok" hint={d.financeiro.coberto > 0 ? `${formatCurrency(d.financeiro.coberto)} coberto (sem cobrança)` : undefined} />

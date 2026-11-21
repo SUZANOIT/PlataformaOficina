@@ -248,6 +248,7 @@ async function main() {
       assert.ok(!r.text.includes(secret), `vazou: ${secret}`);
     }
     assert.ok(!r.body.financeiro.some((f: any) => f.tipo === 'DESPESA'));
+    assert.ok(!r.body.financeiro.some((f: any) => f.tipo === 'DESPESA_MANUTENCAO'));
     assert.ok(r.body.documentos.some((d: any) => d.nome === 'boleto-x.pdf'));
     assert.ok(r.body.pecas.some((p: any) => p.descricao === 'Filtro de óleo'));
   });
@@ -294,7 +295,10 @@ async function main() {
     assert.ok(joint && joint.valor === 123, JSON.stringify(joint));
     assert.ok(!r.body.titulos.some((t: any) => t.id === recYAttachment.id));
     for (const secret of ['9999', '9876', '75.54', 'SEGREDO']) assert.ok(!r.text.includes(secret), `vazou: ${secret}`);
-    assert.ok(r.body.resumo.manutencaoExterna >= 1500);
+    // Finanças do portal não incluem "outras manutenções" (somente valores das OS)
+    assert.strictEqual(r.body.resumo.manutencaoExterna, undefined);
+    assert.strictEqual(r.body.resumo.total, r.body.resumo.totalOs);
+    assert.strictEqual(Math.round((r.body.resumo.pago + r.body.resumo.emAberto + r.body.resumo.coberto) * 100) / 100, r.body.resumo.totalOs);
   });
 
   // ---------------- Operações ----------------

@@ -212,8 +212,9 @@ export function buildVehicleSections(vehicle: any, quotes: any[], audience: Vehi
   });
 
   // Add maintenance events that have a cost (valor) to the financial history as DESPESA
+  // (somente na Gestão de Frotas; o Portal do Gestor mostra apenas os valores das OS)
   manutencoes.forEach(m => {
-    if (m.valor > 0) {
+    if (!isPortal && m.valor > 0) {
       financeiro.push({
         id: m.id,
         tipo: 'DESPESA_MANUTENCAO',

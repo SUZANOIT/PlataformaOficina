@@ -6,7 +6,7 @@ import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus } from '../utils/quoteReceivables.helper';
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
-import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, type FinMaintenance, type FinPeriod } from './portalGestor.financials';
+import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
   findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
@@ -117,14 +117,9 @@ async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPerio
     loadClientVehiclesFull(scope, opts.vehicleId ? { id: opts.vehicleId } : {}),
   ]);
   const receivables = await loadClientReceivables(scope, quotes.map(q => q.id));
-  const maintenance: FinMaintenance[] = [];
-  vehicles.forEach(v => buildVehicleSections(v, [], 'portal').manutencoes.forEach(m => maintenance.push({
-    veiculoId: v.id, placa: v.placa, modelo: `${v.marca} ${v.modelo}`, data: new Date(m.data), valor: Number(m.valor) || 0,
-  })));
   const result = computeFleetFinancials({
     quotes,
     allocations: receivables.flatMap(r => r.alocacoes),
-    maintenance,
     vehicles,
     period: opts.period,
   });

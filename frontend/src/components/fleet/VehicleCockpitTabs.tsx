@@ -38,11 +38,11 @@ interface Props {
 /** Finanças do veículo sob a ótica do cliente: o que a empresa gastou com o veículo. */
 function PortalVehicleFinance({ financeiro, resumo }: { financeiro: any[]; resumo?: any }) {
   // Indicadores pela mesma regra do Dashboard e de Finanças / DRE (calculados no backend)
-  const r = resumo || { totalOs: 0, manutencaoExterna: 0, total: 0, emAberto: 0, pago: 0 };
+  const r = resumo || { total: 0, pecas: 0, servicos: 0, emAberto: 0, pago: 0 };
   const cards = [
-    { label: 'Serviços na oficina', value: r.totalOs },
-    { label: 'Outras manutenções', value: r.manutencaoExterna },
     { label: 'Custo total do veículo', value: r.total },
+    { label: 'Peças', value: r.pecas },
+    { label: 'Mão de obra / Serviços', value: r.servicos },
     { label: 'Em aberto', value: r.emAberto },
   ];
   return (
