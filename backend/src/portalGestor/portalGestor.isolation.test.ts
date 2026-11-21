@@ -383,6 +383,14 @@ async function main() {
     for (const d of ['LOG INTERNO DO ADMIN', 'LOG INTERNO DO FUNCIONARIO', 'LOG INTERNO DO SISTEMA', 'LOG DE OUTRO CLIENTE', 'APROVADO PELO CLIENTE']) {
       assert.ok(adm.body.some((h: any) => h.description.includes(d)), `admin deveria ver: ${d}`);
     }
+    // Oficina de outro tenant não lê histórico nem anexos de orçamento da oficina A
+    assert.strictEqual((await http('GET', `/quotes/${qXpending.id}/history`, tok(adminB))).status, 404);
+    assert.strictEqual((await http('GET', `/quotes/${qXpaid.id}/s3-attachments`, tok(adminB))).status, 404);
+    assert.strictEqual((await http('DELETE', `/quotes/${qXpaid.id}/s3-attachments/${anexoX.id}`, tok(adminB))).status, 404);
+    assert.ok(await db.anexoNF.findUnique({ where: { id: anexoX.id } }), 'anexo não pode ser apagado por outra oficina');
+    const ownAtt = await http('GET', `/quotes/${qXpaid.id}/s3-attachments`, tok(adminA));
+    assert.strictEqual(ownAtt.status, 200, ownAtt.text);
+    assert.ok(ownAtt.body.some((a: any) => a.id === anexoX.id));
     const all = await db.quoteHistory.count({ where: { quoteId: qXpending.id } });
     assert.strictEqual(adm.body.length, all);
     const admDates = adm.body.map((h: any) => new Date(h.createdAt).getTime());

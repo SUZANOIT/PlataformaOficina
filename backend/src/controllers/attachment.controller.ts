@@ -142,6 +142,11 @@ export const AttachmentController = {
       const quoteId = req.params.id as string;
       const attachmentId = req.params.attachmentId as string;
 
+      // AnexoNF não é filtrado pela extensão de tenant: o orçamento precisa ser da oficina do usuário
+      if (!(await prisma.quote.findFirst({ where: { id: quoteId }, select: { id: true } }))) {
+        return res.status(404).json({ error: 'Anexo não encontrado.' });
+      }
+
       const anexo = await prisma.anexoNF.findUnique({
         where: { id: attachmentId, quoteId }
       });
@@ -184,6 +189,11 @@ export const AttachmentController = {
   async list(req: Request, res: Response) {
     try {
       const quoteId = req.params.id as string;
+
+      // AnexoNF não é filtrado pela extensão de tenant: o orçamento precisa ser da oficina do usuário
+      if (!(await prisma.quote.findFirst({ where: { id: quoteId }, select: { id: true } }))) {
+        return res.status(404).json({ error: 'Orçamento não encontrado.' });
+      }
 
       const anexos = await prisma.anexoNF.findMany({
         where: { quoteId },

@@ -1007,6 +1007,12 @@ export const QuoteController = {
   async getHistory(req: Request, res: Response) {
     try {
       const id = req.params.id as string;
+      // QuoteHistory não é filtrado pela extensão de tenant: confere antes que o
+      // orçamento pertence à oficina do usuário (mesma regra do GET /quotes/:id)
+      const quote = await prisma.quote.findFirst({ where: { id }, select: { id: true } });
+      if (!quote) {
+        return res.status(404).json({ error: 'Quote not found' });
+      }
       const history = await prisma.quoteHistory.findMany({
         where: { quoteId: id },
         orderBy: { createdAt: 'desc' }
