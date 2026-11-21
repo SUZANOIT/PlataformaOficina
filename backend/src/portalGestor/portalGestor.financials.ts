@@ -41,6 +41,17 @@ export const isCancelledStatus = (status?: string | null) =>
 /** Orçamento que já virou Ordem de Serviço (aprovado, em execução, faturado ou pago). */
 export const isServiceOrderStatus = (status: string) => !isPendingQuoteStatus(status) && status !== 'Cancelado';
 
+/**
+ * Categorias dos itens de um orçamento/OS, na ordem "Peças", "Mão de Obra".
+ * Mesma classificação usada no DRE: Peça/Produto = Peças; demais = Mão de Obra.
+ */
+export function itemCategories(items: { tipo?: string | null }[]): string[] {
+  const cats: string[] = [];
+  if (items.some(i => isPartItem(i.tipo))) cats.push('Peças');
+  if (items.some(i => !isPartItem(i.tipo))) cats.push('Mão de Obra');
+  return cats;
+}
+
 export function isPartItem(tipo?: string | null) {
   const t = (tipo || '').toLowerCase();
   return t === 'peça' || t === 'peca' || t === 'produto';

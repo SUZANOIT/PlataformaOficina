@@ -116,6 +116,7 @@ function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () 
           {q.history?.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold">Histórico</h3>
+              <p className="text-xs text-muted-foreground">Ações realizadas pela sua empresa neste orçamento.</p>
               <ol className="mt-2 space-y-2 border-l border-border pl-4 text-sm">
                 {q.history.map((h: any) => (
                   <li key={h.id}>

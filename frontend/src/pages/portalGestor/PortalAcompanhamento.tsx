@@ -27,25 +27,15 @@ export function PortalOrdensServico() {
       <Card>
         <Loadable state={state}>
           {(rows: any[]) => rows.length === 0 ? <EmptyState message="Nenhuma ordem de serviço encontrada." /> : (
-            <Table head={['OS', 'Veículo', 'Serviços', 'Oficina', 'Abertura', 'Última atualização', 'Valor', 'Status']}>
+            <Table head={['OS', 'Veículo', 'Serviços', 'Abertura', 'Última atualização', 'Valor', 'Status']}>
               {rows.map(os => (
                 <tr key={os.id} className="align-top hover:bg-muted/40">
                   <td className="whitespace-nowrap px-4 py-2.5"><Link to={`/portal/orcamentos?abrir=${os.id}`} className="font-semibold text-primary hover:underline">#{os.numeroOrcamento}</Link>{os.osExterna && <span className="block text-xs text-muted-foreground">OS ext. {os.osExterna}</span>}</td>
                   <td className="whitespace-nowrap px-4 py-2.5">{os.veiculoPlaca || '—'}</td>
-                  <td className="min-w-[16rem] max-w-md px-4 py-2.5">
-                    {/* Um serviço/peça por linha, com quebra de texto */}
-                    <ul className="space-y-1">
-                      {os.items.map((i: any, idx: number) => (
-                        <li key={idx} className="whitespace-normal break-words leading-snug">
-                          {i.quantidade > 1 && <span className="tabular-nums text-muted-foreground">{i.quantidade}× </span>}
-                          {i.descricao}
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="min-w-[9rem] px-4 py-2.5">{os.oficina?.nome || '—'}</td>
+                  {/* Tipos de item do orçamento da OS: "Peças", "Mão de Obra" ou ambos */}
+                  <td className="whitespace-nowrap px-4 py-2.5">{os.servicos?.length ? os.servicos.join(', ') : '—'}</td>
                   <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.createdAt)}</td>
-                  <td className="px-4 py-2.5">{os.ultimaAtualizacao ? <>{formatDate(os.ultimaAtualizacao.createdAt)}<span className="block text-xs text-muted-foreground">{os.ultimaAtualizacao.description}</span></> : formatDate(os.updatedAt)}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.updatedAt)}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 tabular-nums">{formatCurrency(os.total)}</td>
                   <td className="px-4 py-2.5"><StatusBadge status={os.status} /></td>
                 </tr>
