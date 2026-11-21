@@ -558,7 +558,17 @@ export const PortalGestorController = {
       const scope = getPortalScope(req);
       const anexo = await basePrisma.anexoNF.findUnique({ where: { id: req.params.id as string } });
       if (!anexo || !(await findScopedQuote(scope, anexo.quoteId))) return res.status(404).json({ error: 'Documento não encontrado' });
-      const url = await S3Service.getPresignedUrl(anexo.arquivo, 300);
+      // Confere o arquivo no armazenamento antes de liberar o link (bucket configurado ou o gravado no anexo)
+      const located = await S3Service.locateObject(anexo.arquivo, [anexo.bucket]);
+      if (!located.ok) {
+        console.error(`[PortalGestor] Download indisponível do anexo ${anexo.id} (${anexo.arquivo}): ${located.reason} ${located.detail || ''}`);
+        AuditLogger.log(scope.userId, scope.companyId, 'PORTAL_GESTOR_DOWNLOAD', `Anexo ${anexo.id} indisponível: ${located.reason}`, 'ERROR');
+        const message = located.reason === 'not_found'
+          ? 'Arquivo indisponível no armazenamento. Entre em contato com a oficina.'
+          : 'Download temporariamente indisponível. Tente novamente mais tarde ou entre em contato com a oficina.';
+        return res.status(located.reason === 'not_found' ? 404 : 503).json({ error: message, code: `STORAGE_${located.reason.toUpperCase()}` });
+      }
+      const url = await S3Service.getPresignedUrlInBucket(located.bucket, anexo.arquivo, 300);
       AuditLogger.log(scope.userId, scope.companyId, 'PORTAL_GESTOR_DOWNLOAD', `Download do anexo ${anexo.id}`, 'SUCCESS');
       return res.json({ url, nome: anexo.nomeOriginal });
     } catch (error) {

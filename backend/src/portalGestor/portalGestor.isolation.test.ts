@@ -119,7 +119,8 @@ async function main() {
   await db.receivableQuoteLink.create({ data: { receivableId: recJoint.id, quoteId: qYpaid.id, valorVinculado: 9876 } });
 
   const anexoY = await db.anexoNF.create({ data: { quoteId: qYpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-y.pdf', arquivo: 'nf/y.pdf', bucket: 'b', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
-  const anexoX = await db.anexoNF.create({ data: { quoteId: qXpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-x.pdf', arquivo: 'nf/x.pdf', bucket: 'b', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
+  const anexoX = await db.anexoNF.create({ data: { quoteId: qXpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-x.pdf', arquivo: 'nf/x.pdf', bucket: process.env.STORAGE_BUCKET || 'b', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
+  const anexoXMissing = await db.anexoNF.create({ data: { quoteId: qXpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-sumida.pdf', arquivo: 'nf/nao-existe.pdf', bucket: 'bucket-antigo', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
 
   await db.vehicleEvent.create({ data: { veiculoId: vX.id, tipo: 'MANUTENCAO', data: new Date(), descricao: 'Troca de pneus', valor: 1500 } });
 
@@ -284,7 +285,23 @@ async function main() {
     const payAtt = await db.financialAttachment.findFirst({ where: { payableId: payable.id } });
     assert.strictEqual((await http('GET', `/portal-gestor/documentos/financeiro/${payAtt.id}/download`, tokenX)).status, 404);
     const ok = await http('GET', `/portal-gestor/documentos/os/${anexoX.id}/download`, tokenX);
-    assert.strictEqual(ok.status, 200, ok.text);
+    if (process.env.STORAGE_ACCESS_KEY) {
+      // Storage configurado (teste com MinIO): arquivo existente gera link no bucket correto
+      assert.strictEqual(ok.status, 200, ok.text);
+      assert.ok(ok.body.url.includes('/nf/x.pdf') && ok.body.url.includes('X-Amz-Credential=') && !ok.body.url.includes('X-Amz-Credential=%2F'), ok.body.url);
+      const file = await fetch(ok.body.url);
+      assert.strictEqual(file.status, 200);
+      // Arquivo ausente no storage: mensagem clara em vez de link quebrado
+      const missing = await http('GET', `/portal-gestor/documentos/os/${anexoXMissing.id}/download`, tokenX);
+      assert.strictEqual(missing.status, 404, missing.text);
+      assert.strictEqual(missing.body.code, 'STORAGE_NOT_FOUND');
+      assert.ok(String(missing.body.error).includes('indisponível'));
+    } else {
+      // Storage sem credenciais: não entrega link quebrado
+      assert.strictEqual(ok.status, 503, ok.text);
+      assert.strictEqual(ok.body.code, 'STORAGE_NOT_CONFIGURED');
+      assert.ok(!ok.text.includes('X-Amz'));
+    }
     const okFin = await http('GET', `/portal-gestor/documentos/financeiro/${recX.attachments[0].id}/download`, tokenX);
     assert.strictEqual(okFin.status, 200);
   });
