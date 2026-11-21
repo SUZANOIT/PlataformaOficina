@@ -35,7 +35,7 @@ export function PortalOrdensServico() {
                   {/* Tipos de item do orçamento da OS: "Peças", "Mão de Obra" ou ambos */}
                   <td className="whitespace-nowrap px-4 py-2.5">{os.servicos?.length ? os.servicos.join(', ') : '—'}</td>
                   <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.createdAt)}</td>
-                  <td className="px-4 py-2.5">{os.ultimaAtualizacao ? <>{formatDate(os.ultimaAtualizacao.createdAt)}<span className="block text-xs text-muted-foreground">{os.ultimaAtualizacao.description}</span></> : formatDate(os.updatedAt)}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5">{formatDate(os.updatedAt)}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 tabular-nums">{formatCurrency(os.total)}</td>
                   <td className="px-4 py-2.5"><StatusBadge status={os.status} /></td>
                 </tr>

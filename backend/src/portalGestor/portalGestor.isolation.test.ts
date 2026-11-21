@@ -343,6 +343,51 @@ async function main() {
     const h = await db.quoteHistory.findFirst({ where: { quoteId: qXreject.id } });
     assert.ok(h.description.includes('RECUSADO PELO CLIENTE') && h.details.includes('Valor acima do esperado'));
   });
+  await test('Histórico: cliente vê só as próprias ações; administrador vê tudo; sem acesso por requisição manipulada', async () => {
+    // Registros de outros responsáveis no orçamento que o cliente X já aprovou
+    const userY = await db.user.findFirst({ where: { clientId: clientY.id } });
+    const t0 = Date.now();
+    await db.quoteHistory.createMany({ data: [
+      { quoteId: qXpending.id, companyId: compA.id, userId: adminA.id, userName: 'Admin A', action: 'PECA_ADICIONADA', description: 'LOG INTERNO DO ADMIN', createdAt: new Date(t0 + 1000) },
+      { quoteId: qXpending.id, companyId: compA.id, userId: orcA.id, userName: 'Orc A', action: 'EDITADO', description: 'LOG INTERNO DO FUNCIONARIO', createdAt: new Date(t0 + 2000) },
+      { quoteId: qXpending.id, companyId: compA.id, userId: null, userName: 'Sistema', action: 'EDITADO', description: 'LOG INTERNO DO SISTEMA', createdAt: new Date(t0 + 3000) },
+      { quoteId: qXpending.id, companyId: compA.id, userId: userY.id, userName: 'Portal Y', action: 'EDITADO', description: 'LOG DE OUTRO CLIENTE', createdAt: new Date(t0 + 4000) },
+    ] });
+    const userX = await db.user.findFirst({ where: { clientId: clientX.id } });
+
+    // Cliente: somente os próprios registros, ordem cronológica decrescente
+    const q = await http('GET', `/portal-gestor/orcamentos/${qXpending.id}`, tokenX);
+    assert.strictEqual(q.status, 200, q.text);
+    assert.ok(q.body.history.length >= 1, 'deveria ter a aprovação do cliente');
+    for (const h of q.body.history) assert.ok(h.description.includes('PELO CLIENTE'), h.description);
+    for (const secret of ['LOG INTERNO', 'LOG DE OUTRO CLIENTE', 'Admin A', 'Orc A']) assert.ok(!q.text.includes(secret), `vazou: ${secret}`);
+    const ownCount = await db.quoteHistory.count({ where: { quoteId: qXpending.id, userId: userX.id } });
+    assert.strictEqual(q.body.history.length, ownCount);
+    const dates = q.body.history.map((h: any) => new Date(h.createdAt).getTime());
+    assert.deepStrictEqual(dates, [...dates].sort((a, b) => b - a));
+
+    // Pelo número do orçamento e pela listagem de OS também não vaza
+    const byNumber = await http('GET', `/portal-gestor/orcamentos/${qXpending.numeroOrcamento}`, tokenX);
+    assert.ok(!byNumber.text.includes('LOG INTERNO'));
+    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
+    assert.ok(!os.text.includes('LOG INTERNO') && !os.text.includes('LOG DE OUTRO CLIENTE') && !os.text.includes('PELO CLIENTE'));
+
+    // Requisições manipuladas para a API de histórico da oficina são bloqueadas
+    for (const path of [`/quotes/${qXpending.id}/history`, `/quotes/${qXpending.id}/history?tenantId=${compA.id}`, `/quotes/${qXpending.id}`]) {
+      assert.strictEqual((await http('GET', path, tokenX)).status, 403, path);
+    }
+
+    // Administrador: histórico completo (cliente, admin, funcionário, sistema), em ordem cronológica
+    const adm = await http('GET', `/quotes/${qXpending.id}/history`, tok(adminA));
+    assert.strictEqual(adm.status, 200, adm.text);
+    for (const d of ['LOG INTERNO DO ADMIN', 'LOG INTERNO DO FUNCIONARIO', 'LOG INTERNO DO SISTEMA', 'LOG DE OUTRO CLIENTE', 'APROVADO PELO CLIENTE']) {
+      assert.ok(adm.body.some((h: any) => h.description.includes(d)), `admin deveria ver: ${d}`);
+    }
+    const all = await db.quoteHistory.count({ where: { quoteId: qXpending.id } });
+    assert.strictEqual(adm.body.length, all);
+    const admDates = adm.body.map((h: any) => new Date(h.createdAt).getTime());
+    assert.deepStrictEqual(admDates, [...admDates].sort((a, b) => b - a));
+  });
   await test('Atualização feita pela oficina aparece no portal', async () => {
     await db.quote.update({ where: { id: qXpending.id }, data: { status: 'Emitir Nota Fiscal' } });
     const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);

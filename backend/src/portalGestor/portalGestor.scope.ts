@@ -75,6 +75,15 @@ export async function findScopedQuote(scope: PortalScope, quoteIdOrNumber: strin
   return basePrisma.quote.findFirst({ where: quoteWhere(scope, vehicleIds, key), include });
 }
 
+/**
+ * Histórico (QuoteHistory) visível no portal: somente as ações feitas pelos
+ * usuários do próprio cliente (User.clientId), na oficina do cliente. Ações de
+ * administradores e funcionários (e eventos sem usuário) não são retornadas.
+ */
+export function clientHistoryWhere(scope: PortalScope): Prisma.QuoteHistoryWhereInput {
+  return { companyId: scope.companyId, user: { is: { clientId: scope.clientId } } };
+}
+
 export async function findScopedVehicle(scope: PortalScope, vehicleId: string) {
   return basePrisma.vehicle.findFirst({ where: vehicleWhere(scope, { id: vehicleId }) });
 }

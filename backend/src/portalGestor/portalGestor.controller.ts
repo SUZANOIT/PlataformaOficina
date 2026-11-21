@@ -9,7 +9,7 @@ import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/ve
 import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import {
-  findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
+  clientHistoryWhere, findScopedQuote, findScopedVehicle, getClientVehicleIds, getPortalScope,
   handlePortalError, onlyDigits, PortalScope, quoteWhere, vehicleWhere,
 } from './portalGestor.scope';
 
@@ -316,7 +316,8 @@ export const PortalGestorController = {
         client: true,
         oficina: { select: { id: true, nome: true, cnpj: true, telefone: true, endereco: true } },
         company: { select: { razaoSocial: true, nomeFantasia: true, cnpj: true, cnpjSemMascara: true, telefone: true, whatsapp: true, email: true, endereco: true, logo: true, inscricaoEstadual: true } },
-        history: { orderBy: { createdAt: 'desc' }, select: { id: true, action: true, description: true, details: true, userName: true, createdAt: true } },
+        // Somente os registros feitos pelo próprio cliente (filtro no banco)
+        history: { where: clientHistoryWhere(scope), orderBy: { createdAt: 'desc' }, select: { id: true, action: true, description: true, details: true, userName: true, createdAt: true } },
       });
       if (!quote) return res.status(404).json({ error: 'Orçamento não encontrado' });
 
@@ -447,11 +448,11 @@ export const PortalGestorController = {
         select: {
           ...quoteListSelect,
           items: { select: { descricao: true, tipo: true, quantidade: true } },
-          history: { orderBy: { createdAt: 'desc' }, take: 1, select: { description: true, createdAt: true } },
         },
         orderBy: { updatedAt: 'desc' },
       });
-      return res.json(quotes.map(q => ({ ...q, servicos: itemCategories(q.items), ultimaAtualizacao: q.history[0] || null, history: undefined })));
+      // "Última atualização" = data da última alteração da OS (sem expor logs internos da oficina)
+      return res.json(quotes.map(q => ({ ...q, servicos: itemCategories(q.items) })));
     } catch (error) {
       return handlePortalError(res, error, 'listServiceOrders');
     }
