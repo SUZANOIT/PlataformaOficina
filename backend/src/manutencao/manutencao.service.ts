@@ -191,22 +191,35 @@ export async function syncWithQuote(s: SolicitacaoFull): Promise<SolicitacaoFull
 
 export interface ClientScope { userId: string; companyId: string; clientId: string }
 
-export async function criarSolicitacao(scope: ClientScope, actor: Actor, input: { vehicleId: string; descricao: string }) {
+export async function criarSolicitacao(scope: ClientScope, actor: Actor, input: { vehicleId: string; descricao: string; km: number }) {
   const vehicle = await basePrisma.vehicle.findFirst({
     where: { id: input.vehicleId, clienteId: scope.clientId, client: { companyId: scope.companyId } },
   });
   if (!vehicle) throw new FlowError(404, 'Veículo não encontrado para a sua empresa.');
+  const km = input.km;
+  if (!Number.isInteger(km) || km <= 0) throw new FlowError(400, 'Informe a KM atual do veículo (número inteiro maior que zero).');
+  if (km < vehicle.kmAtual) {
+    throw new FlowError(400, `A KM informada (${km.toLocaleString('pt-BR')} km) é menor que a última registrada para o veículo (${vehicle.kmAtual.toLocaleString('pt-BR')} km).`, 'KM_MENOR');
+  }
 
   return basePrisma.$transaction(async tx => {
     const created = await tx.solicitacaoOrcamento.create({
       data: {
         companyId: scope.companyId, clientId: scope.clientId, vehicleId: vehicle.id,
-        solicitanteId: scope.userId, descricao: input.descricao, status: 'AGUARDANDO_ANALISE',
+        solicitanteId: scope.userId, descricao: input.descricao, km, status: 'AGUARDANDO_ANALISE',
       },
     });
+    // KM maior que a última registrada passa a ser a KM atual do veículo
+    if (km > vehicle.kmAtual) {
+      await tx.vehicle.update({ where: { id: vehicle.id }, data: { kmAtual: km } });
+      await tx.vehicleEvent.create({
+        data: { veiculoId: vehicle.id, tipo: 'KM', data: new Date(), km, descricao: `KM informado na solicitação de orçamento #${created.protocolo}` },
+      });
+    }
     const s = await reload(tx, created.id);
-    await addHistory(tx, s.id, actor, null, 'AGUARDANDO_ANALISE', 'Solicitação de orçamento enviada à oficina.');
-    await notifyOficina(tx, s, 'NOVA_SOLICITACAO', 'Novo orçamento recebido', [`Problema: ${s.descricao}`], actor, 'primary');
+    const kmTxt = `${km.toLocaleString('pt-BR')} km`;
+    await addHistory(tx, s.id, actor, null, 'AGUARDANDO_ANALISE', `Solicitação de orçamento enviada à oficina (KM atual: ${kmTxt}).`);
+    await notifyOficina(tx, s, 'NOVA_SOLICITACAO', 'Novo orçamento recebido', [`Problema: ${s.descricao}`, `KM atual: ${kmTxt}`], actor, 'primary');
     return reload(tx, s.id);
   });
 }
@@ -416,6 +429,7 @@ export function toView(s: SolicitacaoFull, os?: { numero: number; km: number; cr
     status: s.status,
     statusLabel: SOLICITACAO_STATUS[s.status as SolicitacaoStatus] || s.status,
     descricao: s.descricao,
+    km: s.km ?? null,
     motivoRecusa: s.motivoRecusa,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,

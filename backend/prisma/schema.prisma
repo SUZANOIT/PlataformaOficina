@@ -2184,6 +2184,8 @@ model SolicitacaoOrcamento {
   solicitanteId String?  @map("solicitante_id")
   solicitante   User?    @relation("SolicitacaoSolicitante", fields: [solicitanteId], references: [id], onDelete: SetNull)
   descricao     String   @db.Text
+  // Quilometragem informada pelo gestor ao solicitar o orçamento
+  km            Int?
   // AGUARDANDO_ANALISE, RECEBIDA, EM_ANALISE, ORCAMENTO_DISPONIVEL, APROVADA,
   // RECUSADA_OFICINA, RECUSADA_CLIENTE, OS_GERADA
   status        String   @default("AGUARDANDO_ANALISE")

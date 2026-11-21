@@ -58,6 +58,8 @@ async function main() {
   const clientX = await db.client.create({ data: { nome: 'Frota X', empresa: 'Frota X LTDA', cnpj: CNPJ_X, companyId: compA.id } });
   const clientY = await db.client.create({ data: { nome: 'Frota Y', empresa: 'Frota Y LTDA', cnpj: CNPJ_Y, companyId: compA.id } });
   const vX = await db.vehicle.create({ data: { clienteId: clientX.id, companyId: compA.id, placa: `MX${SFX}`.toUpperCase().slice(0, 7), marca: 'Volkswagen', modelo: 'Delivery', anoFabricacao: 2022, anoModelo: 2022, kmAtual: 50000 } });
+  // KM atual registrada do veículo (a solicitação exige KM ≥ a última registrada)
+  const kmDe = async (v: any) => (await db.vehicle.findUnique({ where: { id: v.id } })).kmAtual as number;
   const vY = await db.vehicle.create({ data: { clienteId: clientY.id, companyId: compA.id, placa: `MY${SFX}`.toUpperCase().slice(0, 7), marca: 'Ford', modelo: 'Cargo', anoFabricacao: 2021, anoModelo: 2021 } });
   const gestorX = await db.user.create({ data: { name: 'Gestor X', email: `m.gx.${SFX}@portal.local`, password: pwd, companyId: compA.id, clientId: clientX.id } });
   const gestorY = await db.user.create({ data: { name: 'Gestor Y', email: `m.gy.${SFX}@portal.local`, password: pwd, companyId: compA.id, clientId: clientY.id } });
@@ -87,11 +89,21 @@ async function main() {
 
   // 1
   await test('1. Cliente seleciona veículo e solicita orçamento (protocolo, data, status)', async () => {
-    assert.strictEqual((await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: '' })).status, 400);
-    assert.strictEqual((await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vY.id, descricao: 'Barulho no freio' })).status, 404);
-    const r = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Barulho ao frear e pedal baixo' });
+    assert.strictEqual((await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: '', km: 50000 })).status, 400);
+    assert.strictEqual((await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vY.id, descricao: 'Barulho no freio', km: 50000 })).status, 404);
+    // KM atual é obrigatória e não pode ser menor que a última registrada
+    const semKm = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Barulho ao frear' });
+    assert.strictEqual(semKm.status, 400);
+    const kmMenor = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Barulho ao frear', km: 49999 });
+    assert.strictEqual(kmMenor.status, 400);
+    assert.strictEqual(kmMenor.body.code, 'KM_MENOR');
+    const r = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Barulho ao frear e pedal baixo', km: 50500 });
     assert.strictEqual(r.status, 201, r.text);
     sol = r.body;
+    assert.strictEqual(sol.km, 50500);
+    assert.strictEqual(sol.veiculo.kmAtual, 50500, 'KM do veículo deve ser atualizada');
+    assert.ok(await db.vehicleEvent.findFirst({ where: { veiculoId: vX.id, tipo: 'KM', km: 50500 } }));
+    assert.ok(sol.historico[0].descricao.includes('50.500 km'));
     assert.ok(Number.isInteger(sol.protocolo) && sol.protocolo > 0);
     assert.strictEqual(sol.status, 'AGUARDANDO_ANALISE');
     assert.strictEqual(sol.statusLabel, 'Aguardando Análise da Oficina');
@@ -153,7 +165,7 @@ async function main() {
     // Não gera OS sem aprovação
     assert.strictEqual((await http('POST', `/portal-gestor/solicitacoes/${sol.id}/ordem-servico`, tX, { km: 51000 })).status, 409);
     // Mesmo orçamento não pode ir para outra solicitação
-    const s2 = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Outra solicitação' });
+    const s2 = await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Outra solicitação', km: await kmDe(vX) });
     assert.strictEqual((await http('POST', `/oficina/solicitacoes/${s2.body.id}/vincular`, tA, { quoteId: quote.id })).status, 409);
   });
 
@@ -169,7 +181,7 @@ async function main() {
   });
 
   await test('6b. Cliente recusa outro orçamento; solicitação "Recusado pelo cliente" e oficina notificada', async () => {
-    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Revisão geral' })).body;
+    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Revisão geral', km: await kmDe(vX) })).body;
     const q = await criarOrcamento(vX.placa, CNPJ_X, 'Frota X');
     await http('POST', `/oficina/solicitacoes/${s.id}/vincular`, tA, { quoteId: q.id });
     const r = await http('POST', `/portal-gestor/orcamentos/${q.id}/recusar`, tX, { motivo: 'Valor acima do previsto' });
@@ -182,7 +194,7 @@ async function main() {
   });
 
   await test('6c. Oficina recusa a solicitação com motivo; cliente notificado; não pode recusar de novo', async () => {
-    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Pintura' })).body;
+    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Pintura', km: await kmDe(vX) })).body;
     assert.strictEqual((await http('POST', `/oficina/solicitacoes/${s.id}/recusar`, tA, {})).status, 400);
     const r = await http('POST', `/oficina/solicitacoes/${s.id}/recusar`, tA, { motivo: 'Não realizamos pintura' });
     assert.strictEqual(r.body.status, 'RECUSADA_OFICINA');
@@ -220,7 +232,7 @@ async function main() {
     assert.strictEqual(again.status, 409);
     assert.ok(String(again.body.error).includes(String(osNumero)));
     // Corrida: duas gerações ao mesmo tempo para outro orçamento aprovado
-    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Troca de óleo' })).body;
+    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Troca de óleo', km: await kmDe(vX) })).body;
     const q = await criarOrcamento(vX.placa, CNPJ_X, 'Frota X');
     await http('POST', `/oficina/solicitacoes/${s.id}/vincular`, tA, { quoteId: q.id });
     await http('POST', `/portal-gestor/orcamentos/${q.id}/aprovar`, tX);
@@ -285,12 +297,12 @@ async function main() {
   });
 
   await test('Oficina altera o orçamento pela tela existente: solicitação acompanha (aprovado / removido)', async () => {
-    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Alinhamento' })).body;
+    const s = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Alinhamento', km: await kmDe(vX) })).body;
     const q = await criarOrcamento(vX.placa, CNPJ_X, 'Frota X');
     await http('POST', `/oficina/solicitacoes/${s.id}/vincular`, tA, { quoteId: q.id });
     await db.quote.update({ where: { id: q.id }, data: { status: 'Aprovado' } });
     assert.strictEqual((await http('GET', `/portal-gestor/solicitacoes/${s.id}`, tX)).body.status, 'APROVADA');
-    const s2 = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Suspensão' })).body;
+    const s2 = (await http('POST', '/portal-gestor/solicitacoes', tX, { vehicleId: vX.id, descricao: 'Suspensão', km: await kmDe(vX) })).body;
     const q2 = await criarOrcamento(vX.placa, CNPJ_X, 'Frota X');
     await http('POST', `/oficina/solicitacoes/${s2.id}/vincular`, tA, { quoteId: q2.id });
     assert.strictEqual((await http('DELETE', `/quotes/${q2.id}`, tA)).status, 204);

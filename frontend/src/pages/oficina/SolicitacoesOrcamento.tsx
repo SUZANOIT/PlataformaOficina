@@ -171,10 +171,11 @@ function SolicitacaoDetalhe({ id }: { id: string }) {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <div className={`${card} p-5`}>
-            <dl className="grid gap-4 sm:grid-cols-3">
+            <dl className="grid gap-4 sm:grid-cols-4">
               <div><dt className="text-xs text-muted-foreground">Cliente</dt><dd className="font-medium">{s.cliente.nome}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Veículo</dt><dd className="font-medium">{s.veiculo.marca} {s.veiculo.modelo}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Placa</dt><dd className="font-medium">{s.veiculo.placa}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">KM na solicitação</dt><dd className="font-medium tabular-nums">{s.km != null ? `${s.km.toLocaleString('pt-BR')} km` : '—'}</dd></div>
             </dl>
             <div className="mt-4">
               <p className="text-xs text-muted-foreground">Problema / serviço desejado</p>
