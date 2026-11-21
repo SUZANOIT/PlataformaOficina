@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ensureClientStorageFolderInBackground } from '../services/clientStorageFolder.service';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
@@ -203,6 +204,8 @@ export const RegistryController = {
         },
       });
       AuditLogger.log(userId, companyId, 'CREATE_CLIENT', `Created client: ${client.nome} (${client.id})`, 'SUCCESS');
+      // Cria a pasta do cliente no storage para as notas fiscais
+      ensureClientStorageFolderInBackground(client.id);
       return res.status(201).json(client);
     } catch (error) {
       if (error instanceof z.ZodError) {

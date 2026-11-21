@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ensureClientStorageFolderInBackground } from '../services/clientStorageFolder.service';
 import { Prisma } from '@prisma/client';
 import { prisma, basePrisma } from '../lib/prisma';
 import { z } from 'zod';
@@ -147,9 +148,12 @@ async function resolveClientForQuote(
     });
   }
 
-  return prisma.client.create({
+  const created = await prisma.client.create({
     data: clientData,
   });
+  // Cliente novo criado pelo orçamento: cria a pasta dele no storage
+  ensureClientStorageFolderInBackground(created.id);
+  return created;
 }
 
 export const QuoteController = {
@@ -396,6 +400,7 @@ export const QuoteController = {
         client = await prisma.client.create({
           data: data.client,
         });
+        ensureClientStorageFolderInBackground(client.id);
       }
 
       // Resolve or create vehicle

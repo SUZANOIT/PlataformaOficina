@@ -42,7 +42,9 @@ export class S3Service {
     fileBuffer: Buffer,
     originalName: string,
     mimeType: string,
-    quoteNumber: string | number
+    quoteNumber: string | number,
+    /** Pasta de destino (ex.: clientes/<cliente>/notas-fiscais/). Sem ela, usa nf/ como antes. */
+    folderPrefix?: string
   ): Promise<{ bucket: string; key: string; contentType: string; size: number; etag?: string }> {
     const uuid = uuidv4();
     const safeOriginalName = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_'); // Previne path traversal e caracteres inválidos
@@ -50,7 +52,8 @@ export class S3Service {
     const ano = date.getFullYear();
     const mes = String(date.getMonth() + 1).padStart(2, '0');
     
-    const key = `nf/${ano}/${mes}/OS-${quoteNumber}/${uuid}-${safeOriginalName}`;
+    const base = folderPrefix ? (folderPrefix.endsWith('/') ? folderPrefix : `${folderPrefix}/`) : 'nf/';
+    const key = `${base}${ano}/${mes}/OS-${quoteNumber}/${uuid}-${safeOriginalName}`;
     const size = fileBuffer.length;
 
     const command = new PutObjectCommand({
@@ -185,6 +188,15 @@ export class S3Service {
     }
 
     return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /**
+   * Cria uma "pasta" no armazenamento principal (objeto vazio terminado em "/"),
+   * que aparece como diretório no painel do storage. Idempotente.
+   */
+  static async createFolder(prefix: string): Promise<void> {
+    const key = prefix.endsWith('/') ? prefix : `${prefix}/`;
+    await s3Client.send(new PutObjectCommand({ Bucket: STORAGE_BUCKET, Key: key, Body: new Uint8Array(0), ContentLength: 0 }));
   }
 
   /** Indica se as credenciais do armazenamento principal estão configuradas (STORAGE_ACCESS_KEY/SECRET_KEY). */
