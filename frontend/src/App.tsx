@@ -4,7 +4,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { CreateQuote } from './pages/CreateQuote';
 import { QuotesList } from './pages/QuotesList';
-import { Register } from './pages/Register';
 import { EmailConfig } from './pages/EmailConfig';
 import { Clients } from './pages/Clients';
 import { ClientDashboard } from './pages/ClientDashboard';
@@ -99,7 +98,8 @@ function App() {
         <BreadcrumbProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* Cadastro público desativado: novas oficinas entram pelo onboarding */}
+            <Route path="/register" element={<Navigate to="/onboarding" replace />} />
             <Route path="/session-expired" element={<SessionExpired />} />
             <Route path="/apresentacao" element={<Presentation />} />
             <Route path="/presentation" element={<Presentation />} />

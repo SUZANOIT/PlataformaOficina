@@ -1,4 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { getJwtSecret } from './lib/security/jwtSecret';
+import { isPlatformAdmin } from './lib/security/platform';
+import { authRateLimit } from './lib/security/loginRateLimiter';
 import { AuthController } from './controllers/auth.controller';
 import { AttachmentController } from './controllers/attachment.controller';
 import multer from 'multer';
@@ -58,7 +61,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
   const [, token] = authHeader.split(' ');
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
     // Token temporário de troca de senha não dá acesso às rotas autenticadas
     if (decoded.requirePasswordChange) {
       return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
@@ -80,12 +83,19 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         roleColaborador: true,
         clientId: true,
         status: true,
+        role: true,
+        tokenVersion: true,
         client: { select: { companyId: true, status: true } },
       }
     });
 
     if (!user) {
       return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    // Sessão revogada (senha trocada ou usuário bloqueado depois da emissão do token)
+    if ((Number(decoded.tv) || 0) !== (user.tokenVersion || 0)) {
+      return res.status(401).json({ error: 'Sessão encerrada. Faça login novamente.', code: 'TOKEN_REVOKED' });
     }
 
     // === Portal do Gestor de Frota ===
@@ -110,6 +120,11 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       (req as any).portalScope = { userId: decoded.id, companyId: user.companyId, clientId: user.clientId };
       const { tenantContext } = require('./lib/tenant-context');
       return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => next());
+    }
+
+    // Usuário bloqueado não acessa o sistema, mesmo com token ainda válido
+    if (user.status !== 'ATIVO') {
+      return res.status(403).json({ error: 'Usuário inativo. Entre em contato com o administrador.', code: 'USER_INACTIVE' });
     }
 
     (req as any).roles = {
@@ -182,10 +197,13 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       }
     }
 
+    // Troca de empresa (?tenantId=) é exclusiva dos administradores da plataforma.
+    // Administradores de oficina ficam sempre presos à própria empresa.
     let effectiveCompanyId = user.companyId;
-    if (user.roleAdmin && req.query.tenantId) {
-      effectiveCompanyId = req.query.tenantId as string;
+    if (req.query.tenantId && isPlatformAdmin(user)) {
+      effectiveCompanyId = String(req.query.tenantId);
     }
+    (req as any).userCompanyId = user.companyId;
 
     (req as any).companyId = effectiveCompanyId;
     const { tenantContext } = require('./lib/tenant-context');
@@ -204,29 +222,19 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-// Route to run prisma db push in production environment
-routes.get('/debug/run-migrate', async (req: Request, res: Response) => {
-  const { exec } = require('child_process');
-  exec('npx prisma db push --accept-data-loss', (err: any, stdout: any, stderr: any) => {
-    return res.json({
-      error: err?.message || null,
-      stdout: stdout || '',
-      stderr: stderr || ''
-    });
-  });
-});
+// Rota pública /debug/run-migrate removida: o schema é aplicado no start do deploy (prisma db push).
 
 // Auth
-routes.post('/auth/register', AuthController.register);
-routes.post('/auth/login', AuthController.login);
+routes.post('/auth/register', authRateLimit(null), AuthController.register);
+routes.post('/auth/login', authRateLimit('email'), AuthController.login);
 routes.get('/auth/me', authMiddleware, (req: Request, res: Response) =>
   (req as any).portalScope ? PortalGestorAuthController.me(req, res) : AuthController.me(req, res));
 // Portal do Gestor de Frota: login com CNPJ (somente números)
-routes.post('/auth/portal-login', PortalGestorAuthController.login);
-routes.post('/api/auth/portal-login', PortalGestorAuthController.login);
+routes.post('/auth/portal-login', authRateLimit('cnpj'), PortalGestorAuthController.login);
+routes.post('/api/auth/portal-login', authRateLimit('cnpj'), PortalGestorAuthController.login);
 // Troca de senha obrigatória no primeiro acesso (token temporário emitido no login)
-routes.post('/auth/force-password-change', AuthController.forcePasswordChange);
-routes.post('/api/auth/force-password-change', AuthController.forcePasswordChange);
+routes.post('/auth/force-password-change', authRateLimit(null), AuthController.forcePasswordChange);
+routes.post('/api/auth/force-password-change', authRateLimit(null), AuthController.forcePasswordChange);
 
 // --- SaaS Client App Routes ---
 
@@ -260,37 +268,13 @@ routes.post('/api/towing/guias/:id/audit', authMiddleware, GuiaTransporteControl
 routes.post('/api/towing/guias/:id/email', authMiddleware, GuiaTransporteController.sendEmail);
 
 routes.get('/nfe/imports', authMiddleware, NfeController.list);
-routes.post('/auth/forgot-password', AuthController.forgotPassword);
+routes.post('/auth/forgot-password', authRateLimit('email'), AuthController.forgotPassword);
 routes.post('/auth/reset-password', AuthController.resetPassword);
-routes.post('/api/auth/login', AuthController.login);
-routes.post('/api/auth/forgot-password', AuthController.forgotPassword);
+routes.post('/api/auth/login', authRateLimit('email'), AuthController.login);
+routes.post('/api/auth/forgot-password', authRateLimit('email'), AuthController.forgotPassword);
 routes.post('/api/auth/reset-password', AuthController.resetPassword);
 
-// ── Rota temporária de emergência para reset de senha ────────────────────────
-routes.post('/auth/emergency-reset', async (req: any, res: any) => {
-  const { email, newPassword, secretKey } = req.body;
-  const EMERGENCY_KEY = process.env.EMERGENCY_RESET_KEY || 'SuzanoIT2026EmergencyReset!';
-  if (secretKey !== EMERGENCY_KEY) {
-    return res.status(403).json({ error: 'Chave inválida' });
-  }
-  try {
-    const { prisma } = await import('./lib/prisma');
-    const bcrypt = await import('bcrypt');
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      const allUsers = await prisma.user.findMany({ select: { email: true, status: true, mustChangePassword: true } });
-      return res.status(404).json({ error: 'Usuário não encontrado', usuarios: allUsers });
-    }
-    const hashed = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { email },
-      data: { password: hashed, mustChangePassword: false, status: 'ATIVO' }
-    });
-    return res.json({ success: true, message: `Senha redefinida para ${email}` });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
+// Rota pública /auth/emergency-reset removida (chave fixa no código permitia trocar a senha de qualquer usuário).
 
 // Proxy ReceitaWS (Bypass CORS)
 routes.get('/api/cnpj/:cnpj', async (req: Request, res: Response) => {
@@ -563,7 +547,7 @@ routes.post('/api/admin/configuracoes', AdminSaaSController.salvarConfiguracoes)
 // ==================================================================
 
 // Autenticação Pública do SaaS Admin Portal
-routes.post('/api/saas/auth/login', SaaSAuthController.login);
+routes.post('/api/saas/auth/login', authRateLimit('email'), SaaSAuthController.login);
 routes.get('/api/saas/auth/me', saasAuthMiddleware, SaaSAuthController.me);
 
 // Rotas Administrativas Privadas Protegidas por RBAC
@@ -643,8 +627,8 @@ routes.post('/onboarding/checkout', onboardingController.checkout);
 // ==========================================
 // Rotas de Webhook (Recebem eventos externos)
 // ==========================================
-routes.post('/api/webhooks/payment', webhookController.handleMockPaymentSuccess);
-routes.post('/webhooks/payment', webhookController.handleMockPaymentSuccess);
+routes.post('/api/webhooks/payment', authRateLimit(null), webhookController.handleMockPaymentSuccess);
+routes.post('/webhooks/payment', authRateLimit(null), webhookController.handleMockPaymentSuccess);
 
 // ==========================================
 // Rotas de Recursos Humanos (HR)

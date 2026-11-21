@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
+import { REVOKE_SESSIONS, signUserToken } from '../lib/security/session';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { basePrisma } from '../lib/prisma';
 import { AuditLogger } from '../utils/audit.logger';
 import { handlePortalError, onlyDigits, PORTAL_INITIAL_PASSWORD, PORTAL_ROLE } from './portalGestor.scope';
 
-const JWT_SECRET = () => process.env.JWT_SECRET || 'secret';
+// Hash fictício: mesmo custo de comparação quando o CNPJ não tem acesso (evita enumeração)
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-not-used', 10);
 
 const loginSchema = z.object({
   cnpj: z.string(),
@@ -73,6 +74,7 @@ export const PortalGestorAuthController = {
       for (const u of candidates) {
         if (await bcrypt.compare(password, u.password)) matches.push(u);
       }
+      if (candidates.length === 0) await bcrypt.compare(password, DUMMY_HASH);
 
       if (matches.length === 0) {
         AuditLogger.log(null, null, 'PORTAL_GESTOR_LOGIN', `Falha de login para CNPJ ${digits}`, 'ERROR');
@@ -100,7 +102,7 @@ export const PortalGestorAuthController = {
       }
 
       if (user.mustChangePassword) {
-        const tempToken = jwt.sign({ id: user.id, requirePasswordChange: true }, JWT_SECRET(), { expiresIn: '1h' });
+        const tempToken = signUserToken(user, { requirePasswordChange: true }, '1h');
         return res.status(403).json({
           error: 'REQUIRE_PASSWORD_CHANGE',
           message: 'Você deve definir uma nova senha no primeiro acesso.',
@@ -108,7 +110,7 @@ export const PortalGestorAuthController = {
         });
       }
 
-      const token = jwt.sign({ id: user.id, portal: true }, JWT_SECRET(), { expiresIn: '1d' });
+      const token = signUserToken(user, { portal: true }, '1d');
       AuditLogger.log(user.id, user.companyId, 'PORTAL_GESTOR_LOGIN', `Login do gestor do cliente ${user.clientId}`, 'SUCCESS');
       return res.json({ token, user: portalUserPayload(user) });
     } catch (error) {
@@ -212,7 +214,7 @@ export const PortalAccessController = {
       if (existing) {
         user = await basePrisma.user.update({
           where: { id: existing.id },
-          data: { password: hashed, mustChangePassword: true, status: 'ATIVO' },
+          data: { password: hashed, mustChangePassword: true, status: 'ATIVO', ...REVOKE_SESSIONS },
           include: { client: true },
         });
         AuditLogger.log((req as any).userId, client.companyId, 'PORTAL_GESTOR_RESET', `Senha inicial redefinida para cliente ${client.id}`, 'SUCCESS');
@@ -248,7 +250,11 @@ export const PortalAccessController = {
       if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
       const existing = await basePrisma.user.findFirst({ where: { clientId: client.id, companyId: client.companyId } });
       if (!existing) return res.status(404).json({ error: 'Este cliente ainda não possui acesso ao portal.' });
-      const user = await basePrisma.user.update({ where: { id: existing.id }, data: { status }, include: { client: true } });
+      const user = await basePrisma.user.update({
+        where: { id: existing.id },
+        data: { status, ...(status === 'INATIVO' ? REVOKE_SESSIONS : {}) },
+        include: { client: true },
+      });
       AuditLogger.log((req as any).userId, client.companyId, 'PORTAL_GESTOR_STATUS', `Acesso ${status} para cliente ${client.id}`, 'SUCCESS');
       return res.json(accessView(user));
     } catch (error) {

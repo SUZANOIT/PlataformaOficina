@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import { REVOKE_SESSIONS } from '../lib/security/session';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -479,7 +481,7 @@ export const AdminSaaSController = {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await prisma.user.update({
         where: { id: admin.id },
-        data: { password: hashedPassword }
+        data: { password: hashedPassword, ...REVOKE_SESSIONS }
       });
 
       await registrarAuditoria(userEmail, 'ALTERACAO', 'Usuarios SaaS', 'Reset senha admin de ' + admin.email);
@@ -509,7 +511,7 @@ export const AdminSaaSController = {
           companyId: saasEmpresa.companyId,
           impersonatorEmail: userEmail // Keep track of the original user
         },
-        process.env.JWT_SECRET || 'fallback-secret-key-mca-oficina-saas-platform-token-sig',
+        getJwtSecret(),
         { expiresIn: '1h' }
       );
 
@@ -886,10 +888,12 @@ export const AdminSaaSController = {
     try {
       const updated = await prisma.user.update({
         where: { id },
-        data: { status: 'INATIVO' }
+        data: { status: 'INATIVO', ...REVOKE_SESSIONS }
       });
       await registrarAuditoria(userEmail, 'ALTERACAO', 'Usuarios SaaS', 'Bloqueio de usuario ' + updated.email);
-      return res.json(updated);
+      // Nunca devolve o hash da senha
+      const { password: _password, ...safeUser } = updated;
+      return res.json(safeUser);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Erro ao bloquear usuário' });
@@ -905,7 +909,9 @@ export const AdminSaaSController = {
         data: { status: 'ATIVO' }
       });
       await registrarAuditoria(userEmail, 'ALTERACAO', 'Usuarios SaaS', 'Desbloqueio de usuario ' + updated.email);
-      return res.json(updated);
+      // Nunca devolve o hash da senha
+      const { password: _password, ...safeUser } = updated;
+      return res.json(safeUser);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Erro ao desbloquear usuário' });
@@ -919,7 +925,7 @@ export const AdminSaaSController = {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       const updated = await prisma.user.update({
         where: { id },
-        data: { password: hashedPassword }
+        data: { password: hashedPassword, ...REVOKE_SESSIONS }
       });
       await registrarAuditoria(userEmail, 'ALTERACAO', 'Usuarios SaaS', 'Redefinir senha de ' + updated.email);
       return res.json({ success: true, message: 'Senha redefinida com sucesso!' });
@@ -941,7 +947,9 @@ export const AdminSaaSController = {
         }
       });
       await registrarAuditoria(userEmail, 'ALTERACAO', 'Usuarios SaaS', 'Alteracao perfil de ' + updated.email + ' para ' + role);
-      return res.json(updated);
+      // Nunca devolve o hash da senha
+      const { password: _password, ...safeUser } = updated;
+      return res.json(safeUser);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Erro ao alterar perfil do usuário' });

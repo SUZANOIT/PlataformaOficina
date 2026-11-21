@@ -574,7 +574,10 @@ async function main() {
   await test('Acesso inativado pela oficina bloqueia o token imediatamente', async () => {
     const r = await http('PUT', `/registry/clients/${clientY.id}/portal-access/status`, tok(adminA), { status: 'INATIVO' });
     assert.strictEqual(r.status, 200, r.text);
-    assert.strictEqual((await http('GET', '/portal-gestor/dashboard', tokenY)).status, 403);
+    // Inativar encerra as sessões abertas (token revogado → 401, o frontend volta para o login)
+    const blocked = await http('GET', '/portal-gestor/dashboard', tokenY);
+    assert.strictEqual(blocked.status, 401, blocked.text);
+    assert.strictEqual(blocked.body.code, 'TOKEN_REVOKED');
   });
   await test('Gastos por veículo: só veículos da empresa, só OS válidas, filtros e períodos', async () => {
     const r = await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=12m', tokenX);

@@ -1,4 +1,5 @@
 import { api } from './api';
+import { authStorage } from '../utils/auth';
 
 /** Cliente HTTP do Portal do Gestor de Frota (todas as rotas são filtradas pela empresa no backend). */
 const get = async <T = any>(path: string, params?: Record<string, any>) => (await api.get<T>(`/portal-gestor${path}`, { params })).data;
@@ -39,7 +40,12 @@ export const portalGestorApi = {
   gerarOrdemServico: async (id: string, km: number) => (await api.post(`/portal-gestor/solicitacoes/${id}/ordem-servico`, { km })).data,
 
   meuAcesso: () => get('/meu-acesso'),
-  trocarSenha: async (senhaAtual: string, novaSenha: string) => (await api.post('/portal-gestor/meu-acesso/senha', { senhaAtual, novaSenha })).data,
+  trocarSenha: async (senhaAtual: string, novaSenha: string) => {
+    const data = (await api.post('/portal-gestor/meu-acesso/senha', { senhaAtual, novaSenha })).data;
+    // A troca de senha encerra as outras sessões; esta continua com o token novo
+    if (data?.token) authStorage.setToken(data.token);
+    return data;
+  },
 };
 
 export const apiErrorMessage = (e: any, fallback = 'Não foi possível concluir a operação.') =>

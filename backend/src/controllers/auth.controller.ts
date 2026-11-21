@@ -1,10 +1,16 @@
 import { Request, Response } from 'express';
+import { getJwtSecret } from '../lib/security/jwtSecret';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
+import { REVOKE_SESSIONS, signUserToken } from '../lib/security/session';
+
+// Hash fictício: mantém o mesmo tempo de resposta quando o e-mail não existe (evita enumeração)
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-not-used', 10);
+const INVALID_CREDENTIALS = { error: 'Invalid credentials' };
 
 const registerSchema = z.object({
   name: z.string().min(3),
@@ -47,6 +53,14 @@ const updateUserSchema = z.object({
 
 export const AuthController = {
   async register(req: Request, res: Response) {
+    // O cadastro público criava um administrador sem empresa (acesso irrestrito aos dados).
+    // Novas oficinas entram pelo onboarding (/onboarding); usuários são criados pelo administrador.
+    if (process.env.ALLOW_PUBLIC_REGISTER !== 'true') {
+      return res.status(403).json({
+        error: 'O cadastro público está desativado. Para contratar, acesse a página de cadastro de oficina (/onboarding).',
+        code: 'PUBLIC_REGISTER_DISABLED',
+      });
+    }
     try {
       const { name, email, password } = registerSchema.parse(req.body);
 
@@ -63,7 +77,7 @@ export const AuthController = {
           name,
           email,
           password: hashedPassword,
-          roleAdmin: true, // Registrations from public register are admins
+          roleAdmin: false, // Cadastro público (quando habilitado) nunca cria administrador
           status: 'ATIVO',
         },
       });
@@ -90,29 +104,31 @@ export const AuthController = {
   },
 
   async login(req: Request, res: Response) {
+    if (!loginSchema.safeParse(req.body).success) {
+      return res.status(400).json({ error: 'Informe e-mail e senha válidos.' });
+    }
     try {
       const { email, password } = loginSchema.parse(req.body);
 
       const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        return res.status(400).json({ error: 'Invalid credentials' });
-      }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        return res.status(400).json({ error: 'Invalid credentials' });
+      // Compara sempre um hash (mesmo sem usuário) para não revelar, pelo tempo, se o e-mail existe
+      const validPassword = await bcrypt.compare(password, user?.password || DUMMY_HASH);
+      if (!user || !validPassword) {
+        return res.status(400).json(INVALID_CREDENTIALS);
       }
 
       // Gestores de frota entram pelo CNPJ (POST /auth/portal-login)
       if (user.clientId) {
-        return res.status(400).json({ error: 'Invalid credentials' });
+        return res.status(400).json(INVALID_CREDENTIALS);
+      }
+
+      if (user.status !== 'ATIVO') {
+        return res.status(403).json({ error: 'Usuário inativo. Entre em contato com o administrador.', code: 'USER_INACTIVE' });
       }
 
       if (user.mustChangePassword) {
         // Enviar um token temporário apenas para a rota de alteração de senha
-        const tempToken = jwt.sign({ id: user.id, requirePasswordChange: true }, process.env.JWT_SECRET || 'secret', {
-          expiresIn: '1h',
-        });
+        const tempToken = signUserToken(user, { requirePasswordChange: true }, '1h');
         return res.status(403).json({ 
           error: 'REQUIRE_PASSWORD_CHANGE', 
           message: 'Você deve redefinir sua senha no primeiro acesso.',
@@ -120,11 +136,9 @@ export const AuthController = {
         });
       }
 
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '1d',
-      });
+      const token = signUserToken(user, {}, '1d');
 
-      console.log(`User logged in: ${user.email} (id=${user.id})`);
+      console.log(`User logged in: id=${user.id}`);
       return res.json({
         user: {
           id: user.id,
@@ -381,6 +395,10 @@ export const AuthController = {
       if (parsedData.password && parsedData.password.length >= 6) {
         updateData.password = await bcrypt.hash(parsedData.password, 10);
       }
+      // Senha trocada ou usuário bloqueado: encerra as sessões abertas dele
+      if (updateData.password || updateData.status === 'INATIVO') {
+        Object.assign(updateData, REVOKE_SESSIONS);
+      }
 
       const updatedUser = await prisma.user.update({
         where: { id },
@@ -593,24 +611,19 @@ export const AuthController = {
     }
   },
   async forgotPassword(req: Request, res: Response) {
+    // Resposta idêntica exista ou não o e-mail (evita enumeração de usuários).
+    // O envio real do link ainda não está implementado; nenhum token é devolvido ao cliente.
+    const generic = { success: true, message: 'Se o e-mail estiver cadastrado, você receberá as instruções de redefinição.' };
     try {
-      const { email } = req.body;
-      const user = await prisma.user.findFirst({
-        where: { email }
-      });
-      if (!user) {
-        return res.status(404).json({ error: 'Usuário não encontrado com este e-mail' });
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+      if (email) {
+        const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
+        if (user) console.log(`Password reset requested for user id=${user.id}`);
       }
-
-      console.log(`Password reset requested for email: ${email}`);
-      return res.json({
-        success: true,
-        message: 'Link de redefinição de senha enviado para o seu e-mail.',
-        token: 'mock-reset-token-12345'
-      });
+      return res.json(generic);
     } catch (error) {
-      console.error('Error in forgotPassword:', error);
-      return res.status(500).json({ error: 'Erro ao processar solicitação de redefinição de senha' });
+      console.error('Error in forgotPassword:', (error as any)?.message || error);
+      return res.json(generic);
     }
   },
 
@@ -645,15 +658,16 @@ export const AuthController = {
       }
 
       // Valida o token temporário
-      const decoded = jwt.verify(tempToken, process.env.JWT_SECRET || 'secret') as any;
+      const decoded = jwt.verify(tempToken, getJwtSecret()) as any;
       
       if (!decoded.requirePasswordChange) {
         return res.status(400).json({ error: 'Token inválido para esta operação' });
       }
 
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
-      if (!user) {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
+      // Token já usado (senha trocada depois da emissão) não pode ser reaproveitado
+      if (!user || (Number(decoded.tv) || 0) !== (user.tokenVersion || 0)) {
+        return res.status(400).json({ error: 'Token inválido ou expirado.' });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -663,7 +677,8 @@ export const AuthController = {
         where: { id: user.id },
         data: { 
           password: hashedPassword,
-          mustChangePassword: false 
+          mustChangePassword: false,
+          ...REVOKE_SESSIONS,
         }
       });
 
@@ -680,8 +695,12 @@ export const AuthController = {
 
       return res.json({ message: 'Senha redefinida com sucesso. Faça o login novamente.' });
     } catch (error) {
-      console.error('Error on force password change:', error);
-      return res.status(500).json({ error: 'Token inválido ou expirado.' });
+      const name = (error as any)?.name;
+      if (name === 'TokenExpiredError' || name === 'JsonWebTokenError') {
+        return res.status(400).json({ error: 'Token inválido ou expirado.' });
+      }
+      console.error('Error on force password change:', (error as any)?.message || error);
+      return res.status(500).json({ error: 'Não foi possível redefinir a senha.' });
     }
   }
 };

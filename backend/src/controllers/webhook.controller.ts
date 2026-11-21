@@ -77,7 +77,8 @@ export class WebhookController {
       });
 
       // Simulação do envio de e-mail aconteceria aqui
-      console.log(`E-mail enviado para ${preTenant.email} com a senha: ${preTenant.cnpj}@Suzano2026`);
+      // Nunca registrar a senha gerada em log
+      console.log(`Oficina provisionada (preTenant=${preTenant.id}); credenciais de primeiro acesso enviadas ao e-mail cadastrado.`);
 
       res.json({ success: true, message: 'Oficina ativada com sucesso.' });
     } catch (error) {

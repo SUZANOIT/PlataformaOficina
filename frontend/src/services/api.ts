@@ -38,7 +38,9 @@ api.interceptors.response.use(
     const errorMessage = errorData?.error || errorData?.message || '';
     
     // Sessions check
-    const isUnauthorized = status === 401;
+    const errorCode = (error.response?.data as { code?: string } | undefined)?.code;
+    // 401 (sessão expirada/revogada) ou usuário bloqueado depois do login
+    const isUnauthorized = status === 401 || (status === 403 && errorCode === 'USER_INACTIVE');
     const hasInvalidTokenMsg = 
       errorMessage.toLowerCase().includes('token not provided') ||
       errorMessage.toLowerCase().includes('invalid token') ||

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../lib/prisma';
+import { basePrisma as prisma } from '../lib/prisma';
+import { isPlatformAdmin } from '../lib/security/platform';
 
 export const saasAdminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const companyId = (req as any).companyId;
@@ -15,7 +16,8 @@ export const saasAdminMiddleware = async (req: Request, res: Response, next: Nex
     });
 
     // Apenas administradores da MCA Gestão de Oficina (MCA CARD) podem acessar
-    if (user?.roleAdmin && companyId === 'mca-padrao-company-uuid-000000000001') {
+    // Avalia o cadastro do usuário, não a empresa escolhida via ?tenantId
+    if (isPlatformAdmin(user)) {
       return next();
     }
 
