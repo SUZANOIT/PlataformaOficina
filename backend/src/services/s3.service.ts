@@ -2,16 +2,24 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, Head
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
-// Utilizando variáveis de ambiente (com fallbacks para evitar erros de tipagem, mas o ideal é que estejam preenchidas)
-const STORAGE_ENDPOINT = process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
-const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j';
-const STORAGE_ACCESS_KEY = process.env.STORAGE_ACCESS_KEY || '';
-const STORAGE_SECRET_KEY = process.env.STORAGE_SECRET_KEY || '';
-
 const GUIA_IMPOSTO_ENDPOINT = process.env.GUIA_IMPOSTO_STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
 const GUIA_IMPOSTO_BUCKET = process.env.GUIA_IMPOSTO_STORAGE_BUCKET || 'stocked-crate-y-ubqvwuxrv';
 const GUIA_IMPOSTO_ACCESS_KEY = process.env.GUIA_IMPOSTO_STORAGE_ACCESS_KEY || '';
 const GUIA_IMPOSTO_SECRET_KEY = process.env.GUIA_IMPOSTO_STORAGE_SECRET_KEY || '';
+
+/**
+ * Armazenamento principal (anexos de OS / notas fiscais).
+ * Usa STORAGE_* quando as credenciais estão configuradas. Sem elas, usa o
+ * mesmo storage das guias de imposto (GUIA_IMPOSTO_STORAGE_*), que é o bucket
+ * "documentos" do projeto. As quatro variáveis vêm sempre do mesmo conjunto.
+ */
+const useMainStorageVars = !!(process.env.STORAGE_ACCESS_KEY && process.env.STORAGE_SECRET_KEY);
+const STORAGE_ENDPOINT = useMainStorageVars ? (process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev') : GUIA_IMPOSTO_ENDPOINT;
+const STORAGE_BUCKET = useMainStorageVars ? (process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j') : GUIA_IMPOSTO_BUCKET;
+const STORAGE_ACCESS_KEY = useMainStorageVars ? (process.env.STORAGE_ACCESS_KEY || '') : GUIA_IMPOSTO_ACCESS_KEY;
+const STORAGE_SECRET_KEY = useMainStorageVars ? (process.env.STORAGE_SECRET_KEY || '') : GUIA_IMPOSTO_SECRET_KEY;
+
+console.log(`[Storage] Anexos de OS: bucket ${STORAGE_BUCKET} (${useMainStorageVars ? 'STORAGE_*' : 'credenciais das guias de imposto'})${STORAGE_ACCESS_KEY ? '' : ' — SEM CREDENCIAIS'}`);
 const GUIA_IMPOSTO_PREFIX = 'guia_imposto';
 
 const s3Client = new S3Client({

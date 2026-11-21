@@ -285,8 +285,8 @@ async function main() {
     const payAtt = await db.financialAttachment.findFirst({ where: { payableId: payable.id } });
     assert.strictEqual((await http('GET', `/portal-gestor/documentos/financeiro/${payAtt.id}/download`, tokenX)).status, 404);
     const ok = await http('GET', `/portal-gestor/documentos/os/${anexoX.id}/download`, tokenX);
-    if (process.env.STORAGE_ACCESS_KEY) {
-      // Storage configurado (teste com MinIO): arquivo existente gera link no bucket correto
+    if (process.env.STORAGE_ACCESS_KEY || process.env.GUIA_IMPOSTO_STORAGE_ACCESS_KEY) {
+      // Storage configurado (STORAGE_* ou credenciais das guias de imposto): arquivo existente gera link no bucket correto
       assert.strictEqual(ok.status, 200, ok.text);
       assert.ok(ok.body.url.includes('/nf/x.pdf') && ok.body.url.includes('X-Amz-Credential=') && !ok.body.url.includes('X-Amz-Credential=%2F'), ok.body.url);
       const file = await fetch(ok.body.url);
