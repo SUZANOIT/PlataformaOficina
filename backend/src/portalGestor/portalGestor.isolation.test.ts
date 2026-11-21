@@ -1,0 +1,403 @@
+/**
+ * Teste de integração do Portal do Gestor de Frota: isolamento entre empresas,
+ * bloqueio de rotas administrativas, operações e ocultação de dados internos.
+ *
+ * Cria dados próprios (sufixo aleatório) e remove ao final. Exige um banco de
+ * TESTE explicitamente sinalizado:
+ *
+ *   PORTAL_GESTOR_TEST_DB=1 DATABASE_URL=postgresql://... npx ts-node --transpile-only src/portalGestor/portalGestor.isolation.test.ts
+ */
+import assert from 'assert';
+import { AddressInfo } from 'net';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+if (process.env.PORTAL_GESTOR_TEST_DB !== '1') {
+  console.error('Defina PORTAL_GESTOR_TEST_DB=1 e um DATABASE_URL de teste para executar.');
+  process.exit(1);
+}
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'portal-gestor-test-secret';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { app } = require('../app');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { basePrisma: db } = require('../lib/prisma');
+
+const SFX = Math.random().toString(36).slice(2, 8);
+const cnpjFrom = (n: number) => `${String(n).padStart(8, '0')}0001${String(n % 100).padStart(2, '0')}`.slice(0, 14);
+const CNPJ_X = cnpjFrom(Math.floor(Math.random() * 9e7) + 1e7);
+const CNPJ_Y = cnpjFrom(Math.floor(Math.random() * 9e7) + 1e7);
+const mask = (c: string) => `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}`;
+
+let base = '';
+const results: { name: string; ok: boolean; err?: string }[] = [];
+
+async function http(method: string, path: string, token?: string, body?: any) {
+  const r = await fetch(base + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await r.text();
+  let json: any = null;
+  try { json = text ? JSON.parse(text) : null; } catch { json = text; }
+  return { status: r.status, body: json, text };
+}
+
+async function test(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+    results.push({ name, ok: true });
+  } catch (e: any) {
+    results.push({ name, ok: false, err: e?.message || String(e) });
+  }
+}
+
+async function main() {
+  const server = app.listen(0);
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+  // ---------------- Seed ----------------
+  const pwd = await bcrypt.hash('Admin@123', 10);
+  const compA = await db.company.create({ data: { razaoSocial: `Oficina A ${SFX}`, cnpj: `A${SFX}`, cnpjSemMascara: `A${SFX}` } });
+  const compB = await db.company.create({ data: { razaoSocial: `Oficina B ${SFX}`, cnpj: `B${SFX}`, cnpjSemMascara: `B${SFX}` } });
+  const adminA = await db.user.create({ data: { name: 'Admin A', email: `admina.${SFX}@t.local`, password: pwd, roleAdmin: true, companyId: compA.id } });
+  const adminB = await db.user.create({ data: { name: 'Admin B', email: `adminb.${SFX}@t.local`, password: pwd, roleAdmin: true, companyId: compB.id } });
+  const orcA = await db.user.create({ data: { name: 'Orc A', email: `orca.${SFX}@t.local`, password: pwd, roleOrcamentista: true, companyId: compA.id } });
+  const tok = (u: any) => jwt.sign({ id: u.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+
+  const clientX = await db.client.create({ data: { nome: 'Transportes X', empresa: 'Transportes X LTDA', cnpj: mask(CNPJ_X), companyId: compA.id } });
+  const clientY = await db.client.create({ data: { nome: 'Logística Y', empresa: 'Logística Y SA', cnpj: CNPJ_Y, companyId: compA.id } });
+  const clientXinB = await db.client.create({ data: { nome: 'Transportes X (B)', cnpj: CNPJ_X, companyId: compB.id } });
+  const clientXdup = await db.client.create({ data: { nome: 'Transportes X duplicado', cnpj: CNPJ_X, companyId: compA.id } });
+
+  const vX = await db.vehicle.create({ data: { clienteId: clientX.id, companyId: compA.id, placa: `X${SFX}1`.toUpperCase(), marca: 'VW', modelo: 'Delivery', anoFabricacao: 2022, anoModelo: 2023 } });
+  const vY = await db.vehicle.create({ data: { clienteId: clientY.id, companyId: compA.id, placa: `Y${SFX}1`.toUpperCase(), marca: 'MB', modelo: 'Accelo', anoFabricacao: 2021, anoModelo: 2021 } });
+
+  const mkQuote = (clientId: string, v: any, status: string, extra: any = {}) => db.quote.create({
+    data: {
+      companyId: compA.id, clientId, condicaoPagamento: 'À vista', validade: '7 dias', subtotal: 1000, total: 1000, status,
+      veiculoId: v.id, veiculoPlaca: v.placa,
+      items: { create: [
+        { descricao: 'Filtro de óleo', quantidade: 2, valorUnitario: 100, valorTotal: 200, tipo: 'Peça', tipoPeca: 'Original', valorCompraFornecedor: 37.77 },
+        { descricao: 'Mão de obra', quantidade: 1, valorUnitario: 800, valorTotal: 800, tipo: 'Serviço' },
+      ] },
+      ...extra,
+    },
+  });
+  const qXpending = await mkQuote(clientX.id, vX, 'Aguardando Aprovação');
+  const qXparcelado = await mkQuote(clientX.id, vX, 'Aguardando Aprovação', { condicaoPagamento: 'Parcelado', parcelas: 2, valorEntrada: 200 });
+  const qXreject = await mkQuote(clientX.id, vX, 'Aguardando Aprovação');
+  const qXpaid = await mkQuote(clientX.id, vX, 'Pago');
+  const qYpending = await mkQuote(clientY.id, vY, 'Aguardando Aprovação');
+  const qYpaid = await mkQuote(clientY.id, vY, 'Pago');
+
+  // Conta a pagar (custo interno) vinculada à OS paga de X, com anexo de fornecedor
+  const payable = await db.financialPayable.create({ data: {
+    companyId: compA.id, fornecedor: 'Fornecedor Secreto', categoria: 'Peças', centroCusto: 'Oficina', descricao: 'NF fornecedor SEGREDO-INTERNO',
+    valor: 75.54, dataEmissao: new Date(), vencimento: new Date(), formaPagamento: 'Boleto', responsavel: 'x',
+    attachments: { create: [{ fileName: 'nf-fornecedor-SEGREDO.pdf', fileType: 'PDF', fileUrl: 'https://internal/SEGREDO.pdf' }] },
+  } });
+  await db.payableQuoteLink.create({ data: { payableId: payable.id, quoteId: qXpaid.id, valorVinculado: 75.54 } });
+
+  // Recebível direto da OS de X (com anexo) e recebível conjunto X+Y (faturamento único)
+  const recX = await db.financialReceivable.create({ data: {
+    companyId: compA.id, cliente: 'Transportes X', categoria: 'Serviços', descricao: 'Fatura OS X', valor: 1000,
+    dataEmissao: new Date(), vencimento: new Date(), formaRecebimento: 'Boleto', responsavel: 'x', status: 'RECEBIDA', quoteId: qXpaid.id,
+    attachments: { create: [{ fileName: 'boleto-x.pdf', fileType: 'PDF', fileUrl: 'https://files/boleto-x.pdf' }] },
+  }, include: { attachments: true } });
+  const recYAttachment = await db.financialReceivable.create({ data: {
+    companyId: compA.id, cliente: 'Logística Y', categoria: 'Serviços', descricao: 'Fatura OS Y', valor: 1000,
+    dataEmissao: new Date(), vencimento: new Date(), formaRecebimento: 'Boleto', responsavel: 'x', quoteId: qYpaid.id,
+    attachments: { create: [{ fileName: 'boleto-y.pdf', fileType: 'PDF', fileUrl: 'https://files/boleto-y.pdf' }] },
+  }, include: { attachments: true } });
+  const recJoint = await db.financialReceivable.create({ data: {
+    companyId: compA.id, cliente: 'Plataforma', categoria: 'Serviços', descricao: 'Faturamento conjunto', valor: 9999,
+    dataEmissao: new Date(), vencimento: new Date(), formaRecebimento: 'Boleto', responsavel: 'x',
+  } });
+  await db.receivableQuoteLink.create({ data: { receivableId: recJoint.id, quoteId: qXpaid.id, valorVinculado: 123 } });
+  await db.receivableQuoteLink.create({ data: { receivableId: recJoint.id, quoteId: qYpaid.id, valorVinculado: 9876 } });
+
+  const anexoY = await db.anexoNF.create({ data: { quoteId: qYpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-y.pdf', arquivo: 'nf/y.pdf', bucket: 'b', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
+  const anexoX = await db.anexoNF.create({ data: { quoteId: qXpaid.id, tipo: 'NF_PDF', nomeOriginal: 'nf-x.pdf', arquivo: 'nf/x.pdf', bucket: 'b', contentType: 'application/pdf', tamanho: 10, usuarioUpload: 'x' } });
+
+  await db.vehicleEvent.create({ data: { veiculoId: vX.id, tipo: 'MANUTENCAO', data: new Date(), descricao: 'Troca de pneus', valor: 1500 } });
+
+  let tokenX = '';
+  let tokenY = '';
+
+  // ---------------- Geração do acesso (oficina) ----------------
+  await test('Não-admin não gera acesso ao portal', async () => {
+    const r = await http('POST', `/registry/clients/${clientX.id}/portal-access`, tok(orcA));
+    assert.strictEqual(r.status, 403);
+  });
+  await test('Admin de outra oficina não gera acesso para cliente da oficina A', async () => {
+    const r = await http('POST', `/registry/clients/${clientX.id}/portal-access`, tok(adminB));
+    assert.strictEqual(r.status, 404);
+  });
+  await test('Admin A gera acesso para X com senha inicial', async () => {
+    const r = await http('POST', `/registry/clients/${clientX.id}/portal-access`, tok(adminA));
+    assert.strictEqual(r.status, 201, r.text);
+    assert.strictEqual(r.body.login, CNPJ_X);
+    assert.strictEqual(r.body.senhaInicial, '#12345678*');
+    assert.strictEqual(r.body.mustChangePassword, true);
+  });
+  await test('Duplicidade: outro cadastro com o mesmo CNPJ na mesma oficina é bloqueado', async () => {
+    const r = await http('POST', `/registry/clients/${clientXdup.id}/portal-access`, tok(adminA));
+    assert.strictEqual(r.status, 409, r.text);
+  });
+  await test('Usuário do portal não aparece na lista de usuários da oficina', async () => {
+    const r = await http('GET', '/users', tok(adminA));
+    assert.strictEqual(r.status, 200);
+    assert.ok(!r.text.includes('portal-gestor.local'));
+  });
+
+  // ---------------- Login / primeiro acesso ----------------
+  await test('Login por CNPJ com senha inicial exige troca; token temporário não acessa o portal', async () => {
+    const r = await http('POST', '/auth/portal-login', undefined, { cnpj: mask(CNPJ_X), password: '#12345678*' });
+    assert.strictEqual(r.status, 403, r.text);
+    assert.strictEqual(r.body.error, 'REQUIRE_PASSWORD_CHANGE');
+    const blocked = await http('GET', '/portal-gestor/dashboard', r.body.tempToken);
+    assert.strictEqual(blocked.status, 401);
+    const weak = await http('POST', '/auth/force-password-change', undefined, { tempToken: r.body.tempToken, newPassword: '#12345678*' });
+    assert.strictEqual(weak.status, 400);
+    const ch = await http('POST', '/auth/force-password-change', undefined, { tempToken: r.body.tempToken, newPassword: 'NovaSenha@2026' });
+    assert.strictEqual(ch.status, 200, ch.text);
+  });
+  await test('Senha errada é recusada', async () => {
+    const r = await http('POST', '/auth/portal-login', undefined, { cnpj: CNPJ_X, password: 'errada' });
+    assert.strictEqual(r.status, 400);
+  });
+  await test('Login por CNPJ após troca de senha', async () => {
+    const r = await http('POST', '/auth/portal-login', undefined, { cnpj: CNPJ_X, password: 'NovaSenha@2026' });
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.user.clientId, clientX.id);
+    tokenX = r.body.token;
+  });
+  await test('Usuário do portal não entra pelo login de e-mail da oficina', async () => {
+    const u = await db.user.findFirst({ where: { clientId: clientX.id } });
+    const r = await http('POST', '/auth/login', undefined, { email: u.email, password: 'NovaSenha@2026' });
+    assert.strictEqual(r.status, 400);
+  });
+  await test('/auth/me do portal não expõe dados internos da oficina', async () => {
+    const r = await http('GET', '/auth/me', tokenX);
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.role, 'GESTOR_FROTA');
+    assert.ok(r.body.planDetails === undefined && r.body.company === undefined);
+  });
+
+  // Acesso de Y para testes cruzados
+  {
+    await http('POST', `/registry/clients/${clientY.id}/portal-access`, tok(adminA));
+    await db.user.updateMany({ where: { clientId: clientY.id }, data: { mustChangePassword: false } });
+    const r = await http('POST', '/auth/portal-login', undefined, { cnpj: CNPJ_Y, password: '#12345678*' });
+    tokenY = r.body.token;
+  }
+
+  // ---------------- Bloqueio de rotas administrativas ----------------
+  await test('Gestor não acessa APIs administrativas (inclusive com ?tenantId)', async () => {
+    for (const p of ['/quotes', '/financial/payables', '/fleet/vehicles', '/registry/clients', '/users', `/fleet/tree/vehicles/${vX.id}/details`, `/quotes/${qXpaid.id}`, `/registry/clients?tenantId=${compB.id}`, '/portal-contabilidade/impostos']) {
+      const r = await http('GET', p, tokenX);
+      assert.strictEqual(r.status, 403, `${p} -> ${r.status}`);
+    }
+    const put = await http('PUT', `/quotes/${qXpending.id}`, tokenX, {});
+    assert.strictEqual(put.status, 403);
+  });
+  await test('Usuário da oficina não acessa /portal-gestor', async () => {
+    const r = await http('GET', '/portal-gestor/dashboard', tok(adminA));
+    assert.strictEqual(r.status, 403);
+  });
+
+  // ---------------- Isolamento de dados ----------------
+  await test('Veículos: apenas os da própria empresa; veículo de outra empresa retorna 404', async () => {
+    const r = await http('GET', '/portal-gestor/veiculos', tokenX);
+    assert.deepStrictEqual(r.body.map((v: any) => v.id), [vX.id]);
+    assert.strictEqual((await http('GET', `/portal-gestor/veiculos/${vY.id}`, tokenX)).status, 404);
+    assert.strictEqual((await http('GET', `/portal-gestor/veiculos/${vX.id}`, tokenY)).status, 404);
+  });
+  await test('Orçamentos: lista só da empresa; acesso/aprovação/recusa de outra empresa retorna 404', async () => {
+    const r = await http('GET', '/portal-gestor/orcamentos', tokenX);
+    const ids = r.body.map((q: any) => q.id);
+    assert.ok(ids.includes(qXpending.id) && !ids.includes(qYpending.id) && !ids.includes(qYpaid.id));
+    assert.strictEqual((await http('GET', `/portal-gestor/orcamentos/${qYpending.id}`, tokenX)).status, 404);
+    assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${qYpending.id}/aprovar`, tokenX)).status, 404);
+    assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${qYpending.id}/recusar`, tokenX, { motivo: 'teste' })).status, 404);
+    const y = await db.quote.findUnique({ where: { id: qYpending.id } });
+    assert.strictEqual(y.status, 'Aguardando Aprovação');
+  });
+  await test('Cockpit do veículo no portal não expõe contas a pagar, anexos de fornecedor nem custo de peças', async () => {
+    const r = await http('GET', `/portal-gestor/veiculos/${vX.id}`, tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    for (const secret of ['SEGREDO', 'valorCompraFornecedor', '37.77', '75.54', 'Fornecedor Secreto']) {
+      assert.ok(!r.text.includes(secret), `vazou: ${secret}`);
+    }
+    assert.ok(!r.body.financeiro.some((f: any) => f.tipo === 'DESPESA'));
+    assert.ok(r.body.documentos.some((d: any) => d.nome === 'boleto-x.pdf'));
+    assert.ok(r.body.pecas.some((p: any) => p.descricao === 'Filtro de óleo'));
+  });
+  await test('Detalhe do orçamento no portal não expõe custo de compra', async () => {
+    const r = await http('GET', `/portal-gestor/orcamentos/${qXpaid.id}`, tokenX);
+    assert.strictEqual(r.status, 200);
+    assert.ok(!r.text.includes('valorCompraFornecedor') && !r.text.includes('37.77'));
+  });
+  await test('Cockpit administrativo continua com contas a pagar (sem regressão)', async () => {
+    const r = await http('GET', `/fleet/tree/vehicles/${vX.id}/details`, tok(adminA));
+    assert.strictEqual(r.status, 200, r.text);
+    assert.ok(r.body.financeiro.some((f: any) => f.tipo === 'DESPESA' && f.valor === 75.54));
+    assert.ok(r.body.documentos.some((d: any) => d.nome === 'nf-fornecedor-SEGREDO.pdf'));
+  });
+  await test('Peças, manutenção e OS filtradas pela empresa', async () => {
+    const p = await http('GET', '/portal-gestor/pecas', tokenX);
+    assert.ok(p.body.pecas.every((x: any) => x.veiculoId === vX.id));
+    assert.ok(!p.text.includes('37.77'));
+    const m = await http('GET', '/portal-gestor/manutencoes', tokenX);
+    assert.ok(m.body.historico.every((x: any) => x.veiculoId === vX.id));
+    assert.ok(m.body.historico.some((x: any) => x.descricao === 'Troca de pneus'));
+    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
+    assert.ok(os.body.every((x: any) => x.id !== qYpaid.id));
+    assert.ok(os.body.some((x: any) => x.id === qXpaid.id));
+  });
+  await test('Documentos: só da empresa; download de anexo de outra empresa ou de conta a pagar retorna 404', async () => {
+    const r = await http('GET', '/portal-gestor/documentos', tokenX);
+    const nomes = r.body.map((d: any) => d.nome);
+    assert.ok(nomes.includes('nf-x.pdf') && nomes.includes('boleto-x.pdf'));
+    assert.ok(!nomes.includes('nf-y.pdf') && !nomes.includes('boleto-y.pdf') && !r.text.includes('SEGREDO'));
+    assert.strictEqual((await http('GET', `/portal-gestor/documentos/os/${anexoY.id}/download`, tokenX)).status, 404);
+    assert.strictEqual((await http('GET', `/portal-gestor/documentos/financeiro/${recYAttachment.attachments[0].id}/download`, tokenX)).status, 404);
+    const payAtt = await db.financialAttachment.findFirst({ where: { payableId: payable.id } });
+    assert.strictEqual((await http('GET', `/portal-gestor/documentos/financeiro/${payAtt.id}/download`, tokenX)).status, 404);
+    const ok = await http('GET', `/portal-gestor/documentos/os/${anexoX.id}/download`, tokenX);
+    assert.strictEqual(ok.status, 200, ok.text);
+    const okFin = await http('GET', `/portal-gestor/documentos/financeiro/${recX.attachments[0].id}/download`, tokenX);
+    assert.strictEqual(okFin.status, 200);
+  });
+  await test('Finanças: só títulos da empresa; faturamento conjunto mostra apenas a parcela vinculada', async () => {
+    const r = await http('GET', '/portal-gestor/financeiro', tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    const joint = r.body.titulos.find((t: any) => t.id === recJoint.id);
+    assert.ok(joint && joint.valor === 123, JSON.stringify(joint));
+    assert.ok(!r.body.titulos.some((t: any) => t.id === recYAttachment.id));
+    for (const secret of ['9999', '9876', '75.54', 'SEGREDO']) assert.ok(!r.text.includes(secret), `vazou: ${secret}`);
+    assert.ok(r.body.resumo.manutencaoExterna >= 1500);
+  });
+
+  // ---------------- Operações ----------------
+  await test('Aprovar orçamento: status Aprovado + histórico; segunda aprovação é bloqueada', async () => {
+    const r = await http('POST', `/portal-gestor/orcamentos/${qXpending.id}/aprovar`, tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.status, 'Aprovado');
+    const h = await db.quoteHistory.findFirst({ where: { quoteId: qXpending.id, action: 'STATUS_ALTERADO' } });
+    assert.ok(h && h.description.includes('APROVADO PELO CLIENTE'));
+    assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${qXpending.id}/aprovar`, tokenX)).status, 409);
+  });
+  await test('Aprovar orçamento parcelado gera recebíveis pela mesma regra da oficina', async () => {
+    const r = await http('POST', `/portal-gestor/orcamentos/${qXparcelado.id}/aprovar`, tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.status, 'Parcialmente Pago');
+    const recs = await db.financialReceivable.findMany({ where: { quoteId: qXparcelado.id }, orderBy: { valor: 'asc' } });
+    assert.strictEqual(recs.length, 3); // entrada + 2 parcelas
+    assert.strictEqual(recs.reduce((s: number, x: any) => s + x.valor, 0), 1000);
+  });
+  await test('Recusar orçamento exige motivo e grava Cancelado + histórico', async () => {
+    assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${qXreject.id}/recusar`, tokenX, {})).status, 400);
+    const r = await http('POST', `/portal-gestor/orcamentos/${qXreject.id}/recusar`, tokenX, { motivo: 'Valor acima do esperado' });
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.status, 'Cancelado');
+    const h = await db.quoteHistory.findFirst({ where: { quoteId: qXreject.id } });
+    assert.ok(h.description.includes('RECUSADO PELO CLIENTE') && h.details.includes('Valor acima do esperado'));
+  });
+  await test('Atualização feita pela oficina aparece no portal', async () => {
+    await db.quote.update({ where: { id: qXpending.id }, data: { status: 'Emitir Nota Fiscal' } });
+    const os = await http('GET', '/portal-gestor/ordens-servico', tokenX);
+    assert.strictEqual(os.body.find((q: any) => q.id === qXpending.id).status, 'Emitir Nota Fiscal');
+  });
+  await test('Cadastro da empresa: atualiza contato, não altera CNPJ nem dados de outra empresa', async () => {
+    const r = await http('PUT', '/portal-gestor/empresa', tokenX, { telefone: '11999990000', cnpj: '00000000000000', nome: 'Hack' });
+    assert.strictEqual(r.status, 200, r.text);
+    const c = await db.client.findUnique({ where: { id: clientX.id } });
+    assert.strictEqual(c.telefone, '11999990000');
+    assert.strictEqual(c.cnpj, mask(CNPJ_X));
+    assert.strictEqual(c.nome, 'Transportes X');
+  });
+
+  // ---------------- Motoristas ----------------
+  let driverId = '';
+  await test('Motoristas: cria vinculado a veículo próprio; veículo de outra empresa é recusado', async () => {
+    const bad = await http('POST', '/portal-gestor/motoristas', tokenX, { nome: 'João Silva', cpf: '123.456.789-01', vehicleId: vY.id });
+    assert.strictEqual(bad.status, 400);
+    const r = await http('POST', '/portal-gestor/motoristas', tokenX, { nome: 'João Silva', cpf: '123.456.789-01', vehicleId: vX.id, validadeCnh: '2026-12-01' });
+    assert.strictEqual(r.status, 201, r.text);
+    driverId = r.body.id;
+    const dup = await http('POST', '/portal-gestor/motoristas', tokenX, { nome: 'João Silva', cpf: '12345678901' });
+    assert.strictEqual(dup.status, 409);
+  });
+  await test('Motoristas: outra empresa não lista, edita nem exclui', async () => {
+    const list = await http('GET', '/portal-gestor/motoristas', tokenY);
+    assert.ok(!list.body.some((d: any) => d.id === driverId));
+    assert.strictEqual((await http('PUT', `/portal-gestor/motoristas/${driverId}`, tokenY, { nome: 'Hack Hack', cpf: '12345678901' })).status, 404);
+    assert.strictEqual((await http('DELETE', `/portal-gestor/motoristas/${driverId}`, tokenY)).status, 404);
+    const v = await http('GET', `/portal-gestor/veiculos/${vX.id}`, tokenX);
+    assert.ok(v.body.infoCadastral.motoristas.some((m: any) => m.id === driverId));
+  });
+
+  // ---------------- Banco de dados ----------------
+  await test('Banco: trigger impede motorista com veículo de outro cliente', async () => {
+    await assert.rejects(db.fleetDriver.create({ data: { companyId: compA.id, clientId: clientX.id, vehicleId: vY.id, nome: 'X', cpf: '99999999999' } }));
+  });
+  await test('Banco: trigger impede perfil administrativo ou oficina divergente no usuário do portal', async () => {
+    const u = await db.user.findFirst({ where: { clientId: clientX.id } });
+    await assert.rejects(db.user.update({ where: { id: u.id }, data: { roleAdmin: true } }));
+    await assert.rejects(db.user.update({ where: { id: u.id }, data: { companyId: compB.id } }));
+  });
+
+  // ---------------- Mesmo CNPJ em duas oficinas / bloqueio ----------------
+  await test('Mesmo CNPJ em duas oficinas: login pede seleção da oficina e respeita o escopo', async () => {
+    await http('POST', `/registry/clients/${clientXinB.id}/portal-access`, tok(adminB));
+    const uB = await db.user.findFirst({ where: { clientId: clientXinB.id } });
+    await db.user.update({ where: { id: uB.id }, data: { password: await bcrypt.hash('NovaSenha@2026', 10), mustChangePassword: false } });
+    const r = await http('POST', '/auth/portal-login', undefined, { cnpj: CNPJ_X, password: 'NovaSenha@2026' });
+    assert.strictEqual(r.status, 409, r.text);
+    assert.strictEqual(r.body.oficinas.length, 2);
+    const rb = await http('POST', '/auth/portal-login', undefined, { cnpj: CNPJ_X, password: 'NovaSenha@2026', companyId: compB.id });
+    assert.strictEqual(rb.status, 200);
+    const veic = await http('GET', '/portal-gestor/veiculos', rb.body.token);
+    assert.strictEqual(veic.body.length, 0);
+    assert.strictEqual((await http('GET', `/portal-gestor/orcamentos/${qXpaid.id}`, rb.body.token)).status, 404);
+  });
+  await test('Acesso inativado pela oficina bloqueia o token imediatamente', async () => {
+    const r = await http('PUT', `/registry/clients/${clientY.id}/portal-access/status`, tok(adminA), { status: 'INATIVO' });
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual((await http('GET', '/portal-gestor/dashboard', tokenY)).status, 403);
+  });
+  await test('Dashboard do portal responde com dados da empresa', async () => {
+    const r = await http('GET', '/portal-gestor/dashboard', tokenX);
+    assert.strictEqual(r.status, 200, r.text);
+    assert.strictEqual(r.body.veiculos.total, 1);
+    assert.strictEqual(r.body.motoristas.total, 1);
+  });
+
+  // ---------------- Cleanup ----------------
+  const companyIds = [compA.id, compB.id];
+  const clientIds = [clientX.id, clientY.id, clientXinB.id, clientXdup.id];
+  await db.fleetDriver.deleteMany({ where: { companyId: { in: companyIds } } });
+  await db.financialReceivable.deleteMany({ where: { companyId: { in: companyIds } } });
+  await db.financialPayable.deleteMany({ where: { companyId: { in: companyIds } } });
+  await db.quote.deleteMany({ where: { companyId: { in: companyIds } } });
+  await db.vehicle.deleteMany({ where: { clienteId: { in: clientIds } } });
+  await db.user.deleteMany({ where: { companyId: { in: companyIds } } });
+  await db.client.deleteMany({ where: { id: { in: clientIds } } });
+  await db.company.deleteMany({ where: { id: { in: companyIds } } });
+
+  server.close();
+  await db.$disconnect();
+
+  results.forEach(r => console.log(`${r.ok ? '✔' : '✘'} ${r.name}${r.ok ? '' : `\n    ${r.err}`}`));
+  const failed = results.filter(r => !r.ok).length;
+  console.log(`\n${results.length - failed}/${results.length} testes passaram`);
+  process.exit(failed ? 1 : 0);
+}
+
+main().catch(async e => {
+  console.error(e);
+  process.exit(1);
+});

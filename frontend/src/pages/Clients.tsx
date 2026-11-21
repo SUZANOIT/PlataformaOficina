@@ -12,8 +12,10 @@ import {
   Users,
   User,
   Briefcase,
-  DollarSign
+  DollarSign,
+  KeyRound
 } from 'lucide-react';
+import { PortalAccessModal } from '../components/PortalAccessModal';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { handleApiError } from '../utils/toast.helper';
@@ -33,6 +35,16 @@ export function Clients() {
 
   // Deletion modal state
   const [clientToDelete, setClientToDelete] = useState<any>(null);
+  // Portal do Gestor de Frota (somente clientes PJ)
+  const [portalClient, setPortalClient] = useState<any>(null);
+  const portalActions = (client: any) =>
+    (client.cnpj || '').replace(/\D/g, '').length === 14
+      ? [{
+          label: 'Acesso ao Portal',
+          icon: <KeyRound className="w-4 h-4 text-primary" />,
+          onClick: () => setPortalClient(client),
+        }]
+      : [];
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -462,8 +474,9 @@ export function Clients() {
                       <TableActionMenu
                         onEdit={() => handleOpenEditModal(client)}
                         onDelete={() => setClientToDelete(client)}
-                        extraActions={
-                          client.hasRevenue
+                        extraActions={[
+                          ...portalActions(client),
+                          ...(client.hasRevenue
                             ? [
                                 {
                                   label: 'Receita do Cliente',
@@ -474,8 +487,8 @@ export function Clients() {
                                   className: 'hover:bg-emerald-500/10'
                                 }
                               ]
-                            : []
-                        }
+                            : [])
+                        ]}
                       />
                     </td>
                   </tr>
@@ -561,8 +574,9 @@ export function Clients() {
                 <TableActionMenu
                   onEdit={() => handleOpenEditModal(client)}
                   onDelete={() => setClientToDelete(client)}
-                  extraActions={
-                    client.hasRevenue
+                  extraActions={[
+                    ...portalActions(client),
+                    ...(client.hasRevenue
                       ? [
                           {
                             label: 'Receita do Cliente',
@@ -572,8 +586,8 @@ export function Clients() {
                             }
                           }
                         ]
-                      : []
-                  }
+                      : [])
+                  ]}
                 />
               </div>
             </div>
@@ -876,6 +890,8 @@ export function Clients() {
         </div>
       )}
       {/* CONFIRMATION DIALOG */}
+      {portalClient && <PortalAccessModal client={portalClient} onClose={() => setPortalClient(null)} />}
+
       <ConfirmModal
         isOpen={!!clientToDelete}
         onClose={() => setClientToDelete(null)}

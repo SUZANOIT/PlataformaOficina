@@ -29,7 +29,15 @@ export interface UserProfile {
   roleContabilidade?: boolean;
   roleContasPagar?: boolean;
   roleContasReceber?: boolean;
+  /** Portal do Gestor de Frota */
+  isPortalGestor?: boolean;
+  clientId?: string;
+  cliente?: { id: string; nome: string; empresa?: string | null; cnpj?: string | null } | null;
+  oficina?: { id: string; nome: string; telefone?: string | null; whatsapp?: string | null; email?: string | null; logo?: string | null } | null;
 }
+
+export const isPortalGestorUser = (user?: UserProfile | null) =>
+  !!user && (user.isPortalGestor === true || user.role === 'GESTOR_FROTA' || !!user.clientId);
 
 export const TOKEN_KEY = 'token';
 export const USER_KEY = 'user';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { isPortalGestorUser } from '../utils/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -32,6 +33,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   if (!isAuthenticated || !user) {
     // Redirects to login, capturing the previous path
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Gestor de Frota só navega no Portal do Gestor
+  if (isPortalGestorUser(user)) {
+    return <Navigate to="/portal" replace />;
   }
 
   // Profile authorization check

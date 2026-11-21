@@ -7,24 +7,55 @@ export function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Portal do Gestor de Frota: CNPJ com acesso em mais de uma oficina
+  const [oficinas, setOficinas] = useState<{ companyId: string; nome: string }[]>([]);
+  const [companyId, setCompanyId] = useState('');
 
   const [error, setError] = useState('');
+
+  const cnpjDigits = email.replace(/\D/g, '');
+  const isCnpjLogin = !email.includes('@') && cnpjDigits.length === 14;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     try {
-      const response = await fetch('/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      const response = isCnpjLogin
+        ? await fetch('/auth/portal-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cnpj: cnpjDigits, password, companyId: companyId || undefined })
+        })
+        : await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
       const data = await response.json();
 
+      // Primeiro acesso: troca obrigatória de senha
+      if (response.status === 403 && data.error === 'REQUIRE_PASSWORD_CHANGE' && data.tempToken) {
+        localStorage.setItem('tempToken', data.tempToken);
+        navigate('/force-password-change');
+        return;
+      }
+
+      if (response.status === 409 && data.error === 'SELECT_WORKSHOP') {
+        setOficinas(data.oficinas || []);
+        setError(data.message);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao fazer login');
+      }
+
+      if (isCnpjLogin) {
+        login(data.token, data.user);
+        navigate('/portal');
+        return;
       }
 
       const mappedUser = {
@@ -70,16 +101,37 @@ export function Login() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">E-mail</label>
-            <input 
-              type="email" 
+            <label htmlFor="login-user" className="text-sm font-medium text-zinc-300">E-mail ou CNPJ</label>
+            <input
+              id="login-user"
+              type="text"
+              autoComplete="username"
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#ff8c00]/50 focus:border-[#ff8c00]/50 transition-all"
-              placeholder="seu@email.com"
+              placeholder="seu@email.com ou CNPJ da empresa"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setOficinas([]); setCompanyId(''); }}
               required
             />
+            {isCnpjLogin && (
+              <p className="text-xs text-zinc-400">Acesso ao Portal do Gestor de Frota.</p>
+            )}
           </div>
+
+          {isCnpjLogin && oficinas.length > 1 && (
+            <div className="space-y-2">
+              <label htmlFor="login-oficina" className="text-sm font-medium text-zinc-300">Oficina</label>
+              <select
+                id="login-oficina"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#ff8c00]/50"
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+                required
+              >
+                <option value="" className="text-black">Selecione a oficina</option>
+                {oficinas.map(o => <option key={o.companyId} value={o.companyId} className="text-black">{o.nome}</option>)}
+              </select>
+            </div>
+          )}
           
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-300">Senha</label>

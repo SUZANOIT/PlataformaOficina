@@ -40,6 +40,9 @@ import { WebhookController } from './controllers/webhook.controller';
 import jwt from 'jsonwebtoken';
 import { hrRoutes } from './routes/hr.routes';
 import { portalImpostoRoutes } from './portalContabilidade/routes/portalImposto.routes';
+import { portalGestorRoutes } from './portalGestor/portalGestor.routes';
+import { PortalGestorAuthController, PortalAccessController } from './portalGestor/portalGestor.auth.controller';
+import { isPortalAllowedPath } from './portalGestor/portalGestor.scope';
 const onboardingController = new OnboardingController();
 const webhookController = new WebhookController();
 
@@ -55,6 +58,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+    // Token temporário de troca de senha não dá acesso às rotas autenticadas
+    if (decoded.requirePasswordChange) {
+      return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
+    }
     (req as any).userId = decoded.id;
     (req as any).role = decoded.role;
 
@@ -70,11 +77,38 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         roleContabilidade: true,
         roleRh: true,
         roleColaborador: true,
+        clientId: true,
+        status: true,
+        client: { select: { companyId: true, status: true } },
       }
     });
 
     if (!user) {
       return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    // === Portal do Gestor de Frota ===
+    // Usuário vinculado a um cliente PJ: acesso exclusivo às rotas do portal,
+    // sempre restrito à oficina (companyId) e ao cliente (clientId) do cadastro.
+    if (user.clientId) {
+      const path = req.originalUrl.split('?')[0];
+      if (
+        !user.companyId ||
+        !user.client ||
+        user.client.companyId !== user.companyId ||
+        user.status !== 'ATIVO' ||
+        user.client.status === 'INATIVO'
+      ) {
+        return res.status(403).json({ error: 'Acesso ao portal bloqueado. Entre em contato com a oficina.', code: 'PORTAL_BLOCKED' });
+      }
+      if (!isPortalAllowedPath(path)) {
+        return res.status(403).json({ error: 'Acesso restrito ao Portal do Gestor de Frota.', code: 'PORTAL_ONLY' });
+      }
+      (req as any).companyId = user.companyId;
+      (req as any).roles = {};
+      (req as any).portalScope = { userId: decoded.id, companyId: user.companyId, clientId: user.clientId };
+      const { tenantContext } = require('./lib/tenant-context');
+      return tenantContext.run({ companyId: user.companyId, userId: decoded.id }, () => next());
     }
 
     (req as any).roles = {
@@ -181,7 +215,14 @@ routes.get('/debug/run-migrate', async (req: Request, res: Response) => {
 // Auth
 routes.post('/auth/register', AuthController.register);
 routes.post('/auth/login', AuthController.login);
-routes.get('/auth/me', authMiddleware, AuthController.me);
+routes.get('/auth/me', authMiddleware, (req: Request, res: Response) =>
+  (req as any).portalScope ? PortalGestorAuthController.me(req, res) : AuthController.me(req, res));
+// Portal do Gestor de Frota: login com CNPJ (somente números)
+routes.post('/auth/portal-login', PortalGestorAuthController.login);
+routes.post('/api/auth/portal-login', PortalGestorAuthController.login);
+// Troca de senha obrigatória no primeiro acesso (token temporário emitido no login)
+routes.post('/auth/force-password-change', AuthController.forcePasswordChange);
+routes.post('/api/auth/force-password-change', AuthController.forcePasswordChange);
 
 // --- SaaS Client App Routes ---
 
@@ -282,6 +323,10 @@ routes.post('/registry/clients', RegistryController.createClient);
 routes.post('/registry/clients/deduplicate', RegistryController.deduplicateClients);
 routes.put('/registry/clients/:id', RegistryController.updateClient);
 routes.delete('/registry/clients/:id', RegistryController.deleteClient);
+// Acesso do cliente PJ ao Portal do Gestor de Frota
+routes.get('/registry/clients/:id/portal-access', PortalAccessController.get);
+routes.post('/registry/clients/:id/portal-access', PortalAccessController.createOrReset);
+routes.put('/registry/clients/:id/portal-access/status', PortalAccessController.setStatus);
 
 routes.get('/registry/suppliers', RegistryController.listSuppliers);
 routes.post('/registry/suppliers', RegistryController.createSupplier);
@@ -604,5 +649,8 @@ routes.use('/hr', authMiddleware, hrRoutes);
 
 // === Portal Contabilidade Externa ===
 routes.use('/portal-contabilidade/impostos', authMiddleware, portalImpostoRoutes);
+
+// === Portal do Gestor de Frota ===
+routes.use('/portal-gestor', authMiddleware, portalGestorRoutes);
 
 export { routes };
