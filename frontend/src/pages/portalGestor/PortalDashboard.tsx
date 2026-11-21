@@ -15,11 +15,11 @@ export function PortalDashboard() {
               <Stat label="Veículos" value={d.veiculos.total} hint={`${d.veiculos.ativos} ativos · ${d.veiculos.emManutencao} em manutenção`} />
               <Stat label="Orçamentos aguardando aprovação" value={d.orcamentosPendentes.quantidade} hint={formatCurrency(d.orcamentosPendentes.valor)} tone={d.orcamentosPendentes.quantidade ? 'warn' : 'default'} />
               <Stat label="Ordens de serviço em andamento" value={d.ordensEmAndamento} />
-              <Stat label="Gasto no ano" value={formatCurrency(d.faturadoAno)} />
+              <Stat label={`Gasto em ${d.ano}`} value={formatCurrency(d.financeiro.total)} hint={`${d.financeiro.quantidadeOs} OS + outras manutenções`} />
             </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Stat label="Títulos em aberto" value={formatCurrency(d.financeiro.emAberto)} />
-              <Stat label="Títulos vencidos" value={formatCurrency(d.financeiro.vencido)} tone={d.financeiro.vencido > 0 ? 'danger' : 'ok'} />
+              <Stat label={`Pago em ${d.ano}`} value={formatCurrency(d.financeiro.pago)} tone="ok" hint={d.financeiro.coberto > 0 ? `${formatCurrency(d.financeiro.coberto)} coberto (sem cobrança)` : undefined} />
+              <Stat label={`Em aberto (${d.ano})`} value={formatCurrency(d.financeiro.emAberto)} hint={d.financeiro.vencido > 0 ? `${formatCurrency(d.financeiro.vencido)} vencido` : 'Nada vencido'} tone={d.financeiro.vencido > 0 ? 'danger' : 'default'} />
               <Stat label="Motoristas ativos" value={d.motoristas.total} />
               <Stat label="CNH vencendo (30 dias)" value={d.motoristas.cnhVencendo.length} tone={d.motoristas.cnhVencendo.length ? 'warn' : 'default'} />
             </div>
