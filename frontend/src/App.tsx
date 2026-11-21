@@ -49,6 +49,18 @@ import { BulkUploadImpostos } from './pages/portalContabilidade/BulkUploadImpost
 
 
 import { SaaSAuthProvider } from './context/SaaSAuthProvider';
+
+// Portal do Gestor de Frota (cliente PJ)
+import { PortalGestorRoute } from './routes/PortalGestorRoute';
+import { PortalLayout } from './pages/portalGestor/PortalLayout';
+import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
+import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
+import { PortalVeiculos, PortalVeiculoDetalhe } from './pages/portalGestor/PortalVeiculos';
+import { PortalOrcamentos } from './pages/portalGestor/PortalOrcamentos';
+import { PortalOrdensServico, PortalManutencao, PortalPecas, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
+import { PortalFinanceiro } from './pages/portalGestor/PortalFinanceiro';
+import { PortalMotoristas } from './pages/portalGestor/PortalMotoristas';
+import { PortalMeuAcesso } from './pages/portalGestor/PortalMeuAcesso';
 import { SaaSAuthGuard } from './components/SaaSAuthGuard';
 import { SaaSLayout } from './components/SaaSLayout';
 
@@ -115,6 +127,23 @@ function App() {
               <Route path="configuracoes" element={<SaaSAuthGuard permission="configuracoes"><SaaSConfiguracoes /></SaaSAuthGuard>} />
             </Route>
             
+            {/* Portal do Gestor de Frota — acesso exclusivo do cliente PJ */}
+            <Route path="/portal" element={<PortalGestorRoute><PortalLayout /></PortalGestorRoute>}>
+              <Route index element={<PortalDashboard />} />
+              <Route path="empresa" element={<PortalEmpresa />} />
+              <Route path="veiculos" element={<PortalVeiculos />} />
+              <Route path="veiculos/:id" element={<PortalVeiculoDetalhe />} />
+              <Route path="orcamentos" element={<PortalOrcamentos />} />
+              <Route path="ordens-servico" element={<PortalOrdensServico />} />
+              <Route path="manutencao" element={<PortalManutencao />} />
+              <Route path="pecas" element={<PortalPecas />} />
+              <Route path="documentos" element={<PortalDocumentos />} />
+              <Route path="financeiro" element={<PortalFinanceiro />} />
+              <Route path="motoristas" element={<PortalMotoristas />} />
+              <Route path="meu-acesso" element={<PortalMeuAcesso />} />
+              <Route path="*" element={<Navigate to="/portal" replace />} />
+            </Route>
+
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="quotes/new" element={<CreateQuote />} />

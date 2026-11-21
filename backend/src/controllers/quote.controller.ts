@@ -4,6 +4,7 @@ import { prisma, basePrisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
+import { buildApprovalReceivables, resolveQuoteStatus } from '../utils/quoteReceivables.helper';
 
 const createQuoteSchema = z.object({
   companyId: z.string(),
@@ -804,62 +805,16 @@ export const QuoteController = {
 
       let quote = await prisma.$transaction(async (tx) => {
         const existingReceivablesCount = await tx.financialReceivable.count({ where: { quoteId: id } });
-        const financialReceivablesData: any[] = [];
-
-        const isPending = data.status === 'Orçamento' || data.status === 'Em Andamento' || data.status === 'Aguardando Aprovação';
-
-        if (!isPending && existingReceivablesCount === 0 && data.condicaoPagamento === 'Parcelado') {
-          const currentDate = new Date();
-          const finalCompanyId = data.companyId || existingQuote.companyId;
-          
-          if (data.valorEntrada && data.valorEntrada > 0) {
-            financialReceivablesData.push({
-              companyId: finalCompanyId,
-              cliente: client.nome,
-            origem_tipo: 'ORCAMENTO',
-            categoria: 'Serviços Oficina',
-            descricao: `Entrada / Sinal - Orçamento de ${client.nome}`,
-            valor: data.valorEntrada,
-            dataEmissao: currentDate,
-            vencimento: currentDate,
-            dataRecebimento: currentDate,
-            formaRecebimento: 'Dinheiro',
-              responsavel: 'Sistema',
-              status: 'LIQUIDADO'
-            });
-          }
-
-          const numParcelasPendentes = data.parcelas || 1;
-          if (numParcelasPendentes > 0) {
-            const valorRestante = data.total - (data.valorEntrada || 0);
-            const parcelaValor = valorRestante / numParcelasPendentes;
-
-            for (let i = 1; i <= numParcelasPendentes; i++) {
-              const vencimentoDate = new Date(currentDate);
-              vencimentoDate.setDate(vencimentoDate.getDate() + (i * 30));
-
-              let valorDaParcela = parseFloat(parcelaValor.toFixed(2));
-              if (i === numParcelasPendentes) {
-                const sumAnteriores = parseFloat(parcelaValor.toFixed(2)) * (numParcelasPendentes - 1);
-                valorDaParcela = parseFloat((valorRestante - sumAnteriores).toFixed(2));
-              }
-
-              financialReceivablesData.push({
-                companyId: finalCompanyId,
-                cliente: client.nome,
-                origem_tipo: 'ORCAMENTO',
-                categoria: 'Serviços Oficina',
-                descricao: `Parcela ${i} de ${numParcelasPendentes} - Orçamento de ${client.nome}`,
-                valor: valorDaParcela,
-                dataEmissao: currentDate,
-                vencimento: vencimentoDate,
-                formaRecebimento: 'A Combinar',
-                responsavel: 'Sistema',
-                status: 'PENDENTE'
-              });
-            }
-          }
-        }
+        const financialReceivablesData = buildApprovalReceivables({
+          status: data.status,
+          condicaoPagamento: data.condicaoPagamento,
+          valorEntrada: data.valorEntrada,
+          parcelas: data.parcelas,
+          total: data.total,
+          clientNome: client.nome,
+          companyId: data.companyId || existingQuote.companyId,
+          existingReceivablesCount,
+        });
 
         const updatedQuote = await tx.quote.update({
           where: { id },
@@ -894,7 +849,7 @@ export const QuoteController = {
             subtotal: data.subtotal,
             total: data.total,
             valorEntrada: data.valorEntrada,
-            status: isCurio ? 'Cobertura' : (!isPending && data.condicaoPagamento === 'Parcelado' && (data.valorEntrada || 0) > 0 ? (data.status === 'Pago' ? 'Pago' : 'Parcialmente Pago') : data.status),
+            status: resolveQuoteStatus({ status: data.status, condicaoPagamento: data.condicaoPagamento, valorEntrada: data.valorEntrada, isCurio: !!isCurio }),
             items: {
               deleteMany: {},
               create: quoteItems,

@@ -26,7 +26,7 @@ export const ForcePasswordChange = () => {
 
     try {
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/force-password-change`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/force-password-change`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, newPassword: password })

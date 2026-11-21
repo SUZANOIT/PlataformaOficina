@@ -103,6 +103,11 @@ export const AuthController = {
         return res.status(400).json({ error: 'Invalid credentials' });
       }
 
+      // Gestores de frota entram pelo CNPJ (POST /auth/portal-login)
+      if (user.clientId) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
       if (user.mustChangePassword) {
         // Enviar um token temporário apenas para a rota de alteração de senha
         const tempToken = jwt.sign({ id: user.id, requirePasswordChange: true }, process.env.JWT_SECRET || 'secret', {
@@ -156,7 +161,8 @@ export const AuthController = {
   async listUsers(req: Request, res: Response) {
     try {
       const companyId = (req as any).companyId || null;
-      const whereClause = companyId ? { companyId } : {};
+      // Usuários do Portal do Gestor de Frota são gerenciados na tela de Clientes
+      const whereClause = companyId ? { companyId, clientId: null } : { clientId: null };
 
       const users = await prisma.user.findMany({
         where: whereClause,
@@ -229,7 +235,8 @@ export const AuthController = {
           const activeUsersCount = await prisma.user.count({
             where: { 
               companyId: currentCompanyId,
-              status: 'ATIVO'
+              status: 'ATIVO',
+              clientId: null // usuários do Portal do Gestor de Frota não contam no plano
             }
           });
 
@@ -317,6 +324,9 @@ export const AuthController = {
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
+      if (user.clientId) {
+        return res.status(400).json({ error: 'Usuários do Portal do Gestor de Frota são gerenciados na tela de Clientes.' });
+      }
 
       // Validar limites de usuários ativos do plano contratado se estiver ativando
       if (parsedData.status && parsedData.status === 'ACTIVE' && user.status !== 'ATIVO' && currentCompanyId) {
@@ -329,7 +339,8 @@ export const AuthController = {
           const activeUsersCount = await prisma.user.count({
             where: { 
               companyId: currentCompanyId,
-              status: 'ATIVO'
+              status: 'ATIVO',
+              clientId: null // usuários do Portal do Gestor de Frota não contam no plano
             }
           });
 
@@ -422,6 +433,9 @@ export const AuthController = {
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.clientId) {
+        return res.status(400).json({ error: 'Usuários do Portal do Gestor de Frota são gerenciados na tela de Clientes.' });
       }
 
       await prisma.user.delete({ where: { id } });
@@ -530,7 +544,7 @@ export const AuthController = {
 
         const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         [activeUsersCount, osCountThisMonth] = await Promise.all([
-          prisma.user.count({ where: { companyId: user.company.id } }),
+          prisma.user.count({ where: { companyId: user.company.id, clientId: null } }),
           prisma.quote.count({
             where: {
               companyId: user.company.id,
@@ -622,6 +636,12 @@ export const AuthController = {
 
       if (!tempToken || !newPassword) {
         return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
+      }
+      if (String(newPassword).length < 8) {
+        return res.status(400).json({ error: 'A senha deve ter pelo menos 8 caracteres.' });
+      }
+      if (newPassword === '#12345678*') {
+        return res.status(400).json({ error: 'A nova senha deve ser diferente da senha inicial.' });
       }
 
       // Valida o token temporário
