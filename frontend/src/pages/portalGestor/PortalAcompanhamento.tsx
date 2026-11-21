@@ -1,23 +1,11 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
 import { Card, EmptyState, Loadable, PageHeader, StatusBadge, Table, VehicleFilter, btnSecondary, formatCurrency, formatDate, inputClass, useLoad } from './ui';
 import { QuoteDetailModal } from './QuoteDetailModal';
 import { TablePagination } from '../../components/ui/TablePagination';
-
-const MAINT_LABELS: Record<string, string> = {
-  TROCA_OLEO_MOTOR: 'Troca de óleo (motor)',
-  TROCA_OLEO_CAMBIO: 'Troca de óleo (câmbio)',
-  REVISAO: 'Revisão',
-  MANUTENCAO: 'Manutenção',
-  KM: 'Atualização de KM',
-  ABASTECIMENTO: 'Abastecimento',
-  MULTA: 'Multa',
-  SINISTRO: 'Sinistro',
-  ALTERACAO: 'Alteração',
-};
 
 // ---------------- Ordens de Serviço (consulta unificada de orçamentos e OS) ----------------
 const SERVICO_OPTIONS = [
@@ -130,58 +118,6 @@ export function PortalOrdensServico() {
       {openId && (
         <QuoteDetailModal id={openId} onClose={() => update({ abrir: null }, false)} onChanged={state.reload} />
       )}
-    </>
-  );
-}
-
-// ---------------- Manutenção ----------------
-export function PortalManutencao() {
-  const [veiculoId, setVeiculoId] = useState('');
-  const state = useLoad(() => portalGestorApi.manutencoes({ veiculoId: veiculoId || undefined }), [veiculoId]);
-  return (
-    <>
-      <PageHeader title="Manutenção" description="Andamento dos serviços e histórico de manutenções da frota." actions={<VehicleFilter value={veiculoId} onChange={setVeiculoId} />} />
-      <Loadable state={state}>
-        {(d: any) => (
-          <div className="space-y-6">
-            <Card>
-              <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Em andamento na oficina</h2>
-              {d.andamento.length === 0 ? <EmptyState message="Nenhum serviço em andamento." /> : (
-                <Table head={['OS', 'Veículo', 'Oficina', 'Prazo', 'Atualizado em', 'Status']}>
-                  {d.andamento.map((a: any) => (
-                    <tr key={a.id}>
-                      <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${a.id}`} className="font-semibold text-primary hover:underline">#{a.numeroOrcamento}</Link></td>
-                      <td className="px-4 py-2.5">{a.veiculoPlaca || '—'}</td>
-                      <td className="px-4 py-2.5">{a.oficina || '—'}</td>
-                      <td className="px-4 py-2.5">{a.prazoExecucao || '—'}</td>
-                      <td className="px-4 py-2.5">{formatDate(a.updatedAt)}</td>
-                      <td className="px-4 py-2.5"><StatusBadge status={a.status} /></td>
-                    </tr>
-                  ))}
-                </Table>
-              )}
-            </Card>
-            <Card>
-              <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">Histórico de manutenções</h2>
-              {d.historico.length === 0 ? <EmptyState message="Nenhuma manutenção registrada." /> : (
-                <Table head={['Data', 'Veículo', 'Tipo', 'Descrição', 'KM', 'Valor', 'Próxima']}>
-                  {d.historico.map((h: any) => (
-                    <tr key={h.id}>
-                      <td className="whitespace-nowrap px-4 py-2.5">{formatDate(h.data)}</td>
-                      <td className="px-4 py-2.5"><Link to={`/portal/veiculos/${h.veiculoId}`} className="font-medium text-primary hover:underline">{h.placa}</Link></td>
-                      <td className="px-4 py-2.5">{MAINT_LABELS[h.tipo] || h.tipo}</td>
-                      <td className="px-4 py-2.5">{h.descricao}</td>
-                      <td className="px-4 py-2.5 tabular-nums">{h.km ? `${Number(h.km).toLocaleString('pt-BR')} km` : '—'}</td>
-                      <td className="px-4 py-2.5 tabular-nums">{h.valor ? formatCurrency(h.valor) : '—'}</td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{h.proximaTroca || '—'}</td>
-                    </tr>
-                  ))}
-                </Table>
-              )}
-            </Card>
-          </div>
-        )}
-      </Loadable>
     </>
   );
 }

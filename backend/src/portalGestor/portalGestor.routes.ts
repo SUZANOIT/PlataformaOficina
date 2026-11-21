@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PortalGestorController as C } from './portalGestor.controller';
 import { requirePortalUser } from './portalGestor.scope';
+import { ManutencaoPortalController as M } from '../manutencao/manutencao.controller';
 
 /**
  * Portal do Gestor de Frota — montado em /portal-gestor com authMiddleware.
@@ -38,6 +39,17 @@ portalGestorRoutes.get('/motoristas', C.listDrivers);
 portalGestorRoutes.post('/motoristas', C.createDriver);
 portalGestorRoutes.put('/motoristas/:id', C.updateDriver);
 portalGestorRoutes.delete('/motoristas/:id', C.deleteDriver);
+
+// Manutenção: solicitação de orçamento -> orçamento da oficina -> OS
+portalGestorRoutes.get('/solicitacoes', M.listar);
+portalGestorRoutes.post('/solicitacoes', M.criar);
+portalGestorRoutes.get('/solicitacoes/:id', M.detalhe);
+portalGestorRoutes.post('/solicitacoes/:id/ordem-servico', M.gerarOs);
+
+// Notificações do gestor
+portalGestorRoutes.get('/notificacoes', M.notificacoes);
+portalGestorRoutes.post('/notificacoes/lidas', M.marcarTodas);
+portalGestorRoutes.post('/notificacoes/:id/lida', M.marcarLida);
 
 portalGestorRoutes.get('/meu-acesso', C.myAccess);
 portalGestorRoutes.post('/meu-acesso/senha', C.changePassword);

@@ -43,6 +43,7 @@ import { portalImpostoRoutes } from './portalContabilidade/routes/portalImposto.
 import { portalGestorRoutes } from './portalGestor/portalGestor.routes';
 import { PortalGestorAuthController, PortalAccessController } from './portalGestor/portalGestor.auth.controller';
 import { isPortalAllowedPath } from './portalGestor/portalGestor.scope';
+import { ManutencaoOficinaController } from './manutencao/manutencao.controller';
 const onboardingController = new OnboardingController();
 const webhookController = new WebhookController();
 
@@ -136,9 +137,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         '/auth/me',
         '/fiscal/documents/accounting/summary',
         '/fiscal/documents/export/xml-pack',
+        '/notificacoes-usuario',
       ];
       const isPortalContabilidade = path.startsWith('/portal-contabilidade');
-      if (!allowedPaths.includes(path) && !isPortalContabilidade) {
+      if (!allowedPaths.includes(path) && !isPortalContabilidade && !path.startsWith('/notificacoes-usuario')) {
         return res.status(403).json({
           error: 'Acesso restrito: seu nível de acesso permite apenas a Exportação XML Contabilidade e o portal de impostos',
           code: 'CONTABILIDADE_ONLY',
@@ -168,7 +170,9 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         path.startsWith('/api/fleet/vehicles') ||
         path.startsWith('/api/fleet/workshops') ||
         path.startsWith('/products') ||
-        path.startsWith('/companies');
+        path.startsWith('/companies') ||
+        path.startsWith('/oficina/solicitacoes') ||
+        path.startsWith('/notificacoes-usuario');
 
       if (!isAllowed) {
         return res.status(403).json({
@@ -652,5 +656,15 @@ routes.use('/portal-contabilidade/impostos', authMiddleware, portalImpostoRoutes
 
 // === Portal do Gestor de Frota ===
 routes.use('/portal-gestor', authMiddleware, portalGestorRoutes);
+
+// === Oficina: solicitações de orçamento do Portal do Gestor e notificações ===
+routes.get('/oficina/solicitacoes', authMiddleware, ManutencaoOficinaController.listar);
+routes.get('/oficina/solicitacoes/:id', authMiddleware, ManutencaoOficinaController.detalhe);
+routes.post('/oficina/solicitacoes/:id/em-analise', authMiddleware, ManutencaoOficinaController.emAnalise);
+routes.post('/oficina/solicitacoes/:id/recusar', authMiddleware, ManutencaoOficinaController.recusar);
+routes.post('/oficina/solicitacoes/:id/vincular', authMiddleware, ManutencaoOficinaController.vincular);
+routes.get('/notificacoes-usuario', authMiddleware, ManutencaoOficinaController.notificacoes);
+routes.post('/notificacoes-usuario/lidas', authMiddleware, ManutencaoOficinaController.marcarTodas);
+routes.post('/notificacoes-usuario/:id/lida', authMiddleware, ManutencaoOficinaController.marcarLida);
 
 export { routes };

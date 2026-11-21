@@ -53,11 +53,13 @@ import { SaaSAuthProvider } from './context/SaaSAuthProvider';
 // Portal do Gestor de Frota (cliente PJ)
 import { PortalGestorRoute } from './routes/PortalGestorRoute';
 import { QuotePdfViewer, GenericDocumentViewer } from './pages/DocumentViewer';
+import { SolicitacoesOrcamento } from './pages/oficina/SolicitacoesOrcamento';
+import { PortalManutencao } from './pages/portalGestor/PortalManutencao';
 import { PortalLayout } from './pages/portalGestor/PortalLayout';
 import { PortalDashboard } from './pages/portalGestor/PortalDashboard';
 import { PortalEmpresa } from './pages/portalGestor/PortalEmpresa';
 import { PortalVeiculos, PortalVeiculoDetalhe } from './pages/portalGestor/PortalVeiculos';
-import { PortalOrdensServico, PortalManutencao, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
+import { PortalOrdensServico, PortalDocumentos } from './pages/portalGestor/PortalAcompanhamento';
 import { PortalMotoristas } from './pages/portalGestor/PortalMotoristas';
 import { PortalMeuAcesso } from './pages/portalGestor/PortalMeuAcesso';
 import { SaaSAuthGuard } from './components/SaaSAuthGuard';
@@ -161,6 +163,9 @@ function App() {
               <Route path="quotes/edit/:id" element={<CreateQuote />} />
               <Route path="quotes/view/:id" element={<CreateQuote />} />
               <Route path="quotes" element={<QuotesList />} />
+              {/* Solicitações de orçamento do Portal do Gestor de Frota */}
+              <Route path="solicitacoes-orcamento" element={<SolicitacoesOrcamento />} />
+              <Route path="solicitacoes-orcamento/:id" element={<SolicitacoesOrcamento />} />
               <Route path="users" element={<Users />} />
               <Route path="settings/email" element={<EmailConfig />} />
               <Route path="settings/my-plan" element={<MyPlan />} />

@@ -211,6 +211,9 @@ export function CreateQuote() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const cloneId = searchParams.get('clone');
+  // Orçamento elaborado a partir de uma solicitação do Portal do Gestor de Frota
+  const solicitacaoId = searchParams.get('solicitacao');
+  const [solicitacaoInfo, setSolicitacaoInfo] = useState<{ protocolo: number; cliente: string; placa: string } | null>(null);
   const isViewing = window.location.pathname.includes('/quotes/view/');
   const isEditing = !!id && !isViewing;
   const isCloned = !!cloneId || isClonedQuote;
@@ -238,6 +241,44 @@ export function CreateQuote() {
     fetchCompanies();
   }, [cloneId, isEditing, isViewing, setValue]);
 
+
+  // Pré-preenche cliente, veículo e observação com os dados da solicitação (cadastro completo,
+  // para que a atualização do cliente feita ao salvar não apague dados existentes)
+  useEffect(() => {
+    if (!solicitacaoId || isEditing || isViewing || cloneId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: sol } = await api.get(`/oficina/solicitacoes/${solicitacaoId}`);
+        const [clientsRes, vehicleRes] = await Promise.all([
+          api.get('/registry/clients'),
+          api.get(`/fleet/vehicles/${sol.veiculo.id}`).catch(() => ({ data: null })),
+        ]);
+        if (cancelled) return;
+        const client = (clientsRes.data || []).find((c: any) => c.id === sol.cliente.id);
+        if (client) handleSelectClient(client);
+        const v = vehicleRes.data || sol.veiculo;
+        setValue('veiculoPlaca', v.placa || '');
+        setValue('veiculoMarca', v.marca || '');
+        setValue('veiculoModelo', v.modelo || '');
+        if (v.anoFabricacao) setValue('veiculoAnoFabricacao', String(v.anoFabricacao));
+        if (v.anoModelo) { setValue('veiculoAnoModelo', String(v.anoModelo)); setValue('veiculoAno', String(v.anoModelo)); }
+        if (v.chassi) setValue('veiculoChassi', v.chassi);
+        if (v.renavam) setValue('veiculoRenavam', v.renavam);
+        if (v.frota) setValue('veiculoFrota', v.frota);
+        if (v.subfrota) setValue('veiculoSubfrota', v.subfrota);
+        if (v.prefixo) setValue('veiculoPrefixo', v.prefixo);
+        if (v.tipoVeiculo) setValue('veiculoTipo', v.tipoVeiculo);
+        if (v.kmAtual) setValue('veiculoHodometro', String(v.kmAtual));
+        setValue('observacao', `Solicitação #${sol.protocolo} (Portal do Gestor de Frota): ${sol.descricao}`);
+        setSolicitacaoInfo({ protocolo: sol.protocolo, cliente: sol.cliente.nome, placa: sol.veiculo.placa });
+      } catch (error) {
+        toast.error(extractApiErrorMessage(error, 'Não foi possível carregar a solicitação do portal.'));
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitacaoId, isEditing, isViewing, cloneId]);
 
   const isInitialStatusEffect = useRef(true);
 
@@ -668,6 +709,15 @@ ${bankingText}`;
         savedData = await quoteService.saveQuote(payload);
         setNumeroOrcamento(savedData.numeroOrcamento);
         toast.success('Orçamento salvo com sucesso!', { id: 'save-quote' });
+        // Solicitação do portal: vincula o orçamento e o disponibiliza ao cliente
+        if (solicitacaoId && solicitacaoInfo) {
+          try {
+            await api.post(`/oficina/solicitacoes/${solicitacaoId}/vincular`, { quoteId: savedData.id });
+            toast.success(`Orçamento disponibilizado ao cliente (solicitação #${solicitacaoInfo.protocolo}).`);
+          } catch (error) {
+            toast.error(extractApiErrorMessage(error, 'Orçamento salvo, mas não foi possível disponibilizá-lo ao cliente. Use a tela de Solicitações do Portal.'));
+          }
+        }
         
         if (pendingPdfGeneration.current) {
           pendingPdfGeneration.current = false;
@@ -740,6 +790,11 @@ ${bankingText}`;
           ) : (
             <p className="text-muted-foreground text-sm mt-1">
               {isViewing ? 'Visualização dos detalhes do orçamento.' : isEditing ? 'Altere os dados abaixo para atualizar o orçamento.' : 'Preencha os dados para gerar um novo orçamento.'}
+            </p>
+          )}
+          {solicitacaoInfo && !isEditing && !isViewing && (
+            <p className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-foreground">
+              Orçamento da <strong>solicitação #{solicitacaoInfo.protocolo}</strong> do Portal do Gestor ({solicitacaoInfo.cliente} · {solicitacaoInfo.placa}). Ao salvar, ele será disponibilizado ao cliente.
             </p>
           )}
         </div>
