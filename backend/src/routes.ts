@@ -407,6 +407,7 @@ const registerFleetRoutes = (prefix: string) => {
   routes.use(prefix, authMiddleware);
   routes.get(`${prefix}/dashboard/stats`, fleetController.getDashboardStats);
   routes.get(`${prefix}/dashboard/sem-manutencao`, fleetController.getVehiclesWithoutMaintenance);
+  routes.get(`${prefix}/dashboard/custos-mensais`, fleetController.getMonthlyCostsByVehicle);
   routes.get(`${prefix}/reports`, fleetController.getReportData);
   routes.get(`${prefix}/clients`, fleetController.listClients);
   routes.get(`${prefix}/tree/clients`, fleetController.listClientsTree);

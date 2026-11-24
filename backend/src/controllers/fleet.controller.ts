@@ -6,6 +6,7 @@ import { AuditLogger } from '../utils/audit.logger';
 import { buildVehicleSections } from '../services/vehicleDetails.service';
 import { MAINTENANCE_EVENT_TYPES, parsePeriodDays, summarizeMaintenance } from '../services/vehicleMaintenanceStatus';
 import { isServiceOrderStatus } from '../portalGestor/portalGestor.financials';
+import { costWindowStart, monthlyCostsByVehicle, parseCostMonths } from '../services/vehicleMonthlyCosts';
 
 // Formats for Zod validation
 const createVehicleSchema = z.object({
@@ -1354,6 +1355,57 @@ export const fleetController = {
     } catch (error) {
       console.error('[Fleet] Erro getVehiclesWithoutMaintenance:', error);
       return res.status(500).json({ error: 'Erro ao calcular veículos sem manutenção' });
+    }
+  },
+
+  /**
+   * GET /fleet/dashboard/custos-mensais?meses=3|6|12&clienteId=&veiculoId=
+   * Evolução de custos mensais por veículo (só veículos da empresa).
+   */
+  async getMonthlyCostsByVehicle(req: Request, res: Response) {
+    try {
+      const meses = parseCostMonths(req.query.meses);
+      const clienteId = typeof req.query.clienteId === 'string' && req.query.clienteId ? req.query.clienteId : '';
+      const veiculoId = typeof req.query.veiculoId === 'string' && req.query.veiculoId ? req.query.veiculoId : '';
+
+      const all = await prisma.vehicle.findMany({
+        select: { id: true, placa: true, marca: true, modelo: true, clienteId: true, client: { select: { nome: true, empresa: true } } },
+        orderBy: { placa: 'asc' },
+      });
+      const vehicles = all.map(v => ({
+        id: v.id, placa: v.placa, marca: v.marca, modelo: v.modelo, clienteId: v.clienteId,
+        cliente: v.client?.empresa || v.client?.nome || '—',
+      }));
+      const selected = vehicles.filter(v => (!clienteId || v.clienteId === clienteId) && (!veiculoId || v.id === veiculoId));
+      const ids = selected.map(v => v.id);
+      const start = costWindowStart(meses);
+
+      const entries: { veiculoId: string; data: Date; valor: number }[] = [];
+      if (ids.length) {
+        const quotes = await prisma.quote.findMany({
+          where: { veiculoId: { in: ids }, status: 'Pago', updatedAt: { gte: start } },
+          select: { veiculoId: true, total: true, updatedAt: true },
+        });
+        quotes.forEach(q => q.veiculoId && entries.push({ veiculoId: q.veiculoId, data: q.updatedAt, valor: q.total || 0 }));
+        const events = await prisma.vehicleEvent.findMany({
+          where: { veiculoId: { in: ids }, data: { gte: start }, valor: { not: null } },
+          select: { veiculoId: true, data: true, valor: true },
+        });
+        events.forEach(e => entries.push({ veiculoId: e.veiculoId, data: e.data, valor: e.valor || 0 }));
+      }
+
+      const clientes = [...new Map(vehicles.map(v => [v.clienteId, { clienteId: v.clienteId, cliente: v.cliente }])).values()]
+        .sort((a, b) => a.cliente.localeCompare(b.cliente, 'pt-BR'));
+      return res.json({
+        ...monthlyCostsByVehicle(selected, entries, meses),
+        clienteId: clienteId || null,
+        veiculoId: veiculoId || null,
+        clientes,
+        opcoesVeiculos: vehicles.map(v => ({ veiculoId: v.id, placa: v.placa, modelo: `${v.marca} ${v.modelo}`, clienteId: v.clienteId })),
+      });
+    } catch (error) {
+      console.error('[Fleet] Erro getMonthlyCostsByVehicle:', error);
+      return res.status(500).json({ error: 'Erro ao calcular custos mensais por veículo' });
     }
   },
 
