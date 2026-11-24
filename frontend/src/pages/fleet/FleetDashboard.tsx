@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, AlertTriangle, CheckCircle, Wrench, ShieldAlert, DollarSign, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { VehiclesWithoutMaintenance } from './VehiclesWithoutMaintenance';
 import {
   ChartHover,
   chartMetricRow,
@@ -144,6 +145,9 @@ export default function FleetDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Veículos sem manutenção no período */}
+      <VehiclesWithoutMaintenance />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Costs Chart Mocked via Beautiful List */}

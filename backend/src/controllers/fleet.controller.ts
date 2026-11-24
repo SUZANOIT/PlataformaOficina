@@ -4,6 +4,8 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
 import { buildVehicleSections } from '../services/vehicleDetails.service';
+import { MAINTENANCE_EVENT_TYPES, parsePeriodDays, summarizeMaintenance } from '../services/vehicleMaintenanceStatus';
+import { isServiceOrderStatus } from '../portalGestor/portalGestor.financials';
 
 // Formats for Zod validation
 const createVehicleSchema = z.object({
@@ -1291,6 +1293,63 @@ export const fleetController = {
   // ==========================================
   // DASHBOARD INDICATORS
   // ==========================================
+  /**
+   * GET /fleet/dashboard/sem-manutencao?dias=90&clienteId=
+   * Veículos ativos da oficina sem manutenção no período (regra em vehicleMaintenanceStatus).
+   */
+  async getVehiclesWithoutMaintenance(req: Request, res: Response) {
+    try {
+      const dias = parsePeriodDays(req.query.dias);
+      const clienteId = typeof req.query.clienteId === 'string' && req.query.clienteId ? req.query.clienteId : undefined;
+
+      const vehicles = await prisma.vehicle.findMany({
+        where: clienteId ? { clienteId } : {},
+        select: {
+          id: true, placa: true, marca: true, modelo: true, kmAtual: true, status: true, createdAt: true, clienteId: true,
+          client: { select: { nome: true, empresa: true } },
+        },
+      });
+      const ids = vehicles.map(v => v.id);
+
+      const last = new Map<string, Date>();
+      const keep = (id: string | null, d: Date | null | undefined) => {
+        if (!id || !d) return;
+        const cur = last.get(id);
+        if (!cur || d > cur) last.set(id, d);
+      };
+
+      if (ids.length) {
+        // Ordens de Serviço (orçamentos que viraram OS)
+        const quotes = await prisma.quote.findMany({
+          where: { veiculoId: { in: ids }, status: { not: 'Cancelado' } },
+          select: { veiculoId: true, status: true, createdAt: true },
+        });
+        quotes.filter(q => isServiceOrderStatus(q.status)).forEach(q => keep(q.veiculoId, q.createdAt));
+
+        // Revisões, manutenções e trocas de óleo registradas no veículo
+        const events = await prisma.vehicleEvent.groupBy({
+          by: ['veiculoId'],
+          where: { veiculoId: { in: ids }, tipo: { in: MAINTENANCE_EVENT_TYPES } },
+          _max: { data: true },
+        });
+        events.forEach(e => keep(e.veiculoId, e._max.data));
+      }
+
+      const summary = summarizeMaintenance(
+        vehicles.map(v => ({
+          id: v.id, placa: v.placa, marca: v.marca, modelo: v.modelo, kmAtual: v.kmAtual, status: v.status,
+          createdAt: v.createdAt, clienteId: v.clienteId, clienteNome: v.client?.empresa || v.client?.nome || '—',
+        })),
+        last,
+        dias,
+      );
+      return res.json(summary);
+    } catch (error) {
+      console.error('[Fleet] Erro getVehiclesWithoutMaintenance:', error);
+      return res.status(500).json({ error: 'Erro ao calcular veículos sem manutenção' });
+    }
+  },
+
   async getDashboardStats(req: Request, res: Response) {
     try {
       const totalClients = await prisma.client.count();
