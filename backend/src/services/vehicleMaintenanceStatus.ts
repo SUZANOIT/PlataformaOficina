@@ -109,8 +109,7 @@ export function summarizeMaintenance(
     faixas,
     porCliente: [...porCliente.values()]
       .filter(c => c.semManutencao > 0)
-      .sort((a, b) => b.semManutencao - a.semManutencao || a.cliente.localeCompare(b.cliente))
-      .slice(0, 10),
+      .sort((a, b) => b.semManutencao - a.semManutencao || a.cliente.localeCompare(b.cliente)),
     veiculos: semManutencao,
   };
 }

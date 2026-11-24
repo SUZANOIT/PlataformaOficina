@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, Users, WrenchIcon, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ChevronDown, Clock, Users, WrenchIcon } from 'lucide-react';
 import { api } from '../../services/api';
 
 interface Row {
@@ -28,8 +28,14 @@ export function VehiclesWithoutMaintenance() {
   const [dias, setDias] = useState(90);
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState('');
-  const [cliente, setCliente] = useState<{ id: string; nome: string } | null>(null);
-  const [limit, setLimit] = useState(PAGE);
+  const [clienteId, setClienteId] = useState('');
+  const [closed, setClosed] = useState<Set<string>>(new Set());
+  const [limits, setLimits] = useState<Record<string, number>>({});
+  const toggle = (id: string) => setClosed(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   useEffect(() => {
     let alive = true;
@@ -41,12 +47,17 @@ export function VehiclesWithoutMaintenance() {
     return () => { alive = false; };
   }, [dias]);
 
-  useEffect(() => { setLimit(PAGE); }, [dias, cliente]);
+  useEffect(() => { setLimits({}); }, [dias, clienteId]);
 
   const rows = useMemo(
-    () => (data?.veiculos || []).filter(r => !cliente || r.clienteId === cliente.id),
-    [data, cliente],
+    () => (data?.veiculos || []).filter(r => !clienteId || r.clienteId === clienteId),
+    [data, clienteId],
   );
+  // Clientes na ordem do backend (mais veículos sem manutenção primeiro); veículos mais críticos primeiro
+  const groups = useMemo(() => (data?.porCliente || [])
+    .filter(c => !clienteId || c.clienteId === clienteId)
+    .map(c => ({ ...c, veiculos: rows.filter(r => r.clienteId === c.clienteId) }))
+    .filter(g => g.veiculos.length > 0), [data, rows, clienteId]);
   const maxFaixa = Math.max(1, ...(data?.faixas || []).map(f => f.total));
 
   return (
@@ -103,108 +114,119 @@ export function VehiclesWithoutMaintenance() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Tempo desde a última manutenção */}
-            <div>
-              <h4 className="mb-3 text-sm font-bold text-gray-700 dark:text-gray-200">Tempo desde a última manutenção</h4>
-              <ul className="space-y-2.5">
-                {data.faixas.map(f => (
-                  <li key={f.key} className="flex items-center gap-3 text-sm">
-                    <span className="w-40 shrink-0 text-gray-600 dark:text-gray-400">{f.label}</span>
-                    <span className="relative h-5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
-                      <span className={`absolute inset-y-0 left-0 rounded-full ${FAIXA_COLOR[f.key] || 'bg-indigo-500'}`} style={{ width: `${(f.total / maxFaixa) * 100}%` }} />
-                    </span>
-                    <span className="w-10 text-right font-bold tabular-nums text-gray-800 dark:text-white">{f.total}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Clientes com mais veículos sem manutenção */}
-            <div>
-              <h4 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-200">
-                <Users size={15} /> Clientes com mais veículos sem manutenção
-              </h4>
-              {data.porCliente.length === 0 ? (
-                <p className="text-sm text-gray-400">Nenhum cliente com veículos sem manutenção no período.</p>
-              ) : (
-                <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {data.porCliente.map(c => (
-                    <li key={c.clienteId}>
-                      <button
-                        type="button"
-                        onClick={() => setCliente(cliente?.id === c.clienteId ? null : { id: c.clienteId, nome: c.cliente })}
-                        className={`flex w-full items-center justify-between gap-3 px-2 py-2 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 ${cliente?.id === c.clienteId ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}
-                      >
-                        <span className="min-w-0 truncate text-gray-700 dark:text-gray-200">{c.cliente}</span>
-                        <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
-                          <b className="text-sm text-rose-600 dark:text-rose-400">{c.semManutencao}</b> de {c.total}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {/* Tempo desde a última manutenção */}
+          <div>
+            <h4 className="mb-3 text-sm font-bold text-gray-700 dark:text-gray-200">Tempo desde a última manutenção</h4>
+            <ul className="grid gap-x-8 gap-y-2.5 md:grid-cols-2">
+              {data.faixas.map(f => (
+                <li key={f.key} className="flex items-center gap-3 text-sm">
+                  <span className="w-40 shrink-0 text-gray-600 dark:text-gray-400">{f.label}</span>
+                  <span className="relative h-5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                    <span className={`absolute inset-y-0 left-0 rounded-full ${FAIXA_COLOR[f.key] || 'bg-indigo-500'}`} style={{ width: `${(f.total / maxFaixa) * 100}%` }} />
+                  </span>
+                  <span className="w-10 text-right font-bold tabular-nums text-gray-800 dark:text-white">{f.total}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Lista de veículos */}
+          {/* Veículos sem manutenção separados por cliente */}
           <div>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200">
-                Veículos sem manutenção ({rows.length})
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h4 className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-200">
+                <Users size={15} /> Por cliente ({groups.length} {groups.length === 1 ? 'cliente' : 'clientes'} · {rows.length} {rows.length === 1 ? 'veículo' : 'veículos'})
               </h4>
-              {cliente && (
-                <button type="button" onClick={() => setCliente(null)} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                  {cliente.nome} <X size={12} aria-label="Remover filtro de cliente" />
-                </button>
+              {data.porCliente.length > 1 && (
+                <select
+                  aria-label="Filtrar por cliente"
+                  value={clienteId}
+                  onChange={e => setClienteId(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm text-gray-800 dark:text-white sm:w-72"
+                >
+                  <option value="">Todos os clientes</option>
+                  {data.porCliente.map(c => <option key={c.clienteId} value={c.clienteId}>{c.cliente} ({c.semManutencao})</option>)}
+                </select>
               )}
             </div>
-            {rows.length === 0 ? (
+
+            {groups.length === 0 ? (
               <p className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
                 Todos os veículos ativos tiveram manutenção nos últimos {periodLabel(data.dias)}.
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-gray-100 dark:border-gray-700">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">
-                    <tr>
-                      {['Placa', 'Veículo', 'Cliente', 'Última manutenção', 'Dias sem manutenção', 'KM atual', ''].map(h => (
-                        <th key={h} className="whitespace-nowrap px-4 py-2.5 font-semibold">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {rows.slice(0, limit).map(r => (
-                      <tr key={r.veiculoId} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                        <td className="whitespace-nowrap px-4 py-2.5 font-semibold text-gray-800 dark:text-white">{r.placa}</td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-300">{r.marca} {r.modelo}</td>
-                        <td className="max-w-[16rem] truncate px-4 py-2.5 text-gray-600 dark:text-gray-300" title={r.cliente}>{r.cliente}</td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-300">{fmtDate(r.ultimaManutencao)}</td>
-                        <td className="whitespace-nowrap px-4 py-2.5">
-                          {r.diasSemManutencao === null ? (
-                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">Nunca</span>
-                          ) : (
-                            <span className={`font-semibold tabular-nums ${r.diasSemManutencao > 365 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                              {r.diasSemManutencao.toLocaleString('pt-BR')} dias
+              <div className="space-y-3">
+                {groups.map(g => {
+                  const isOpen = !closed.has(g.clienteId);
+                  const shown = limits[g.clienteId] ?? PAGE;
+                  const pct = g.total ? Math.round((g.semManutencao / g.total) * 100) : 0;
+                  return (
+                    <div key={g.clienteId} className="overflow-hidden rounded-lg border border-gray-100 dark:border-gray-700">
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => toggle(g.clienteId)}
+                        className="flex w-full items-center gap-3 bg-gray-50 px-4 py-3 text-left hover:bg-gray-100 dark:bg-gray-900/40 dark:hover:bg-gray-900/60"
+                      >
+                        <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-bold text-gray-800 dark:text-white">{g.cliente}</span>
+                          <span className="mt-1 flex items-center gap-2">
+                            <span className="relative h-1.5 w-28 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                              <span className="absolute inset-y-0 left-0 rounded-full bg-rose-500" style={{ width: `${pct}%` }} />
                             </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{pct}% da frota do cliente</span>
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right text-xs text-gray-500 dark:text-gray-400">
+                          <b className="block text-lg leading-tight text-rose-600 dark:text-rose-400">{g.semManutencao}</b>
+                          de {g.total} {g.total === 1 ? 'veículo' : 'veículos'}
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                              <tr className="border-b border-gray-100 dark:border-gray-700">
+                                {['Placa', 'Veículo', 'Última manutenção', 'Dias sem manutenção', 'KM atual', ''].map(h => (
+                                  <th key={h} className="whitespace-nowrap px-4 py-2 font-semibold">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                              {g.veiculos.slice(0, shown).map(r => (
+                                <tr key={r.veiculoId} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                  <td className="whitespace-nowrap px-4 py-2.5 font-semibold text-gray-800 dark:text-white">{r.placa}</td>
+                                  <td className="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-300">{r.marca} {r.modelo}</td>
+                                  <td className="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-300">{fmtDate(r.ultimaManutencao)}</td>
+                                  <td className="whitespace-nowrap px-4 py-2.5">
+                                    {r.diasSemManutencao === null ? (
+                                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">Nunca</span>
+                                    ) : (
+                                      <span className={`font-semibold tabular-nums ${r.diasSemManutencao > 365 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                        {r.diasSemManutencao.toLocaleString('pt-BR')} dias
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-gray-600 dark:text-gray-300">{r.kmAtual.toLocaleString('pt-BR')} km</td>
+                                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                                    <Link to={`/fleet/vehicles/${r.veiculoId}`} className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                                      <WrenchIcon size={13} /> Ver veículo
+                                    </Link>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {g.veiculos.length > shown && (
+                            <button type="button" onClick={() => setLimits(l => ({ ...l, [g.clienteId]: shown + 25 }))} className="w-full border-t border-gray-100 py-2 text-sm font-medium text-indigo-600 hover:bg-gray-50 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-gray-700/40">
+                              Mostrar mais ({g.veiculos.length - shown} restantes)
+                            </button>
                           )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-gray-600 dark:text-gray-300">{r.kmAtual.toLocaleString('pt-BR')} km</td>
-                        <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                          <Link to={`/fleet/vehicles/${r.veiculoId}`} className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
-                            <WrenchIcon size={13} /> Ver veículo
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {rows.length > limit && (
-                  <button type="button" onClick={() => setLimit(l => l + 25)} className="w-full border-t border-gray-100 py-2.5 text-sm font-medium text-indigo-600 hover:bg-gray-50 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-gray-700/40">
-                    Mostrar mais ({rows.length - limit} restantes)
-                  </button>
-                )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
