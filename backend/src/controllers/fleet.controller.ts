@@ -1302,13 +1302,20 @@ export const fleetController = {
       const dias = parsePeriodDays(req.query.dias);
       const clienteId = typeof req.query.clienteId === 'string' && req.query.clienteId ? req.query.clienteId : undefined;
 
-      const vehicles = await prisma.vehicle.findMany({
-        where: clienteId ? { clienteId } : {},
+      const allVehicles = await prisma.vehicle.findMany({
         select: {
           id: true, placa: true, marca: true, modelo: true, kmAtual: true, status: true, createdAt: true, clienteId: true,
           client: { select: { nome: true, empresa: true } },
         },
       });
+      // Clientes com veículos ativos (opções do filtro), independentes do cliente selecionado
+      const clienteNome = (v: typeof allVehicles[number]) => v.client?.empresa || v.client?.nome || '—';
+      const clientes = [...new Map(
+        allVehicles
+          .filter(v => !['INATIVO', 'VENDIDO'].includes((v.status || '').toUpperCase()))
+          .map(v => [v.clienteId, { clienteId: v.clienteId, cliente: clienteNome(v) }]),
+      ).values()].sort((a, b) => a.cliente.localeCompare(b.cliente, 'pt-BR'));
+      const vehicles = clienteId ? allVehicles.filter(v => v.clienteId === clienteId) : allVehicles;
       const ids = vehicles.map(v => v.id);
 
       const last = new Map<string, Date>();
@@ -1338,12 +1345,12 @@ export const fleetController = {
       const summary = summarizeMaintenance(
         vehicles.map(v => ({
           id: v.id, placa: v.placa, marca: v.marca, modelo: v.modelo, kmAtual: v.kmAtual, status: v.status,
-          createdAt: v.createdAt, clienteId: v.clienteId, clienteNome: v.client?.empresa || v.client?.nome || '—',
+          createdAt: v.createdAt, clienteId: v.clienteId, clienteNome: clienteNome(v),
         })),
         last,
         dias,
       );
-      return res.json(summary);
+      return res.json({ ...summary, clienteId: clienteId || null, clientes });
     } catch (error) {
       console.error('[Fleet] Erro getVehiclesWithoutMaintenance:', error);
       return res.status(500).json({ error: 'Erro ao calcular veículos sem manutenção' });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, ChevronDown, Clock, Users, WrenchIcon } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ChevronDown, Clock, Users, WrenchIcon, X } from 'lucide-react';
 import { api } from '../../services/api';
 
 interface Row {
@@ -13,6 +13,8 @@ interface Summary {
   faixas: { key: string; label: string; total: number }[];
   porCliente: { clienteId: string; cliente: string; total: number; semManutencao: number }[];
   veiculos: Row[];
+  clienteId: string | null;
+  clientes: { clienteId: string; cliente: string }[];
 }
 
 const FAIXA_COLOR: Record<string, string> = {
@@ -29,6 +31,8 @@ export function VehiclesWithoutMaintenance() {
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState('');
   const [clienteId, setClienteId] = useState('');
+  // Opções do filtro ficam guardadas entre as cargas (o select não pisca ao trocar)
+  const [clientes, setClientes] = useState<Summary['clientes']>([]);
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const [limits, setLimits] = useState<Record<string, number>>({});
   const toggle = (id: string) => setClosed(prev => {
@@ -41,23 +45,21 @@ export function VehiclesWithoutMaintenance() {
     let alive = true;
     setData(null);
     setError('');
-    api.get<Summary>('/fleet/dashboard/sem-manutencao', { params: { dias } })
-      .then(r => { if (alive) setData(r.data); })
+    api.get<Summary>('/fleet/dashboard/sem-manutencao', { params: { dias, clienteId: clienteId || undefined } })
+      .then(r => { if (alive) { setData(r.data); setClientes(r.data.clientes || []); } })
       .catch(() => { if (alive) setError('Não foi possível carregar os veículos sem manutenção.'); });
     return () => { alive = false; };
-  }, [dias]);
+  }, [dias, clienteId]);
 
   useEffect(() => { setLimits({}); }, [dias, clienteId]);
 
-  const rows = useMemo(
-    () => (data?.veiculos || []).filter(r => !clienteId || r.clienteId === clienteId),
-    [data, clienteId],
-  );
+  // O backend já devolve só o cliente filtrado (indicadores, faixas e lista)
+  const rows = data?.veiculos || [];
   // Clientes na ordem do backend (mais veículos sem manutenção primeiro); veículos mais críticos primeiro
   const groups = useMemo(() => (data?.porCliente || [])
-    .filter(c => !clienteId || c.clienteId === clienteId)
     .map(c => ({ ...c, veiculos: rows.filter(r => r.clienteId === c.clienteId) }))
-    .filter(g => g.veiculos.length > 0), [data, rows, clienteId]);
+    .filter(g => g.veiculos.length > 0), [data, rows]);
+  const clienteNome = clientes.find(c => c.clienteId === clienteId)?.cliente;
   const maxFaixa = Math.max(1, ...(data?.faixas || []).map(f => f.total));
 
   return (
@@ -71,9 +73,28 @@ export function VehiclesWithoutMaintenance() {
             Veículos ativos sem Ordem de Serviço, revisão, manutenção ou troca de óleo no período.
           </p>
         </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-          <Clock size={16} className="text-gray-400" />
-          Sem manutenção há mais de
+          <Users size={16} className="shrink-0 text-gray-400" />
+          <span className="sr-only">Cliente</span>
+          <select
+            aria-label="Filtrar por cliente"
+            value={clienteId}
+            onChange={e => setClienteId(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm font-semibold text-gray-800 dark:text-white sm:w-64"
+          >
+            <option value="">Todos os clientes</option>
+            {clientes.map(c => <option key={c.clienteId} value={c.clienteId}>{c.cliente}</option>)}
+          </select>
+          {clienteId && (
+            <button type="button" onClick={() => setClienteId('')} aria-label="Limpar filtro de cliente" className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700">
+              <X size={14} />
+            </button>
+          )}
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+          <Clock size={16} className="shrink-0 text-gray-400" />
+          <span className="whitespace-nowrap">Sem manutenção há mais de</span>
           <select
             aria-label="Período sem manutenção"
             value={dias}
@@ -83,6 +104,7 @@ export function VehiclesWithoutMaintenance() {
             {(data?.periodos || [30, 60, 90, 180, 365]).map(d => <option key={d} value={d}>{periodLabel(d)}</option>)}
           </select>
         </label>
+        </div>
       </div>
 
       {error ? (
@@ -97,7 +119,7 @@ export function VehiclesWithoutMaintenance() {
               <span className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">Sem manutenção</span>
               <p className="mt-1 text-3xl font-extrabold text-rose-700 dark:text-rose-300">{data.semManutencao}</p>
               <p className="text-xs text-rose-700/80 dark:text-rose-300/80">
-                {data.percentualSemManutencao.toLocaleString('pt-BR')}% dos {data.totalAtivos} veículos ativos · há mais de {periodLabel(data.dias)}
+                {data.percentualSemManutencao.toLocaleString('pt-BR')}% dos {data.totalAtivos} veículos ativos{clienteNome ? ` de ${clienteNome}` : ''} · há mais de {periodLabel(data.dias)}
               </p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
@@ -136,22 +158,11 @@ export function VehiclesWithoutMaintenance() {
               <h4 className="flex items-center gap-1.5 text-sm font-bold text-gray-700 dark:text-gray-200">
                 <Users size={15} /> Por cliente ({groups.length} {groups.length === 1 ? 'cliente' : 'clientes'} · {rows.length} {rows.length === 1 ? 'veículo' : 'veículos'})
               </h4>
-              {data.porCliente.length > 1 && (
-                <select
-                  aria-label="Filtrar por cliente"
-                  value={clienteId}
-                  onChange={e => setClienteId(e.target.value)}
-                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm text-gray-800 dark:text-white sm:w-72"
-                >
-                  <option value="">Todos os clientes</option>
-                  {data.porCliente.map(c => <option key={c.clienteId} value={c.clienteId}>{c.cliente} ({c.semManutencao})</option>)}
-                </select>
-              )}
             </div>
 
             {groups.length === 0 ? (
               <p className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
-                Todos os veículos ativos tiveram manutenção nos últimos {periodLabel(data.dias)}.
+                {clienteNome ? `Todos os veículos ativos de ${clienteNome}` : 'Todos os veículos ativos'} tiveram manutenção nos últimos {periodLabel(data.dias)}.
               </p>
             ) : (
               <div className="space-y-3">
