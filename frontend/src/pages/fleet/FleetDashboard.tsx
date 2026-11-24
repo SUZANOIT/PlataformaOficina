@@ -64,15 +64,6 @@ export default function FleetDashboard() {
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Gestão de Frotas</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Visão geral do controle de clientes, veículos e manutenção preventiva.</p>
         </div>
-        <div className="flex gap-3">
-          <Link
-            to="/fleet/vehicles"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
-          >
-            <Truck size={18} />
-            Gerenciar Veículos
-          </Link>
-        </div>
       </div>
 
       {/* Grid of Indicator Cards */}
