@@ -2,15 +2,8 @@ import { useState, useEffect } from 'react';
 import { Truck, AlertTriangle, CheckCircle, Wrench, ShieldAlert, DollarSign, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  ChartHover,
-  chartMetricRow,
-  chartRow,
-  chartRows,
-  formatChartCurrency,
-  formatChartPercent,
-  sharePercent,
-} from '../../components/charts/ChartTooltip';
+import { VehiclesWithoutMaintenance } from './VehiclesWithoutMaintenance';
+import { MonthlyCostsByVehicle } from './MonthlyCostsByVehicle';
 
 export default function FleetDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -70,15 +63,6 @@ export default function FleetDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Gestão de Frotas</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Visão geral do controle de clientes, veículos e manutenção preventiva.</p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            to="/fleet/vehicles"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
-          >
-            <Truck size={18} />
-            Gerenciar Veículos
-          </Link>
         </div>
       </div>
 
@@ -145,41 +129,13 @@ export default function FleetDashboard() {
         </div>
       </div>
 
+      {/* Veículos sem manutenção no período */}
+      <VehiclesWithoutMaintenance />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Costs Chart Mocked via Beautiful List */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white">Evolução de Custos Mensais</h3>
-          <p className="text-sm text-gray-400">Total acumulado de manutenções, peças e trocas preventivas.</p>
-          
-          <div className="space-y-3 pt-2">
-            {s.monthlyCosts.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">Sem registros financeiros nos últimos meses.</div>
-            ) : (
-              (() => {
-                const costsTotal = s.monthlyCosts.reduce((sum: number, item: any) => sum + (Number(item.cost) || 0), 0);
-                return s.monthlyCosts.map((m: any, idx: number) => (
-                  <ChartHover
-                    key={idx}
-                    className="flex items-center gap-4 rounded-lg"
-                    title={m.month || 'Período'}
-                    rows={chartRows([
-                      chartMetricRow('Custo', formatChartCurrency(m.cost), '#4f46e5'),
-                      chartRow('Participação', formatChartPercent(sharePercent(Number(m.cost), costsTotal))),
-                    ])}
-                  >
-                    <div className="w-16 font-semibold text-sm text-gray-600 dark:text-gray-400">{m.month}</div>
-                    <div className="flex-1 bg-gray-100 dark:bg-gray-700 h-6 rounded-full overflow-hidden relative">
-                      <div
-                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (m.cost / Math.max(...s.monthlyCosts.map((c: any) => c.cost || 1))) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="w-24 text-right font-bold text-sm text-gray-800 dark:text-white">{formatCurrency(m.cost)}</div>
-                  </ChartHover>
-                ));
-              })()
-            )}
-          </div>
+          <MonthlyCostsByVehicle />
         </div>
 
         {/* Quick Menu / Shortcuts */}
