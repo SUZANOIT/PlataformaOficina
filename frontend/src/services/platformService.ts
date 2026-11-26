@@ -1,7 +1,7 @@
 import { api } from './api';
 
 export const platformService = {
-  async list(params: { search?: string; status?: string; page?: number; limit?: number }) {
+  async list(params: { search?: string; status?: string; quoteStatus?: string; page?: number; limit?: number }) {
     const response = await api.get('/registry/platforms', { params });
     return response.data;
   },
@@ -18,6 +18,12 @@ export const platformService = {
 
   async delete(id: string) {
     const response = await api.delete(`/registry/platforms/${id}`);
+    return response.data;
+  },
+
+  /** Drill: orçamentos (oficina e guincho) da plataforma, com quebra por status. */
+  async listQuotes(id: string, quoteStatus?: string) {
+    const response = await api.get(`/registry/platforms/${id}/quotes`, { params: { quoteStatus: quoteStatus && quoteStatus !== 'TODOS' ? quoteStatus : undefined } });
     return response.data;
   },
 

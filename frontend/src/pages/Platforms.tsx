@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Search, Building, MapPin, Loader2, AlertCircle, History } from 'lucide-react';
+import { Fragment, useState, useEffect } from 'react';
+import { PlatformQuotesDrill, statusBadgeClasses } from '../components/platforms/PlatformQuotesDrill';
+import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
+import { Plus, Edit, Trash2, X, Search, Building, MapPin, Loader2, AlertCircle, History, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { platformService } from '../services/platformService';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
@@ -13,6 +15,10 @@ export function Platforms() {
   const [summary, setSummary] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODOS');
+  // Status do orçamento: filtra os indicadores e o drill das plataformas
+  const [quoteStatusFilter, setQuoteStatusFilter] = useState('TODOS');
+  // Plataforma aberta no drill (lista de orçamentos)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -64,6 +70,7 @@ export function Platforms() {
       const res = await platformService.list({
         search: searchTerm,
         status: statusFilter,
+        quoteStatus: quoteStatusFilter,
         page,
         limit: 10
       });
@@ -81,7 +88,7 @@ export function Platforms() {
 
   useEffect(() => {
     fetchPlatforms();
-  }, [searchTerm, statusFilter, page]);
+  }, [searchTerm, statusFilter, quoteStatusFilter, page]);
 
   const handleOpenCreateModal = () => {
     setSelectedPlatform(null);
@@ -385,7 +392,7 @@ export function Platforms() {
       )}
 
       {/* Filters Area */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center bg-card border border-border rounded-xl p-4 shadow-2xs">
+      <div className="flex flex-col lg:flex-row gap-4 items-center bg-card border border-border rounded-xl p-4 shadow-2xs">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -396,7 +403,7 @@ export function Platforms() {
             className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary transition-all"
           />
         </div>
-        <div className="w-full sm:w-48">
+        <div className="w-full lg:w-48">
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -405,6 +412,17 @@ export function Platforms() {
             <option value="TODOS">Todos os Status</option>
             <option value="ATIVO">Ativas</option>
             <option value="INATIVO">Inativas</option>
+          </select>
+        </div>
+        <div className="w-full lg:w-60">
+          <select
+            aria-label="Status do orçamento"
+            value={quoteStatusFilter}
+            onChange={(e) => { setQuoteStatusFilter(e.target.value); setPage(1); }}
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus:ring-primary transition-all"
+          >
+            <option value="TODOS">Todos os status do orçamento</option>
+            {QUOTE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>
@@ -444,13 +462,36 @@ export function Platforms() {
               </thead>
               <tbody className="divide-y divide-border text-sm">
                 {platforms.map((platform) => (
-                  <tr key={platform.id} className="hover:bg-muted/10 transition-colors group">
+                  <Fragment key={platform.id}>
+                  <tr className={`hover:bg-muted/10 transition-colors group ${expandedId === platform.id ? 'bg-muted/10' : ''}`}>
                     <td className="px-6 py-4.5">
-                      <div className="font-medium text-foreground">{platform.nomeFantasia}</div>
-                      <div className="text-xs text-muted-foreground font-normal mt-0.5">{platform.cnpj}</div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expandedId === platform.id ? null : platform.id)}
+                        aria-expanded={expandedId === platform.id}
+                        title="Ver os orçamentos desta plataforma"
+                        className="flex items-start gap-2 text-left"
+                      >
+                        <ChevronRight className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expandedId === platform.id ? 'rotate-90' : ''}`} />
+                        <span>
+                          <span className="block font-medium text-foreground hover:text-primary">{platform.nomeFantasia}</span>
+                          <span className="block text-xs text-muted-foreground font-normal mt-0.5">{platform.cnpj}</span>
+                        </span>
+                      </button>
                     </td>
                     <td className="px-6 py-4.5">
                       <div className="font-medium text-foreground">{platform.stats?.totalQuotesCount || 0}</div>
+                      {/* Status dos orçamentos da plataforma */}
+                      {platform.porStatus?.length > 0 && (
+                        <div className="mt-1 flex max-w-[14rem] flex-wrap gap-1">
+                          {platform.porStatus.slice(0, 4).map((s: any) => (
+                            <span key={s.status} title={`${s.status}: ${s.quantidade}`} className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${statusBadgeClasses(s.status)}`}>
+                              {s.status} {s.quantidade}
+                            </span>
+                          ))}
+                          {platform.porStatus.length > 4 && <span className="text-[10px] text-muted-foreground">+{platform.porStatus.length - 4}</span>}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4.5 font-medium text-foreground">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(platform.stats?.totalValue || 0)}
@@ -497,6 +538,14 @@ export function Platforms() {
                       </div>
                     </td>
                   </tr>
+                  {expandedId === platform.id && (
+                    <tr className="bg-muted/5">
+                      <td colSpan={7} className="p-0">
+                        <PlatformQuotesDrill platformId={platform.id} quoteStatus={quoteStatusFilter} />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
