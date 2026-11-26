@@ -9,11 +9,11 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
  * Indicadores do ano, conciliação, DRE mensal e títulos lançados pela oficina,
  * pela mesma regra única do backend (GET /portal-gestor/financeiro).
  */
-export function DashboardFinanceiro() {
+export function DashboardFinanceiro({ statusOs = 'Pago' }: { statusOs?: string }) {
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(anoAtual);
   const [aba, setAba] = useState<'dre' | 'titulos'>('dre');
-  const state = useLoad(() => portalGestorApi.financeiro(ano), [ano]);
+  const state = useLoad(() => portalGestorApi.financeiro(ano, statusOs), [ano, statusOs]);
 
   return (
     <section aria-labelledby="dash-financeiro" className="space-y-3">
@@ -33,7 +33,7 @@ export function DashboardFinanceiro() {
         {(d: any) => (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-              <Stat label={`Custo total em ${d.ano}`} value={formatCurrency(d.resumo.total)} hint={`${d.resumo.quantidadeOs} ordens de serviço`} />
+              <Stat label={`Custo total em ${d.ano}`} value={formatCurrency(d.resumo.total)} hint={`${d.resumo.quantidadeOs} ${d.resumo.quantidadeOs === 1 ? 'ordem de serviço' : 'ordens de serviço'} ${statusOs === 'todas' ? '(todos os status)' : `· ${statusOs}`}`} />
               <Stat label="Peças" value={formatCurrency(d.resumo.pecas)} />
               <Stat label="Mão de obra / Serviços" value={formatCurrency(d.resumo.servicos)} hint={d.resumo.ajustes !== 0 ? `Ajustes: ${formatCurrency(d.resumo.ajustes)}` : undefined} />
               <Stat label="Pago" value={formatCurrency(d.resumo.pago)} tone="ok" hint={d.resumo.coberto > 0 ? `${formatCurrency(d.resumo.coberto)} coberto` : undefined} />
@@ -41,7 +41,7 @@ export function DashboardFinanceiro() {
               <Stat label="Vencido" value={formatCurrency(d.resumo.vencido)} tone={d.resumo.vencido > 0 ? 'danger' : 'ok'} />
             </div>
             <p className="text-xs text-muted-foreground">
-              Ordens de serviço de {d.ano} pela data de abertura: {formatCurrency(d.resumo.totalOs)} = {formatCurrency(d.resumo.pago)} pago + {formatCurrency(d.resumo.emAberto)} em aberto{d.resumo.coberto > 0 ? ` + ${formatCurrency(d.resumo.coberto)} coberto` : ''}.
+              Ordens de serviço {statusOs === 'todas' ? '' : `com status "${statusOs}" `}de {d.ano} pela data de abertura: {formatCurrency(d.resumo.totalOs)} = {formatCurrency(d.resumo.pago)} pago + {formatCurrency(d.resumo.emAberto)} em aberto{d.resumo.coberto > 0 ? ` + ${formatCurrency(d.resumo.coberto)} coberto` : ''}.
             </p>
 
             <Card>

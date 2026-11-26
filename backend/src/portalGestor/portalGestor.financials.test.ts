@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { computeFleetFinancials, itemCategories, computeVehicleMonthlySpend, spendMonths, parseMonthRange, FinQuote, FinAllocation } from './portalGestor.financials';
+import { computeFleetFinancials, itemCategories, computeVehicleMonthlySpend, spendMonths, parseMonthRange, parseOsStatusFilter, FinQuote, FinAllocation } from './portalGestor.financials';
 
 const d = (y: number, m: number, day = 10) => new Date(y, m - 1, day);
 const now = d(2026, 11, 21);
@@ -122,6 +122,23 @@ results.push(['Gastos por veículo: divisão Peças/Serviços x Mão de Obra som
   // Arredondamento: 3 itens iguais em 100,00 continua fechando
   const tri = computeVehicleMonthlySpend({ quotes: [{ id: 'y', status: 'Pago', total: 100, createdAt: d(2026, 5), veiculoId: 'v1', veiculoPlaca: 'ABC1D23', items: [item('Peça', 1), item('Peça', 1), item('Mão de Obra', 1)] }], vehicles, period: 'ano', now });
   assert.strictEqual(tri.veiculos[0].pecas[4] + tri.veiculos[0].maoDeObra[4], 100);
+}], ['Dashboard: filtro de status da OS (padrão só Pago; Aguardando Pagamento não entra)', () => {
+  const periodo = { inicio: d(2026, 1, 1), fim: d(2027, 1, 1) };
+  const pagas = computeFleetFinancials({ quotes, allocations, vehicles, period: periodo, now, statusOs: parseOsStatusFilter(undefined) });
+  assert.strictEqual(pagas.resumo.quantidadeOs, 1); // só 'pago' de 2026 (Aguardando Pagamento e Aprovado fora)
+  assert.strictEqual(pagas.resumo.total, 1000);
+  const aguardando = computeFleetFinancials({ quotes, allocations, vehicles, period: periodo, now, statusOs: 'Aguardando Pagamento' });
+  assert.strictEqual(aguardando.resumo.total, 2000);
+  const todas = computeFleetFinancials({ quotes, allocations, vehicles, period: periodo, now, statusOs: 'todas' });
+  assert.strictEqual(todas.resumo.total, r.resumo.total); // igual à regra antiga (sem filtro)
+  // Pendentes e cancelados nunca entram, nem pedindo o status explicitamente
+  assert.strictEqual(parseOsStatusFilter('Cancelado'), 'Pago');
+  assert.strictEqual(parseOsStatusFilter('Aguardando Aprovação'), 'Pago');
+  // Gráfico de gastos por veículo segue o mesmo filtro
+  const g = computeVehicleMonthlySpend({ quotes, vehicles, period: 'ano', now, statusOs: 'Pago' });
+  assert.strictEqual(g.total, 1000);
+  const gTodas = computeVehicleMonthlySpend({ quotes, vehicles, period: 'ano', now });
+  assert.ok(gTodas.total > g.total);
 }]);
 let failed = 0;
 for (const [name, fn] of results) {

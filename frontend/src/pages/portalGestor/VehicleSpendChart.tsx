@@ -74,7 +74,7 @@ function SegmentTooltip({ active, payload, label, vehicles }: any) {
   );
 }
 
-export function VehicleSpendChart() {
+export function VehicleSpendChart({ statusOs = 'Pago' }: { statusOs?: string }) {
   const [periodo, setPeriodo] = useState('12m');
   // Período por mês: um mês só (de = até) ou intervalo de meses
   const [de, setDe] = useState(currentMonth());
@@ -83,8 +83,8 @@ export function VehicleSpendChart() {
   const [veiculoId, setVeiculoId] = useState('');
   const [view, setView] = useState<'grafico' | 'tabela'>('grafico');
   const state = useLoad(
-    () => portalGestorApi.gastosVeiculos(periodo, periodo === 'mes' ? { de, ate } : {}),
-    [periodo, periodo === 'mes' ? de : '', periodo === 'mes' ? ate : ''],
+    () => portalGestorApi.gastosVeiculos(periodo, periodo === 'mes' ? { de, ate, statusOs } : { statusOs }),
+    [periodo, periodo === 'mes' ? de : '', periodo === 'mes' ? ate : '', statusOs],
   );
 
   const model = useMemo(() => {

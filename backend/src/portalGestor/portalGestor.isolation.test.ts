@@ -587,12 +587,23 @@ async function main() {
     // Só OS válidas de X no período (sem pendentes e cancelados), cada orçamento uma vez
     const start = new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
     const valid = await db.quote.findMany({ where: { clientId: clientX.id, createdAt: { gte: start }, status: { notIn: ['Orçamento', 'Em Andamento', 'Aguardando Aprovação', 'Cancelado'] } } });
-    const expected = Math.round(valid.reduce((s2: number, q: any) => s2 + q.total, 0) * 100) / 100;
-    assert.strictEqual(r.body.total, expected);
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+    // Padrão do Dashboard: só OS pagas
+    const expectedPagas = round2(valid.filter((q: any) => q.status === 'Pago').reduce((s2: number, q: any) => s2 + q.total, 0));
+    assert.strictEqual(r.body.statusOs, 'Pago');
+    assert.strictEqual(r.body.total, expectedPagas);
+    // statusOs=todas: toda OS válida (regra anterior)
+    const expected = round2(valid.reduce((s2: number, q: any) => s2 + q.total, 0));
+    const todas = await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=12m&statusOs=todas', tokenX);
+    assert.strictEqual(todas.body.total, expected);
+    assert.ok(expected > expectedPagas, 'a base de teste deve ter OS aprovadas não pagas');
     assert.ok(!r.text.includes(qYpaid.id) && !r.text.includes(vY.placa));
     for (const p of ['6m', 'ano']) assert.strictEqual((await http('GET', `/portal-gestor/dashboard/gastos-veiculos?periodo=${p}`, tokenX)).status, 200);
-    const one = await http('GET', `/portal-gestor/dashboard/gastos-veiculos?periodo=12m&veiculoId=${vX.id}`, tokenX);
+    const one = await http('GET', `/portal-gestor/dashboard/gastos-veiculos?periodo=12m&veiculoId=${vX.id}&statusOs=todas`, tokenX);
     assert.strictEqual(one.body.total, expected);
+    // Status inválido (pendente/cancelado) cai no padrão Pago
+    const inval = await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=12m&statusOs=Cancelado', tokenX);
+    assert.strictEqual(inval.body.statusOs, 'Pago');
     assert.strictEqual((await http('GET', `/portal-gestor/dashboard/gastos-veiculos?veiculoId=${vY.id}`, tokenX)).status, 404);
     assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=99m', tokenX)).status, 400);
     assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos', tok(adminA))).status, 403);

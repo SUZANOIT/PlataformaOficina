@@ -1,11 +1,24 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { portalGestorApi } from '../../services/portalGestor';
 import { VehicleSpendChart } from './VehicleSpendChart';
 import { DashboardFinanceiro } from './DashboardFinanceiro';
-import { Card, Loadable, PageHeader, Stat, StatusBadge, Table, formatCurrency, formatDate, useLoad, EmptyState } from './ui';
+import { Card, Loadable, PageHeader, Stat, StatusBadge, Table, formatCurrency, formatDate, useLoad, EmptyState, inputClass } from './ui';
+
+// Status da OS somado no Financeiro e no gráfico de gastos (padrão: só OS pagas)
+const STATUS_OS_OPCOES = [
+  { value: 'Pago', label: 'Pago' },
+  { value: 'Aguardando Pagamento', label: 'Aguardando Pagamento' },
+  { value: 'Parcialmente Pago', label: 'Parcialmente Pago' },
+  { value: 'Emitir Nota Fiscal', label: 'Emitir Nota Fiscal' },
+  { value: 'Aprovado', label: 'Aprovado' },
+  { value: 'Cobertura', label: 'Cobertura' },
+  { value: 'todas', label: 'Todas as OS aprovadas' },
+];
 
 export function PortalDashboard() {
   const state = useLoad(() => portalGestorApi.dashboard());
+  const [statusOs, setStatusOs] = useState('Pago');
 
   return (
     <>
@@ -23,10 +36,23 @@ export function PortalDashboard() {
                 tone={d.motoristas.cnhVencendo.length ? 'warn' : 'default'} />
             </div>
 
-            {/* Financeiro (antiga tela Finanças / DRE) */}
-            <DashboardFinanceiro />
+            {/* Filtro de status da OS: vale para o Financeiro e para o gráfico de gastos */}
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Custos somados: <span className="font-medium text-foreground">{statusOs === 'Pago' ? 'somente ordens de serviço pagas' : statusOs === 'todas' ? 'todas as ordens de serviço aprovadas' : `ordens de serviço com status "${statusOs}"`}</span>
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">Status da OS</span>
+                <select aria-label="Status da OS" className={`${inputClass} h-9 sm:w-60`} value={statusOs} onChange={e => setStatusOs(e.target.value)}>
+                  {STATUS_OS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
 
-            <VehicleSpendChart />
+            {/* Financeiro (antiga tela Finanças / DRE) */}
+            <DashboardFinanceiro statusOs={statusOs} />
+
+            <VehicleSpendChart statusOs={statusOs} />
 
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>

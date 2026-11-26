@@ -8,7 +8,7 @@ import { AuditLogger } from '../utils/audit.logger';
 import { QuoteHistoryHelper } from '../utils/quoteHistory.helper';
 import { buildApprovalReceivables, isPendingQuoteStatus, resolveQuoteStatus, PENDING_QUOTE_STATUSES } from '../utils/quoteReceivables.helper';
 import { buildVehicleSections, sanitizeQuoteItemForPortal } from '../services/vehicleDetails.service';
-import { computeFleetFinancials, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, computeVehicleMonthlySpend, spendMonths, parseMonthRange, type SpendPeriod, type FinPeriod } from './portalGestor.financials';
+import { computeFleetFinancials, parseOsStatusFilter, DASHBOARD_OS_STATUSES, OS_STATUS_TODAS, isCancelledStatus, isReceivedStatus, isServiceOrderStatus, itemCategories, partItemWhere, computeVehicleMonthlySpend, spendMonths, parseMonthRange, type SpendPeriod, type FinPeriod } from './portalGestor.financials';
 import { S3Service } from '../services/s3.service';
 import { onClienteDecidiuOrcamento } from '../manutencao/manutencao.service';
 import {
@@ -123,7 +123,7 @@ async function loadClientReceivables(scope: PortalScope, quoteIds: string[]) {
  * Indicadores financeiros da frota pela regra única (portalGestor.financials.ts).
  * Dashboard, Finanças / DRE e cockpit do veículo usam esta função.
  */
-async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPeriod; vehicleId?: string } = {}) {
+async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPeriod; vehicleId?: string; statusOs?: string } = {}) {
   const [quotes, vehicles] = await Promise.all([
     loadClientQuotes(scope, opts.vehicleId ? { veiculoId: opts.vehicleId } : {}),
     loadClientVehiclesFull(scope, opts.vehicleId ? { id: opts.vehicleId } : {}),
@@ -134,6 +134,7 @@ async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPerio
     allocations: receivables.flatMap(r => r.alocacoes),
     vehicles,
     period: opts.period,
+    statusOs: opts.statusOs,
   });
   return { ...result, receivables, quotes, vehicles };
 }
@@ -239,6 +240,7 @@ export const PortalGestorController = {
         return res.status(400).json({ error: 'Período inválido. Use 6m, 12m, ano ou mes (com de e ate).' });
       }
       const veiculoId = req.query.veiculoId ? String(req.query.veiculoId) : undefined;
+      const statusOs = parseOsStatusFilter(req.query.statusOs);
       if (veiculoId && !(await findScopedVehicle(scope, veiculoId))) {
         return res.status(404).json({ error: 'Veículo não encontrado' });
       }
@@ -258,7 +260,7 @@ export const PortalGestorController = {
           select: { id: true, placa: true, marca: true, modelo: true },
         }),
       ]);
-      return res.json({ periodo: periodoParam, ...computeVehicleMonthlySpend({ quotes, vehicles, period: periodo }) });
+      return res.json({ periodo: periodoParam, statusOs, ...computeVehicleMonthlySpend({ quotes, vehicles, period: periodo, statusOs }) });
     } catch (error) {
       return handlePortalError(res, error, 'vehicleSpend');
     }
@@ -681,14 +683,18 @@ export const PortalGestorController = {
       const ano = Number(req.query.ano) || new Date().getFullYear();
       const inicio = new Date(ano, 0, 1);
       const fim = new Date(ano + 1, 0, 1);
+      // Dashboard: por padrão só OS pagas (filtro de status da OS)
+      const statusOs = parseOsStatusFilter(req.query.statusOs);
 
-      const { resumo, meses, porVeiculo, receivables } = await loadFleetFinancials(scope, { period: { inicio, fim } });
+      const { resumo, meses, porVeiculo, receivables } = await loadFleetFinancials(scope, { period: { inicio, fim }, statusOs });
 
       // Títulos lançados pela oficina com vencimento no ano (lista informativa)
       const titulosAno = receivables.filter(r => new Date(r.vencimento) >= inicio && new Date(r.vencimento) < fim);
 
       return res.json({
         ano,
+        statusOs,
+        statusOsOpcoes: [...DASHBOARD_OS_STATUSES, OS_STATUS_TODAS],
         resumo,
         meses,
         porVeiculo,
