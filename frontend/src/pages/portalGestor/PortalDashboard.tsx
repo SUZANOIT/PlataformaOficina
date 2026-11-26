@@ -12,13 +12,15 @@ const STATUS_OS_OPCOES = [
   { value: 'Parcialmente Pago', label: 'Parcialmente Pago' },
   { value: 'Emitir Nota Fiscal', label: 'Emitir Nota Fiscal' },
   { value: 'Aprovado', label: 'Aprovado' },
-  { value: 'Cobertura', label: 'Cobertura' },
   { value: 'todas', label: 'Todas as OS aprovadas' },
 ];
 
 export function PortalDashboard() {
   const state = useLoad(() => portalGestorApi.dashboard());
   const [statusOs, setStatusOs] = useState('Pago');
+  const [plataforma, setPlataforma] = useState('');
+  // Opções de plataforma: as plataformas de gestão presentes nos orçamentos da empresa
+  const plataformas = useLoad(() => portalGestorApi.ordensServico({ pageSize: 10 }).then(r => r.plataformas || []));
 
   return (
     <>
@@ -41,18 +43,27 @@ export function PortalDashboard() {
               <p className="text-sm text-muted-foreground">
                 Custos somados: <span className="font-medium text-foreground">{statusOs === 'Pago' ? 'somente ordens de serviço pagas' : statusOs === 'todas' ? 'todas as ordens de serviço aprovadas' : `ordens de serviço com status "${statusOs}"`}</span>
               </p>
-              <label className="flex items-center gap-2 text-sm">
-                <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">Status da OS</span>
-                <select aria-label="Status da OS" className={`${inputClass} h-9 sm:w-60`} value={statusOs} onChange={e => setStatusOs(e.target.value)}>
-                  {STATUS_OS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="flex items-center gap-2 text-sm">
+                  <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">Plataforma</span>
+                  <select aria-label="Plataforma de gestão" className={`${inputClass} h-9 sm:w-52`} value={plataforma} onChange={e => setPlataforma(e.target.value)}>
+                    <option value="">Todas as plataformas</option>
+                    {((plataformas.data as any[]) || []).map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">Status da OS</span>
+                  <select aria-label="Status da OS" className={`${inputClass} h-9 sm:w-56`} value={statusOs} onChange={e => setStatusOs(e.target.value)}>
+                    {STATUS_OS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </label>
+              </div>
             </div>
 
             {/* Financeiro (antiga tela Finanças / DRE) */}
-            <DashboardFinanceiro statusOs={statusOs} />
+            <DashboardFinanceiro statusOs={statusOs} plataforma={plataforma} />
 
-            <VehicleSpendChart statusOs={statusOs} />
+            <VehicleSpendChart statusOs={statusOs} plataforma={plataforma} />
 
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>

@@ -47,7 +47,7 @@ export const isServiceOrderStatus = (status: string) => !isPendingQuoteStatus(st
  */
 export const OS_STATUS_TODAS = 'todas';
 export const DEFAULT_DASHBOARD_OS_STATUS = 'Pago';
-export const DASHBOARD_OS_STATUSES = ['Pago', 'Aprovado', 'Aguardando Pagamento', 'Parcialmente Pago', 'Emitir Nota Fiscal', 'Cobertura'];
+export const DASHBOARD_OS_STATUSES = ['Pago', 'Aprovado', 'Aguardando Pagamento', 'Parcialmente Pago', 'Emitir Nota Fiscal'];
 
 export function parseOsStatusFilter(value: unknown): string {
   const v = typeof value === 'string' ? value.trim() : '';

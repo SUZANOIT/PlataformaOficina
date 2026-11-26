@@ -57,6 +57,34 @@ async function loadClientQuotes(scope: PortalScope, extra: any = {}) {
   });
 }
 
+/**
+ * Filtro por plataforma de gestão (Ticket Log, Maxifrota…): '' = todas,
+ * 'sem' = orçamentos sem plataforma, id = só daquela plataforma.
+ */
+const SEM_PLATAFORMA = 'sem';
+function platformFilter(value: unknown): Prisma.QuoteWhereInput {
+  const v = typeof value === 'string' ? value.trim() : '';
+  if (!v) return {};
+  if (v === SEM_PLATAFORMA) return { plataformaGestaoId: null };
+  return { plataformaGestaoId: v };
+}
+
+/** Plataformas presentes nos orçamentos do cliente (opções do filtro). */
+async function loadClientPlatforms(scope: PortalScope) {
+  const vehicleIds = await getClientVehicleIds(scope);
+  const rows = await basePrisma.quote.findMany({
+    where: quoteWhere(scope, vehicleIds),
+    select: { plataformaGestao: { select: { id: true, nomeFantasia: true, razaoSocial: true } } },
+    distinct: ['plataformaGestaoId'],
+  });
+  const opcoes = rows
+    .filter(r => r.plataformaGestao)
+    .map(r => ({ id: r.plataformaGestao!.id, nome: r.plataformaGestao!.nomeFantasia || r.plataformaGestao!.razaoSocial }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const temSem = rows.some(r => !r.plataformaGestao);
+  return [...opcoes, ...(temSem ? [{ id: SEM_PLATAFORMA, nome: 'Sem plataforma' }] : [])];
+}
+
 async function loadClientVehiclesFull(scope: PortalScope, extra: any = {}) {
   return basePrisma.vehicle.findMany({
     where: vehicleWhere(scope, extra),
@@ -123,9 +151,9 @@ async function loadClientReceivables(scope: PortalScope, quoteIds: string[]) {
  * Indicadores financeiros da frota pela regra única (portalGestor.financials.ts).
  * Dashboard, Finanças / DRE e cockpit do veículo usam esta função.
  */
-async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPeriod; vehicleId?: string; statusOs?: string } = {}) {
+async function loadFleetFinancials(scope: PortalScope, opts: { period?: FinPeriod; vehicleId?: string; statusOs?: string; plataforma?: string } = {}) {
   const [quotes, vehicles] = await Promise.all([
-    loadClientQuotes(scope, opts.vehicleId ? { veiculoId: opts.vehicleId } : {}),
+    loadClientQuotes(scope, { ...(opts.vehicleId ? { veiculoId: opts.vehicleId } : {}), ...platformFilter(opts.plataforma) }),
     loadClientVehiclesFull(scope, opts.vehicleId ? { id: opts.vehicleId } : {}),
   ]);
   const receivables = await loadClientReceivables(scope, quotes.map(q => q.id));
@@ -241,6 +269,7 @@ export const PortalGestorController = {
       }
       const veiculoId = req.query.veiculoId ? String(req.query.veiculoId) : undefined;
       const statusOs = parseOsStatusFilter(req.query.statusOs);
+      const plataformaWhere = platformFilter(req.query.plataforma);
       if (veiculoId && !(await findScopedVehicle(scope, veiculoId))) {
         return res.status(404).json({ error: 'Veículo não encontrado' });
       }
@@ -252,6 +281,7 @@ export const PortalGestorController = {
             createdAt: { gte: months[0].inicio, lt: months[months.length - 1].fim },
             status: { notIn: [...PENDING_QUOTE_STATUSES, 'Cancelado'] },
             ...(veiculoId ? { veiculoId } : {}),
+            ...plataformaWhere,
           }),
           select: { id: true, status: true, total: true, createdAt: true, veiculoId: true, veiculoPlaca: true, items: { select: { tipo: true, valorTotal: true } } },
         }),
@@ -527,10 +557,20 @@ export const PortalGestorController = {
       if (status) filters.push({ status: status === 'Aguardando Aprovação' ? { in: PENDING_QUOTE_STATUSES } : status });
       if (servico === 'pecas') filters.push({ items: { some: partItemWhere() } });
       if (servico === 'mao-de-obra') filters.push({ items: { some: { NOT: partItemWhere() } } });
+      if (q.plataforma) filters.push(platformFilter(q.plataforma));
+      // Ano pela data de abertura (mesma base do Dashboard)
+      const ano = Number(q.ano);
+      if (Number.isInteger(ano) && ano >= 2000 && ano <= 2100) {
+        filters.push({ createdAt: { gte: new Date(ano, 0, 1), lt: new Date(ano + 1, 0, 1) } });
+      }
 
       const vehicleIds = await getClientVehicleIds(scope);
       const where = quoteWhere(scope, vehicleIds, { AND: filters });
-      const total = await basePrisma.quote.count({ where });
+      const [total, soma, plataformas] = await Promise.all([
+        basePrisma.quote.count({ where }),
+        basePrisma.quote.aggregate({ where, _sum: { total: true } }),
+        loadClientPlatforms(scope),
+      ]);
       const totalPages = Math.max(1, Math.ceil(total / pageSize));
       const page = Math.min(requestedPage, totalPages);
 
@@ -538,6 +578,7 @@ export const PortalGestorController = {
         where,
         select: {
           ...quoteListSelect,
+          plataformaGestao: { select: { nomeFantasia: true, razaoSocial: true } },
           items: { select: { tipo: true } },
         },
         orderBy: [{ updatedAt: 'desc' }, { numeroOrcamento: 'desc' }],
@@ -547,16 +588,20 @@ export const PortalGestorController = {
 
       // "Última atualização" = data da última alteração (sem expor logs internos da oficina)
       return res.json({
-        items: quotes.map(({ items, ...rest }) => ({
+        items: quotes.map(({ items, plataformaGestao, ...rest }) => ({
           ...rest,
+          plataforma: plataformaGestao ? (plataformaGestao.nomeFantasia || plataformaGestao.razaoSocial) : null,
           servicos: itemCategories(items),
           aguardandoAprovacao: isPendingQuoteStatus(rest.status),
         })),
         total,
+        // Soma do valor de todas as OS do filtro (todas as páginas)
+        valorTotal: Math.round((soma._sum.total || 0) * 100) / 100,
         page,
         pageSize,
         totalPages,
         statusOptions: PORTAL_QUOTE_STATUSES,
+        plataformas,
       });
     } catch (error) {
       return handlePortalError(res, error, 'listServiceOrders');
@@ -685,8 +730,12 @@ export const PortalGestorController = {
       const fim = new Date(ano + 1, 0, 1);
       // Dashboard: por padrão só OS pagas (filtro de status da OS)
       const statusOs = parseOsStatusFilter(req.query.statusOs);
+      const plataforma = typeof req.query.plataforma === 'string' ? req.query.plataforma : '';
 
-      const { resumo, meses, porVeiculo, receivables } = await loadFleetFinancials(scope, { period: { inicio, fim }, statusOs });
+      const [{ resumo, meses, porVeiculo, receivables }, plataformas] = await Promise.all([
+        loadFleetFinancials(scope, { period: { inicio, fim }, statusOs, plataforma }),
+        loadClientPlatforms(scope),
+      ]);
 
       // Títulos lançados pela oficina com vencimento no ano (lista informativa)
       const titulosAno = receivables.filter(r => new Date(r.vencimento) >= inicio && new Date(r.vencimento) < fim);
@@ -695,6 +744,8 @@ export const PortalGestorController = {
         ano,
         statusOs,
         statusOsOpcoes: [...DASHBOARD_OS_STATUSES, OS_STATUS_TODAS],
+        plataforma,
+        plataformas,
         resumo,
         meses,
         porVeiculo,
