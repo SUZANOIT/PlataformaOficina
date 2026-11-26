@@ -338,6 +338,7 @@ routes.post('/registry/platforms', PlatformController.create);
 routes.put('/registry/platforms/:id', PlatformController.update);
 routes.delete('/registry/platforms/:id', PlatformController.delete);
 routes.get('/registry/platforms/:id/history', PlatformController.listHistory);
+routes.get('/registry/platforms/:id/quotes', PlatformController.listQuotes);
 
 // RH - Gestão de Faltas e Fechamento
 routes.use('/rh', authMiddleware);

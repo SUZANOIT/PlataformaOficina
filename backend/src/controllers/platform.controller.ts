@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
+import { summarizePlatformQuotes } from '../services/platformQuoteStats';
 
 const platformSchema = z.object({
   razaoSocial: z.string().min(1, 'Razão Social é obrigatória'),
@@ -54,93 +55,43 @@ export const PlatformController = {
         ];
       }
 
+      // Status do orçamento (opcional): filtra os indicadores e a quebra por status
+      const quoteStatus = typeof req.query.quoteStatus === 'string' && req.query.quoteStatus !== 'TODOS' ? req.query.quoteStatus : undefined;
+      const quoteSelect = {
+        quotes: { select: { status: true, total: true } },
+        towingQuotes: { select: { status: true, valorTotal: true } },
+      } as const;
+      const toItems = (p: any) => [
+        ...p.quotes.map((q: any) => ({ status: q.status, valor: q.total })),
+        ...p.towingQuotes.map((q: any) => ({ status: q.status, valor: q.valorTotal })),
+      ];
+
       const [platforms, total, allFilteredPlatforms] = await Promise.all([
         prisma.plataformaGestao.findMany({
           where: whereClause,
           orderBy: { nomeFantasia: 'asc' },
           skip,
           take: limitNum,
-          include: {
-            quotes: { select: { status: true, total: true } },
-            towingQuotes: { select: { status: true, valorTotal: true } }
-          }
+          include: quoteSelect,
         }),
         prisma.plataformaGestao.count({ where: whereClause }),
-        prisma.plataformaGestao.findMany({
-          where: whereClause,
-          select: {
-            quotes: { select: { status: true, total: true } },
-            towingQuotes: { select: { status: true, valorTotal: true } }
-          }
-        })
+        prisma.plataformaGestao.findMany({ where: whereClause, select: quoteSelect }),
       ]);
 
-      // Calculate globals
-      let summary = {
-        totalQuotesCount: 0,
-        totalValue: 0,
-        paidQuotesCount: 0,
-        paidValue: 0,
-        openValue: 0
-      };
+      // Totais gerais (todas as plataformas do filtro)
+      const { porStatus: summaryPorStatus, ...summary } = summarizePlatformQuotes(allFilteredPlatforms.flatMap(toItems), quoteStatus);
 
-      allFilteredPlatforms.forEach(p => {
-        p.quotes.forEach(q => {
-          summary.totalQuotesCount++;
-          const val = Number(q.total) || 0;
-          summary.totalValue += val;
-          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
-            summary.paidQuotesCount++;
-            summary.paidValue += val;
-          }
-        });
-        p.towingQuotes.forEach(q => {
-          summary.totalQuotesCount++;
-          const val = Number(q.valorTotal) || 0;
-          summary.totalValue += val;
-          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
-            summary.paidQuotesCount++;
-            summary.paidValue += val;
-          }
-        });
-      });
-      summary.openValue = summary.totalValue - summary.paidValue;
-
-      // Transform platforms to add stats
+      // Indicadores e quebra por status de cada plataforma (sem enviar a lista de orçamentos)
       const formattedData = platforms.map((p: any) => {
-        let stats = {
-          totalQuotesCount: 0,
-          totalValue: 0,
-          paidQuotesCount: 0,
-          paidValue: 0
-        };
-        p.quotes.forEach((q: any) => {
-          stats.totalQuotesCount++;
-          const val = Number(q.total) || 0;
-          stats.totalValue += val;
-          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
-            stats.paidQuotesCount++;
-            stats.paidValue += val;
-          }
-        });
-        p.towingQuotes.forEach((q: any) => {
-          stats.totalQuotesCount++;
-          const val = Number(q.valorTotal) || 0;
-          stats.totalValue += val;
-          if (q.status === 'Pago' || q.status === 'Parcialmente Pago') {
-            stats.paidQuotesCount++;
-            stats.paidValue += val;
-          }
-        });
-        // Remove relationships so we don't send huge arrays back
-        delete p.quotes;
-        delete p.towingQuotes;
-        return { ...p, stats };
+        const { porStatus, ...stats } = summarizePlatformQuotes(toItems(p), quoteStatus);
+        const { quotes, towingQuotes, ...rest } = p;
+        return { ...rest, stats, porStatus };
       });
 
       return res.json({
         data: formattedData,
-        summary,
+        summary: { ...summary, porStatus: summaryPorStatus },
+        quoteStatus: quoteStatus || 'TODOS',
         total,
         page: pageNum,
         totalPages: Math.ceil(total / limitNum),
@@ -323,6 +274,58 @@ export const PlatformController = {
     } catch (error) {
       console.error('Error deleting platform:', error);
       return res.status(500).json({ error: 'Erro ao excluir plataforma de gestão' });
+    }
+  },
+
+  /**
+   * GET /registry/platforms/:id/quotes?quoteStatus=
+   * Drill da plataforma: orçamentos (oficina e guincho) da plataforma, da própria empresa.
+   */
+  async listQuotes(req: Request, res: Response) {
+    try {
+      const companyId = (req as any).companyId;
+      const id = req.params.id as string;
+      const platform = await prisma.plataformaGestao.findFirst({ where: { id, companyId }, select: { id: true, nomeFantasia: true } });
+      if (!platform) return res.status(404).json({ error: 'Plataforma não encontrada' });
+      const quoteStatus = typeof req.query.quoteStatus === 'string' && req.query.quoteStatus !== 'TODOS' ? req.query.quoteStatus : undefined;
+
+      const [quotes, towing] = await Promise.all([
+        prisma.quote.findMany({
+          where: { plataformaGestaoId: id, companyId, ...(quoteStatus ? { status: quoteStatus } : {}) },
+          select: {
+            id: true, numeroOrcamento: true, status: true, total: true, createdAt: true, updatedAt: true,
+            veiculoPlaca: true, client: { select: { nome: true, empresa: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        }),
+        prisma.towingQuote.findMany({
+          where: { plataformaId: id, companyId, ...(quoteStatus ? { status: quoteStatus } : {}) },
+          select: {
+            id: true, numeroOrcamento: true, numeroFormatado: true, status: true, valorTotal: true, createdAt: true, updatedAt: true,
+            veiculoPlaca: true, clienteNome: true, clienteEmpresa: true, client: { select: { nome: true, empresa: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        }),
+      ]);
+
+      const itens = [
+        ...quotes.map(q => ({
+          id: q.id, tipo: 'OFICINA' as const, numero: String(q.numeroOrcamento).padStart(5, '0'), status: q.status, valor: q.total,
+          cliente: q.client?.empresa || q.client?.nome || '—', placa: q.veiculoPlaca, createdAt: q.createdAt, updatedAt: q.updatedAt,
+        })),
+        ...towing.map(t => ({
+          id: t.id, tipo: 'GUINCHO' as const, numero: t.numeroFormatado || String(t.numeroOrcamento), status: t.status, valor: t.valorTotal,
+          cliente: t.client?.empresa || t.client?.nome || t.clienteEmpresa || t.clienteNome || '—', placa: t.veiculoPlaca, createdAt: t.createdAt, updatedAt: t.updatedAt,
+        })),
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      const resumo = summarizePlatformQuotes(itens.map(i => ({ status: i.status, valor: i.valor })));
+      return res.json({ plataforma: platform, quoteStatus: quoteStatus || 'TODOS', resumo, itens });
+    } catch (error) {
+      console.error('Error listing platform quotes:', error);
+      return res.status(500).json({ error: 'Erro ao listar os orçamentos da plataforma' });
     }
   },
 
