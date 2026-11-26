@@ -19,7 +19,8 @@ interface Bucket { count: number; resetAt: number }
 
 const DEFAULTS: RateLimitOptions = {
   windowMs: 15 * 60 * 1000,
-  ipMax: Number(process.env.AUTH_RATE_LIMIT_IP_MAX) || 60,
+  // Alto o bastante para várias pessoas na mesma rede; a proteção principal é por conta
+  ipMax: Number(process.env.AUTH_RATE_LIMIT_IP_MAX) || 200,
   accountMaxFailures: Number(process.env.AUTH_RATE_LIMIT_ACCOUNT_MAX) || 5,
 };
 
@@ -84,7 +85,16 @@ export class LoginRateLimiter {
 
 export const authRateLimiter = new LoginRateLimiter();
 
-const normalizeAccount = (v: unknown) => {
+/**
+ * Libera o bloqueio de uma conta (e-mail ou CNPJ) — usado quando a oficina redefine
+ * o acesso ou a senha: o usuário pode entrar na hora, sem esperar o fim da janela.
+ */
+export function clearLoginBlock(identifier: string | null | undefined, limiter: LoginRateLimiter = authRateLimiter) {
+  const account = normalizeAccount(identifier);
+  if (account) limiter.succeed(account);
+}
+
+export const normalizeAccount = (v: unknown) => {
   if (typeof v !== 'string' || !v.trim()) return null;
   const s = v.trim().toLowerCase();
   const digits = s.replace(/\D/g, '');
@@ -104,9 +114,12 @@ export function authRateLimit(accountField: string | null, limiter: LoginRateLim
     const { allowed, retryAfterSec } = limiter.attempt(ip, account);
     if (!allowed) {
       res.setHeader('Retry-After', String(retryAfterSec));
+      const minutos = Math.max(1, Math.ceil(retryAfterSec / 60));
+      console.warn(`[Auth] Tentativas bloqueadas por ${minutos} min (${account ? 'conta' : 'IP'}) em ${req.path}`);
       return res.status(429).json({
-        error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+        error: `Muitas tentativas de acesso. Aguarde ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'} e tente novamente. Se esqueceu a senha, peça para a oficina redefinir o seu acesso.`,
         code: 'TOO_MANY_ATTEMPTS',
+        retryAfterSec,
       });
     }
     res.on('finish', () => {

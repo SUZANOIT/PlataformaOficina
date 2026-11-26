@@ -3,7 +3,7 @@
  *   npx ts-node --transpile-only src/security/security.unit.test.ts
  */
 import assert from 'assert';
-import { LoginRateLimiter } from '../lib/security/loginRateLimiter';
+import { LoginRateLimiter, clearLoginBlock } from '../lib/security/loginRateLimiter';
 import { redactText, redactValue } from '../lib/security/logRedaction';
 import { isPlatformAdmin, PLATFORM_COMPANY_ID } from '../lib/security/platform';
 
@@ -32,6 +32,18 @@ test('limite por conta: falhas bloqueiam a conta; sucesso zera o contador', () =
   assert.ok(l.attempt('ip', 'id:b@x', t0).allowed);
   l.succeed('id:a@x');
   assert.ok(l.attempt('ip', 'id:a@x', t0).allowed);
+});
+
+test('clearLoginBlock libera a conta (CNPJ com ou sem máscara, e-mail sem diferenciar maiúsculas)', () => {
+  const l = new LoginRateLimiter({ windowMs: 60_000, ipMax: 999, accountMaxFailures: 1 });
+  const t0 = 3_000_000;
+  l.attempt('ip', 'cnpj:11222333000181', t0); l.fail('cnpj:11222333000181', t0);
+  assert.strictEqual(l.attempt('ip', 'cnpj:11222333000181', t0).allowed, false);
+  clearLoginBlock('11.222.333/0001-81', l);
+  assert.ok(l.attempt('ip', 'cnpj:11222333000181', t0).allowed);
+  l.attempt('ip', 'id:joao@x.com', t0); l.fail('id:joao@x.com', t0);
+  clearLoginBlock('Joao@X.com', l);
+  assert.ok(l.attempt('ip', 'id:joao@x.com', t0).allowed);
 });
 
 test('mascaramento de texto: Bearer, JWT, password=, "senha":', () => {
