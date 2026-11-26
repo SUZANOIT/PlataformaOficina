@@ -133,6 +133,9 @@ export const AttachmentController = {
       return res.status(201).json(anexo);
     } catch (error: any) {
       console.error('Erro no upload de anexo:', error);
+      if (error?.name === 'StorageCredentialError') {
+        return res.status(503).json({ error: error.message, code: 'STORAGE_CREDENTIALS' });
+      }
       return res.status(500).json({ error: error.message || 'Erro interno ao realizar upload.' });
     }
   },
