@@ -6,6 +6,9 @@ import { QUOTE_STATUS_OPTIONS } from '../utils/constants';
 import { AttachmentsUpload } from '../components/AttachmentsUpload';
 import { ReportPrintHeader } from '../components/ReportPrintHeader';
 
+// Anexos de NF (peças e serviço) e comprovantes: liberados a partir de "Aguardando Pagamento"
+const canAttach = (status: string) => status === 'Aguardando Pagamento' || status === 'Pago';
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Orçamento':
@@ -580,13 +583,13 @@ export function QuotesList() {
                           setSelectedQuoteForAttachment(quote);
                           setIsAttachmentModalOpen(true);
                         }}
-                        disabled={quote.status !== 'Pago'}
+                        disabled={!canAttach(quote.status)}
                         className={`p-2 rounded-lg transition active:scale-95 duration-150 flex items-center justify-center ${
-                          quote.status === 'Pago' 
+                          canAttach(quote.status)
                             ? 'bg-sky-500/10 text-sky-600 hover:bg-sky-500/25' 
                             : 'bg-muted text-muted-foreground opacity-30 cursor-not-allowed'
                         }`}
-                        title={quote.status === 'Pago' ? "Anexar Comprovantes" : "Disponível apenas para orçamentos pagos"}
+                        title={canAttach(quote.status) ? "Anexar notas fiscais e comprovantes" : "Disponível a partir de Aguardando Pagamento"}
                       >
                         <Paperclip size={16} />
                       </button>
