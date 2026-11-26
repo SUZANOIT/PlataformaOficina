@@ -2,10 +2,13 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, Head
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
-const GUIA_IMPOSTO_ENDPOINT = process.env.GUIA_IMPOSTO_STORAGE_ENDPOINT || 'https://t3.storageapi.dev';
-const GUIA_IMPOSTO_BUCKET = process.env.GUIA_IMPOSTO_STORAGE_BUCKET || 'stocked-crate-y-ubqvwuxrv';
-const GUIA_IMPOSTO_ACCESS_KEY = process.env.GUIA_IMPOSTO_STORAGE_ACCESS_KEY || '';
-const GUIA_IMPOSTO_SECRET_KEY = process.env.GUIA_IMPOSTO_STORAGE_SECRET_KEY || '';
+/** Variável de ambiente sem espaços, quebras de linha ou aspas coladas por engano no Railway. */
+const env = (name: string) => (process.env[name] || '').trim().replace(/^['"]|['"]$/g, '');
+
+const GUIA_IMPOSTO_ENDPOINT = env('GUIA_IMPOSTO_STORAGE_ENDPOINT') || 'https://t3.storageapi.dev';
+const GUIA_IMPOSTO_BUCKET = env('GUIA_IMPOSTO_STORAGE_BUCKET') || 'stocked-crate-y-ubqvwuxrv';
+const GUIA_IMPOSTO_ACCESS_KEY = env('GUIA_IMPOSTO_STORAGE_ACCESS_KEY');
+const GUIA_IMPOSTO_SECRET_KEY = env('GUIA_IMPOSTO_STORAGE_SECRET_KEY');
 
 /**
  * Armazenamento principal (anexos de OS / notas fiscais).
@@ -13,14 +16,27 @@ const GUIA_IMPOSTO_SECRET_KEY = process.env.GUIA_IMPOSTO_STORAGE_SECRET_KEY || '
  * mesmo storage das guias de imposto (GUIA_IMPOSTO_STORAGE_*), que é o bucket
  * "documentos" do projeto. As quatro variáveis vêm sempre do mesmo conjunto.
  */
-const useMainStorageVars = !!(process.env.STORAGE_ACCESS_KEY && process.env.STORAGE_SECRET_KEY);
-const STORAGE_ENDPOINT = useMainStorageVars ? (process.env.STORAGE_ENDPOINT || 'https://t3.storageapi.dev') : GUIA_IMPOSTO_ENDPOINT;
-const STORAGE_BUCKET = useMainStorageVars ? (process.env.STORAGE_BUCKET || 'adaptable-room-82ltb57u7j') : GUIA_IMPOSTO_BUCKET;
-const STORAGE_ACCESS_KEY = useMainStorageVars ? (process.env.STORAGE_ACCESS_KEY || '') : GUIA_IMPOSTO_ACCESS_KEY;
-const STORAGE_SECRET_KEY = useMainStorageVars ? (process.env.STORAGE_SECRET_KEY || '') : GUIA_IMPOSTO_SECRET_KEY;
+const useMainStorageVars = !!(env('STORAGE_ACCESS_KEY') && env('STORAGE_SECRET_KEY'));
+const STORAGE_ENDPOINT = useMainStorageVars ? (env('STORAGE_ENDPOINT') || 'https://t3.storageapi.dev') : GUIA_IMPOSTO_ENDPOINT;
+const STORAGE_BUCKET = useMainStorageVars ? (env('STORAGE_BUCKET') || 'adaptable-room-82ltb57u7j') : GUIA_IMPOSTO_BUCKET;
+const STORAGE_ACCESS_KEY = useMainStorageVars ? env('STORAGE_ACCESS_KEY') : GUIA_IMPOSTO_ACCESS_KEY;
+const STORAGE_SECRET_KEY = useMainStorageVars ? env('STORAGE_SECRET_KEY') : GUIA_IMPOSTO_SECRET_KEY;
 
 console.log(`[Storage] Anexos de OS: bucket ${STORAGE_BUCKET} (${useMainStorageVars ? 'STORAGE_*' : 'credenciais das guias de imposto'})${STORAGE_ACCESS_KEY ? '' : ' — SEM CREDENCIAIS'}`);
 const GUIA_IMPOSTO_PREFIX = 'guia_imposto';
+
+/** Erros de credencial do storage: não adianta repetir o envio. */
+const CREDENTIAL_ERRORS = ['SignatureDoesNotMatch', 'InvalidAccessKeyId', 'AccessDenied', 'InvalidToken', 'ExpiredToken'];
+export const isStorageCredentialError = (error: any) =>
+  CREDENTIAL_ERRORS.includes(error?.name) || CREDENTIAL_ERRORS.includes(error?.Code) ||
+  /signature we calculated does not match|access key id .* does not exist/i.test(error?.message || '');
+
+export class StorageCredentialError extends Error {
+  constructor(public readonly causeName: string) {
+    super('O armazenamento de arquivos recusou as credenciais (chave de acesso ou chave secreta inválida). Avise o administrador para conferir as variáveis do storage no Railway.');
+    this.name = 'StorageCredentialError';
+  }
+}
 
 const s3Client = new S3Client({
   endpoint: STORAGE_ENDPOINT,
@@ -93,6 +109,10 @@ export class S3Service {
           etag: response.ETag,
         };
       } catch (error: any) {
+        if (isStorageCredentialError(error)) {
+          console.error(`[Storage] Credencial recusada pelo storage (${error?.name || error?.Code}). Confira as variáveis STORAGE_* / GUIA_IMPOSTO_STORAGE_* no Railway.`);
+          throw new StorageCredentialError(error?.name || error?.Code || 'credencial');
+        }
         if (attempts >= maxAttempts) {
           throw new Error(`Upload falhou após ${maxAttempts} tentativas: ${error.message}`);
         }
@@ -150,6 +170,10 @@ export class S3Service {
           etag: response.ETag,
         };
       } catch (error: any) {
+        if (isStorageCredentialError(error)) {
+          console.error(`[Storage] Credencial recusada pelo storage (${error?.name || error?.Code}). Confira as variáveis STORAGE_* / GUIA_IMPOSTO_STORAGE_* no Railway.`);
+          throw new StorageCredentialError(error?.name || error?.Code || 'credencial');
+        }
         if (attempts >= maxAttempts) {
           throw new Error(`Upload falhou após ${maxAttempts} tentativas: ${error.message}`);
         }
