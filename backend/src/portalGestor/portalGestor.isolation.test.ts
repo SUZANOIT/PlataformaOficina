@@ -335,6 +335,67 @@ async function main() {
     assert.ok(h && h.description.includes('APROVADO PELO CLIENTE'));
     assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${qXpending.id}/aprovar`, tokenX)).status, 409);
   });
+  await test('Lista de OS: filtros Aguardando aprovação, Emitir nota fiscal e Pagas trazem só o status escolhido', async () => {
+    const qNf = await mkQuote(clientX.id, vX, 'Emitir Nota Fiscal');
+    const qPend = await mkQuote(clientX.id, vX, 'Aguardando Aprovação');
+    try {
+      for (const status of ['Aguardando Aprovação', 'Emitir Nota Fiscal', 'Pago']) {
+        const r = await http('GET', `/portal-gestor/ordens-servico?status=${encodeURIComponent(status)}&pageSize=100`, tokenX);
+        assert.strictEqual(r.status, 200, r.text);
+        assert.ok(r.body.items.length > 0, `${status}: lista vazia`);
+        assert.ok(r.body.items.every((i: any) => i.status === status), `${status}: ${r.body.items.map((i: any) => i.status)}`);
+        assert.ok(!r.text.includes(qYpaid.id), 'OS de outro cliente na lista');
+      }
+      const pend = await http('GET', `/portal-gestor/ordens-servico?status=${encodeURIComponent('Aguardando Aprovação')}&pageSize=100`, tokenX);
+      assert.ok(pend.body.items.some((i: any) => i.id === qPend.id && i.aguardandoAprovacao === true));
+    } finally {
+      await db.quoteItem.deleteMany({ where: { quoteId: { in: [qNf.id, qPend.id] } } });
+      await db.quote.deleteMany({ where: { id: { in: [qNf.id, qPend.id] } } });
+    }
+  });
+  await test('Aprovar OS pelo portal: autorização, histórico com responsável, bloqueios e lista atualizada', async () => {
+    const os = await mkQuote(clientX.id, vX, 'Aguardando Aprovação');
+    const osPaga = await mkQuote(clientX.id, vX, 'Pago');
+    try {
+      // Cliente de outra empresa (mesma oficina) não aprova
+      assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${os.id}/aprovar`, tokenY)).status, 404);
+      assert.strictEqual((await db.quote.findUnique({ where: { id: os.id } })).status, 'Aguardando Aprovação');
+      // Status já alterado: não aprova
+      assert.strictEqual((await http('POST', `/portal-gestor/orcamentos/${osPaga.id}/aprovar`, tokenX)).status, 409);
+      // Aprovação efetiva no backend
+      const antes = Date.now();
+      const ok = await http('POST', `/portal-gestor/orcamentos/${os.id}/aprovar`, tokenX);
+      assert.strictEqual(ok.status, 200, ok.text);
+      assert.strictEqual((await db.quote.findUnique({ where: { id: os.id } })).status, 'Aprovado');
+      // Histórico: quem aprovou, quando e de/para
+      const userX = await db.user.findFirst({ where: { clientId: clientX.id } });
+      const h = await db.quoteHistory.findFirst({ where: { quoteId: os.id, action: 'STATUS_ALTERADO' }, orderBy: { createdAt: 'desc' } });
+      assert.ok(h, 'histórico não registrado');
+      assert.strictEqual(h.userId, userX.id);
+      assert.ok(h.userName.includes('Portal do Gestor'));
+      assert.ok(h.description.includes('APROVADO PELO CLIENTE'));
+      assert.ok(new Date(h.createdAt).getTime() >= antes - 5000);
+      // Duplicada (inclusive simultânea) bloqueada
+      const [a, b] = await Promise.all([
+        http('POST', `/portal-gestor/orcamentos/${os.id}/aprovar`, tokenX),
+        http('POST', `/portal-gestor/orcamentos/${os.id}/aprovar`, tokenX),
+      ]);
+      assert.deepStrictEqual([a.status, b.status], [409, 409]);
+      assert.strictEqual(await db.quoteHistory.count({ where: { quoteId: os.id, action: 'STATUS_ALTERADO' } }), 1);
+      // Lista atualizada: sai de "Aguardando aprovação"
+      const pend = await http('GET', `/portal-gestor/ordens-servico?status=${encodeURIComponent('Aguardando Aprovação')}&pageSize=100`, tokenX);
+      assert.ok(!pend.body.items.some((i: any) => i.id === os.id));
+      const todas = await http('GET', '/portal-gestor/ordens-servico?pageSize=100', tokenX);
+      const row = todas.body.items.find((i: any) => i.id === os.id);
+      assert.strictEqual(row.status, 'Aprovado');
+      assert.strictEqual(row.aguardandoAprovacao, false);
+    } finally {
+      await db.financialReceivable.deleteMany({ where: { quoteId: { in: [os.id, osPaga.id] } } });
+      await db.quoteHistory.deleteMany({ where: { quoteId: { in: [os.id, osPaga.id] } } });
+      await db.quoteItem.deleteMany({ where: { quoteId: { in: [os.id, osPaga.id] } } });
+      await db.quote.deleteMany({ where: { id: { in: [os.id, osPaga.id] } } });
+    }
+  });
   await test('Aprovar orçamento parcelado gera recebíveis pela mesma regra da oficina', async () => {
     const r = await http('POST', `/portal-gestor/orcamentos/${qXparcelado.id}/aprovar`, tokenX);
     assert.strictEqual(r.status, 200, r.text);
