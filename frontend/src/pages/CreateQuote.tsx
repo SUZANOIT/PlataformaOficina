@@ -1851,7 +1851,8 @@ ${bankingText}`;
           </div>
         </div>
 
-        {id && watchStatus === 'Pago' && (
+        {/* Notas fiscais (peças e serviço) e comprovantes: liberados a partir de "Aguardando Pagamento" */}
+        {id && (watchStatus === 'Aguardando Pagamento' || watchStatus === 'Pago') && (
           <div className="mt-8 pt-6 border-t border-border">
             <AttachmentsUpload quoteId={id} readOnly={isViewing} />
           </div>
