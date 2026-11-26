@@ -21,13 +21,15 @@ export function PortalOrdensServico() {
   const servico = params.get('servico') || 'todos';
   const status = params.get('status') || 'all';
   const veiculoId = params.get('veiculo') || '';
+  const plataforma = params.get('plataforma') || '';
+  const ano = params.get('ano') || '';
   const page = Math.max(1, Number(params.get('page')) || 1);
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(params.get('pageSize'))) ? Number(params.get('pageSize')) : 10;
   const openId = params.get('abrir');
 
   const state = useLoad(
-    () => portalGestorApi.ordensServico({ servico, status, veiculoId: veiculoId || undefined, page, pageSize }),
-    [servico, status, veiculoId, page, pageSize],
+    () => portalGestorApi.ordensServico({ servico, status, veiculoId: veiculoId || undefined, plataforma: plataforma || undefined, ano: ano || undefined, page, pageSize }),
+    [servico, status, veiculoId, plataforma, ano, page, pageSize],
   );
 
   const update = (changes: Record<string, string | number | null>, resetPage = true) => {
@@ -38,7 +40,8 @@ export function PortalOrdensServico() {
     if (resetPage) next.delete('page');
     setParams(next, { replace: !resetPage });
   };
-  const hasFilters = servico !== 'todos' || status !== 'all' || !!veiculoId;
+  const hasFilters = servico !== 'todos' || status !== 'all' || !!veiculoId || !!plataforma || !!ano;
+  const anoAtual = new Date().getFullYear();
   const clearFilters = () => {
     const next = new URLSearchParams();
     if (pageSize !== 10) next.set('pageSize', String(pageSize));
@@ -47,12 +50,13 @@ export function PortalOrdensServico() {
 
   const data: any = state.data;
   const statusOptions: string[] = data?.statusOptions || [];
+  const plataformaOptions: { id: string; nome: string }[] = data?.plataformas || [];
 
   return (
     <>
       <PageHeader title="Ordens de Serviço" description="Consulte e acompanhe os orçamentos e ordens de serviço dos veículos da sua empresa." />
       <Card>
-        <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] lg:items-end">
+        <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] lg:items-end">
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Serviços</span>
             <select aria-label="Filtrar por serviços" className={inputClass} value={servico} onChange={e => update({ servico: e.target.value })}>
@@ -70,6 +74,20 @@ export function PortalOrdensServico() {
             <span className="text-xs font-medium text-muted-foreground">Veículo</span>
             <VehicleFilter value={veiculoId} onChange={v => update({ veiculo: v })} className="w-full" />
           </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Plataforma</span>
+            <select aria-label="Filtrar por plataforma" className={inputClass} value={plataforma} onChange={e => update({ plataforma: e.target.value })}>
+              <option value="">Todas</option>
+              {(plataformaOptions.length ? plataformaOptions : plataforma ? [{ id: plataforma, nome: plataforma }] : []).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Ano (abertura)</span>
+            <select aria-label="Filtrar por ano" className={inputClass} value={ano} onChange={e => update({ ano: e.target.value })}>
+              <option value="">Todos</option>
+              {Array.from({ length: 6 }, (_, i) => String(anoAtual - i)).map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
           <button type="button" onClick={clearFilters} disabled={!hasFilters} className={`${btnSecondary} sm:col-span-2 lg:col-span-1`}>
             Limpar filtros
           </button>
@@ -86,6 +104,7 @@ export function PortalOrdensServico() {
                     <td className="whitespace-nowrap px-4 py-2.5">
                       <button type="button" onClick={() => update({ abrir: os.id }, false)} className="font-semibold text-primary hover:underline">#{os.numeroOrcamento}</button>
                       {os.osExterna && <span className="block text-xs text-muted-foreground">OS ext. {os.osExterna}</span>}
+                      {os.plataforma && <span className="block text-xs text-muted-foreground">{os.plataforma}</span>}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5">{os.veiculoPlaca || '—'}</td>
                     {/* Tipos de item do orçamento da OS: "Peças", "Mão de Obra" ou ambos */}
@@ -102,6 +121,11 @@ export function PortalOrdensServico() {
                   </tr>
                 ))}
               </Table>
+              {/* Soma de todas as OS do filtro (todas as páginas): confere com o Dashboard */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/40 px-4 py-2.5 text-sm">
+                <span className="text-muted-foreground">{d.total} {d.total === 1 ? 'ordem de serviço' : 'ordens de serviço'} no filtro</span>
+                <span>Total: <b className="tabular-nums">{formatCurrency(d.valorTotal || 0)}</b></span>
+              </div>
               <TablePagination
                 currentPage={d.page}
                 totalPages={d.totalPages}

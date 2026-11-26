@@ -608,6 +608,34 @@ async function main() {
     assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos?periodo=99m', tokenX)).status, 400);
     assert.strictEqual((await http('GET', '/portal-gestor/dashboard/gastos-veiculos', tok(adminA))).status, 403);
   });
+  await test('Dashboard e lista de OS somam o mesmo valor (status, ano e plataforma)', async () => {
+    const ano = new Date().getFullYear();
+    const plat = await db.plataformaGestao.create({ data: {
+      razaoSocial: `Plataforma Teste ${SFX}`, nomeFantasia: `Plat ${SFX}`, cnpj: `PL${SFX}`, cnpjSemMascara: `PL${SFX}`,
+      telefone: '0', email: `plat.${SFX}@t.local`, companyId: compA.id,
+    } });
+    await db.quote.update({ where: { id: qXpaid.id }, data: { plataformaGestaoId: plat.id } });
+    try {
+      for (const [plataforma, label] of [['', 'todas'], [plat.id, 'plataforma'], ['sem', 'sem plataforma']]) {
+        const qs = plataforma ? `&plataforma=${plataforma}` : '';
+        const fin = await http('GET', `/portal-gestor/financeiro?ano=${ano}&statusOs=Pago${qs}`, tokenX);
+        const os = await http('GET', `/portal-gestor/ordens-servico?status=Pago&ano=${ano}&pageSize=100${qs}`, tokenX);
+        assert.strictEqual(fin.status, 200, fin.text);
+        assert.strictEqual(os.status, 200, os.text);
+        assert.strictEqual(fin.body.resumo.total, os.body.valorTotal, `${label}: dashboard ${fin.body.resumo.total} x lista ${os.body.valorTotal}`);
+        assert.strictEqual(fin.body.resumo.quantidadeOs, os.body.total, `${label}: quantidade`);
+      }
+      const comPlat = await http('GET', `/portal-gestor/ordens-servico?plataforma=${plat.id}&pageSize=100`, tokenX);
+      assert.deepStrictEqual(comPlat.body.items.map((i: any) => i.id), [qXpaid.id]);
+      assert.strictEqual(comPlat.body.items[0].plataforma, `Plat ${SFX}`);
+      assert.ok(comPlat.body.plataformas.some((p: any) => p.id === plat.id));
+      // Cobertura não é mais opção do filtro do Dashboard
+      assert.ok(!(await http('GET', `/portal-gestor/financeiro?ano=${ano}`, tokenX)).body.statusOsOpcoes.includes('Cobertura'));
+    } finally {
+      await db.quote.update({ where: { id: qXpaid.id }, data: { plataformaGestaoId: null } });
+      await db.plataformaGestao.delete({ where: { id: plat.id } });
+    }
+  });
   await test('Dashboard do portal responde com dados da empresa', async () => {
     const r = await http('GET', '/portal-gestor/dashboard', tokenX);
     assert.strictEqual(r.status, 200, r.text);

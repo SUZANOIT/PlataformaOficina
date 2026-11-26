@@ -7,7 +7,7 @@ const get = async <T = any>(path: string, params?: Record<string, any>) => (awai
 export const portalGestorApi = {
   dashboard: () => get('/dashboard'),
   /** Gastos mensais por veículo (periodo: 6m | 12m | ano). */
-  gastosVeiculos: (periodo: string, opts: { veiculoId?: string; de?: string; ate?: string; statusOs?: string } = {}) => get('/dashboard/gastos-veiculos', { periodo, ...opts }),
+  gastosVeiculos: (periodo: string, opts: { veiculoId?: string; de?: string; ate?: string; statusOs?: string; plataforma?: string } = {}) => get('/dashboard/gastos-veiculos', { periodo, ...opts }),
   empresa: () => get('/empresa'),
   updateEmpresa: async (data: any) => (await api.put('/portal-gestor/empresa', data)).data,
 
@@ -19,15 +19,15 @@ export const portalGestorApi = {
   recusar: async (id: string, motivo: string) => (await api.post(`/portal-gestor/orcamentos/${id}/recusar`, { motivo })).data,
 
   /** Orçamentos e OS da empresa, com filtros (servico: todos|pecas|mao-de-obra, status) e paginação. */
-  ordensServico: (params: { servico?: string; status?: string; veiculoId?: string; page?: number; pageSize?: number }) =>
-    get<{ items: any[]; total: number; page: number; pageSize: number; totalPages: number; statusOptions: string[] }>('/ordens-servico', params),
+  ordensServico: (params: { servico?: string; status?: string; veiculoId?: string; plataforma?: string; ano?: string; page?: number; pageSize?: number }) =>
+    get<{ items: any[]; total: number; valorTotal: number; page: number; pageSize: number; totalPages: number; statusOptions: string[]; plataformas: { id: string; nome: string }[] }>('/ordens-servico', params),
   manutencoes: (params?: { veiculoId?: string }) => get('/manutencoes', params),
 
   documentos: () => get<any[]>('/documentos'),
   download: (downloadPath: string) => api.get(downloadPath).then(r => r.data as { url: string; nome: string }),
 
   /** statusOs: status da OS somado nos indicadores (padrão no backend: Pago; 'todas' = toda OS aprovada). */
-  financeiro: (ano: number, statusOs?: string) => get('/financeiro', { ano, statusOs }),
+  financeiro: (ano: number, statusOs?: string, plataforma?: string) => get('/financeiro', { ano, statusOs, plataforma: plataforma || undefined }),
 
   motoristas: () => get<any[]>('/motoristas'),
   criarMotorista: async (data: any) => (await api.post('/portal-gestor/motoristas', data)).data,

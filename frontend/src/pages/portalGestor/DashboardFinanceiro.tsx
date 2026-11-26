@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { portalGestorApi } from '../../services/portalGestor';
 import { Card, EmptyState, Loadable, Stat, StatusBadge, Table, formatCurrency, formatDate, inputClass, useLoad } from './ui';
 
@@ -9,11 +10,18 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
  * Indicadores do ano, conciliação, DRE mensal e títulos lançados pela oficina,
  * pela mesma regra única do backend (GET /portal-gestor/financeiro).
  */
-export function DashboardFinanceiro({ statusOs = 'Pago' }: { statusOs?: string }) {
+export function DashboardFinanceiro({ statusOs = 'Pago', plataforma = '' }: { statusOs?: string; plataforma?: string }) {
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(anoAtual);
   const [aba, setAba] = useState<'dre' | 'titulos'>('dre');
-  const state = useLoad(() => portalGestorApi.financeiro(ano, statusOs), [ano, statusOs]);
+  const state = useLoad(() => portalGestorApi.financeiro(ano, statusOs, plataforma), [ano, statusOs, plataforma]);
+  // Abre a lista de OS com exatamente as OS somadas aqui (mesmo ano, status e plataforma)
+  const osLink = () => {
+    const p = new URLSearchParams({ ano: String(ano) });
+    if (statusOs !== 'todas') p.set('status', statusOs);
+    if (plataforma) p.set('plataforma', plataforma);
+    return `/portal/ordens-servico?${p.toString()}`;
+  };
 
   return (
     <section aria-labelledby="dash-financeiro" className="space-y-3">
@@ -42,6 +50,7 @@ export function DashboardFinanceiro({ statusOs = 'Pago' }: { statusOs?: string }
             </div>
             <p className="text-xs text-muted-foreground">
               Ordens de serviço {statusOs === 'todas' ? '' : `com status "${statusOs}" `}de {d.ano} pela data de abertura: {formatCurrency(d.resumo.totalOs)} = {formatCurrency(d.resumo.pago)} pago + {formatCurrency(d.resumo.emAberto)} em aberto{d.resumo.coberto > 0 ? ` + ${formatCurrency(d.resumo.coberto)} coberto` : ''}.
+              {statusOs !== 'todas' && <> <Link to={osLink()} className="font-medium text-primary hover:underline">Ver as {d.resumo.quantidadeOs} OS somadas</Link></>}
             </p>
 
             <Card>
