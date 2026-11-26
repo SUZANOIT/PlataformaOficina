@@ -7,6 +7,7 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { AuditLogger } from '../utils/audit.logger';
 import { REVOKE_SESSIONS, signUserToken } from '../lib/security/session';
+import { clearLoginBlock } from '../lib/security/loginRateLimiter';
 
 // Hash fictício: mantém o mesmo tempo de resposta quando o e-mail não existe (evita enumeração)
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-not-used', 10);
@@ -405,6 +406,8 @@ export const AuthController = {
         data: updateData,
       });
 
+      // Senha redefinida pelo administrador: libera um bloqueio por tentativas
+      if (updateData.password) clearLoginBlock(updatedUser.email);
       AuditLogger.log(currentUserId, currentCompanyId, 'UPDATE_USER', `Updated user: ${updatedUser.email} (${updatedUser.id})`, 'SUCCESS');
       
       return res.json({

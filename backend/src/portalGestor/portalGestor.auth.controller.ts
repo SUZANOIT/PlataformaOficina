@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { REVOKE_SESSIONS, signUserToken } from '../lib/security/session';
+import { clearLoginBlock } from '../lib/security/loginRateLimiter';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { basePrisma } from '../lib/prisma';
@@ -235,6 +236,8 @@ export const PortalAccessController = {
         AuditLogger.log((req as any).userId, client.companyId, 'PORTAL_GESTOR_CREATE', `Acesso criado para cliente ${client.id}`, 'SUCCESS');
       }
 
+      // Acesso redefinido pela oficina: libera um bloqueio por tentativas que o cliente tenha
+      clearLoginBlock(digits);
       return res.status(existing ? 200 : 201).json({ ...accessView(user), senhaInicial: PORTAL_INITIAL_PASSWORD });
     } catch (error) {
       return handlePortalError(res, error, 'access.createOrReset');
@@ -256,6 +259,7 @@ export const PortalAccessController = {
         include: { client: true },
       });
       AuditLogger.log((req as any).userId, client.companyId, 'PORTAL_GESTOR_STATUS', `Acesso ${status} para cliente ${client.id}`, 'SUCCESS');
+      if (status === 'ATIVO') clearLoginBlock(onlyDigits(client.cnpj));
       return res.json(accessView(user));
     } catch (error) {
       return handlePortalError(res, error, 'access.setStatus');

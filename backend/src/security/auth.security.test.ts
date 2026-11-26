@@ -166,6 +166,23 @@ async function main() {
       assert.strictEqual((await http('POST', '/auth/portal-login', { body: { cnpj: CNPJ, password: PWD } })).status, 429);
     });
 
+    // 4b. Oficina redefine o acesso: o bloqueio do CNPJ é liberado na hora
+    await test('4b. bloqueio do CNPJ é liberado quando a oficina redefine o acesso; mensagem informa os minutos', async () => {
+      for (let i = 0; i < 5; i++) await http('POST', '/auth/portal-login', { body: { cnpj: CNPJ, password: `errada-${i}` } });
+      const blocked = await http('POST', '/auth/portal-login', { body: { cnpj: CNPJ, password: PWD } });
+      assert.strictEqual(blocked.status, 429);
+      assert.ok(/Aguarde \d+ minutos?/.test(blocked.body.error), blocked.body.error);
+      assert.ok(blocked.body.retryAfterSec > 0);
+      const reset = await http('POST', `/registry/clients/${clientA.id}/portal-access`, { token: signed(adminA) });
+      assert.ok([200, 201].includes(reset.status), reset.text);
+      // Senha inicial volta a valer e exige troca (403 REQUIRE_PASSWORD_CHANGE), sem 429
+      const after = await http('POST', '/auth/portal-login', { body: { cnpj: CNPJ, password: reset.body.senhaInicial } });
+      assert.strictEqual(after.status, 403, after.text);
+      assert.strictEqual(after.body.error, 'REQUIRE_PASSWORD_CHANGE');
+      // Volta o usuário do portal ao estado dos demais testes
+      await db.user.update({ where: { id: portalUser.id }, data: { password: hash, mustChangePassword: false, tokenVersion: 0 } });
+    });
+
     // 5. Senhas não são armazenadas em texto puro
     await test('5. senha guardada com bcrypt e nunca devolvida pela API', async () => {
       const row = await db.user.findUnique({ where: { id: adminA.id } });
