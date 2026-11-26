@@ -408,6 +408,14 @@ export const PortalGestorController = {
 
       const { client, company, history, mecanicoId, isCloned, clonedFromId, plataformaGestaoId, ...rest } = quote as any;
       const { companyId, ...clientData } = client || {};
+      // OS antiga sem marca/modelo gravados: completa pelo cadastro do veículo da própria empresa
+      if ((!rest.veiculoMarca || !rest.veiculoModelo) && rest.veiculoId) {
+        const v = await findScopedVehicle(scope, rest.veiculoId);
+        if (v) {
+          rest.veiculoMarca = rest.veiculoMarca || v.marca;
+          rest.veiculoModelo = rest.veiculoModelo || v.modelo;
+        }
+      }
       return res.json({
         ...rest,
         items: (quote as any).items.map(sanitizeQuoteItemForPortal),

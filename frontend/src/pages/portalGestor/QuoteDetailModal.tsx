@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Printer, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiErrorMessage, portalGestorApi } from '../../services/portalGestor';
@@ -8,26 +8,38 @@ import {
   Card, Field, LoadingState, Modal, StatusBadge, Table,
   btnDanger, btnPrimary, btnSecondary, formatCurrency, formatDate, inputClass, useLoad,
 } from './ui';
+import { splitOsItems } from './osFilters';
 
 /**
  * Detalhe do orçamento/OS no portal: visualizar, imprimir (PDF), aprovar ou recusar.
  * Usado na tela Ordens de Serviço (consulta unificada de orçamentos e OS).
  */
-export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+export function QuoteDetailModal({ id, onClose, onChanged, initialMode = 'view' }: {
+  id: string; onClose: () => void; onChanged: () => void;
+  /** 'approve' abre direto na confirmação (botão "Aprovar OS" da lista). */
+  initialMode?: 'view' | 'approve';
+}) {
   const state = useLoad(() => portalGestorApi.orcamento(id), [id]);
-  const [mode, setMode] = useState<'view' | 'approve' | 'reject'>('view');
+  const [mode, setMode] = useState<'view' | 'approve' | 'reject'>(initialMode);
+  // Confirmação explícita exigida antes de aprovar
+  const [confirmado, setConfirmado] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGeneratingPdf } = useGeneratePdf();
   const q: any = state.data;
 
+  // OS que já não aguarda aprovação (ex.: aprovada em outra aba) volta para a visualização
+  useEffect(() => {
+    if (q && mode === 'approve' && !q.aguardandoAprovacao) setMode('view');
+  }, [q, mode]);
+  useEffect(() => { setConfirmado(false); }, [mode]);
   const act = async () => {
     setBusy(true);
     try {
       if (mode === 'approve') {
         await portalGestorApi.aprovar(id);
-        toast.success(`Orçamento #${q.numeroOrcamento} aprovado. A aprovação fica registrada no histórico da oficina.`);
+        toast.success(`OS #${q.numeroOrcamento} aprovada. A aprovação ficou registrada no histórico da oficina.`);
       } else {
         await portalGestorApi.recusar(id, motivo);
         toast.success(`Orçamento #${q.numeroOrcamento} recusado.`);
@@ -35,7 +47,7 @@ export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClo
       onChanged();
       onClose();
     } catch (e) {
-      toast.error(apiErrorMessage(e));
+      toast.error(apiErrorMessage(e, mode === 'approve' ? 'Não foi possível aprovar a OS. Tente novamente.' : 'Não foi possível recusar a OS.'));
       state.reload();
       setMode('view');
     } finally {
@@ -51,7 +63,7 @@ export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClo
       {q.aguardandoAprovacao && (
         <>
           <button type="button" className={btnDanger} onClick={() => setMode('reject')}><XCircle size={15} /> Recusar</button>
-          <button type="button" className={btnPrimary} onClick={() => setMode('approve')}><CheckCircle2 size={15} /> Aprovar</button>
+          <button type="button" className={btnPrimary} onClick={() => setMode('approve')}><CheckCircle2 size={15} /> Aprovar OS</button>
         </>
       )}
     </>
@@ -61,10 +73,10 @@ export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClo
       <button
         type="button"
         className={mode === 'approve' ? btnPrimary : btnDanger}
-        disabled={busy || (mode === 'reject' && motivo.trim().length < 3)}
+        disabled={busy || (mode === 'reject' && motivo.trim().length < 3) || (mode === 'approve' && !confirmado)}
         onClick={act}
       >
-        {busy ? 'Enviando…' : mode === 'approve' ? 'Confirmar aprovação' : 'Confirmar recusa'}
+        {busy ? (mode === 'approve' ? 'Aprovando…' : 'Enviando…') : mode === 'approve' ? 'Confirmar aprovação' : 'Confirmar recusa'}
       </button>
     </>
   );
@@ -73,12 +85,41 @@ export function QuoteDetailModal({ id, onClose, onChanged }: { id: string; onClo
     <Modal title={q ? `Orçamento #${q.numeroOrcamento}` : 'Orçamento'} onClose={onClose} footer={footer} wide>
       {state.loading && !q ? <LoadingState /> : state.error ? <p className="text-sm text-rose-600">{state.error}</p> : q && (
         <div className="space-y-6">
-          {mode === 'approve' && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
-              Ao confirmar, você autoriza a oficina a executar os serviços deste orçamento no valor de <strong>{formatCurrency(q.total)}</strong>
-              {q.condicaoPagamento ? <> com condição de pagamento <strong>{q.condicaoPagamento}</strong></> : null}.
-            </div>
-          )}
+          {mode === 'approve' && (() => {
+            const { servicos, pecas } = splitOsItems(q.items || []);
+            return (
+              <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+                <p className="font-semibold text-foreground">Confirme a aprovação da OS</p>
+                <dl className="grid gap-3 sm:grid-cols-4">
+                  <div><dt className="text-xs text-muted-foreground">Nº da OS</dt><dd className="font-semibold">#{q.numeroOrcamento}</dd></div>
+                  <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Veículo</dt><dd className="font-medium">{[q.veiculoMarca, q.veiculoModelo].filter(Boolean).join(' ') || '—'}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Placa</dt><dd className="font-medium">{q.veiculoPlaca || '—'}</dd></div>
+                </dl>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Serviços</p>
+                    {servicos.length ? (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">{servicos.map((i: any) => <li key={i.id}>{i.descricao}{i.quantidade > 1 ? ` (${i.quantidade}x)` : ''}</li>)}</ul>
+                    ) : <p className="mt-1 text-muted-foreground">Nenhum serviço</p>}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Peças e materiais</p>
+                    {pecas.length ? (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">{pecas.map((i: any) => <li key={i.id}>{i.descricao}{i.quantidade > 1 ? ` (${i.quantidade}x)` : ''}</li>)}</ul>
+                    ) : <p className="mt-1 text-muted-foreground">Nenhuma peça</p>}
+                  </div>
+                </div>
+                <p className="flex flex-wrap items-baseline justify-between gap-2 border-t border-primary/20 pt-3">
+                  <span className="text-muted-foreground">Valor total{q.condicaoPagamento ? ` · ${q.condicaoPagamento}` : ''}</span>
+                  <strong className="text-lg text-foreground">{formatCurrency(q.total)}</strong>
+                </p>
+                <label className="flex items-start gap-2 rounded-md bg-card p-3">
+                  <input type="checkbox" className="mt-0.5 h-4 w-4" checked={confirmado} onChange={e => setConfirmado(e.target.checked)} />
+                  <span>Li os dados acima e autorizo a oficina a executar esta Ordem de Serviço no valor de <strong>{formatCurrency(q.total)}</strong>.</span>
+                </label>
+              </div>
+            );
+          })()}
           {mode === 'reject' && (
             <Field label="Motivo da recusa" hint="O motivo fica registrado no histórico do orçamento para a oficina.">
               <textarea autoFocus rows={3} className={`${inputClass} h-auto py-2`} value={motivo} onChange={e => setMotivo(e.target.value)} />
