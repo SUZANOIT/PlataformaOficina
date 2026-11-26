@@ -42,6 +42,26 @@ export const isCancelledStatus = (status?: string | null) =>
 export const isServiceOrderStatus = (status: string) => !isPendingQuoteStatus(status) && status !== 'Cancelado';
 
 /**
+ * Filtro de status da OS nos indicadores do Dashboard do portal.
+ * Padrão: só OS pagas. "todas" = toda OS a partir da aprovação (regra antiga).
+ */
+export const OS_STATUS_TODAS = 'todas';
+export const DEFAULT_DASHBOARD_OS_STATUS = 'Pago';
+export const DASHBOARD_OS_STATUSES = ['Pago', 'Aprovado', 'Aguardando Pagamento', 'Parcialmente Pago', 'Emitir Nota Fiscal', 'Cobertura'];
+
+export function parseOsStatusFilter(value: unknown): string {
+  const v = typeof value === 'string' ? value.trim() : '';
+  if (v === OS_STATUS_TODAS || DASHBOARD_OS_STATUSES.includes(v)) return v;
+  return DEFAULT_DASHBOARD_OS_STATUS;
+}
+
+/** Sem filtro: toda OS (regra usada fora do Dashboard). Com filtro: só o status escolhido. */
+export function osStatusMatcher(filter?: string) {
+  if (!filter || filter === OS_STATUS_TODAS) return (status: string) => isServiceOrderStatus(status);
+  return (status: string) => isServiceOrderStatus(status) && status === filter;
+}
+
+/**
  * Categorias dos itens de um orçamento/OS, na ordem "Peças", "Mão de Obra".
  * Mesma classificação usada no DRE: Peça/Produto = Peças; demais = Mão de Obra.
  */
@@ -132,8 +152,11 @@ export function computeFleetFinancials(params: {
   vehicles: FinVehicle[];
   period?: FinPeriod;
   now?: Date;
+  /** Status da OS (Dashboard). Sem valor: toda OS a partir da aprovação. */
+  statusOs?: string;
 }) {
   const { quotes, allocations, vehicles, period, now = new Date() } = params;
+  const matches = osStatusMatcher(params.statusOs);
   const inPeriod = (d: Date) => !period || (d >= period.inicio && d < period.fim);
 
   const allocByQuote = new Map<string, FinAllocation[]>();
@@ -156,7 +179,7 @@ export function computeFleetFinancials(params: {
   };
 
   quotes
-    .filter(q => isServiceOrderStatus(q.status) && inPeriod(new Date(q.createdAt)))
+    .filter(q => matches(q.status) && inPeriod(new Date(q.createdAt)))
     .forEach(q => {
       const pay = paymentStatus(q, allocByQuote.get(q.id) || [], now);
       addQuote(resumo, q, pay);
@@ -236,8 +259,11 @@ export function computeVehicleMonthlySpend(params: {
   vehicles: FinVehicle[];
   period: SpendPeriod;
   now?: Date;
+  /** Status da OS (Dashboard). Sem valor: toda OS a partir da aprovação. */
+  statusOs?: string;
 }) {
   const months = spendMonths(params.period, params.now);
+  const matches = osStatusMatcher(params.statusOs);
   const inicio = months[0].inicio;
   const fim = months[months.length - 1].fim;
   const vehicleMap = new Map(params.vehicles.map(v => [v.id, v]));
@@ -248,7 +274,7 @@ export function computeVehicleMonthlySpend(params: {
     if (seen.has(q.id)) continue; // nunca soma o mesmo orçamento duas vezes
     seen.add(q.id);
     const d = new Date(q.createdAt);
-    if (!isServiceOrderStatus(q.status) || d < inicio || d >= fim) continue;
+    if (!matches(q.status) || d < inicio || d >= fim) continue;
     const idx = months.findIndex(m => d >= m.inicio && d < m.fim);
     if (idx < 0) continue;
     const key = q.veiculoId || `placa:${q.veiculoPlaca || 'sem-placa'}`;

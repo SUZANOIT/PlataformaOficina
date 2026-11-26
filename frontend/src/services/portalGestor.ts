@@ -7,7 +7,7 @@ const get = async <T = any>(path: string, params?: Record<string, any>) => (awai
 export const portalGestorApi = {
   dashboard: () => get('/dashboard'),
   /** Gastos mensais por veículo (periodo: 6m | 12m | ano). */
-  gastosVeiculos: (periodo: string, opts: { veiculoId?: string; de?: string; ate?: string } = {}) => get('/dashboard/gastos-veiculos', { periodo, ...opts }),
+  gastosVeiculos: (periodo: string, opts: { veiculoId?: string; de?: string; ate?: string; statusOs?: string } = {}) => get('/dashboard/gastos-veiculos', { periodo, ...opts }),
   empresa: () => get('/empresa'),
   updateEmpresa: async (data: any) => (await api.put('/portal-gestor/empresa', data)).data,
 
@@ -26,7 +26,8 @@ export const portalGestorApi = {
   documentos: () => get<any[]>('/documentos'),
   download: (downloadPath: string) => api.get(downloadPath).then(r => r.data as { url: string; nome: string }),
 
-  financeiro: (ano: number) => get('/financeiro', { ano }),
+  /** statusOs: status da OS somado nos indicadores (padrão no backend: Pago; 'todas' = toda OS aprovada). */
+  financeiro: (ano: number, statusOs?: string) => get('/financeiro', { ano, statusOs }),
 
   motoristas: () => get<any[]>('/motoristas'),
   criarMotorista: async (data: any) => (await api.post('/portal-gestor/motoristas', data)).data,
