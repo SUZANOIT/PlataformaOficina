@@ -1409,124 +1409,84 @@ export const fleetController = {
     }
   },
 
+  /**
+   * GET /fleet/dashboard/stats?clienteId=
+   * Indicadores do Dashboard de Frotas. Com clienteId, tudo é calculado só para
+   * os veículos daquele cliente. Custos sempre restritos aos veículos da empresa.
+   */
   async getDashboardStats(req: Request, res: Response) {
     try {
-      const totalClients = await prisma.client.count();
-      const totalVehicles = await prisma.vehicle.count();
-      
-      const activeVehicles = await prisma.vehicle.count({
-        where: { status: 'ATIVO' },
-      });
-      
-      const maintenanceVehicles = await prisma.vehicle.count({
-        where: { status: 'EM_MANUTENCAO' },
-      });
+      const clienteId = typeof req.query.clienteId === 'string' && req.query.clienteId ? req.query.clienteId : '';
+      const vehicleWhere = clienteId ? { clienteId } : {};
 
-      // Calculate Oil Overdues & Status
-      const vehicles = await prisma.vehicle.findMany({
-        include: {
-          trocasOleoMotor: { orderBy: { dataTroca: 'desc' }, take: 1 },
-          trocasOleoCambio: { orderBy: { dataTroca: 'desc' }, take: 1 },
-        },
-      });
+      const [totalClients, vehicles] = await Promise.all([
+        clienteId ? Promise.resolve(1) : prisma.client.count(),
+        prisma.vehicle.findMany({
+          where: vehicleWhere,
+          select: {
+            id: true, status: true, kmAtual: true,
+            trocasOleoMotor: { orderBy: { dataTroca: 'desc' }, take: 1 },
+            trocasOleoCambio: { orderBy: { dataTroca: 'desc' }, take: 1 },
+          },
+        }),
+      ]);
+      const ids = vehicles.map(v => v.id);
+      const totalVehicles = vehicles.length;
+      const activeVehicles = vehicles.filter(v => v.status === 'ATIVO').length;
+      const maintenanceVehicles = vehicles.filter(v => v.status === 'EM_MANUTENCAO').length;
 
+      // Trocas de óleo vencidas e próximas (mesma regra de antes)
       let overdues = 0;
       let approaching = 0;
-
       const now = new Date();
-
       for (const v of vehicles) {
-        // Motor oil check
-        if (v.trocasOleoMotor.length > 0) {
-          const lastMotor = v.trocasOleoMotor[0];
-          if (v.kmAtual >= lastMotor.proximaTrocaKm || now > lastMotor.proximaTrocaData) {
-            overdues++;
-          } else if (lastMotor.proximaTrocaKm - v.kmAtual <= 1000) {
-            approaching++;
-          }
+        const lastMotor = v.trocasOleoMotor[0];
+        if (lastMotor) {
+          if (v.kmAtual >= lastMotor.proximaTrocaKm || now > lastMotor.proximaTrocaData) overdues++;
+          else if (lastMotor.proximaTrocaKm - v.kmAtual <= 1000) approaching++;
         }
-        // Gear oil check
-        if (v.trocasOleoCambio.length > 0) {
-          const lastGear = v.trocasOleoCambio[0];
-          if (v.kmAtual >= lastGear.proximaTrocaKm || now > lastGear.proximaTrocaData) {
-            overdues++;
-          } else if (lastGear.proximaTrocaKm - v.kmAtual <= 2000) {
-            approaching++;
-          }
+        const lastGear = v.trocasOleoCambio[0];
+        if (lastGear) {
+          if (v.kmAtual >= lastGear.proximaTrocaKm || now > lastGear.proximaTrocaData) overdues++;
+          else if (lastGear.proximaTrocaKm - v.kmAtual <= 2000) approaching++;
         }
       }
 
-      // Calculate Total Costs from Events
-      const eventsAgg = await prisma.vehicleEvent.aggregate({
-        _sum: { valor: true }
-      });
-      const eventsTotal = eventsAgg._sum.valor || 0;
-
-      // Calculate Total Costs from Quotes (Orçamentos/OS) linked to vehicles
-      const quotesAgg = await prisma.quote.aggregate({
-        where: {
-          veiculoId: { not: null },
-          status: 'Pago'
-        },
-        _sum: { total: true }
-      });
-      const quotesTotal = quotesAgg._sum.total || 0;
-
-      const totalCosts = eventsTotal + quotesTotal;
-
-      // Monthly costs breakdown for the last 6 months
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-      sixMonthsAgo.setDate(1);
-      sixMonthsAgo.setHours(0, 0, 0, 0);
-
-      const recentEvents = await prisma.vehicleEvent.findMany({
-        where: {
-          data: { gte: sixMonthsAgo },
-          valor: { not: null },
-        },
-      });
-
-      const recentQuotes = await prisma.quote.findMany({
-        where: {
-          updatedAt: { gte: sixMonthsAgo },
-          veiculoId: { not: null },
-          status: 'Pago'
-        },
-      });
-
+      // Custos: eventos com valor + OS pagas, só dos veículos da empresa/cliente
+      let eventsTotal = 0;
+      let quotesTotal = 0;
       const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const monthlyCostsMap: Record<string, number> = {};
-      
-      // Initialize map for last 6 months
       for (let i = 0; i < 6; i++) {
         const d = new Date();
         d.setMonth(d.getMonth() - i);
-        const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
-        monthlyCostsMap[key] = 0;
+        monthlyCostsMap[`${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`] = 0;
       }
-
-      recentEvents.forEach((e) => {
-        const d = new Date(e.data);
-        const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
-        if (key in monthlyCostsMap) {
-          monthlyCostsMap[key] += e.valor || 0;
-        }
-      });
-
-      recentQuotes.forEach((q) => {
-        const d = new Date(q.updatedAt);
-        const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
-        if (key in monthlyCostsMap) {
-          monthlyCostsMap[key] += q.total || 0;
-        }
-      });
-
-      const monthlyCosts = Object.entries(monthlyCostsMap)
-        .map(([month, cost]) => ({ month, cost }))
-        .reverse();
+      if (ids.length) {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
+        const [eventsAgg, quotesAgg, recentEvents, recentQuotes] = await Promise.all([
+          prisma.vehicleEvent.aggregate({ where: { veiculoId: { in: ids } }, _sum: { valor: true } }),
+          prisma.quote.aggregate({ where: { veiculoId: { in: ids }, status: 'Pago' }, _sum: { total: true } }),
+          prisma.vehicleEvent.findMany({ where: { veiculoId: { in: ids }, data: { gte: sixMonthsAgo }, valor: { not: null } }, select: { data: true, valor: true } }),
+          prisma.quote.findMany({ where: { veiculoId: { in: ids }, updatedAt: { gte: sixMonthsAgo }, status: 'Pago' }, select: { updatedAt: true, total: true } }),
+        ]);
+        eventsTotal = eventsAgg._sum.valor || 0;
+        quotesTotal = quotesAgg._sum.total || 0;
+        const add = (d: Date, v: number) => {
+          const key = `${monthNames[d.getMonth()]}/${d.getFullYear().toString().substring(2)}`;
+          if (key in monthlyCostsMap) monthlyCostsMap[key] += v || 0;
+        };
+        recentEvents.forEach(e => add(new Date(e.data), e.valor || 0));
+        recentQuotes.forEach(q => add(new Date(q.updatedAt), q.total || 0));
+      }
+      const totalCosts = eventsTotal + quotesTotal;
+      const monthlyCosts = Object.entries(monthlyCostsMap).map(([month, cost]) => ({ month, cost })).reverse();
 
       return res.json({
+        clienteId: clienteId || null,
         totalClients,
         totalVehicles,
         activeVehicles,
