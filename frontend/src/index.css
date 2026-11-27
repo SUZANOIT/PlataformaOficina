@@ -4,6 +4,9 @@
  
 @layer base {
   :root {
+    /* Tema claro também nos controles nativos (select, input, barra de rolagem),
+       mesmo com o sistema operacional no modo escuro */
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -15,6 +18,8 @@
  
     --primary: 26 87% 54%;
     --primary-foreground: 210 40% 98%;
+    /* Laranja da marca para TEXTO e links: o --primary sobre branco não tem contraste suficiente */
+    --link: 21 90% 38%;
  
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -36,6 +41,7 @@
   }
  
   .dark {
+    color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
  
@@ -47,6 +53,7 @@
  
     --primary: 26 87% 58%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    --link: 26 87% 62%;
  
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;

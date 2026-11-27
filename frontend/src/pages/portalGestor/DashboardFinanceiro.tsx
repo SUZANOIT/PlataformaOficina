@@ -50,7 +50,7 @@ export function DashboardFinanceiro({ statusOs = 'Pago', plataforma = '' }: { st
             </div>
             <p className="text-xs text-muted-foreground">
               Ordens de serviço {statusOs === 'todas' ? '' : `com status "${statusOs}" `}de {d.ano} pela data de abertura: {formatCurrency(d.resumo.totalOs)} = {formatCurrency(d.resumo.pago)} pago + {formatCurrency(d.resumo.emAberto)} em aberto{d.resumo.coberto > 0 ? ` + ${formatCurrency(d.resumo.coberto)} coberto` : ''}.
-              {statusOs !== 'todas' && <> <Link to={osLink()} className="font-medium text-primary hover:underline">Ver as {d.resumo.quantidadeOs} OS somadas</Link></>}
+              {statusOs !== 'todas' && <> <Link to={osLink()} className="font-medium text-link hover:underline">Ver as {d.resumo.quantidadeOs} OS somadas</Link></>}
             </p>
 
             <Card>

@@ -35,7 +35,7 @@ export function PortalLayout() {
           onClick={() => setOpen(false)}
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              isActive ? 'bg-primary/10 text-link' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
         >
           <Icon size={17} aria-hidden="true" />
@@ -48,7 +48,7 @@ export function PortalLayout() {
   const brand = (
     <div className="border-b border-border px-5 py-4">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-primary">Portal do Gestor de Frota</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-link">Portal do Gestor de Frota</p>
         <NotificationBell basePath="/portal-gestor/notificacoes" align="left" className="-mr-2 -mt-2 hidden lg:block" />
       </div>
       <p className="mt-1 truncate text-sm font-semibold text-foreground" title={empresa}>{empresa}</p>
@@ -81,7 +81,7 @@ export function PortalLayout() {
       {/* Topbar mobile */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-primary">Portal do Gestor</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-link">Portal do Gestor</p>
           <p className="truncate text-sm font-semibold">{empresa}</p>
         </div>
         <div className="flex items-center gap-1">

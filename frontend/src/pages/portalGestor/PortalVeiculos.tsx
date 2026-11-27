@@ -1,48 +1,156 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Search, X } from 'lucide-react';
 import { portalGestorApi } from '../../services/portalGestor';
 import { useAuth } from '../../hooks/useAuth';
 import { VehicleCockpitTabs, type VehicleCockpitTab } from '../../components/fleet/VehicleCockpitTabs';
-import { Card, EmptyState, Loadable, PageHeader, StatusBadge, Table, formatDate, inputClass, useLoad } from './ui';
+import { Card, EmptyState, Loadable, PageHeader, StatusBadge, Table, btnSecondary, formatDate, inputClass, useLoad } from './ui';
+
+const STATUS_FILTROS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'ATIVO', label: 'Ativos' },
+  { value: 'EM_MANUTENCAO', label: 'Em manutenção' },
+  { value: 'INATIVO', label: 'Inativos' },
+  { value: 'VENDIDO', label: 'Vendidos' },
+];
+
+const km = (v: unknown) => `${Number(v || 0).toLocaleString('pt-BR')} km`;
+const frotaTexto = (v: any) => [v.frota, v.subfrota].filter(Boolean).join(' / ');
+const motoristasTexto = (v: any) => (v.motoristas || []).map((m: any) => m.nome).join(', ');
 
 export function PortalVeiculos() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
-  const state = useLoad(() => portalGestorApi.veiculos({ status, search: search || undefined }), [status, search]);
+  // Carrega todos uma vez; busca e status filtram na tela (contadores sempre completos)
+  const state = useLoad(() => portalGestorApi.veiculos({ status: 'all' }));
+  const todos: any[] = (state.data as any[]) || [];
+
+  const contagem = useMemo(() => {
+    const c: Record<string, number> = { all: todos.length };
+    todos.forEach(v => { c[v.status] = (c[v.status] || 0) + 1; });
+    return c;
+  }, [todos]);
+
+  const termo = search.trim().toLowerCase();
+  const veiculos = useMemo(() => todos.filter(v =>
+    (status === 'all' || v.status === status) &&
+    (!termo || [v.placa, v.marca, v.modelo, v.prefixo, v.frota, v.subfrota].some(x => (x || '').toLowerCase().includes(termo)))
+  ), [todos, status, termo]);
+  const temFiltro = status !== 'all' || !!termo;
 
   return (
     <>
-      <PageHeader title="Meus Veículos" description="Veículos da sua empresa cadastrados na oficina." />
+      <PageHeader title="Meus Veículos" description="Veículos da sua empresa cadastrados na oficina. Clique em um veículo para ver o histórico completo." />
+
       <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
-          <div className="relative flex-1">
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input aria-label="Buscar veículo" className={`${inputClass} pl-9`} placeholder="Buscar por placa, modelo ou prefixo" value={search} onChange={e => setSearch(e.target.value)} />
+        {/* Filtros */}
+        <div className="space-y-3 border-b border-border p-4">
+          <div className="relative">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              aria-label="Buscar veículo"
+              className={`${inputClass} pl-9 pr-9`}
+              placeholder="Buscar por placa, modelo, prefixo ou frota"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch('')} aria-label="Limpar busca"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+                <X size={15} />
+              </button>
+            )}
           </div>
-          <select aria-label="Status do veículo" className={`${inputClass} sm:w-52`} value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="all">Todos os status</option>
-            <option value="ATIVO">Ativos</option>
-            <option value="EM_MANUTENCAO">Em manutenção</option>
-            <option value="INATIVO">Inativos</option>
-            <option value="VENDIDO">Vendidos</option>
-          </select>
+          <div role="group" aria-label="Filtrar por status" className="flex flex-wrap gap-2">
+            {STATUS_FILTROS.map(f => {
+              const ativo = status === f.value;
+              const n = contagem[f.value] || 0;
+              if (f.value !== 'all' && n === 0 && !ativo) return null;
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => setStatus(f.value)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                    ativo ? 'border-foreground bg-foreground text-background' : 'border-border bg-background text-foreground hover:bg-muted'}`}
+                >
+                  {f.label}
+                  <span className={`rounded-full px-1.5 text-xs tabular-nums ${ativo ? 'bg-background/20 text-background' : 'bg-muted text-foreground'}`}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
         <Loadable state={state}>
-          {(vehicles: any[]) => vehicles.length === 0 ? <EmptyState message="Nenhum veículo encontrado." /> : (
-            <Table head={['Placa', 'Veículo', 'Frota / Subfrota', 'KM atual', 'Motorista', 'Último serviço', 'Status']}>
-              {vehicles.map(v => (
-                <tr key={v.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-2.5"><Link to={`/portal/veiculos/${v.id}`} className="font-semibold text-primary hover:underline">{v.placa}</Link>{v.prefixo && <span className="block text-xs text-muted-foreground">Prefixo {v.prefixo}</span>}</td>
-                  <td className="px-4 py-2.5">{v.marca} {v.modelo}<span className="block text-xs text-muted-foreground">{v.anoFabricacao}/{v.anoModelo}</span></td>
-                  <td className="px-4 py-2.5">{[v.frota, v.subfrota].filter(Boolean).join(' / ') || '—'}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{Number(v.kmAtual || 0).toLocaleString('pt-BR')} km</td>
-                  <td className="px-4 py-2.5">{v.motoristas.map((m: any) => m.nome).join(', ') || '—'}</td>
-                  <td className="px-4 py-2.5">{formatDate(v.dataUltimoServico)}</td>
-                  <td className="px-4 py-2.5"><StatusBadge status={v.status} /></td>
-                </tr>
-              ))}
-            </Table>
+          {() => veiculos.length === 0 ? (
+            <div className="py-2">
+              <EmptyState message={temFiltro ? 'Nenhum veículo encontrado com esses filtros.' : 'Nenhum veículo cadastrado para a sua empresa.'} />
+              {temFiltro && (
+                <div className="-mt-8 pb-8 text-center">
+                  <button type="button" onClick={() => { setSearch(''); setStatus('all'); }} className="text-sm font-medium text-link hover:underline">Limpar filtros</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Computador: tabela */}
+              <div className="hidden lg:block">
+                <Table head={['Veículo', 'Frota / Subfrota', 'KM atual', 'Motorista', 'Último serviço', 'Status', '']}>
+                  {veiculos.map(v => (
+                    <tr key={v.id} className="hover:bg-muted/40">
+                      <td className="px-4 py-3">
+                        <Link to={`/portal/veiculos/${v.id}`} className="font-mono text-sm font-semibold tracking-wide text-link hover:underline">{v.placa}</Link>
+                        <span className="block whitespace-nowrap text-sm text-foreground">{v.marca} {v.modelo}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {v.anoFabricacao}/{v.anoModelo}{v.prefixo ? ` · Prefixo ${v.prefixo}` : ''}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-foreground">{frotaTexto(v) || <span className="text-muted-foreground">—</span>}</td>
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-foreground">{km(v.kmAtual)}</td>
+                      <td className="max-w-[12rem] truncate px-4 py-3 text-foreground" title={motoristasTexto(v)}>{motoristasTexto(v) || <span className="text-muted-foreground">—</span>}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-foreground">{formatDate(v.dataUltimoServico)}</td>
+                      <td className="px-4 py-3"><StatusBadge status={v.status} /></td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <Link to={`/portal/veiculos/${v.id}`} className={`${btnSecondary} h-8 px-3 text-xs`}>
+                          Ver detalhes <ChevronRight size={14} aria-hidden="true" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </Table>
+              </div>
+
+              {/* Celular e tablet: cartões (uma coluna no celular, duas no tablet) */}
+              <ul className="grid gap-3 p-3 sm:grid-cols-2 lg:hidden">
+                {veiculos.map(v => (
+                  <li key={v.id}>
+                    <Link to={`/portal/veiculos/${v.id}`} className="block h-full rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/30">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-mono text-base font-semibold tracking-wide text-link">{v.placa}</p>
+                          <p className="truncate text-sm font-medium text-foreground">{v.marca} {v.modelo}</p>
+                          <p className="text-xs text-muted-foreground">{v.anoFabricacao}/{v.anoModelo}{v.prefixo ? ` · Prefixo ${v.prefixo}` : ''}</p>
+                        </div>
+                        <StatusBadge status={v.status} />
+                      </div>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div><dt className="text-xs text-muted-foreground">KM atual</dt><dd className="tabular-nums text-foreground">{km(v.kmAtual)}</dd></div>
+                        <div><dt className="text-xs text-muted-foreground">Último serviço</dt><dd className="text-foreground">{formatDate(v.dataUltimoServico)}</dd></div>
+                        {frotaTexto(v) && <div><dt className="text-xs text-muted-foreground">Frota / Subfrota</dt><dd className="text-foreground">{frotaTexto(v)}</dd></div>}
+                        {motoristasTexto(v) && <div><dt className="text-xs text-muted-foreground">Motorista</dt><dd className="truncate text-foreground">{motoristasTexto(v)}</dd></div>}
+                      </dl>
+                      <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-link">Ver detalhes <ChevronRight size={14} aria-hidden="true" /></span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
+                {veiculos.length === todos.length ? `${todos.length} ${todos.length === 1 ? 'veículo' : 'veículos'}` : `${veiculos.length} de ${todos.length} veículos`}
+              </p>
+            </>
           )}
         </Loadable>
       </Card>

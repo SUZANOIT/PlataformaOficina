@@ -69,13 +69,13 @@ export function PortalDashboard() {
               <Card>
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h2 className="text-sm font-semibold">Orçamentos aguardando sua aprovação</h2>
-                  <Link to={`/portal/ordens-servico?status=${encodeURIComponent('Aguardando Aprovação')}`} className="text-xs text-primary hover:underline">Ver todos</Link>
+                  <Link to={`/portal/ordens-servico?status=${encodeURIComponent('Aguardando Aprovação')}`} className="text-xs text-link hover:underline">Ver todos</Link>
                 </div>
                 {d.ultimosOrcamentos.length === 0 ? <EmptyState message="Nenhum orçamento pendente." /> : (
                   <Table head={['Nº', 'Veículo', 'Data', 'Valor', 'Status']}>
                     {d.ultimosOrcamentos.map((q: any) => (
                       <tr key={q.id} className="hover:bg-muted/40">
-                        <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${q.id}`} className="font-medium text-primary hover:underline">#{q.numeroOrcamento}</Link></td>
+                        <td className="px-4 py-2.5"><Link to={`/portal/ordens-servico?abrir=${q.id}`} className="font-medium text-link hover:underline">#{q.numeroOrcamento}</Link></td>
                         <td className="px-4 py-2.5">{q.veiculoPlaca || '—'}</td>
                         <td className="px-4 py-2.5">{formatDate(q.createdAt)}</td>
                         <td className="px-4 py-2.5 tabular-nums">{formatCurrency(q.total)}</td>
@@ -89,13 +89,13 @@ export function PortalDashboard() {
               <Card>
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h2 className="text-sm font-semibold">Próximas trocas preventivas (30 dias)</h2>
-                  <Link to="/portal/manutencao" className="text-xs text-primary hover:underline">Manutenção</Link>
+                  <Link to="/portal/manutencao" className="text-xs text-link hover:underline">Manutenção</Link>
                 </div>
                 {d.proximasTrocas.length === 0 ? <EmptyState message="Nenhuma troca prevista para os próximos 30 dias." /> : (
                   <Table head={['Veículo', 'Serviço', 'Data prevista', 'KM previsto']}>
                     {d.proximasTrocas.map((t: any, i: number) => (
                       <tr key={i}>
-                        <td className="px-4 py-2.5"><Link to={`/portal/veiculos/${t.veiculoId}`} className="font-medium text-primary hover:underline">{t.placa}</Link></td>
+                        <td className="px-4 py-2.5"><Link to={`/portal/veiculos/${t.veiculoId}`} className="font-medium text-link hover:underline">{t.placa}</Link></td>
                         <td className="px-4 py-2.5">{t.tipo}</td>
                         <td className="px-4 py-2.5">{formatDate(t.data)}</td>
                         <td className="px-4 py-2.5 tabular-nums">{Number(t.km).toLocaleString('pt-BR')} km</td>
@@ -111,7 +111,7 @@ export function PortalDashboard() {
                 <h2 className="text-sm font-semibold">CNH vencendo ou vencida</h2>
                 <ul className="mt-2 space-y-1 text-sm">
                   {d.motoristas.cnhVencendo.map((m: any) => (
-                    <li key={m.id}><Link to="/portal/motoristas" className="text-primary hover:underline">{m.nome}</Link> — validade {formatDate(m.validadeCnh)}</li>
+                    <li key={m.id}><Link to="/portal/motoristas" className="text-link hover:underline">{m.nome}</Link> — validade {formatDate(m.validadeCnh)}</li>
                   ))}
                 </ul>
               </Card>

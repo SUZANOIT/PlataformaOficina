@@ -55,7 +55,7 @@ function Stepper({ s }: { s: Solicitacao | null }) {
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Etapa {n}</p>
-              <p className={`text-xs font-semibold leading-tight sm:text-sm ${active ? 'text-primary' : 'text-foreground'}`}>{label}</p>
+              <p className={`text-xs font-semibold leading-tight sm:text-sm ${active ? 'text-link' : 'text-foreground'}`}>{label}</p>
             </div>
           </li>
         );
@@ -84,7 +84,7 @@ function OrdensDoVeiculo({ vehicleId }: { vehicleId: string }) {
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <p className="text-xs font-semibold">Ordens de Serviço do veículo{data ? ` (${data.total})` : ''}</p>
         {data && data.total > 0 && (
-          <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="text-xs font-medium text-primary hover:underline">Ver na tela de OS</Link>
+          <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="text-xs font-medium text-link hover:underline">Ver na tela de OS</Link>
         )}
       </div>
       {!data ? (
@@ -99,7 +99,7 @@ function OrdensDoVeiculo({ vehicleId }: { vehicleId: string }) {
             <li key={os.id}>
               <button type="button" onClick={() => setOpenId(os.id)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/40">
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-primary">#{os.numeroOrcamento}</span>
+                  <span className="block text-sm font-semibold text-link">#{os.numeroOrcamento}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {formatDate(os.createdAt)}{os.servicos?.length ? ` · ${os.servicos.join(', ')}` : ''}
                   </span>
@@ -115,7 +115,7 @@ function OrdensDoVeiculo({ vehicleId }: { vehicleId: string }) {
       )}
       {data && data.total > data.items.length && (
         <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          Mostrando as {data.items.length} mais recentes. <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="font-medium text-primary hover:underline">Ver todas</Link>
+          Mostrando as {data.items.length} mais recentes. <Link to={`/portal/ordens-servico?veiculo=${vehicleId}`} className="font-medium text-link hover:underline">Ver todas</Link>
         </p>
       )}
       {/* Fora do <form> da solicitação: Enter/ações no modal não enviam o formulário */}
@@ -160,7 +160,7 @@ function NovaSolicitacao({ onCreated }: { onCreated: (s: Solicitacao) => void })
 
   return (
     <Card className="p-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold"><Plus size={16} className="text-primary" /> Novo Orçamento</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold"><Plus size={16} className="text-link" /> Novo Orçamento</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">Selecione o veículo e descreva o problema. A oficina recebe na hora.</p>
       <form onSubmit={submit} className="mt-3 space-y-3">
         <label className="block space-y-1">

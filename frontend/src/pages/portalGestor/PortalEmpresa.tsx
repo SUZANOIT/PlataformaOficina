@@ -29,7 +29,7 @@ function FormField({ label, children, className = '' }: { label: string; childre
 function SectionTitle({ icon: Icon, title, subtitle }: { icon: typeof Phone; title: string; subtitle: string }) {
   return (
     <div className="mb-3 flex items-start gap-2.5">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-link">
         <Icon size={15} aria-hidden="true" />
       </span>
       <div>
@@ -86,7 +86,7 @@ export function PortalEmpresa() {
               <Card className="p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center">
                   <div className="flex min-w-0 items-center gap-3 md:w-1/2 xl:w-1/3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-link" aria-hidden="true">
                       {initials}
                     </span>
                     <div className="min-w-0">

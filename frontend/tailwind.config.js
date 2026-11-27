@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // As variantes dark: só valem com a classe .dark no <html> — a mesma regra dos tokens
+  // de cor (index.css). Sem isso, o Tailwind usava o modo escuro do sistema operacional
+  // e aplicava texto claro (dark:text-white…) sobre os fundos claros dos tokens.
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -11,6 +15,8 @@ export default {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
+        // Texto/links na cor da marca com contraste adequado (ver --link em index.css)
+        link: "hsl(var(--link))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",

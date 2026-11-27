@@ -129,7 +129,7 @@ export function NotificationBell({ basePath, align = 'right', className = '' }: 
               <p className="text-xs text-muted-foreground">{naoLidas ? `${naoLidas} não lida${naoLidas > 1 ? 's' : ''}` : 'Tudo em dia'}</p>
             </div>
             <button type="button" onClick={marcarTodas} disabled={!naoLidas}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40">
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-link hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40">
               <CheckCheck size={14} aria-hidden="true" /> Marcar todas como lidas
             </button>
           </div>
@@ -155,14 +155,14 @@ export function NotificationBell({ basePath, align = 'right', className = '' }: 
                     <div className="flex items-start justify-between gap-2">
                       <p className={`text-sm ${n.lida ? 'font-medium text-foreground' : 'font-semibold text-foreground'}`}>
                         {n.titulo}
-                        {!n.lida && <span className="ml-1.5 rounded bg-primary/15 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase text-primary">Nova</span>}
+                        {!n.lida && <span className="ml-1.5 rounded bg-primary/15 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase text-link">Nova</span>}
                       </p>
                       <span className="shrink-0 text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</span>
                     </div>
                     <p className="mt-1 whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground">{n.mensagem}</p>
                     <div className="mt-2 flex items-center gap-3">
                       {n.urlDestino && (
-                        <button type="button" onClick={() => abrir(n)} className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline">
+                        <button type="button" onClick={() => abrir(n)} className="inline-flex items-center gap-0.5 text-xs font-semibold text-link hover:underline">
                           {ACTION_LABEL[n.tipoEvento] || 'Abrir'} <ChevronRight size={13} aria-hidden="true" />
                         </button>
                       )}

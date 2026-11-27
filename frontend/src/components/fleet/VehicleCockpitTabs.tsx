@@ -168,7 +168,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
           {detailsTab === 'quotes' && (
             <div className="space-y-4">
               {vehicleDetails.orcamentos.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 space-y-2">
+                <div className="text-center py-12 text-gray-500 space-y-2">
                   <Clipboard size={32} className="mx-auto" />
                   <p className="text-xs">Nenhum orçamento pendente encontrado para este veículo.</p>
                 </div>
@@ -187,7 +187,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {vehicleDetails.orcamentos.map((q: any) => (
                         <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                          <td className="p-3 font-bold text-primary dark:text-primary truncate">#{q.numeroOrcamento}</td>
+                          <td className="p-3 font-bold text-link dark:text-link truncate">#{q.numeroOrcamento}</td>
                           <td className="p-3 font-medium hidden md:table-cell truncate">{new Date(q.createdAt).toLocaleDateString('pt-BR')}</td>
                           <td className="p-3 font-medium truncate" title={q.items.map((i: any) => i.descricao).join(', ')}>
                             {q.items.length} {q.items.length === 1 ? 'item' : 'itens'} ({q.items.map((i: any) => i.descricao).slice(0, 2).join(', ')}...)
@@ -211,7 +211,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
           {detailsTab === 'os' && (
             <div className="space-y-4">
               {vehicleDetails.ordensServico.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 space-y-2">
+                <div className="text-center py-12 text-gray-500 space-y-2">
                   <CheckSquare size={32} className="mx-auto" />
                   <p className="text-xs">Nenhuma ordem de serviço vinculada encontrada para este veículo.</p>
                 </div>
@@ -231,7 +231,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {vehicleDetails.ordensServico.map((os: any) => (
                         <tr key={os.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/25">
-                          <td className="p-3 font-bold text-primary dark:text-primary truncate">#{os.numeroOrcamento}</td>
+                          <td className="p-3 font-bold text-link dark:text-link truncate">#{os.numeroOrcamento}</td>
                           <td className="p-3 font-bold text-gray-500 dark:text-gray-400 hidden md:table-cell truncate">{os.osExterna || '—'}</td>
                           <td className="p-3 font-medium hidden sm:table-cell truncate">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</td>
                           <td className="p-3 font-medium text-gray-500 hidden lg:table-cell truncate">{os.prazoExecucao || '—'}</td>
@@ -256,7 +256,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
           {detailsTab === 'maintenance' && (
             <div className="space-y-6 animate-fade-in-up">
               {vehicleDetails.manutencoes.length === 0 ? (
-                <div className="text-center py-16 text-gray-400 space-y-3">
+                <div className="text-center py-16 text-gray-500 space-y-3">
                   <div className="mx-auto w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center">
                     <Wrench size={28} className="text-gray-300 dark:text-gray-500" />
                   </div>
@@ -287,11 +287,11 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                             }`}>
                               {m.tipo.replace("_", " ")}
                             </span>
-                            <span className="text-gray-400 font-semibold">{new Date(m.data).toLocaleDateString('pt-BR')}</span>
+                            <span className="text-gray-500 font-semibold">{new Date(m.data).toLocaleDateString('pt-BR')}</span>
                           </div>
                           <p className="text-xs font-bold text-gray-800 dark:text-white leading-relaxed">{m.descricao}</p>
                           {m.km && (
-                            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 block bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg w-max">
+                            <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 block bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg w-max">
                               <Activity size={10} className="inline mr-1" />Hodômetro: {m.km.toLocaleString('pt-BR')} KM
                             </span>
                           )}
@@ -304,8 +304,8 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
 
                         {m.valor > 0 && (
                           <div className="text-right whitespace-nowrap self-start shrink-0 text-xs bg-rose-50/60 dark:bg-rose-950/20 px-3 py-2 rounded-xl border border-rose-100/50 dark:border-rose-900/30">
-                            <span className="text-gray-400 block mb-0.5 text-[10px]">Custo Lançado</span>
-                            <span className="font-black text-rose-600 dark:text-rose-400">{formatCurrency(m.valor)}</span>
+                            <span className="text-gray-500 block mb-0.5 text-[10px]">Custo Lançado</span>
+                            <span className="font-black text-rose-700 dark:text-rose-400">{formatCurrency(m.valor)}</span>
                           </div>
                         )}
                       </div>
@@ -321,7 +321,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
           {detailsTab === 'parts' && (
             <div className="space-y-4">
               {vehicleDetails.pecas.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 space-y-2">
+                <div className="text-center py-12 text-gray-500 space-y-2">
                   <Package size={32} className="mx-auto" />
                   <p className="text-xs">Nenhuma peça cadastrada nas revisões/orçamentos do veículo.</p>
                 </div>
@@ -329,7 +329,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                 <div className="space-y-4">
                   <div className="bg-primary/10 dark:bg-primary/20 p-4 rounded-xl border border-primary/30 dark:border-primary/20 flex justify-between items-center text-xs">
                     <span className="font-bold text-indigo-750 dark:text-primary/70">Resumo de Peças Adquiridas</span>
-                    <span className="font-black text-primary dark:text-primary">
+                    <span className="font-black text-link dark:text-link">
                       Total Alocado: {formatCurrency(vehicleDetails.pecas.reduce((acc: number, p: any) => acc + p.valorTotal, 0))}
                     </span>
                   </div>
@@ -352,7 +352,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                             <td className="p-3 text-center font-bold text-gray-500 hidden md:table-cell truncate">{p.quantidade}</td>
                             <td className="p-3 text-right font-medium hidden sm:table-cell truncate">{formatCurrency(p.valorUnitario)}</td>
                             <td className="p-3 text-right font-bold text-gray-900 dark:text-white truncate">{formatCurrency(p.valorTotal)}</td>
-                            <td className="p-3 font-bold text-primary dark:text-primary truncate">#{p.numeroOrcamento}</td>
+                            <td className="p-3 font-bold text-link dark:text-link truncate">#{p.numeroOrcamento}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -387,15 +387,15 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                   </div>
                   <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 mt-4 uppercase tracking-wider">Identificador QR de Frota</span>
                   <h4 className="text-xs font-bold text-gray-700 dark:text-gray-350 mt-1 uppercase font-mono">TOKEN: {vehicleDetails.infoCadastral.placa}</h4>
-                  <p className="text-[9px] text-gray-400 dark:text-gray-550 mt-2 max-w-xs leading-relaxed font-medium">Aponte a câmera do dispositivo móvel para acessar instantaneamente a ficha técnica do veículo na oficina.</p>
+                  <p className="text-[9px] text-gray-500 dark:text-gray-550 mt-2 max-w-xs leading-relaxed font-medium">Aponte a câmera do dispositivo móvel para acessar instantaneamente a ficha técnica do veículo na oficina.</p>
                 </div>
               </div>
 
               {/* Right: List of attachments from invoices/transactions (7 columns) */}
               <div className="md:col-span-7 space-y-4">
-                <h3 className="text-xs font-black uppercase text-primary tracking-wider">Anexos Financeiros e Fiscais</h3>
+                <h3 className="text-xs font-black uppercase text-link tracking-wider">Anexos Financeiros e Fiscais</h3>
                 {vehicleDetails.documentos.length === 0 ? (
-                  <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:border-gray-700/60 text-gray-400 text-xs">
+                  <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:border-gray-700/60 text-gray-500 text-xs">
                     Nenhum comprovante fiscal ou documento anexado às transações deste veículo.
                   </div>
                 ) : (
@@ -404,7 +404,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                       <div key={doc.id} className="p-3 bg-gray-50 dark:bg-gray-700/20 rounded-xl border border-gray-150/30 dark:border-gray-700/50 flex justify-between items-center text-xs">
                         <div className="space-y-0.5 overflow-hidden">
                           <span className="font-bold text-gray-800 dark:text-white block truncate">{doc.nome}</span>
-                          <span className="text-[10px] text-gray-400 block truncate">{doc.origem} • {new Date(doc.data).toLocaleDateString('pt-BR')}</span>
+                          <span className="text-[10px] text-gray-500 block truncate">{doc.origem} • {new Date(doc.data).toLocaleDateString('pt-BR')}</span>
                         </div>
                         <a
                           href={doc.url}
@@ -467,8 +467,8 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                           : 'bg-gradient-to-br from-amber-50 to-orange-50/30 border-amber-100 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-900/30'
                       }`}>
                         <div className="space-y-1">
-                          <span className={`font-bold block ${netBalance >= 0 ? 'text-primary dark:text-primary/70' : 'text-amber-700 dark:text-amber-300'}`}>Saldo Líquido</span>
-                          <span className={`text-xl font-black ${netBalance >= 0 ? 'text-primary dark:text-primary' : 'text-amber-800 dark:text-amber-450'}`}>{formatCurrency(netBalance)}</span>
+                          <span className={`font-bold block ${netBalance >= 0 ? 'text-link dark:text-primary/70' : 'text-amber-700 dark:text-amber-300'}`}>Saldo Líquido</span>
+                          <span className={`text-xl font-black ${netBalance >= 0 ? 'text-link dark:text-link' : 'text-amber-800 dark:text-amber-450'}`}>{formatCurrency(netBalance)}</span>
                         </div>
                         <div className={`p-2.5 rounded-xl ${netBalance >= 0 ? 'bg-primary/10 text-indigo-650' : 'bg-amber-500/10 text-amber-600'}`}>
                           <Activity size={20} />
@@ -492,7 +492,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
 
                     {/* Chronological ledger table */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-black uppercase text-primary dark:text-primary tracking-wider flex items-center gap-1.5"><DollarSign size={12} /> Detalhamento de Lançamentos Financeiros</h4>
+                      <h4 className="text-xs font-black uppercase text-link dark:text-link tracking-wider flex items-center gap-1.5"><DollarSign size={12} /> Detalhamento de Lançamentos Financeiros</h4>
                       {vehicleDetails.financeiro.length === 0 ? (
                         <div className="text-center py-10 bg-gray-50/50 dark:bg-gray-700/10 rounded-xl border border-gray-150/40 dark:text-gray-400 text-xs">
                           Nenhuma receita ou despesa registrada para o veículo.
@@ -516,7 +516,7 @@ export function VehicleCockpitTabs({ vehicleDetails, detailsTab, setDetailsTab, 
                                   <td className="p-3 font-bold text-gray-800 dark:text-white truncate">
                                     {fin.tipo === 'RECEITA' ? 'Receita OS ' : fin.tipo === 'DESPESA' ? 'Despesa Lançamento ' : 'Custo Manutenção '}
                                     {fin.numero ? `#${fin.numero}` : ''}
-                                    <span className="font-semibold block text-[10px] text-gray-400 font-normal mt-0.5 truncate">{fin.descricao}</span>
+                                    <span className="font-semibold block text-[10px] text-gray-500 font-normal mt-0.5 truncate">{fin.descricao}</span>
                                   </td>
                                   <td className="p-3 font-semibold text-gray-500 hidden md:table-cell truncate">{fin.tipo}</td>
                                   <td className={`p-3 text-right font-black truncate ${fin.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
