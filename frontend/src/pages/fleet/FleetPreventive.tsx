@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Wrench, ShieldAlert, Sparkles } from 'lucide-react';
+import { Plus, Wrench, ShieldAlert, Sparkles, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModalFooterActions } from '../../components/ui/ModalFooterActions';
 
@@ -48,6 +48,8 @@ export default function FleetPreventive() {
 
   const [selectedMotorOwnerId, setSelectedMotorOwnerId] = useState('');
   const [selectedGearOwnerId, setSelectedGearOwnerId] = useState('');
+  // Filtro de cliente da tela
+  const [clienteFiltro, setClienteFiltro] = useState('');
 
   const uniqueOwners = Array.from(
     new Map(
@@ -234,35 +236,74 @@ export default function FleetPreventive() {
   };
 
   // Aggregated Counters
-  const motorAlerts = motorChanges.filter((m) => {
+  // Filtro de cliente: vale para os alertas, os resumos e as listas das duas abas
+  const veiculosDoCliente = new Set(
+    clienteFiltro ? vehicles.filter((v) => (v.client?.id || v.clienteId) === clienteFiltro).map((v) => v.id) : [],
+  );
+  const doCliente = (veiculoId?: string, clienteId?: string) =>
+    !clienteFiltro || clienteId === clienteFiltro || (!!veiculoId && veiculosDoCliente.has(veiculoId));
+  const motorList = motorChanges.filter((m) => doCliente(m.veiculoId || m.veiculo?.id, m.veiculo?.clienteId));
+  const gearList = gearChanges.filter((g) => doCliente(g.veiculoId || g.veiculo?.id, g.veiculo?.clienteId));
+  const alertList = oilAnalysisAlerts.filter((a: any) => doCliente(a.veiculoId, a.clienteId));
+  const clienteNomeFiltro = uniqueOwners.find((c: any) => c.id === clienteFiltro);
+
+  const motorAlerts = motorList.filter((m) => {
     const status = getOilChangeStatus(m.veiculo.kmAtual, m.proximaTrocaKm, m.proximaTrocaData);
     return status.label === 'Atrasado';
   }).length;
 
-  const gearAlerts = gearChanges.filter((g) => {
+  const gearAlerts = gearList.filter((g) => {
     const status = getOilChangeStatus(g.veiculo.kmAtual, g.proximaTrocaKm, g.proximaTrocaData);
     return status.label === 'Atrasado';
   }).length;
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Manutenção Preventiva</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Monitore e registre a troca de óleo de motor e câmbio.</p>
         </div>
-        
+
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="shrink-0 text-gray-500" aria-hidden="true" />
+            <select
+              aria-label="Filtrar por cliente"
+              value={clienteFiltro}
+              onChange={(e) => setClienteFiltro(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm sm:w-64"
+            >
+              <option value="">Todos os clientes</option>
+              {uniqueOwners
+                .slice()
+                .sort((a: any, b: any) => (a.empresa || a.nome || '').localeCompare(b.empresa || b.nome || '', 'pt-BR'))
+                .map((c: any) => <option key={c.id} value={c.id}>{c.empresa || c.nome}</option>)}
+            </select>
+            {clienteFiltro && (
+              <button type="button" onClick={() => setClienteFiltro('')} aria-label="Limpar filtro de cliente" className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800">
+                <X size={16} />
+              </button>
+            )}
+          </div>
         <button
-          onClick={() => activeTab === 'motor' ? setIsMotorModalOpen(true) : setIsGearModalOpen(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
+          onClick={() => {
+            if (activeTab === 'motor') { if (clienteFiltro) handleMotorOwnerChange(clienteFiltro); setIsMotorModalOpen(true); }
+            else { if (clienteFiltro) handleGearOwnerChange(clienteFiltro); setIsGearModalOpen(true); }
+          }}
+          className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
         >
           <Plus size={18} />
           Registrar Troca de Óleo
         </button>
+        </div>
       </div>
+      {clienteNomeFiltro && (
+        <p className="-mt-2 text-sm text-gray-600">Mostrando somente os veículos do cliente <b className="text-gray-800">{clienteNomeFiltro.empresa || clienteNomeFiltro.nome}</b>.</p>
+      )}
 
       {/* ═══════════ OS ANALYSIS ALERTS ═══════════ */}
-      {oilAnalysisAlerts.length > 0 && (
+      {alertList.length > 0 && (
         <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-5 shadow-sm mb-6 animate-fade-in-up">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-rose-100 dark:bg-rose-800 rounded-lg text-rose-600 dark:text-rose-400">
@@ -276,7 +317,7 @@ export default function FleetPreventive() {
             </div>
           </div>
           <div className="space-y-2 mt-4">
-            {oilAnalysisAlerts.map((alert: any, idx: number) => (
+            {alertList.map((alert: any, idx: number) => (
               <div key={idx} className="bg-white dark:bg-gray-800 border border-rose-100 dark:border-rose-900/50 rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -379,7 +420,7 @@ export default function FleetPreventive() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider block">Motor</span>
-            <span className="text-lg font-bold text-gray-800 dark:text-white block">{motorChanges.length} Trocas</span>
+            <span className="text-lg font-bold text-gray-800 dark:text-white block">{motorList.length} Trocas</span>
             <span className={`text-xs font-semibold ${motorAlerts > 0 ? 'text-rose-500' : 'text-green-500'}`}>
               {motorAlerts} veículos atrasados
             </span>
@@ -392,7 +433,7 @@ export default function FleetPreventive() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider block">Câmbio</span>
-            <span className="text-lg font-bold text-gray-800 dark:text-white block">{gearChanges.length} Trocas</span>
+            <span className="text-lg font-bold text-gray-800 dark:text-white block">{gearList.length} Trocas</span>
             <span className={`text-xs font-semibold ${gearAlerts > 0 ? 'text-rose-500' : 'text-green-500'}`}>
               {gearAlerts} veículos atrasados
             </span>
@@ -425,12 +466,12 @@ export default function FleetPreventive() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {motorChanges.length === 0 ? (
+                {motorList.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-gray-400">Nenhum registro de troca de óleo de motor encontrado.</td>
                   </tr>
                 ) : (
-                  motorChanges.map((m) => {
+                  motorList.map((m) => {
                     const status = getOilChangeStatus(m.veiculo.kmAtual, m.proximaTrocaKm, m.proximaTrocaData);
                     return (
                       <tr key={m.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
@@ -480,12 +521,12 @@ export default function FleetPreventive() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {gearChanges.length === 0 ? (
+                {gearList.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-gray-400">Nenhum registro de troca de óleo de câmbio encontrado.</td>
                   </tr>
                 ) : (
-                  gearChanges.map((g) => {
+                  gearList.map((g) => {
                     const status = getOilChangeStatus(g.veiculo.kmAtual, g.proximaTrocaKm, g.proximaTrocaData);
                     return (
                       <tr key={g.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
