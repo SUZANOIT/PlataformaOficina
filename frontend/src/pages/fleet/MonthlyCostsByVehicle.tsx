@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Truck, Users, X } from 'lucide-react';
+import { Truck, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { ChartHover, chartMetricRow, chartRow, chartRows, formatChartCurrency, formatChartPercent, sharePercent } from '../../components/charts/ChartTooltip';
 
@@ -26,9 +26,9 @@ const brl = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', c
 const selectClass = 'rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm text-gray-800 dark:text-white';
 
 /** Evolução de custos mensais com filtro e separação por veículo. */
-export function MonthlyCostsByVehicle() {
+/** clienteId vem do filtro de cliente do topo do Dashboard de Frotas ('' = todos). */
+export function MonthlyCostsByVehicle({ clienteId = '' }: { clienteId?: string }) {
   const [meses, setMeses] = useState(6);
-  const [clienteId, setClienteId] = useState('');
   const [veiculoId, setVeiculoId] = useState('');
   const [data, setData] = useState<CostsData | null>(null);
   const [opcoes, setOpcoes] = useState<{ clientes: CostsData['clientes']; veiculos: CostsData['opcoesVeiculos'] }>({ clientes: [], veiculos: [] });
@@ -49,6 +49,8 @@ export function MonthlyCostsByVehicle() {
   }, [meses, clienteId, veiculoId]);
 
   useEffect(() => { setLimit(PAGE); }, [meses, clienteId, veiculoId]);
+  // Troca de cliente no topo: o veículo escolhido pode não ser dele
+  useEffect(() => { setVeiculoId(''); }, [clienteId]);
 
   const veiculoOptions = useMemo(
     () => opcoes.veiculos.filter(v => !clienteId || v.clienteId === clienteId),
@@ -81,14 +83,6 @@ export function MonthlyCostsByVehicle() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5">
-            <Users size={15} className="text-gray-400" />
-            <select aria-label="Filtrar custos por cliente" className={`${selectClass} w-44`} value={clienteId}
-              onChange={e => { setClienteId(e.target.value); setVeiculoId(''); }}>
-              <option value="">Todos os clientes</option>
-              {opcoes.clientes.map(c => <option key={c.clienteId} value={c.clienteId}>{c.cliente}</option>)}
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5">
             <Truck size={15} className="text-gray-400" />
             <select aria-label="Filtrar custos por veículo" className={`${selectClass} w-44`} value={veiculoId} onChange={e => setVeiculoId(e.target.value)}>
               <option value="">Todos os veículos</option>
@@ -98,8 +92,8 @@ export function MonthlyCostsByVehicle() {
           <select aria-label="Período dos custos" className={selectClass} value={meses} onChange={e => setMeses(Number(e.target.value))}>
             {(data?.periodos || [3, 6, 12]).map(m => <option key={m} value={m}>Últimos {m} meses</option>)}
           </select>
-          {(clienteId || veiculoId) && (
-            <button type="button" onClick={() => { setClienteId(''); setVeiculoId(''); }} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+          {veiculoId && (
+            <button type="button" onClick={() => setVeiculoId('')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
               <X size={13} /> Limpar
             </button>
           )}

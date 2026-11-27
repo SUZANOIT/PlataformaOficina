@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, ChevronDown, Clock, Users, WrenchIcon, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ChevronDown, Clock, Users, WrenchIcon } from 'lucide-react';
 import { api } from '../../services/api';
 
 interface Row {
@@ -26,11 +26,11 @@ const fmtDate = (v: string | null) => (v ? new Date(v).toLocaleDateString('pt-BR
 const periodLabel = (d: number) => (d === 365 ? '1 ano' : `${d} dias`);
 
 /** Dashboard: veículos ativos sem manutenção (OS, revisão, manutenção ou troca de óleo) no período. */
-export function VehiclesWithoutMaintenance() {
+/** clienteId vem do filtro de cliente do topo do Dashboard de Frotas ('' = todos). */
+export function VehiclesWithoutMaintenance({ clienteId = '' }: { clienteId?: string }) {
   const [dias, setDias] = useState(90);
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState('');
-  const [clienteId, setClienteId] = useState('');
   // Opções do filtro ficam guardadas entre as cargas (o select não pisca ao trocar)
   const [clientes, setClientes] = useState<Summary['clientes']>([]);
   const [closed, setClosed] = useState<Set<string>>(new Set());
@@ -74,24 +74,6 @@ export function VehiclesWithoutMaintenance() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-          <Users size={16} className="shrink-0 text-gray-400" />
-          <span className="sr-only">Cliente</span>
-          <select
-            aria-label="Filtrar por cliente"
-            value={clienteId}
-            onChange={e => setClienteId(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-1.5 text-sm font-semibold text-gray-800 dark:text-white sm:w-64"
-          >
-            <option value="">Todos os clientes</option>
-            {clientes.map(c => <option key={c.clienteId} value={c.clienteId}>{c.cliente}</option>)}
-          </select>
-          {clienteId && (
-            <button type="button" onClick={() => setClienteId('')} aria-label="Limpar filtro de cliente" className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700">
-              <X size={14} />
-            </button>
-          )}
-        </label>
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
           <Clock size={16} className="shrink-0 text-gray-400" />
           <span className="whitespace-nowrap">Sem manutenção há mais de</span>
