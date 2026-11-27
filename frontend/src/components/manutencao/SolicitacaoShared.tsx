@@ -83,11 +83,11 @@ export function SolicitacaoTimeline({ s }: { s: Solicitacao }) {
               <span className={`absolute left-[11px] top-6 h-[calc(100%-1rem)] w-px ${i < furthest ? 'bg-emerald-500' : 'bg-border'}`} aria-hidden="true" />
             )}
             <span className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
-              done ? 'border-emerald-500 bg-emerald-500 text-white' : current ? 'border-primary bg-card text-primary' : 'border-border bg-card text-muted-foreground'}`}>
+              done ? 'border-emerald-500 bg-emerald-500 text-white' : current ? 'border-primary bg-card text-link' : 'border-border bg-card text-muted-foreground'}`}>
               {done ? <Check size={13} strokeWidth={3} aria-hidden="true" /> : <Circle size={7} fill="currentColor" aria-hidden="true" />}
             </span>
             <div className="min-w-0 pt-0.5">
-              <p className={`text-sm ${done ? 'font-medium text-foreground' : current ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
+              <p className={`text-sm ${done ? 'font-medium text-foreground' : current ? 'font-semibold text-link' : 'text-muted-foreground'}`}>
                 {t.label}{current && <span className="ml-1.5 text-xs font-normal">(etapa atual)</span>}
               </p>
               {h && <p className="text-xs text-muted-foreground">{formatDateTime(h.createdAt)} · {h.responsavel}</p>}

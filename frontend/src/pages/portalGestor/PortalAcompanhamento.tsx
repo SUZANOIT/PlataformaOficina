@@ -104,7 +104,7 @@ export function PortalOrdensServico() {
                 {d.items.map((os: any) => (
                   <tr key={os.id} className="hover:bg-muted/40">
                     <td className="whitespace-nowrap px-4 py-2.5">
-                      <button type="button" onClick={() => update({ abrir: os.id }, false)} className="font-semibold text-primary hover:underline">#{os.numeroOrcamento}</button>
+                      <button type="button" onClick={() => update({ abrir: os.id }, false)} className="font-semibold text-link hover:underline">#{os.numeroOrcamento}</button>
                       {os.osExterna && <span className="block text-xs text-muted-foreground">OS ext. {os.osExterna}</span>}
                       {os.plataforma && <span className="block text-xs text-muted-foreground">{os.plataforma}</span>}
                     </td>
@@ -126,7 +126,7 @@ export function PortalOrdensServico() {
                             <CheckCircle2 size={14} aria-hidden="true" /> Aprovar OS
                           </button>
                         )}
-                        <button type="button" onClick={() => update({ abrir: os.id }, false)} className="text-sm font-medium text-primary hover:underline">
+                        <button type="button" onClick={() => update({ abrir: os.id }, false)} className="text-sm font-medium text-link hover:underline">
                           Ver
                         </button>
                       </div>
@@ -195,7 +195,7 @@ export function PortalDocumentos() {
                   <td className="px-4 py-2.5">{d.placa || '—'}</td>
                   <td className="px-4 py-2.5">{formatDate(d.data)}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <button type="button" disabled={busy === d.id} onClick={() => baixar(d)} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline disabled:opacity-50">
+                    <button type="button" disabled={busy === d.id} onClick={() => baixar(d)} className="inline-flex items-center gap-1.5 text-sm font-medium text-link hover:underline disabled:opacity-50">
                       <Download size={14} /> {busy === d.id ? 'Abrindo…' : 'Baixar'}
                     </button>
                   </td>

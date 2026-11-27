@@ -77,7 +77,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
     <div className="flex flex-col items-center gap-3 py-16 text-center text-sm text-muted-foreground">
       <AlertCircle size={28} className="text-rose-500" />
       <p>{message}</p>
-      {onRetry && <button type="button" onClick={onRetry} className="text-primary hover:underline">Tentar novamente</button>}
+      {onRetry && <button type="button" onClick={onRetry} className="text-link hover:underline">Tentar novamente</button>}
     </div>
   );
 }
